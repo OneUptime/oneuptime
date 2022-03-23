@@ -4,13 +4,14 @@ import { connect } from 'react-redux';
 import { getMonitorLogs } from '../../actions/monitor';
 //import MonitorLogsList from '../monitor/MonitorLogsList';
 import Select from '../../components/basic/Select';
+interface PerformanceViewProps {}
 //import ShouldRender from '../../components/basic/ShouldRender';
 //import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 //import moment from 'moment';
 
 //const endDate = moment();
 //const startDate = moment().subtract(30, 'd');
-export class PerformanceView extends Component {
+export class PerformanceView extends Component<PerformanceViewProps> {
     handleKeyBoard: $TSFixMe;
     /*  constructor(props) {
         super(props);
@@ -236,8 +237,6 @@ export class PerformanceView extends Component {
 
 PerformanceView.displayName = 'PerformanceView';
 
-
-PerformanceView.propTypes = {};
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
 

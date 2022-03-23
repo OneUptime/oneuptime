@@ -12,7 +12,22 @@ import ProbeDetail from '../modals/ProbeDetail';
 import DataPathHoC from '../DataPathHoC';
 import { API_URL } from '../../config';
 
-export class ProbeList extends Component {
+interface ProbeListProps {
+    probesList?: object;
+    skip?: number;
+    limit?: number;
+    count?: number;
+    requesting?: boolean;
+    data?: unknown[];
+    error?: object;
+    prevClicked?: Function;
+    nextClicked?: Function;
+    openModal?: Function;
+    closeModal?: Function;
+    page?: number;
+}
+
+export class ProbeList extends Component<ProbeListProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { ProbeDetailModalId: uuidv4() };

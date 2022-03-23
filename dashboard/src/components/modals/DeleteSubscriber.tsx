@@ -6,7 +6,13 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
-class DeleteSubscriber extends Component {
+interface DeleteSubscriberProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    data?: object;
+}
+
+class DeleteSubscriber extends Component<DeleteSubscriberProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

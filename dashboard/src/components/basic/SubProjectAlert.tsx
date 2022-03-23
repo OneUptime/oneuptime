@@ -3,7 +3,13 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 
-class SubProjectAlert extends Component {
+interface SubProjectAlertProps {
+    currentProject?: object;
+    activeSubProjectId?: string;
+    subProjects?: unknown[];
+}
+
+class SubProjectAlert extends Component<SubProjectAlertProps> {
     render() {
 
         const { currentProject, subProjects, activeSubProjectId } = this.props;

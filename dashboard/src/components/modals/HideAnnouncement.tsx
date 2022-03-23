@@ -14,7 +14,20 @@ import {
     fetchAnnouncementLogs,
 } from '../../actions/statusPage';
 
-class HideAnnouncement extends Component {
+interface HideAnnouncementProps {
+    closeThisDialog?: Function;
+    data?: object;
+    updateAnnouncement?: Function;
+    requesting?: boolean;
+    updateError?: string;
+    modalId?: string;
+    statusPage?: object;
+    resetDeleteAnnouncement?: Function;
+    fetchAnnouncements?: Function;
+    fetchAnnouncementLogs?: Function;
+}
+
+class HideAnnouncement extends Component<HideAnnouncementProps> {
     componentDidMount() {
 
         this.props.resetDeleteAnnouncement();

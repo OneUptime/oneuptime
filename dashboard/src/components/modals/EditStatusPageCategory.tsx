@@ -22,7 +22,16 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class EditStatusPageCategory extends React.Component {
+interface EditStatusPageCategoryProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    updateStatusPageCategory: Function;
+    data?: object;
+    updatingCategory?: boolean;
+    updateError?: string;
+}
+
+class EditStatusPageCategory extends React.Component<EditStatusPageCategoryProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

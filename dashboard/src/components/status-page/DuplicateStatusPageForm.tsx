@@ -24,7 +24,19 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class StatusPageForm extends React.Component {
+interface StatusPageFormProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    openModal: Function;
+    createDuplicateStatusPage?: Function;
+    duplicateModalId: string;
+    statusPage?: object;
+    currentProject?: object;
+    data: object;
+    subProjects?: unknown[];
+}
+
+export class StatusPageForm extends React.Component<StatusPageFormProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

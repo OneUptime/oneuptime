@@ -15,7 +15,22 @@ import getParentRoute from '../utils/getParentRoute';
 import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 
-class AlertLog extends Component {
+interface AlertLogProps {
+    fetchAlert?: Function;
+    fetchProjectAlert?: Function;
+    currentProject: object;
+    alerts?: object;
+    error?: object;
+    isRequesting?: boolean;
+    subProjects: unknown[];
+    location?: {
+        pathname?: string
+    };
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+}
+
+class AlertLog extends Component<AlertLogProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {};

@@ -15,7 +15,16 @@ import CreateManualIncident from '../modals/CreateManualIncident';
 
 import DropDownMenu from '../basic/DropDownMenu';
 
-export class MonitorViewIncidentBox extends Component {
+interface MonitorViewIncidentBoxProps {
+    componentId: string;
+    monitor: object;
+    fetchMonitorsIncidents: Function;
+    openModal?: Function;
+    create?: boolean;
+    closeModal?: Function;
+}
+
+export class MonitorViewIncidentBox extends Component<MonitorViewIncidentBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

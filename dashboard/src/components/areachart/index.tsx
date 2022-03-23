@@ -20,10 +20,15 @@ const noDataStyle = {
     flexBasis: 1,
 };
 
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: unknown[];
+}
+
 const CustomTooltip = ({
     active,
     payload
-}: $TSFixMe) => {
+}: CustomTooltipProps) => {
     if (active) {
         return (
             <div className="custom-tooltip">
@@ -48,7 +53,17 @@ CustomTooltip.propTypes = {
     active: PropTypes.bool,
     payload: PropTypes.array,
 };
-class AreaChart extends Component {
+
+interface AreaChartProps {
+    data?: unknown[];
+    type: string;
+    name?: string;
+    symbol?: string;
+    requesting?: boolean;
+    initMonitorScanning?: boolean;
+}
+
+class AreaChart extends Component<AreaChartProps> {
     parseValue(data: $TSFixMe, name: $TSFixMe, display: $TSFixMe, symbol: $TSFixMe) {
         switch (name) {
             case 'load':

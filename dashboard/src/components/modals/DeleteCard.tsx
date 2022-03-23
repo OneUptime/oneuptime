@@ -10,7 +10,17 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
-class DeleteCard extends Component {
+interface DeleteCardProps {
+    deleteCard?: object;
+    userId?: string;
+    deleteCardId?: string;
+    closeModal: Function;
+    deleteCardModalId?: string;
+    requesting?: boolean;
+    error?: string;
+}
+
+class DeleteCard extends Component<DeleteCardProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

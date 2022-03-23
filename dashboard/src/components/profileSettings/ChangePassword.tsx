@@ -37,7 +37,15 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class ChangePasswordSetting extends Component {
+interface ChangePasswordSettingProps {
+    handleSubmit: Function;
+    reset: Function;
+    updateChangePasswordSetting: Function;
+    profileSettings?: object;
+    openModal: Function;
+}
+
+export class ChangePasswordSetting extends Component<ChangePasswordSettingProps> {
     state = {
         MessageBoxId: uuidv4(),
     };

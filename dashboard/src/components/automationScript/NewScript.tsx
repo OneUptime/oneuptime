@@ -25,7 +25,23 @@ const defaultScript =
     '   // write any javascript here \n' +
     '   done();\n' +
     '}\n';
-class NewScript extends Component {
+
+interface NewScriptProps {
+    createAutomatedScript: Function;
+    handleSubmit: Function;
+    addScriptsError?: string;
+    requesting?: boolean;
+    resetScripts?: Function;
+    script?: unknown[];
+    fetchAutomatedScript?: Function;
+    schedules?: unknown[];
+    successEventValues?: unknown[];
+    failureEventValues?: unknown[];
+    toggleNewScript?: Function;
+    activeProject?: string;
+}
+
+class NewScript extends Component<NewScriptProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

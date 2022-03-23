@@ -11,7 +11,18 @@ import {
     fetchStatusPageCategories,
 } from '../../actions/statusPageCategory';
 
-class RemoveResourceCategory extends Component {
+interface RemoveResourceCategoryProps {
+    closeModal: Function;
+    deleteStatusPageCategory?: Function;
+    deletingCategory?: boolean;
+    deleteError?: string;
+    data?: object;
+    skip?: number;
+    limit?: number;
+    fetchStatusPageCategories?: Function;
+}
+
+class RemoveResourceCategory extends Component<RemoveResourceCategoryProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -8,7 +8,14 @@ import ClickOutside from 'react-click-outside';
 import { addScheduleEvent } from '../../actions/scheduledEvent';
 import moment from 'moment';
 
-class ScheduleHeaderModal extends Component {
+interface ScheduleHeaderModalProps {
+    closeThisDialog: Function;
+    currentProjectSlug?: string;
+    data?: object;
+    addScheduleEvent?: Function;
+}
+
+class ScheduleHeaderModal extends Component<ScheduleHeaderModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

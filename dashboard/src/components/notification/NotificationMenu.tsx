@@ -17,7 +17,22 @@ import MessageBox from '../modals/MessageBox';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config';
 
-class NotificationMenu extends Component {
+interface NotificationMenuProps {
+    markAsRead?: Function;
+    markAllAsRead?: Function;
+    billingActionTaken?: Function;
+    notifications?: object;
+    length?: number;
+    map?: Function;
+    stripe?: object;
+    notificationsVisible?: boolean;
+    openModal?: Function;
+    balance?: number;
+    projectId?: string;
+    position?: number;
+}
+
+class NotificationMenu extends Component<NotificationMenuProps> {
     state = {
         MessageBoxId: uuidv4(),
     };

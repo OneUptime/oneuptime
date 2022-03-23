@@ -8,7 +8,21 @@ import ClickOutside from 'react-click-outside';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 import { User } from '../../config';
 
-class ConfirmChangeRole extends Component {
+interface ConfirmChangeRoleProps {
+    closeModal?: Function;
+    ConfirmationDialogId?: string;
+    data?: {
+        updateTeamMemberRole?: Function,
+        ConfirmationDialogId?: string,
+        name?: string,
+        values?: object,
+        role?: string,
+        userId?: string,
+        newRole?: string
+    };
+}
+
+class ConfirmChangeRole extends Component<ConfirmChangeRoleProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -10,7 +10,14 @@ import { history } from '../../store';
 
 import { Fade } from 'react-awesome-reveal';
 
-class IncidentCreated extends Component {
+interface IncidentCreatedProps {
+    notifications?: unknown[];
+    markAsRead?: Function;
+    closeNotification?: Function;
+    slug?: object;
+}
+
+class IncidentCreated extends Component<IncidentCreatedProps> {
     markAsRead = (notification: $TSFixMe) => {
         const {
             projectId,

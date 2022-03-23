@@ -2,7 +2,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 
-export default class NoItemsMessage extends Component {
+interface NoItemsMessageProps {
+    isLoading: boolean;
+    itemsCount?: number;
+    noItemsMessage?: string;
+}
+
+export default class NoItemsMessage extends Component<NoItemsMessageProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

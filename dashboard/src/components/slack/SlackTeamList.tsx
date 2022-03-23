@@ -8,7 +8,14 @@ import { getSlackTeams, paginate } from '../../actions/slack';
 import { OnCallTableHeader } from '../onCall/OnCallData';
 import { ListLoader } from '../basic/Loader';
 
-class SlackTeamList extends React.Component {
+interface SlackTeamListProps {
+    getSlackTeams?: Function;
+    projectId?: string;
+    teams?: any;
+    paginate: Function;
+}
+
+class SlackTeamList extends React.Component<SlackTeamListProps> {
     handleKeyBoard: $TSFixMe;
     ready() {
         const {

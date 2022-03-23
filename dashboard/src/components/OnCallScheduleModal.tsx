@@ -4,7 +4,14 @@ import moment from 'moment-timezone';
 
 import ClickOutside from 'react-click-outside';
 import { history } from '../store';
-class OnCallScheduleModal extends Component {
+
+interface OnCallScheduleModalProps {
+    closeThisDialog: Function;
+    currentProjectSlug?: string;
+    data?: object;
+}
+
+class OnCallScheduleModal extends Component<OnCallScheduleModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -10,7 +10,19 @@ import { closeModal } from 'common-ui/actions/modal';
 import { history } from '../../store';
 import { deleteApplicationSecurity } from '../../actions/security';
 
-class DeleteApplicationSecurity extends Component {
+interface DeleteApplicationSecurityProps {
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    deleteApplicationError?: string;
+    deleteApplicationSecurity?: Function;
+    closeModal?: Function;
+    modalId?: string;
+    slug?: string;
+    componentSlug?: string;
+    propArr?: unknown[];
+}
+
+class DeleteApplicationSecurity extends Component<DeleteApplicationSecurityProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

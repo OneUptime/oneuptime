@@ -35,7 +35,22 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class Branding extends Component {
+interface BrandingProps {
+    statusPage: object;
+    handleSubmit: Function;
+    resetLogoCache: Function;
+    createFaviconCache: Function;
+    currentProject: Function;
+    resetFaviconCache: Function;
+    updateStatusPageName: Function;
+    createLogoCache: Function;
+    logourl?: string;
+    reset: Function;
+    fetchProjectStatusPage: Function;
+    faviconurl?: string;
+}
+
+export class Branding extends Component<BrandingProps> {
     changelogo = (e: $TSFixMe) => {
         e.preventDefault();
 

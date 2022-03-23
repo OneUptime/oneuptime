@@ -5,12 +5,19 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import AffectedResources from '../basic/AffectedResources';
 
+interface OngoingScheduledEventProps {
+    event?: object;
+    monitorList?: unknown[];
+    history?: object;
+    slug?: string;
+}
+
 const OngoingScheduledEvent = ({
     event,
     monitorList,
     history,
     slug
-}: $TSFixMe) => {
+}: OngoingScheduledEventProps) => {
     let monitorState: $TSFixMe = [];
     monitorList.forEach((list: $TSFixMe) => {
         if (

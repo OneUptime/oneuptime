@@ -7,7 +7,17 @@ import { fetchComponentIssues } from '../../actions/component';
 import { fetchErrorTrackers } from '../../actions/errorTracker';
 import { ErrorTrackerList } from '../errorTracker/ErrorTrackerList';
 
-class ComponentIssue extends Component {
+interface ComponentIssueProps {
+    currentProjectId: string;
+    component?: object;
+    currentProject: object;
+    fetchErrorTrackers?: Function;
+    errorTrackers?: unknown[];
+    trackerSkip?: number;
+    trackerLimit?: number;
+}
+
+class ComponentIssue extends Component<ComponentIssueProps> {
     componentDidMount() {
         const {
 

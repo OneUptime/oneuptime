@@ -7,7 +7,16 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import { closeModal } from 'common-ui/actions/modal';
 
-class ConfirmResetLayout extends Component {
+interface ConfirmResetLayoutProps {
+    closeModal?: Function;
+    closeThisDialog: Function;
+    statusPage?: object;
+    data?: object;
+    resetBrandingColors?: Function;
+    resetLayoutToDefault?: Function;
+}
+
+class ConfirmResetLayout extends Component<ConfirmResetLayoutProps> {
     state = {
         requesting: false,
     };

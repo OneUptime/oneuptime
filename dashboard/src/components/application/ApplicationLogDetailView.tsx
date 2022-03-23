@@ -9,7 +9,17 @@ import AlertPanel from '../basic/AlertPanel';
 import LogTail from './LogTail';
 import SearchInput from '../search/SearchInput';
 
-class ApplicationLogDetailView extends Component {
+interface ApplicationLogDetailViewProps {
+    projectId?: string;
+    componentId?: string;
+    applicationLog?: object;
+    applicationLogId?: string;
+    fetchLogs?: Function;
+    stats?: object;
+    logs?: object;
+}
+
+class ApplicationLogDetailView extends Component<ApplicationLogDetailViewProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

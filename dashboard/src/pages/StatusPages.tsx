@@ -10,7 +10,18 @@ import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
-class StatusPages extends Component {
+interface StatusPagesProps {
+    projectId: string;
+    tutorialStat?: object;
+    switchToProjectViewerNav?: boolean;
+    currentProject?: object;
+    location?: {
+        pathname?: string
+    };
+    activeProjectId?: string;
+}
+
+class StatusPages extends Component<StatusPagesProps> {
     render() {
         const {
 

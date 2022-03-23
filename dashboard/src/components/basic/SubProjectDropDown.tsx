@@ -2,13 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { PropTypes } from 'prop-types';
 
+interface DropDownMenuProps {
+    options?: unknown[];
+    value?: string;
+    updateState?: Function;
+    ready?: boolean;
+    showMainProject?: boolean;
+}
+
 const DropDownMenu = ({
     options,
     value,
     updateState,
     ready,
     showMainProject
-}: $TSFixMe) => {
+}: DropDownMenuProps) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 

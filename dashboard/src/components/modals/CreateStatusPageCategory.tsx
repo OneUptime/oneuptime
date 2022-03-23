@@ -25,7 +25,19 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class CreateStatusPageCategory extends React.Component {
+interface CreateStatusPageCategoryProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    creatingCategory?: boolean;
+    createError?: string;
+    createStatusPageCategory?: Function;
+    data?: object;
+    fetchStatusPageCategories?: Function;
+    skip?: number;
+    limit?: number;
+}
+
+export class CreateStatusPageCategory extends React.Component<CreateStatusPageCategoryProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

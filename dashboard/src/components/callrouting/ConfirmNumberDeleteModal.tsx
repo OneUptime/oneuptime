@@ -4,7 +4,12 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ConfirmNumberDeleteModal extends Component {
+interface ConfirmNumberDeleteModalProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+}
+
+class ConfirmNumberDeleteModal extends Component<ConfirmNumberDeleteModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

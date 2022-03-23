@@ -14,7 +14,18 @@ import {
     fetchOutgoingMetrics,
 } from '../../actions/performanceTrackerMetric';
 
-class DeletePerformanceMetric extends Component {
+interface DeletePerformanceMetricProps {
+    closeModal: Function;
+    data?: object;
+    incomingMetrics?: object;
+    outgoingMetrics?: object;
+    deleteIncomingMetrics?: Function;
+    deleteOutgoingMetrics?: Function;
+    fetchIncomingMetrics?: Function;
+    fetchOutgoingMetrics?: Function;
+}
+
+class DeletePerformanceMetric extends Component<DeletePerformanceMetricProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

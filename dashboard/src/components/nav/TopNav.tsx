@@ -38,7 +38,48 @@ import { showSearchBar, closeSearchBar } from '../../actions/search';
 
 import ClickOutside from 'react-click-outside';
 
-class TopContent extends Component {
+interface TopContentProps {
+    getVersion?: Function;
+    openSideNav?: Function;
+    userSettings: Function;
+    openFeedbackModal: Function;
+    closeFeedbackModal: Function;
+    showProfileMenu: Function;
+    openNotificationMenu: Function;
+    showSearchBar: Function;
+    closeSearchBar: Function;
+    searchFieldVisible?: boolean;
+    profilePic?: string;
+    notifications?: object;
+    incidents?: {
+        incidents?: unknown[]
+    };
+    length?: number;
+    map?: Function;
+    currentProject?: object;
+    fetchSubProjectOngoingScheduledEvents?: Function;
+    monitors?: {
+        count?: number
+    };
+    subProjectOngoingScheduledEvents?: unknown[];
+    openModal: Function;
+    escalations?: unknown[];
+    fetchUserSchedule?: Function;
+    userScheduleRequest?: Function;
+    user: object;
+    currentProjectId: string;
+    currentProjectSlug: string;
+    updateProfileSetting: Function;
+    project?: object;
+    subProjects?: unknown[];
+    fetchingSubProjects?: boolean;
+    setActiveSubProject?: Function;
+    activeSubProject?: string;
+    fetchMonitors?: Function;
+    resetCreateFeedback?: Function;
+}
+
+class TopContent extends Component<TopContentProps> {
     ArrowDown: $TSFixMe;
     state = { width: 0 };
     updateDimensions = () => {

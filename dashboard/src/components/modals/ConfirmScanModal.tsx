@@ -10,7 +10,17 @@ import {
     scanApplicationSecurity,
 } from '../../actions/security';
 
-class ConfirmScanModal extends Component {
+interface ConfirmScanModalProps {
+    closeThisDialog: Function;
+    closeModal: Function;
+    scanContainerSecurity: Function;
+    scanApplicationSecurity: Function;
+    projectId: Function;
+    propArr?: unknown[];
+    containerSecurityId: Function;
+}
+
+class ConfirmScanModal extends Component<ConfirmScanModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -15,7 +15,24 @@ import NewPerformanceTracker from '../components/performanceTracker/NewPerforman
 import { fetchComponent } from '../actions/component';
 import PerformanceTrackerList from '../components/performanceTracker/PerformanceTrackerList';
 
-class PerformanceTracker extends Component {
+interface PerformanceTrackerProps {
+    location?: {
+        pathname?: string
+    };
+    component?: object;
+    componentId?: string;
+    componentSlug?: string;
+    loadPage?: Function;
+    currentProject?: object;
+    fetchPerformanceTrackers?: Function;
+    performanceTrackerList?: object;
+    fetchComponent?: Function;
+    projectSlug?: string;
+    switchToProjectViewerNav?: boolean;
+    numberOfPage?: number;
+}
+
+class PerformanceTracker extends Component<PerformanceTrackerProps> {
     state = {
         showNewPerformanceTrackerForm: false,
         page: 1,

@@ -38,7 +38,14 @@ const getListStyle = (isDraggingOver: $TSFixMe) => ({
     width: '30rem',
     height: '90%'
 });
-export class StatusPageLayout extends Component {
+
+interface StatusPageLayoutProps {
+    statusPage: object;
+    updateStatusPageLayout?: Function;
+    openModal?: Function;
+}
+
+export class StatusPageLayout extends Component<StatusPageLayoutProps> {
     state = {
         visible: [
             { name: 'Header', key: 'header' },

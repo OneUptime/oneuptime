@@ -9,7 +9,15 @@ import ShouldRender from '../basic/ShouldRender';
 
 import { updateDefaultIncidentSettings } from '../../actions/incidentBasicsSettings';
 
-class SetDefaultIncidentPriority extends Component {
+interface SetDefaultIncidentPriorityProps {
+    updateDefaultIncidentSettings: Function;
+    closeThisDialog: Function;
+    currentProject: object;
+    updatedIncident?: object;
+    data: object;
+}
+
+class SetDefaultIncidentPriority extends Component<SetDefaultIncidentPriorityProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

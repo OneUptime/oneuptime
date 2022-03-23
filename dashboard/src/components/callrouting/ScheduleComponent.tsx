@@ -11,7 +11,55 @@ import { ValidateField } from '../../config';
 import { UploadFile } from '../basic/UploadFile';
 import { FormLoader2 } from '../basic/Loader';
 
-export class ScheduleComponent extends Component {
+interface ScheduleComponentProps {
+    backup?: any;
+    changeBackupButton?: any;
+    changeBackupFile?: any;
+    changeButton?: any;
+    changefile?: any;
+    data?: {
+        callRoutingId?: any,
+        number?: any
+    };
+    disabled?: any;
+    introAudioState?: {
+        requesting?: any
+    };
+    removeBackupIntroAudioState?: {
+        callRoutingId?: any,
+        requesting?: any
+    };
+    removeIntroAudio?: Function;
+    removeIntroAudioState?: {
+        callRoutingId?: any,
+        requesting?: any
+    };
+    schedules?: {
+        map?: Function
+    };
+    stateData?: {
+        backupFileName?: any,
+        backupFileUploaded?: any,
+        currentBackupButton?: string,
+        currentButton?: string,
+        fileName?: any,
+        fileUploaded?: any,
+        showAdvance?: any
+    };
+    teamMembers?: {
+        map?: Function
+    };
+    uploadBackupIntroAudioState?: {
+        callRoutingId?: any,
+        requesting?: any
+    };
+    uploadIntroAudioState?: {
+        callRoutingId?: any,
+        requesting?: any
+    };
+}
+
+export class ScheduleComponent extends Component<ScheduleComponentProps> {
     render() {
         const {
 

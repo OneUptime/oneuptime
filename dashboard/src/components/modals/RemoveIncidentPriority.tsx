@@ -8,7 +8,15 @@ import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteIncidentPriority as deleteIncidentPriorityAction } from '../../actions/incidentPriorities';
 
-class RemoveIncidentPriority extends Component {
+interface RemoveIncidentPriorityProps {
+    closeThisDialog: Function;
+    deleteIncidentPriorityAction: Function;
+    currentProject: object;
+    data: object;
+    deleteIncidentPriority: object;
+}
+
+class RemoveIncidentPriority extends Component<RemoveIncidentPriorityProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

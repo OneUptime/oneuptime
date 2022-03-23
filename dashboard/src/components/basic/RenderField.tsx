@@ -1,6 +1,26 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface RenderFieldProps {
+    initialValue?: string | boolean;
+    input: object;
+    placeholder?: string;
+    type?: string;
+    className?: string;
+    id?: string;
+    meta: object;
+    rows?: string;
+    disabled?: boolean;
+    style?: object;
+    required?: boolean;
+    autoFocus?: boolean;
+    parentStyle?: object;
+    autoComplete?: string;
+    autofilled?: string;
+    handleFocus?: Function;
+    handleBlur?: Function;
+}
+
 const RenderField = ({
     input,
     placeholder,
@@ -17,7 +37,7 @@ const RenderField = ({
     parentStyle = {},
     handleFocus,
     handleBlur
-}: $TSFixMe) => (
+}: RenderFieldProps) => (
     <span style={{ width: '100%', ...parentStyle }}>
         <span>
             <input

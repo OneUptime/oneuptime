@@ -25,7 +25,33 @@ import { capitalize } from '../config';
 import Badge from './basic/Badge';
 const countNum = 10;
 
-class NotesMain extends Component {
+interface NotesMainProps {
+    noteData?: object;
+    notesmessage?: string;
+    individualnote?: object;
+    getStatusPageNote?: Function;
+    getStatusPageIndividualNote?: Function;
+    getMoreNote?: Function;
+    requestingmore?: boolean;
+    projectId?: string;
+    statusPageSlug?: string;
+    openSubscribeMenu?: Function;
+    subscribed?: boolean;
+    skip?: number;
+    count?: number;
+    statusPageId?: string;
+    isSubscriberEnabled: boolean;
+    statusPage?: object;
+    fetchLastIncidentTimelines?: Function;
+    lastIncidentTimelines?: unknown[];
+    fetchingIncidentTimelines?: boolean;
+    showIncidentCard?: Function;
+    showIncidentCardState?: boolean;
+    theme?: string;
+    history?: object;
+}
+
+class NotesMain extends Component<NotesMainProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

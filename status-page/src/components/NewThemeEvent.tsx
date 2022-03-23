@@ -88,7 +88,17 @@ const AffectedResources = ({
         </>;
     }
 };
-class NewThemeEvent extends Component {
+
+interface NewThemeEventProps {
+    events?: unknown[];
+    filteredEvents?: object;
+    noteBackgroundColor?: object;
+    monitorState?: unknown[];
+    statusPageSlug?: string;
+    history?: object;
+}
+
+class NewThemeEvent extends Component<NewThemeEventProps> {
     render() {
         const checkDuplicateDates = (items: $TSFixMe) => {
             const track = {};

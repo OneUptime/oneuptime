@@ -5,7 +5,9 @@ import RoutingNumberList from './RoutingNumberList';
 import RoutingNumberButton from './RoutingNumberButton';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 
-class RoutingNumberBox extends React.Component {
+interface RoutingNumberBoxProps {}
+
+class RoutingNumberBox extends React.Component<RoutingNumberBoxProps> {
     render() {
         return (
             <div className="Box-root Margin-vertical--12">
@@ -53,7 +55,5 @@ class RoutingNumberBox extends React.Component {
 
 RoutingNumberBox.displayName = 'RoutingNumberBox';
 
-
-RoutingNumberBox.propTypes = {};
 
 export default withRouter(RoutingNumberBox);

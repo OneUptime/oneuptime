@@ -13,7 +13,29 @@ import { Spinner, FormLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';
 
-export class RoutingNumberList extends Component {
+interface RoutingNumberListProps {
+    allNumbers?: {
+        requesting?: any
+    };
+    callRoutingNumbers?: object;
+    currentProject?: {
+        _id?: any
+    };
+    openModal?: Function;
+    removeNumber?: {
+        requesting?: any
+    };
+    removeNumbers?: Function;
+    schedules?: {
+        find?: Function
+    };
+    teamMembers?: {
+        find?: Function
+    };
+    getCallRoutingNumbers?: Function;
+}
+
+export class RoutingNumberList extends Component<RoutingNumberListProps> {
     removeNumber = async (callRoutingId: $TSFixMe) => {
 
         const { currentProject, removeNumbers } = this.props;

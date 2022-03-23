@@ -2,6 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Select from '../../components/basic/Select';
 
+interface RenderRotationFrequencyProps {
+    input: object;
+    placeholder?: string;
+    className?: string;
+    meta: object;
+    disabled?: boolean;
+    style?: object;
+    options: unknown[];
+    message?: string;
+    id?: string;
+}
+
 const RenderRotationFrequency = ({
     input,
     placeholder,
@@ -12,7 +24,7 @@ const RenderRotationFrequency = ({
     options = [{ value: '', label: 'Select' }],
     message,
     id
-}: $TSFixMe) => {
+}: RenderRotationFrequencyProps) => {
     const filteredOpt = useRef();
 
     filteredOpt.current = options.filter(opt => opt.value === input.value);

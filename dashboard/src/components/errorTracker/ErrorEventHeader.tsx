@@ -6,7 +6,19 @@ import moment from 'moment';
 import { ListLoader, FormLoader2 } from '../basic/Loader';
 import TooltipMini from '../basic/TooltipMini';
 
-class ErrorEventHeader extends Component {
+interface ErrorEventHeaderProps {
+    errorEvent?: object;
+    navigationLink?: Function;
+    errorTrackerIssue?: object;
+    ignoreErrorEvent?: Function;
+    unresolveErrorEvent?: Function;
+    resolveErrorEvent?: Function;
+    errorTrackerStatus?: object;
+    openDeleteModal?: Function;
+    errorTrackerState?: object;
+}
+
+class ErrorEventHeader extends Component<ErrorEventHeaderProps> {
     navigate = (currentId: $TSFixMe) => {
         if (currentId) {
 
@@ -131,14 +143,14 @@ class ErrorEventHeader extends Component {
                                         content={
                                             <button
                                                 className={`bs-Button ${errorTrackerStatus &&
-                                                        errorTrackerStatus[
+                                                    errorTrackerStatus[
+                                                    errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                        ] &&
-                                                        errorTrackerStatus[
-                                                            errorTrackerIssue._id
-                                                        ].requestingResolve
-                                                        ? ''
-                                                        : 'bs-Button--icon bs-Button--check'
+                                                    ].requestingResolve
+                                                    ? ''
+                                                    : 'bs-Button--icon bs-Button--check'
                                                     }  `}
                                                 type="button"
                                                 onClick={() =>
@@ -196,14 +208,14 @@ class ErrorEventHeader extends Component {
                                         content={
                                             <button
                                                 className={`bs-Button ${errorTrackerStatus &&
-                                                        errorTrackerStatus[
+                                                    errorTrackerStatus[
+                                                    errorTrackerIssue._id
+                                                    ] &&
+                                                    errorTrackerStatus[
                                                         errorTrackerIssue._id
-                                                        ] &&
-                                                        errorTrackerStatus[
-                                                            errorTrackerIssue._id
-                                                        ].requestingIgnore
-                                                        ? ''
-                                                        : 'bs-Button--icon bs-Button--block'
+                                                    ].requestingIgnore
+                                                    ? ''
+                                                    : 'bs-Button--icon bs-Button--block'
                                                     }  `}
                                                 type="button"
                                                 onClick={() =>
@@ -239,14 +251,14 @@ class ErrorEventHeader extends Component {
                                     />
                                     <button
                                         className={`bs-Button ${errorTrackerStatus &&
-                                                errorTrackerStatus[
+                                            errorTrackerStatus[
+                                            errorTrackerIssue._id
+                                            ] &&
+                                            errorTrackerStatus[
                                                 errorTrackerIssue._id
-                                                ] &&
-                                                errorTrackerStatus[
-                                                    errorTrackerIssue._id
-                                                ].requestingResolve
-                                                ? ''
-                                                : 'bs-Button--icon bs-Button--delete'
+                                            ].requestingResolve
+                                            ? ''
+                                            : 'bs-Button--icon bs-Button--delete'
                                             }  `}
                                         disabled={deleting}
                                         type="button"
@@ -308,8 +320,8 @@ class ErrorEventHeader extends Component {
                                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <img
                                                         src={`/dashboard/assets/img/previous${errorEvent.previous
-                                                                ? ''
-                                                                : '-disable'
+                                                            ? ''
+                                                            : '-disable'
                                                             }.svg`}
                                                         alt=""
                                                         style={{
@@ -394,8 +406,8 @@ class ErrorEventHeader extends Component {
                                                 <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
                                                     <img
                                                         src={`/dashboard/assets/img/next${errorEvent.next
-                                                                ? ''
-                                                                : '-disable'
+                                                            ? ''
+                                                            : '-disable'
                                                             }.svg`}
                                                         alt=""
                                                         style={{

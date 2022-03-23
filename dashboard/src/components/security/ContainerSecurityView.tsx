@@ -14,6 +14,21 @@ import ShouldRender from '../basic/ShouldRender';
 import EditContainerSecurity from '../modals/EditContainerSecurity';
 import threatLevel from '../../utils/threatLevel';
 
+interface ContainerSecurityViewProps {
+    containerSecurityId?: string;
+    containerSecuritySlug?: string;
+    projectId?: string;
+    componentId?: string;
+    componentSlug?: string;
+    openModal?: Function;
+    scanning?: boolean;
+    securityLog?: object;
+    containerSecurity?: object;
+    scanError?: string;
+    activeContainerSecurity?: string;
+    scannedStatus?: string;
+}
+
 const ContainerSecurityView = ({
     containerSecurityId,
     containerSecuritySlug,
@@ -27,7 +42,7 @@ const ContainerSecurityView = ({
     scanError,
     activeContainerSecurity,
     scannedStatus
-}: $TSFixMe) => {
+}: ContainerSecurityViewProps) => {
     const handleSubmit = ({
         projectId,
         containerSecurityId

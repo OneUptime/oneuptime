@@ -2,6 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Select from './Select';
 
+interface RenderSelectProps {
+    input: object;
+    placeholder?: string;
+    className?: string;
+    meta: object;
+    disabled?: boolean;
+    style?: object;
+    options: unknown[];
+    message?: string;
+    id?: string;
+    autoFocus?: boolean;
+}
+
 const RenderSelect = ({
     input,
     placeholder,
@@ -13,7 +26,7 @@ const RenderSelect = ({
     message,
     id,
     autoFocus
-}: $TSFixMe) => {
+}: RenderSelectProps) => {
     const filteredOpt = useRef();
 
     filteredOpt.current = options.filter(opt => opt.value === input.value);

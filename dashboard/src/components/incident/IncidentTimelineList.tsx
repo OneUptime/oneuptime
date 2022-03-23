@@ -8,7 +8,18 @@ import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
-const IncidentTimelineList = (props: $TSFixMe) => {
+interface IncidentTimelineListProps {
+    incident?: object;
+    nextClicked: Function;
+    prevClicked: Function;
+    count?: string | number;
+    skip?: string | number;
+    limit?: string | number;
+    requesting?: boolean;
+    error?: any;
+}
+
+const IncidentTimelineList = (props: IncidentTimelineListProps) => {
     const {
         incident: { timeline },
         prevClicked,

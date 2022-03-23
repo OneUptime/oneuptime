@@ -16,7 +16,20 @@ import {
     updateGitCredential,
 } from '../../actions/credential';
 
-class GitCredentialModal extends Component {
+interface GitCredentialModalProps {
+    isRequesting?: boolean;
+    addCredentialError?: string;
+    propArr?: unknown[];
+    projectId?: string;
+    addGitCredential?: Function;
+    closeModal?: Function;
+    handleSubmit?: Function;
+    updateGitCredential?: Function;
+    updateCredentialError?: string;
+    updatingCredential?: boolean;
+}
+
+class GitCredentialModal extends Component<GitCredentialModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

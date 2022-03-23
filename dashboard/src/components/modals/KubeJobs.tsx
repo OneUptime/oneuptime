@@ -10,7 +10,14 @@ import KubeIndicator from '../monitor/KubeIndicator';
 import DataPathHoC from '../DataPathHoC';
 import KubeJobData from './KubeJobData';
 
-class KubeJobs extends React.Component {
+interface KubeJobsProps {
+    closeModal: Function;
+    openModal?: Function;
+    data?: object;
+    modals?: unknown[];
+}
+
+class KubeJobs extends React.Component<KubeJobsProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

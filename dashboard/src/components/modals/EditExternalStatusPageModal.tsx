@@ -13,7 +13,16 @@ import { updateExternalStatusPage } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 
-class EditExternalStatusPagesModal extends Component {
+interface EditExternalStatusPagesModalProps {
+    externalStatusPageModalId?: string;
+    updateExternalStatusPage?: Function;
+    handleSubmit: Function;
+    statusPage: object;
+    data?: object;
+    closeModal: Function;
+}
+
+class EditExternalStatusPagesModal extends Component<EditExternalStatusPagesModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

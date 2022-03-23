@@ -31,7 +31,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class CreateAnnouncement extends Component {
+interface CreateAnnouncementProps {
+    closeModal?: Function;
+    createScheduledEventModalId?: string;
+    handleSubmit: Function;
+    formValues?: object;
+    mergeMonitors?: unknown[];
+    createAnnouncement?: Function;
+    fetchAnnouncements?: Function;
+    requesting?: boolean;
+    createError?: string;
+    data?: object;
+    change?: Function;
+}
+
+class CreateAnnouncement extends Component<CreateAnnouncementProps> {
     state = {
         monitorError: null,
     };

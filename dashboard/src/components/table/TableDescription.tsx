@@ -1,6 +1,11 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-export default class TableDescription extends Component {
+
+interface TableDescriptionProps {
+    description?: string;
+}
+
+export default class TableDescription extends Component<TableDescriptionProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

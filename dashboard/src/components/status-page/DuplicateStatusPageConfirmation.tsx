@@ -11,7 +11,16 @@ import {
     duplicateStatusPageReset,
 } from '../../actions/statusPage';
 
-class DuplicateStatusPageConfirmation extends Component {
+interface DuplicateStatusPageConfirmationProps {
+    closeModal?: Function;
+    duplicateModalId: string;
+    slug: string;
+    statusPageSlug: string;
+    fetchStatusPage?: Function;
+    duplicateStatusPageReset?: Function;
+}
+
+class DuplicateStatusPageConfirmation extends Component<DuplicateStatusPageConfirmationProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }

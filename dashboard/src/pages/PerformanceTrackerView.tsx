@@ -28,7 +28,29 @@ import { LoadingState } from '../components/basic/Loader';
 import PerformanceTrackerHeader from '../components/performanceTracker/PerformanceTrackerHeader';
 import { socket } from '../components/basic/Socket';
 
-class PerformanceTrackerView extends Component {
+interface PerformanceTrackerViewProps {
+    component?: {
+        name?: any,
+        slug?: any
+    };
+    location?: any;
+    fetchComponent?: Function;
+    componentSlug?: string;
+    fetchPerformanceTracker?: Function;
+    performanceTrackerSlug?: string;
+    currentProject?: object;
+    performanceTracker?: object;
+    updateTimeMetrics?: Function;
+    updateThroughputMetrics?: Function;
+    removeQuickStart?: Function;
+    trackerObj?: object;
+    resetPerformanceTrackerKeyReset?: Function;
+    resetTrackerObj?: object;
+    updateErrorMetrics?: Function;
+    switchToProjectViewerNav?: boolean;
+}
+
+class PerformanceTrackerView extends Component<PerformanceTrackerViewProps> {
     state = {
         tabIndex: 0,
         showQuickStart: true,

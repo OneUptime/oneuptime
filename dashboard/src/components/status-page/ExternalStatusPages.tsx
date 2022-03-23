@@ -11,7 +11,15 @@ import DataPathHoC from '../DataPathHoC';
 import AddExternalStatusPagesModal from '../modals/AddExternalStatusPagesModal';
 import { openModal } from 'common-ui/actions/modal';
 
-export class ExternalStatusPages extends Component {
+interface ExternalStatusPagesProps {
+    openModal?: Function;
+    statusPage: object;
+    fetchExternalStatusPages: Function;
+    subProjectId?: string;
+    statusPageId?: string;
+}
+
+export class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
     handleKeyBoard: $TSFixMe;
     state = {
         externalStatusPageModalId: uuidv4(),

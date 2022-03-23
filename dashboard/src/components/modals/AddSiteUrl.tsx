@@ -13,7 +13,17 @@ import { closeModal } from 'common-ui/actions/modal';
 import { addSiteUrl } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 
-export class AddSiteUrl extends React.Component {
+interface AddSiteUrlProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    projectId?: object | string;
+    addSiteUrl: Function;
+    AddSiteUrlModalId?: string;
+    editMonitor?: object;
+    data?: object;
+}
+
+export class AddSiteUrl extends React.Component<AddSiteUrlProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

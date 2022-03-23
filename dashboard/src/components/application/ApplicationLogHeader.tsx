@@ -10,7 +10,27 @@ import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import Badge from '../common/Badge';
 import { HelpIcon } from '../svg';
 
-class ApplicationLogHeader extends Component {
+interface ApplicationLogHeaderProps {
+    openApplicationLogKeyModalId?: string;
+    applicationLog?: object;
+    openModal?: Function;
+    editApplicationLog?: Function;
+    isDetails?: boolean;
+    viewMore?: Function;
+    resetApplicationLogKey?: Function;
+    filter?: string;
+    logOptions?: unknown[];
+    currentDateRange?: object;
+    logType?: object;
+    handleEndDateTimeChange?: Function;
+    handleStartDateTimeChange?: Function;
+    handleLogFilterChange?: Function;
+    handleLogTypeChange?: Function;
+    formId?: string;
+    setShow?: Function;
+}
+
+class ApplicationLogHeader extends Component<ApplicationLogHeaderProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

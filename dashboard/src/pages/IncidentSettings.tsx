@@ -26,7 +26,22 @@ import { fetchCustomFields } from '../actions/customField';
 import IncidentTemplates from '../components/incident/IncidentTemplates';
 import IncidentNoteTemplates from '../components/incident/IncidentNoteTemplates';
 
-class IncidentSettings extends React.Component {
+interface IncidentSettingsProps {
+    openModal: Function;
+    fetchIncidentPriorities: Function;
+    currentProject: object;
+    incidentPrioritiesList: object;
+    location: object;
+    incidentPriorities: unknown[];
+    fetchIncidentTemplates: Function;
+    fetchBasicIncidentSettingsVariables: Function;
+    modalId?: object;
+    fetchCustomFields?: Function;
+    fetchDefaultTemplate?: Function;
+    switchToProjectViewerNav?: boolean;
+}
+
+class IncidentSettings extends React.Component<IncidentSettingsProps> {
     state = {
         tabIndex: 0,
         page: 1,

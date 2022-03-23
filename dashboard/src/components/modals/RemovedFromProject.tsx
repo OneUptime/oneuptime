@@ -4,7 +4,11 @@ import ClickOutside from 'react-click-outside';
 
 import { PropTypes } from 'prop-types';
 
-class RemovedFromProject extends Component {
+interface RemovedFromProjectProps {
+    closeThisDialog: Function;
+}
+
+class RemovedFromProject extends Component<RemovedFromProjectProps> {
     render() {
 
         const { closeThisDialog } = this.props;

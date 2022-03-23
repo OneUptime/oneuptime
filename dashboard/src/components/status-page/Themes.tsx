@@ -9,7 +9,17 @@ import { updateTheme } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-export class Themes extends Component {
+interface ThemesProps {
+    statusPage: object;
+    handleSubmit: Function;
+    data: object;
+    updateTheme: Function;
+    initialValues?: {
+        theme?: string
+    };
+}
+
+export class Themes extends Component<ThemesProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

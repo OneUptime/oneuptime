@@ -2,7 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import LoadingIndicator from './LoadingIndicator';
 
-class Dropdown extends React.Component {
+interface DropdownProps {
+    children?: object;
+    disabled?: boolean;
+    isLoading?: boolean;
+    shouldToggleOnHover?: boolean;
+    ContentComponent: React.ReactElement;
+    contentProps: object;
+}
+
+class Dropdown extends React.Component<DropdownProps> {
     wrapper: $TSFixMe;
     state = {
         hasFocus: false,

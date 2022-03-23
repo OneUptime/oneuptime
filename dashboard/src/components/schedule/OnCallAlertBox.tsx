@@ -124,7 +124,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class OnCallAlertBox extends Component {
+interface OnCallAlertBoxProps {
+    getEscalation: Function;
+    afterSave: Function;
+    pushArray: Function;
+    handleSubmit: Function;
+    addEscalation: Function;
+    escalationPolicy: object;
+    scheduleId: string;
+    schedule: string;
+    subProjectId: string;
+    subProjectTeamLoading: Function;
+    getProjectGroups?: Function;
+}
+
+export class OnCallAlertBox extends Component<OnCallAlertBoxProps> {
     componentDidMount() {
         const {
 

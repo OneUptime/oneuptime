@@ -6,7 +6,20 @@ import ShouldRender from '../basic/ShouldRender';
 import { AlertTableRows, AlertTableHeader } from '../alert/AlertTable';
 import { ListLoader } from '../basic/Loader';
 
-export class IncidentAlert extends Component {
+interface IncidentAlertProps {
+    page?: number;
+    previous: Function;
+    isRequesting?: boolean;
+    alerts?: unknown[];
+    count?: unknown | unknown;
+    skip?: unknown | unknown;
+    limit?: unknown | unknown;
+    incidents?: unknown[];
+    next: Function;
+    error?: string;
+}
+
+export class IncidentAlert extends Component<IncidentAlertProps> {
     render() {
         if (
 

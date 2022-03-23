@@ -23,7 +23,16 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class StatusPageForm extends React.Component {
+interface StatusPageFormProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    createStatusPage: Function;
+    statusPageModalId: string;
+    statusPage?: object;
+    data: object;
+}
+
+export class StatusPageForm extends React.Component<StatusPageFormProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

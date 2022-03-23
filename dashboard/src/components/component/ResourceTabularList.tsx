@@ -13,7 +13,18 @@ import StatusIndicator from '../monitor/StatusIndicator';
 import IssueIndicator from '../security/IssueIndicator';
 import sortByName from '../../utils/sortByName';
 import { animateSidebar } from '../../actions/animateSidebar';
-class ResourceTabularList extends Component {
+
+interface ResourceTabularListProps {
+    componentResource?: object;
+    currentProject?: object;
+    componentSlug?: string;
+    monitors?: unknown[];
+    animateSidebar?: Function;
+    addCurrentComponent?: Function;
+    componentName?: string;
+}
+
+class ResourceTabularList extends Component<ResourceTabularListProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -5,12 +5,19 @@ import { FieldArray } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderMembers } from './RenderMembers';
 
+interface RenderTeamsProps {
+    subProjectId: string;
+    fields: unknown[] | object;
+    policyIndex: number;
+    rotateBy: string;
+}
+
 const RenderTeams = ({
     fields,
     subProjectId,
     policyIndex,
     rotateBy
-}: $TSFixMe) => {
+}: RenderTeamsProps) => {
     const canAddTeams = !!rotateBy;
     return (
         <ul>

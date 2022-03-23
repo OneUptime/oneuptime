@@ -7,7 +7,14 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class AddSeats extends Component {
+interface AddSeatsProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    error?: boolean | string;
+    requesting?: boolean;
+}
+
+class AddSeats extends Component<AddSeatsProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

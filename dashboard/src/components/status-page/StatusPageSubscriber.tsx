@@ -16,7 +16,21 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import { deleteSubscriber } from '../../actions/subscriber';
 import CreateSubscriber from '../modals/CreateSubscriber';
 import NoMonitorSubscriber from '../modals/NoMonitorSubscriber';
-class StatusPageSubscriber extends Component {
+
+interface StatusPageSubscriberProps {
+    fetchStatusPageSubscribers?: Function;
+    subscribers?: object;
+    projectId?: string;
+    openModal?: Function;
+    closeModal?: Function;
+    deleteSubscriber?: Function;
+    currentProject?: object;
+    subProjects?: unknown[];
+    statusPage?: object;
+    monitors?: unknown[];
+}
+
+class StatusPageSubscriber extends Component<StatusPageSubscriberProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -675,7 +689,16 @@ export default connect(
     mapDispatchToProps
 )(StatusPageSubscriber);
 
-const RemoveBtn = (props: $TSFixMe) => {
+interface RemoveBtnProps {
+    openModal: Function;
+    deleteSubscriber: Function;
+    deleteSubscriberModalId: string;
+    projectId: string;
+    _id: string;
+    index: number;
+}
+
+const RemoveBtn = (props: RemoveBtnProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

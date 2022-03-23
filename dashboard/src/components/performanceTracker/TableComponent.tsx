@@ -21,7 +21,32 @@ import DeletePerformanceMetric from './DeletePerformanceMetric';
 import { openModal } from 'common-ui/actions/modal';
 import paginate from '../../utils/paginate';
 
-class TableComponent extends Component {
+interface TableComponentProps {
+    heading?: any;
+    subHeading?: any;
+    title?: {
+        map?: Function
+    };
+    type?: string;
+    performanceTracker?: object;
+    fetchIncomingMetrics?: Function;
+    fetchOutgoingMetrics?: Function;
+    setIncomingStartDate?: Function;
+    setIncomingEndDate?: Function;
+    setOutgoingStartDate?: Function;
+    setOutgoingEndDate?: Function;
+    incomingStartDate?: string;
+    incomingEndDate?: string;
+    outgoingStartDate?: string;
+    outgoingEndDate?: string;
+    incomingMetrics?: object;
+    outgoingMetrics?: object;
+    openModal?: Function;
+    resetOutgoingDate?: Function;
+    resetIncomingDate?: Function;
+}
+
+class TableComponent extends Component<TableComponentProps> {
     currentDate: $TSFixMe;
     startDate: $TSFixMe;
     state = {

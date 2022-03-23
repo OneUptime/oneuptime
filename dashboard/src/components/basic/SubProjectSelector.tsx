@@ -9,6 +9,17 @@ const errorStyle = {
     topMargin: '5px',
 };
 
+interface SubProjectSelectorProps {
+    input: object;
+    className?: string;
+    meta: object;
+    disabled?: boolean;
+    style?: object;
+    id?: string;
+    subProjects: unknown[];
+    currentProject?: object;
+}
+
 const SubProjectSelector = ({
     input,
     className,
@@ -18,7 +29,7 @@ const SubProjectSelector = ({
     subProjects,
     style,
     id
-}: $TSFixMe) => {
+}: SubProjectSelectorProps) => {
     const options = [{ value: '', label: 'Select Sub-Project' }].concat(
         subProjects.map((subProject: $TSFixMe) => {
             return {

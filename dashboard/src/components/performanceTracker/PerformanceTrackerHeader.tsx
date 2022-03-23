@@ -14,7 +14,18 @@ import { ValidateField } from '../../config';
 import { updatePerformanceTracker } from '../../actions/performanceTracker';
 import { history } from '../../store';
 
-class PerformanceTrackerHeader extends Component {
+interface PerformanceTrackerHeaderProps {
+    performanceTracker?: object;
+    componentSlug?: string;
+    project?: object;
+    component?: object;
+    openModal?: Function;
+    updateTrackerObj?: object;
+    handleSubmit?: Function;
+    updatePerformanceTracker?: Function;
+}
+
+class PerformanceTrackerHeader extends Component<PerformanceTrackerHeaderProps> {
     state = {
         editName: false,
     };

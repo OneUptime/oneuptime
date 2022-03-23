@@ -27,7 +27,30 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class DeleteAccount extends Component {
+interface DeleteAccountProps {
+    closeThisDialog: Function;
+    deleteAccountSetting?: {
+        requesting?: boolean,
+        success?: boolean
+    };
+    profileSettings?: {
+        data?: {
+            id?: string,
+            user?: {
+                deleted?: boolean
+            }
+        }
+    };
+    currentProject?: {
+        _id?: string
+    };
+    deleteAccount?: Function;
+    logoutUser?: Function;
+    projects?: unknown[];
+    handleSubmit?: Function;
+}
+
+class DeleteAccount extends Component<DeleteAccountProps> {
     state = {
         deleteMyAccount: false,
         toggle: false,
@@ -448,7 +471,11 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteAccountForm);
 
-function CancelBtn(props: $TSFixMe) {
+interface CancelBtnProps {
+    closeThisDialog: Function;
+}
+
+function CancelBtn(props: CancelBtnProps) {
     return (
         <button
             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"

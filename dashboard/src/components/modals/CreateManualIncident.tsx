@@ -16,7 +16,23 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
 
-class CreateManualIncident extends Component {
+interface CreateManualIncidentProps {
+    incidentPriorities: unknown[];
+    closeModal: Function;
+    createIncidentModalId?: string;
+    createIncidentReset: Function;
+    createNewIncident: Function;
+    data?: object;
+    handleSubmit: Function;
+    monitorId?: string;
+    newIncident?: object;
+    change: Function;
+    fetchCustomFields?: Function;
+    customFields?: unknown[];
+    incidentTemplateObj?: object;
+}
+
+class CreateManualIncident extends Component<CreateManualIncidentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

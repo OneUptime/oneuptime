@@ -15,7 +15,19 @@ import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
 
-export class SubProjects extends Component {
+interface SubProjectsProps {
+    count?: number;
+    currentProject?: object;
+    getSubProjects?: Function;
+    limit?: number;
+    openModal?: Function;
+    skip?: number;
+    subProjectState?: object;
+    modalId?: string;
+    modalList?: unknown[];
+}
+
+export class SubProjects extends Component<SubProjectsProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { subProjectModalId: uuidv4(), page: 1 };

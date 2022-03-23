@@ -11,7 +11,19 @@ import EditIncidentNoteTemplate from '../modals/EditIncidentNoteTemplate';
 import DeleteIncidentNoteTemplate from '../modals/DeleteIncidentNoteTemplate';
 import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
 
-class IncidentNoteTemplates extends Component {
+interface IncidentNoteTemplatesProps {
+    openModal: Function;
+    skip?: string | number;
+    limit?: string | number;
+    count?: string | number;
+    currentProject?: object;
+    fetchingTemplates?: boolean;
+    templates?: unknown[];
+    fetchTemplateError?: string;
+    fetchIncidentNoteTemplates?: Function;
+}
+
+class IncidentNoteTemplates extends Component<IncidentNoteTemplatesProps> {
     limit: $TSFixMe;
     constructor() {
 

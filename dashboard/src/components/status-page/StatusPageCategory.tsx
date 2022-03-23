@@ -11,7 +11,21 @@ import EditStatusPageCategory from '../modals/EditStatusPageCategory';
 import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
-export class StatusPageCategory extends Component {
+interface StatusPageCategoryProps {
+    projectId?: string;
+    statusPageId?: string;
+    isRequesting?: boolean;
+    fetchStatusPageCategories: Function;
+    skip?: number;
+    count?: number;
+    limit?: number;
+    name?: string;
+    openModal: Function;
+    error?: object;
+    statusPageCategories?: unknown[];
+}
+
+export class StatusPageCategory extends Component<StatusPageCategoryProps> {
     handleKeyboard: $TSFixMe;
     state = {
         page: 1,

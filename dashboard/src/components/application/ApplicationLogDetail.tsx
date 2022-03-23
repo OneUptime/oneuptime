@@ -21,7 +21,27 @@ import ApplicationLogHeader from './ApplicationLogHeader';
 import NewApplicationLog from './NewApplicationLog';
 import * as moment from 'moment';
 
-class ApplicationLogDetail extends Component {
+interface ApplicationLogDetailProps {
+    componentId?: string;
+    componentSlug?: string;
+    index?: string;
+    applicationLog?: object;
+    currentProject?: object;
+    openModal?: Function;
+    closeModal?: Function;
+    resetApplicationLogKey?: Function;
+    deleteApplicationLog?: Function;
+    isDetails?: boolean;
+    editApplicationLogSwitch?: Function;
+    fetchStats?: Function;
+    stats?: object;
+    fetchLogs?: Function;
+    startDate?: string | object;
+    endDate?: string | object;
+    setShow?: Function;
+}
+
+class ApplicationLogDetail extends Component<ApplicationLogDetailProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

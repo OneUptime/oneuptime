@@ -4,13 +4,21 @@ import moment from 'moment';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import { Spinner } from '../basic/Loader';
 
+interface ComponentSummaryProps {
+    projectId?: string;
+    componentId?: string;
+    fetchSummary?: Function;
+    summary?: unknown[];
+    loading?: boolean;
+}
+
 function ComponentSummary({
     projectId,
     componentId,
     fetchSummary,
     summary,
     loading
-}: $TSFixMe) {
+}: ComponentSummaryProps) {
     const [startDate, setStartDate] = useState(moment().subtract(30, 'd'));
     const [endDate, setEndDate] = useState(moment());
 

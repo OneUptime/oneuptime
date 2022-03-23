@@ -11,7 +11,20 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import TutorialBox from '../components/tutorial/TutorialBox';
 
-class DockerCredential extends Component {
+interface DockerCredentialProps {
+    projectId?: string;
+    getDockerCredentials?: Function;
+    dockerCredentials?: unknown[];
+    getError?: string;
+    isRequesting?: boolean;
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class DockerCredential extends Component<DockerCredentialProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

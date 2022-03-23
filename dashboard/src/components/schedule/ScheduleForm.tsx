@@ -22,7 +22,16 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class ScheduleForm extends React.Component {
+interface ScheduleFormProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    createSchedule: Function;
+    scheduleModalId: string;
+    schedule?: object;
+    data?: object;
+}
+
+export class ScheduleForm extends React.Component<ScheduleFormProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

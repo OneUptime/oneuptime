@@ -11,7 +11,25 @@ import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { updateprobebysocket } from '../../actions/socket';
 
-function MonitorList(props: $TSFixMe) {
+interface MonitorListProps {
+    monitors?: unknown[];
+    skip?: number;
+    limit?: number;
+    count?: number;
+    // shouldRenderProjectType: PropTypes.bool,
+    projectId?: string;
+    projectName?: string;
+    projectType?: string;
+    numberOfPage?: number;
+    page?: number;
+    nextClicked?: Function;
+    prevClicked?: Function;
+    requestingNextPage?: boolean;
+    error?: string;
+    componentId?: string;
+}
+
+function MonitorList(props: MonitorListProps) {
     const monitors = props.monitors ? props.monitors : [];
     const skip = props.skip;
     const limit = props.limit;

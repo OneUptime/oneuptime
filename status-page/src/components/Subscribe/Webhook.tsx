@@ -13,7 +13,20 @@ import {
 } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
-class Webhook extends Component {
+interface WebhookProps {
+    userData?: Function;
+    validationError?: Function;
+    subscribed?: object;
+    error?: string;
+    statuspage?: object;
+    subscribeUser?: Function;
+    openSubscribeMenu?: Function;
+    userDataReset?: Function;
+    theme?: boolean;
+    handleCloseButtonClick?: Function;
+}
+
+class Webhook extends Component<WebhookProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {};

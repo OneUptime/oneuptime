@@ -117,6 +117,17 @@ function renderLanguageQuickStart(
         );
     }
 }
+
+interface LibraryListProps {
+    title?: string;
+    library?: string;
+    type?: string;
+    errorTracker?: object;
+    applicationLog?: object;
+    close?: Function;
+    setShow?: Function;
+}
+
 const LibraryList = ({
     title,
     type,
@@ -125,7 +136,7 @@ const LibraryList = ({
     applicationLog,
     close,
     setShow
-}: $TSFixMe) => (
+}: LibraryListProps) => (
 
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">

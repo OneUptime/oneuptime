@@ -1,6 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface BadgeProps {
+    children?: string | unknown[];
+    color?: string;
+    id?: string;
+    fontColor?: string;
+    backgroundColor?: string;
+    fontSize?: string;
+}
+
 function Badge({
     children,
     color = 'green',
@@ -8,7 +17,7 @@ function Badge({
     fontColor,
     fontSize,
     ...props
-}: $TSFixMe) {
+}: BadgeProps) {
     const fontStyle = {
         color: fontColor || '#fff',
         fontSize: fontSize || '12px',

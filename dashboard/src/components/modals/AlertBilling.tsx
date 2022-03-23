@@ -7,7 +7,21 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 
-class AlertBilling extends Component {
+interface AlertBillingProps {
+    closeModal: Function;
+    confirmThisDialog: Function;
+    title?: string;
+    isRequesting?: boolean;
+    message?: string;
+    messageBoxId?: string;
+    data?: {
+        title?: string,
+        message?: string,
+        messageBoxId?: unknown
+    };
+}
+
+class AlertBilling extends Component<AlertBillingProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

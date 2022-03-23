@@ -5,7 +5,23 @@ import ErrorTrackerDetail from './ErrorTrackerDetail';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-export const ErrorTrackerList = (props: $TSFixMe) => {
+interface ErrorTrackerListProps {
+    projectId?: string;
+    errorTrackers?: unknown[];
+    componentId?: string;
+    prevClicked?: Function;
+    nextClicked?: Function;
+    error?: string;
+    skip?: number;
+    limit?: number;
+    page?: number;
+    count?: number;
+    numberOfPage?: number;
+    fetchingPage?: boolean;
+    showComponentWithIssue?: boolean;
+}
+
+export const ErrorTrackerList = (props: ErrorTrackerListProps) => {
     const errorTrackers = props.errorTrackers || [];
     let errorTrackerDetails = null;
     const skip = props.skip;

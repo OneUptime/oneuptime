@@ -9,7 +9,16 @@ import { addIncident } from '../../actions/incident';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { markAsRead } from '../../actions/notification';
 
-class IncidentHeaderModal extends Component {
+interface IncidentHeaderModalProps {
+    closeThisDialog: Function;
+    currentProjectSlug?: string;
+    data?: object;
+    animateSidebar?: Function;
+    markAsRead?: Function;
+    addIncident?: Function;
+}
+
+class IncidentHeaderModal extends Component<IncidentHeaderModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

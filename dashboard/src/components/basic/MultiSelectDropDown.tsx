@@ -3,6 +3,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PropTypes } from 'prop-types';
 import Badge from '../common/Badge';
 
+interface MultiSelectDropDownProps {
+    options?: unknown[];
+    value?: string;
+    updateState?: Function;
+    ready?: boolean;
+    selectedComponents?: unknown[];
+    selectedProjects?: unknown[];
+    selectedMonitors?: unknown[];
+}
+
 // Options should have the following structure for this dropdown for work fine
 
 // [
@@ -58,7 +68,7 @@ const MultiSelectDropDown = ({
     selectedMonitors,
     selectedProjects,
     selectedComponents
-}: $TSFixMe) => {
+}: MultiSelectDropDownProps) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 

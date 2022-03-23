@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class DeleteErrorTracker extends Component {
+interface DeleteErrorTrackerProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    errorTrackerState?: object;
+    data?: object;
+}
+
+class DeleteErrorTracker extends Component<DeleteErrorTrackerProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

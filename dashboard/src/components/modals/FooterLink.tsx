@@ -17,7 +17,16 @@ import {
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 
-class CreateFooterLink extends Component {
+interface CreateFooterLinkProps {
+    createFooterLinkModalId?: string;
+    handleSubmit: Function;
+    statusPage: object;
+    links: unknown[];
+    data?: object;
+    closeModal: Function;
+}
+
+class CreateFooterLink extends Component<CreateFooterLinkProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

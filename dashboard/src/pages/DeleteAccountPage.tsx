@@ -7,7 +7,13 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DeleteAccountBox from '../components/profileSettings/DeleteAccountBox';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
-const DeleteAccountPage = (props: $TSFixMe) => {
+interface DeleteAccountPageProps {
+    location?: {
+        pathname?: string
+    };
+}
+
+const DeleteAccountPage = (props: DeleteAccountPageProps) => {
     const {
         location: { pathname },
     } = props;

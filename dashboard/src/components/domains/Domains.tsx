@@ -14,7 +14,19 @@ import EditDomain from './EditDomain';
 import DeleteDomain from './DeleteDomain';
 import VerifyDomain from './VerifyDomain';
 
-class Domains extends Component {
+interface DomainsProps {
+    currentProject?: object;
+    error?: string;
+    requesting?: boolean;
+    projectDomains?: unknown[];
+    count?: number;
+    limit?: number;
+    skip?: number;
+    openModal: Function;
+    fetchProjectDomains: Function;
+}
+
+class Domains extends Component<DomainsProps> {
     limit: $TSFixMe;
     constructor() {
 

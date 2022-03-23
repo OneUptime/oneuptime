@@ -6,7 +6,14 @@ import { IS_LOCALHOST, User } from '../../config';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import ShouldRender from '../basic/ShouldRender';
 
-export class RowData extends Component {
+interface RowDataProps {
+    statusPage: object;
+    switchStatusPages: Function;
+    project?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+export class RowData extends Component<RowDataProps> {
     render() {
 
         const { statusPage, project } = this.props;

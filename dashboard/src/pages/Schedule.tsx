@@ -16,7 +16,30 @@ import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import ScheduleCalender from '../components/schedule/ScheduleCalender';
-class Schedule extends Component {
+
+interface ScheduleProps {
+    getEscalation: Function;
+    subProjectTeamLoading: Function;
+    subProjectId: string;
+    scheduleId: string;
+    teamLoading: Function;
+    escalations: unknown[];
+    teamMembers: unknown[];
+    groups?: unknown[];
+    location?: {
+        pathname?: string
+    };
+    schedule?: {
+        name?: string
+    };
+    requestingEscalations?: boolean;
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+    history?: object;
+}
+
+class Schedule extends Component<ScheduleProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { editSchedule: false, error: false };

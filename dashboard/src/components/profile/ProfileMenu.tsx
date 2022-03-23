@@ -16,7 +16,20 @@ import { v4 as uuidv4 } from 'uuid';
 
 import ShouldRender from '../basic/ShouldRender';
 
-export class ProfileMenu extends Component {
+interface ProfileMenuProps {
+    visible?: boolean;
+    hideProfileMenu: Function;
+    closeModal?: Function;
+    openModal: Function;
+    logoutUser: Function;
+    profileSettings?: object;
+    data?: object;
+    email?: string;
+    position?: number;
+    history?: object;
+}
+
+export class ProfileMenu extends Component<ProfileMenuProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { aboutId: uuidv4() };

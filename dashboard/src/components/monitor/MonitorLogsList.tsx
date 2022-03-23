@@ -17,7 +17,19 @@ import toPascalCase from 'to-pascal-case';
 import ViewScriptLogs from '../modals/ViewScriptLogs';
 import { updatemonitorlogbysocket } from '../../actions/socket';
 
-export class MonitorLogsList extends Component {
+interface MonitorLogsListProps {
+    monitorId?: string;
+    monitorLogs?: object;
+    monitorName?: string;
+    monitorType?: string;
+    agentless?: boolean;
+    nextClicked: Function;
+    openModal?: Function;
+    prevClicked: Function;
+    page?: number;
+}
+
+export class MonitorLogsList extends Component<MonitorLogsListProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

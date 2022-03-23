@@ -13,7 +13,15 @@ import {
 } from '../../actions/reports';
 import { history } from '../../store';
 
-class MembersList extends Component {
+interface MembersListProps {
+    getActiveMembers?: Function;
+    activeMembers?: object;
+    startDate?: object;
+    endDate?: object;
+    currentProject?: object | string;
+}
+
+class MembersList extends Component<MembersListProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

@@ -9,7 +9,16 @@ import AlertPanel from '../basic/AlertPanel';
 import { fetchLastMetrics } from '../../actions/performanceTracker';
 import { ListLoader } from '../basic/Loader';
 
-class PerformanceTrackerList extends Component {
+interface PerformanceTrackerListProps {
+    performanceTracker?: object;
+    componentSlug?: string;
+    projectSlug?: string;
+    lastMetricsObj?: object;
+    fetchLastMetrics?: Function;
+    projectId?: string;
+}
+
+class PerformanceTrackerList extends Component<PerformanceTrackerListProps> {
     componentDidMount() {
 
         const { fetchLastMetrics, performanceTracker, projectId } = this.props;

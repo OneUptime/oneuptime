@@ -11,7 +11,15 @@ import getParentRoute from '../utils/getParentRoute';
 import Sso from '../components/settings/Sso';
 import { history } from '../store';
 
-class SsoPage extends Component {
+interface SsoPageProps {
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class SsoPage extends Component<SsoPageProps> {
     componentDidMount() {
 
         const currentProject = JSON.parse(User.getProject());

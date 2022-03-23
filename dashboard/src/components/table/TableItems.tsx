@@ -2,7 +2,15 @@ import React, { Component } from 'react';
 import TableItem from './TableItem';
 import PropTypes from 'prop-types';
 
-export default class TableItems extends Component {
+interface TableItemsProps {
+    columns: unknown[];
+    items: unknown[];
+    id?: string;
+    onClickTableRow?: Function;
+    actionButtons?: unknown[];
+}
+
+export default class TableItems extends Component<TableItemsProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

@@ -8,8 +8,18 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
 import Markdown from 'markdown-to-jsx';
+
+interface AnnouncementProps {
+    theme?: string;
+    getAnnouncements?: Function;
+    statusPage?: object;
+    announcement?: object;
+    monitorState?: unknown[];
+    history?: object;
+}
+
 //import { translate } from '../config';
-class Announcement extends Component {
+class Announcement extends Component<AnnouncementProps> {
     announcement: $TSFixMe;
     counter: $TSFixMe;
     limit: $TSFixMe;
@@ -117,11 +127,17 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getAnnou
 
 export default connect(mapStateToProps, mapDispatchToProps)(Announcement);
 
+interface AnnouncementBoxProps {
+    announcement?: object;
+    monitorState?: unknown[];
+    type?: boolean;
+}
+
 function AnnouncementBox({
     announcement,
     monitorState,
     type
-}: $TSFixMe) {
+}: AnnouncementBoxProps) {
     return <>
         <div className="icon_ann">
             <div className={type ? 'ann_title classic_font' : 'ann_title'}>

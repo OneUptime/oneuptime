@@ -42,7 +42,52 @@ import joinNames from '../utils/joinNames';
 import { fetchProjectSlug } from '../actions/project';
 import ShouldRender from '../components/basic/ShouldRender';
 
-class Incident extends React.Component {
+interface IncidentProps {
+    currentProject?: object;
+    deleting: boolean;
+    fetchIncidentAlert?: Function;
+    fetchSubscriberAlert?: Function;
+    getIncident?: Function;
+    getIncidentTimeline?: Function;
+    getMonitorLogs?: Function;
+    incident?: object;
+    limit?: string | number;
+    skip?: string | number;
+    subscribersAlerts: object;
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string,
+        _id?: string
+    }[];
+    componentId?: string;
+    componentSlug?: string;
+    fetchIncidentMessages?: Function;
+    fetchIncidentPriorities: Function;
+    fetchIncidentTemplates: Function;
+    fetchIncidentStatusPages: Function;
+    fetchDefaultCommunicationSla?: Function;
+    history?: Function;
+    scheduleWarning?: unknown[];
+    defaultSchedule?: boolean;
+    incidentSlug?: string;
+    projectId?: string;
+    fetchComponent?: Function;
+    requestingComponent?: boolean;
+    monitors?: unknown[];
+    allMonitors?: unknown[];
+    projectSlug?: string;
+    fetchProjectSlug?: Function;
+    fetchDefaultTemplate?: Function;
+    requestingIncident?: boolean;
+    errorIncident?: boolean;
+    successIncident?: boolean;
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+}
+
+class Incident extends React.Component<IncidentProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

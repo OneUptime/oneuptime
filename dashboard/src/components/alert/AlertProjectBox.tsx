@@ -4,6 +4,20 @@ import PropTypes from 'prop-types';
 import { AlertTableRows, AlertTableHeader } from '../alert/AlertTable';
 import { ListLoader } from '../basic/Loader';
 
+interface AlertProjectBoxProps {
+    canPrev: boolean;
+    canNext: boolean;
+    nextClicked: Function;
+    prevClicked: Function;
+    subProjectAlert: object;
+    subProjectName: string;
+    error?: string;
+    currentProjectId: string;
+    isRequesting: boolean;
+    pages?: number;
+    showProjectName?: boolean;
+}
+
 const AlertProjectBox = ({
     currentProjectId,
     subProjectAlert,
@@ -16,7 +30,7 @@ const AlertProjectBox = ({
     error,
     pages,
     showProjectName
-}: $TSFixMe) => {
+}: AlertProjectBoxProps) => {
     const numberOfPages = Math.ceil(parseInt(subProjectAlert.count) / 10);
     return (
         <div className="Box-root">
@@ -47,7 +61,7 @@ const AlertProjectBox = ({
                                         style={{ textTransform: 'lowercase' }}
                                     >
                                         {currentProjectId !==
-                                        subProjectAlert._id
+                                            subProjectAlert._id
                                             ? `${subProjectName} sub-project`
                                             : `${subProjectName} project`}
                                     </span>{' '}
@@ -103,20 +117,16 @@ const AlertProjectBox = ({
                                 <span>
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                         {numberOfPages > 0
-                                            ? `Page ${
-                                                  !pages ? 1 : pages
-                                              } of ${numberOfPages} (${
-                                                  subProjectAlert.count
-                                              } Alert${
-                                                  subProjectAlert.count === 1
-                                                      ? ''
-                                                      : 's'
-                                              })`
-                                            : `${subProjectAlert.count} Alert${
-                                                  subProjectAlert.count === 1
-                                                      ? ''
-                                                      : 's'
-                                              }`}
+                                            ? `Page ${!pages ? 1 : pages
+                                            } of ${numberOfPages} (${subProjectAlert.count
+                                            } Alert${subProjectAlert.count === 1
+                                                ? ''
+                                                : 's'
+                                            })`
+                                            : `${subProjectAlert.count} Alert${subProjectAlert.count === 1
+                                                ? ''
+                                                : 's'
+                                            }`}
                                     </span>
                                 </span>
                             </span>
@@ -174,9 +184,8 @@ const AlertProjectBox = ({
                             </div>
                             <div className="Box-root">
                                 <button
-                                    className={`Button bs-ButtonLegacy ${
-                                        canNext ? '' : 'Is--disabled'
-                                    }`}
+                                    className={`Button bs-ButtonLegacy ${canNext ? '' : 'Is--disabled'
+                                        }`}
                                     disabled={!canNext}
                                     data-db-analytics-name="list_view.pagination.next"
                                     type="button"

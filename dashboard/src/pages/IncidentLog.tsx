@@ -33,7 +33,38 @@ import {
 import { fetchComponent } from '../actions/component';
 import { fetchMonitors } from '../actions/monitor';
 
-class IncidentLog extends React.Component {
+interface IncidentLogProps {
+    componentId: string;
+    getIncidents?: Function;
+    getProjectIncidents?: Function;
+    incidents?: object;
+    currentProject?: object;
+    create?: boolean;
+    openModal?: Function;
+    subProjects: unknown[];
+    subProjectIncidents?: object | unknown[];
+    tutorialStat?: object;
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string,
+        _id?: string
+    }[];
+    fetchIncidentPriorities: Function;
+    fetchIncidentTemplates: Function;
+    modalList?: unknown[];
+    getComponentIncidents?: Function;
+    getProjectComponentIncidents?: Function;
+    fetchComponent?: Function;
+    componentSlug?: string;
+    fetchDefaultTemplate?: Function;
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+    fetchMonitors?: Function;
+}
+
+class IncidentLog extends React.Component<IncidentLogProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

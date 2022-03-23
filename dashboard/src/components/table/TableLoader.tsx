@@ -2,7 +2,12 @@ import React, { Component } from 'react';
 
 import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
-export default class TableLoader extends Component {
+
+interface TableLoaderProps {
+    isLoading?: boolean;
+}
+
+export default class TableLoader extends Component<TableLoaderProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

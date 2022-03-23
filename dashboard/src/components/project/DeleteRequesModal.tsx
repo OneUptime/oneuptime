@@ -5,7 +5,12 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
-class DeleteRequestModal extends Component {
+interface DeleteRequestModalProps {
+    closeNotice?: Function;
+    requesting?: boolean;
+}
+
+class DeleteRequestModal extends Component<DeleteRequestModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

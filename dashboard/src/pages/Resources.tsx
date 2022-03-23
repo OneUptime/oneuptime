@@ -10,7 +10,15 @@ import ResourceCategories from '../components/settings/ResourceCategories';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 
-class Resources extends Component {
+interface ResourcesProps {
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class Resources extends Component<ResourcesProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

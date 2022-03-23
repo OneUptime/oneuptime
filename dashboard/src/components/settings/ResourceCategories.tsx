@@ -16,7 +16,23 @@ import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 
-export class ResourceCategories extends Component {
+interface ResourceCategoriesProps {
+    projectId?: string;
+    resourceCategories?: unknown[];
+    isRequesting?: boolean;
+    fetchResourceCategories: Function;
+    skip?: number;
+    count?: number;
+    limit?: number;
+    name?: string;
+    openModal: Function;
+    error?: object;
+    currentProject?: object;
+    modalId?: string;
+    modalList?: unknown[];
+}
+
+export class ResourceCategories extends Component<ResourceCategoriesProps> {
     state = {
         CreateResourceCategoryModalId: uuidv4(),
         EditResourceCategoryModalId: uuidv4(),

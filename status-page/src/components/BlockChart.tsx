@@ -10,7 +10,19 @@ import {
     showIncidentCard,
 } from '../actions/status';
 
-class BlockChart extends Component {
+interface BlockChartProps {
+    time?: object | boolean;
+    statusData?: object;
+    getStatusPageIndividualNote?: Function;
+    getIndividualEvent?: Function;
+    notmonitoredDays?: Function;
+    monitorName?: any;
+    monitorId?: any;
+    showIncidentCard?: Function;
+    theme?: string;
+}
+
+class BlockChart extends Component<BlockChartProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

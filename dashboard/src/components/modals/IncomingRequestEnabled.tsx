@@ -8,7 +8,16 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { closeModal } from 'common-ui/actions/modal';
 import { incomingRequestToggle } from '../../actions/incomingRequest';
 
-class IncomingRequestEnabledToggle extends Component {
+interface IncomingRequestEnabledToggleProps {
+    isRequesting?: boolean;
+    closeModal?: Function;
+    incomingRequestToggle?: Function;
+    projectId?: string;
+    requestId?: string;
+    propArr?: unknown[];
+}
+
+class IncomingRequestEnabledToggle extends Component<IncomingRequestEnabledToggleProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

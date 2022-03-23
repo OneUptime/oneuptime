@@ -12,7 +12,17 @@ import { deleteMonitor } from '../../actions/monitor';
 import { history } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 
-export class MonitorViewDeleteBox extends Component {
+interface MonitorViewDeleteBoxProps {
+    currentProject: object;
+    componentSlug: string;
+    closeModal?: Function;
+    openModal: Function;
+    monitorState: object;
+    monitor: object;
+    deleteMonitor: Function;
+}
+
+export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };

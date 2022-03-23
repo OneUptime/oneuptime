@@ -7,7 +7,13 @@ import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
 import { PropTypes } from 'prop-types';
 
-const Profile = (props: $TSFixMe) => {
+interface ProfileProps {
+    location?: {
+        pathname?: string
+    };
+}
+
+const Profile = (props: ProfileProps) => {
     const {
         location: { pathname },
     } = props;

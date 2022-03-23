@@ -8,7 +8,11 @@ import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
 
-class RoutingNumberButton extends React.Component {
+interface RoutingNumberButtonProps {
+    openModal: Function;
+}
+
+class RoutingNumberButton extends React.Component<RoutingNumberButtonProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -62,7 +62,18 @@ const LoadingState = () => (
 
 LoadingState.displayName = 'LoadingState';
 
-const LoadedTeam = (props: $TSFixMe) => {
+interface LoadedTeamProps {
+    team: object;
+    rowData: unknown[];
+    pages: object;
+    openModal: Function;
+    paginate: Function;
+    inviteModalId: string;
+    subProjects: unknown[];
+    modalList?: unknown[];
+}
+
+const LoadedTeam = (props: LoadedTeamProps) => {
     const {
         pages,
         inviteModalId,
@@ -153,7 +164,22 @@ LoadedTeam.propTypes = {
     modalList: PropTypes.array,
 };
 
-class TeamApp extends Component {
+interface TeamAppProps {
+    team: object;
+    subProjectTeamLoading: Function;
+    currentProject?: object;
+    closeModal: Function;
+    paginate: Function;
+    subProjects: unknown[];
+    location?: {
+        pathname?: string
+    };
+    modalList?: unknown[];
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+}
+
+class TeamApp extends Component<TeamAppProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { inviteModalId: uuidv4() };

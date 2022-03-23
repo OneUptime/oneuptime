@@ -80,7 +80,38 @@ const greyBackground = {
     backgroundColor: 'rgba(107, 124, 147, 0.2)',
 };
 
-class Main extends Component {
+interface MainProps {
+    statusData?: object;
+    status?: object;
+    getStatusPage?: Function;
+    getProbes?: Function;
+    getOngoingScheduledEvent?: Function;
+    login: object;
+    monitorState?: unknown[];
+    monitors?: unknown[];
+    selectedProbe?: Function;
+    activeProbe?: number;
+    probes?: unknown[];
+    events?: unknown[];
+    history?: object;
+    getScheduledEvent?: Function;
+    scheduleHistoryDays?: number;
+    requestingEvents?: boolean;
+    statusPage?: object;
+    isSubscriberEnabled: boolean;
+    ongoing?: unknown[];
+    fetchFutureEvents?: Function;
+    fetchPastEvents?: Function;
+    futureEvents?: Function;
+    pastEvents?: Function;
+    getAllStatusPageResource?: Function;
+    fetchTweets?: Function;
+    tweetData?: unknown[];
+    language?: object;
+    languageMenu?: boolean;
+}
+
+class Main extends Component<MainProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -1824,6 +1855,26 @@ Main.propTypes = {
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);
 
+interface ProbesProps {
+    probes: unknown[];
+    backgroundMain: object;
+    contentBackground: object;
+    activeProbe: number;
+    monitorState: unknown[];
+    greenBackground: object;
+    uptimeColor: object;
+    greyBackground: object;
+    serviceStatus: object;
+    redBackground: object;
+    downtimeColor: object;
+    yellowBackground: object;
+    degradedColor: object;
+    heading: object;
+    now: object;
+    selectbutton?: Function;
+    theme?: string;
+}
+
 const Probes = ({
     probes,
     backgroundMain,
@@ -1842,7 +1893,7 @@ const Probes = ({
     now,
     selectbutton,
     theme
-}: $TSFixMe) => {
+}: ProbesProps) => {
     return (
         <div className="btn-group">
             {probes.map((probe: $TSFixMe, index: $TSFixMe) => (
@@ -1941,13 +1992,21 @@ Probes.propTypes = {
     theme: PropTypes.string,
 };
 
+interface FooterCardProps {
+    footerHTML?: string;
+    statusData?: object;
+    primaryText?: object;
+    secondaryText?: object;
+    theme?: boolean;
+}
+
 const FooterCard = ({
     footerHTML,
     statusData,
     primaryText,
     secondaryText,
     theme
-}: $TSFixMe) => {
+}: FooterCardProps) => {
     const [isShown, setIsShown] = useState(false);
 
     return <>
@@ -2038,10 +2097,15 @@ FooterCard.propTypes = {
     theme: PropTypes.bool,
 };
 
+interface HelemtCardProps {
+    statusData?: object;
+    faviconurl?: string;
+}
+
 const HelemtCard = ({
     statusData,
     faviconurl
-}: $TSFixMe) => {
+}: HelemtCardProps) => {
     return (
         <Helmet>
             {statusData && statusData.faviconPath ? (

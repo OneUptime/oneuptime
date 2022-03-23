@@ -8,12 +8,19 @@ import { reduxForm, Field } from 'redux-form';
 import { RenderSelect } from '../basic/RenderSelect';
 import paginate from '../../utils/paginate';
 
+interface SecurityLogProps {
+    type?: string;
+    applicationSecurityLog?: object;
+    levelToFilter?: string;
+    containerSecurityLog?: object;
+}
+
 const SecurityLog = ({
     type,
     applicationSecurityLog,
     containerSecurityLog,
     levelToFilter
-}: $TSFixMe) => {
+}: SecurityLogProps) => {
     const [page, setPage] = useState(1);
 
     const severityLevel = [

@@ -55,7 +55,17 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class Links extends Component {
+interface LinksProps {
+    updateStatusPageLinks: Function;
+    handleSubmit: Function;
+    openModal?: Function;
+    closeModal?: Function;
+    statusPage: object;
+    fetchProjectStatusPage: Function;
+    initialValues?: object;
+}
+
+export class Links extends Component<LinksProps> {
     handleKeyBoard: $TSFixMe;
     state = {
         createFooterLinkModalId: uuidv4(),

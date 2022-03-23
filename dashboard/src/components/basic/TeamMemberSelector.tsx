@@ -10,6 +10,19 @@ const errorStyle = {
     topMargin: '5px',
 };
 
+interface TeamMemberSelectorProps {
+    id?: string;
+    input: object;
+    placeholder?: string;
+    meta: object;
+    subProjectTeam?: unknown[];
+    policyIndex: number;
+    form: object;
+    teamIndex: number;
+    projectGroups?: object;
+    renderType?: string;
+}
+
 const TeamMemberSelector = ({
     id,
     input,
@@ -21,7 +34,7 @@ const TeamMemberSelector = ({
     teamIndex,
     projectGroups,
     renderType
-}: $TSFixMe) => {
+}: TeamMemberSelectorProps) => {
     const allowedTeamMembers = makeAllowedTeamMembers(
         form[policyIndex].teams[teamIndex].teamMembers,
         subProjectTeam

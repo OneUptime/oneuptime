@@ -30,7 +30,34 @@ import {
     fetchPaginatedComponents,
 } from '../actions/component';
 
-class ComponentDashboardView extends Component {
+interface ComponentDashboardViewProps {
+    currentProject?: object;
+    component?: object;
+    components?: unknown[];
+    loadPage?: Function;
+    destroy: Function;
+    fetchMonitors: Function;
+    slug?: string;
+    location?: {
+        pathname?: string
+    };
+    fetchMonitorsIncidents?: Function;
+    fetchMonitorLogs?: Function;
+    monitor?: object;
+    startDate?: object;
+    endDate?: object;
+    monitors?: unknown[];
+    tutorialStat?: object;
+    getSmtpConfig: Function;
+    fetchComponents?: Function;
+    monitorListRequesting?: boolean;
+    monitorsRequesting?: boolean;
+    switchToProjectViewerNav?: boolean;
+    fetchPaginatedComponents?: Function;
+    activeProjectId?: string;
+}
+
+class ComponentDashboardView extends Component<ComponentDashboardViewProps> {
     state = {
         showNewComponentForm: false,
         page: {},

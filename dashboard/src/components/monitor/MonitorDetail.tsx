@@ -31,7 +31,29 @@ import { getMonitorStatus, filterProbeData } from '../../config';
 
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 
-export class MonitorDetail extends Component {
+interface MonitorDetailProps {
+    currentProject: object;
+    componentId: string;
+    componentSlug: string;
+    monitor: object;
+    fetchMonitorsIncidents: Function;
+    fetchMonitorLogs: Function;
+    fetchMonitorStatuses: Function;
+    editMonitorSwitch: Function;
+    monitorState: object;
+    index?: string;
+    openModal?: Function;
+    create?: boolean;
+    selectedProbe: Function;
+    activeProbe?: number;
+    probes?: unknown[];
+    activeIncident?: string;
+    projectName?: string;
+    projectType?: string;
+    shouldRenderProjectType?: boolean;
+}
+
+export class MonitorDetail extends Component<MonitorDetailProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

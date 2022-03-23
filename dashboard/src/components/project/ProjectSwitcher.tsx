@@ -14,7 +14,19 @@ import {
 import { User } from '../../config';
 import { getSubProjects } from '../../actions/subProject';
 
-export class ProjectSwitcher extends Component {
+interface ProjectSwitcherProps {
+    showForm: Function;
+    hideProjectSwitcher: Function;
+    switchProject: Function;
+    dispatch: Function;
+    project: object;
+    currentProject?: object;
+    visible?: boolean;
+    switchToProjectViewerNav?: Function;
+    getSubProjects?: Function;
+}
+
+export class ProjectSwitcher extends Component<ProjectSwitcherProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.selectProject = this.selectProject.bind(this);

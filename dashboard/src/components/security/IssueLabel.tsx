@@ -1,9 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface IssueLabelProps {
+    level?: string;
+}
+
 const IssueLabel = ({
     level
-}: $TSFixMe) => {
+}: IssueLabelProps) => {
     let color;
     switch (level) {
         case 'critical':

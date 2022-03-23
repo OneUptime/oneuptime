@@ -16,7 +16,22 @@ import {
     createNewSubProjectReset,
 } from '../../actions/subProject';
 
-export class SubProjectForm extends React.Component {
+interface SubProjectFormProps {
+    closeModal?: Function;
+    createNewSubProjectReset?: Function;
+    createSubProject?: Function;
+    currentProject?: object;
+    editSubProject?: Function;
+    handleSubmit?: Function;
+    renameSubProject?: Function;
+    resetRenameSubProject?: Function;
+    subProject?: object;
+    subProjectId?: string;
+    subProjectModalId?: string;
+    subProjectTitle?: string;
+}
+
+export class SubProjectForm extends React.Component<SubProjectFormProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

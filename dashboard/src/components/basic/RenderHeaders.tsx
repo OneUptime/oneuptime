@@ -10,9 +10,13 @@ const flexStyle = {
     padding: '10px 20px',
 };
 
+interface RenderHeadersProps {
+    fields: unknown[] | object;
+}
+
 const RenderHeaders = ({
     fields
-}: $TSFixMe) => {
+}: RenderHeadersProps) => {
     if (!fields || !fields.length)
         return (
             <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">

@@ -12,7 +12,19 @@ import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class MonitorLighthouseLogsList extends Component {
+interface MonitorLighthouseLogsListProps {
+    monitor?: object;
+    monitorState?: object;
+    nextClicked: Function;
+    prevClicked: Function;
+    openModal: Function;
+    closeModal: Function;
+    deleteSiteUrl: Function;
+    currentProject?: object;
+    componentSlug: string;
+}
+
+export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsListProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

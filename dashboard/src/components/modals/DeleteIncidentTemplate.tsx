@@ -13,7 +13,20 @@ import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class DeleteIncidentTemplate extends Component {
+interface DeleteIncidentTemplateProps {
+    projectId?: string;
+    closeModal: Function;
+    deleteIncidentTemplate?: Function;
+    templateId?: string;
+    deletingTemplate?: boolean;
+    deleteError?: string;
+    deleteIncidentTemplateFailure?: Function;
+    fetchIncidentTemplates?: Function;
+    skip?: number;
+    limit?: number;
+}
+
+class DeleteIncidentTemplate extends Component<DeleteIncidentTemplateProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

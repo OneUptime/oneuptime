@@ -6,7 +6,12 @@ import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
 import { history } from '../../store';
 
-class ErrorTrackerIssueTimeline extends Component {
+interface ErrorTrackerIssueTimelineProps {
+    errorEvent?: object;
+    errorTrackerIssue?: object;
+}
+
+class ErrorTrackerIssueTimeline extends Component<ErrorTrackerIssueTimelineProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

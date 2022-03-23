@@ -7,7 +7,12 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 import moment from 'moment';
 
-class KubeStatefulsetData extends React.Component {
+interface KubeStatefulsetDataProps {
+    closeModal: Function;
+    data?: object;
+}
+
+class KubeStatefulsetData extends React.Component<KubeStatefulsetDataProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

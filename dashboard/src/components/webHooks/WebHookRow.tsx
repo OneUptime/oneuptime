@@ -1,11 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface WebHookTableHeaderProps {
+    text?: string;
+    style?: object;
+    name?: string;
+}
+
 function WebHookTableHeader({
     text,
     style,
     name
-}: $TSFixMe) {
+}: WebHookTableHeaderProps) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -47,9 +53,13 @@ WebHookTableHeader.propTypes = {
     name: PropTypes.string,
 };
 
+interface WebHookTableBodyProps {
+    text?: string;
+}
+
 function WebHookTableBody({
     text
-}: $TSFixMe) {
+}: WebHookTableBodyProps) {
     return (
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
             <div className="db-ListViewItem-cellContent Box-root Padding-vertical--16 Padding-horizontal--8">
@@ -69,9 +79,13 @@ WebHookTableBody.propTypes = {
     text: PropTypes.string,
 };
 
+interface WebHookBadgeTableBodyProps {
+    text?: string;
+}
+
 function WebHookBadgeTableBody({
     text
-}: $TSFixMe) {
+}: WebHookBadgeTableBodyProps) {
     const color = {
         get: 'blue',
         post: 'green',

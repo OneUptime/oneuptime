@@ -15,7 +15,24 @@ import { openModal } from 'common-ui/actions/modal';
 import GitCredentialModal from '../credential/GitCredentialModal';
 import GitSshModal from '../credential/GitSshModal';
 
-class ApplicationSecurityForm extends Component {
+interface ApplicationSecurityFormProps {
+    projectId?: string;
+    componentId?: string;
+    addApplicationSecurity?: Function;
+    isRequesting?: boolean;
+    addApplicationError?: string;
+    handleSubmit?: Function;
+    getGitCredentials?: Function // provided by redux form;
+    gitCredentials?: unknown[];
+    requestingGitCredentials?: boolean;
+    openModal?: Function;
+    resourceCategoryList?: unknown[];
+    toggleForm?: Function;
+    showCancelBtn?: boolean;
+    formValues?: unknown;
+}
+
+class ApplicationSecurityForm extends Component<ApplicationSecurityFormProps> {
     componentDidMount() {
 
         const { projectId, getGitCredentials } = this.props;

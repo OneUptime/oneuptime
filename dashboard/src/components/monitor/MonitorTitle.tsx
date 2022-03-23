@@ -7,7 +7,16 @@ import StatusIndicator from './StatusIndicator';
 import ShouldRender from '../basic/ShouldRender';
 import moment from 'moment';
 
-export class MonitorTitle extends Component {
+interface MonitorTitleProps {
+    monitor: object;
+    status?: string;
+    activeProbe?: number;
+    probes?: unknown[];
+    logs?: unknown[];
+    requesting?: boolean;
+}
+
+export class MonitorTitle extends Component<MonitorTitleProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -10,7 +10,14 @@ import PropTypes from 'prop-types';
 import { deletePerformanceTracker } from '../../actions/performanceTracker';
 import { history } from '../../store';
 
-class DeletePerformanceTracker extends Component {
+interface DeletePerformanceTrackerProps {
+    closeModal: Function;
+    data?: object;
+    trackerObj?: object;
+    deletePerformanceTracker?: Function;
+}
+
+class DeletePerformanceTracker extends Component<DeletePerformanceTrackerProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

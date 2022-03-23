@@ -3,6 +3,33 @@ import PropTypes from 'prop-types';
 import ShouldRender from './ShouldRender';
 import { BookmarkIcon, CancelIcon } from '../svg';
 
+interface RenderSearchFieldProps {
+    initialValue?: string | boolean;
+    input: object;
+    placeholder?: string;
+    type?: string;
+    className?: string;
+    id?: string;
+    meta: object;
+    rows?: string;
+    disabled?: boolean;
+    style?: object;
+    required?: boolean;
+    autoFocus?: boolean;
+    parentStyle?: object;
+    autoComplete?: string;
+    autofilled?: string;
+    handleFocus?: Function;
+    handleBlur?: Function;
+    iconLeft?: boolean;
+    iconRight?: boolean;
+    frame?: boolean;
+    onFrameClick?: Function;
+    handleIconClick?: Function;
+    display?: string;
+    iconLeftStyle?: object;
+}
+
 const RenderSearchField = ({
     input,
     placeholder,
@@ -25,7 +52,7 @@ const RenderSearchField = ({
     onFrameClick,
     handleIconClick,
     display
-}: $TSFixMe) => (
+}: RenderSearchFieldProps) => (
     <div style={{ width: '100%', ...parentStyle }} id="search-input-container">
         <ShouldRender if={iconLeft}>
             <img

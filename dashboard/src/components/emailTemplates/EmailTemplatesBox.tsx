@@ -14,7 +14,15 @@ import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 
-class EmailTemplatesBox extends React.Component {
+interface EmailTemplatesBoxProps {
+    emailTemplates: object;
+    editEmailTemplates: Function;
+    currentProject?: object;
+    resetEmailTemplates: Function;
+    changeShowingTemplate: Function;
+}
+
+class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
     submitForm = (values: $TSFixMe) => {
 
         const { currentProject } = this.props;

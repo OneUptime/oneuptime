@@ -9,7 +9,15 @@ import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 import removeGroup from '../modals/removeGroup';
 
-export class GroupTable extends Component {
+interface GroupTableProps {
+    openModal?: Function;
+    group?: object;
+    disabled?: boolean;
+    projectId?: string;
+    deleteDisable?: boolean;
+}
+
+export class GroupTable extends Component<GroupTableProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { groupModalId: uuidv4() };

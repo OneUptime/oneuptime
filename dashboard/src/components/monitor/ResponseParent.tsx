@@ -11,7 +11,15 @@ import { ValidateField } from '../../config';
 import RenderOptions from '../basic/RenderOptions';
 import { RenderSelect } from '../basic/RenderSelect';
 
-export class ResponseParent extends Component {
+interface ResponseParentProps {
+    fields: unknown[] | object;
+    bodyfield?: unknown[] | object;
+    level?: number;
+    type?: string;
+    criterionType?: string;
+}
+
+export class ResponseParent extends Component<ResponseParentProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { FormLoader2 } from '../basic/Loader';
 
-class ErrorEventIssueMember extends Component {
+interface ErrorEventIssueMemberProps {
+    data?: object;
+    closeThisDialog?: Function;
+    deleting?: boolean;
+    errorTrackerIssueMembers?: object;
+}
+
+class ErrorEventIssueMember extends Component<ErrorEventIssueMemberProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -177,16 +184,16 @@ class ErrorEventIssueMember extends Component {
                                                                                         className={`Badge ${this.isTeamMemberAssigned(
                                                                                             member
                                                                                         )
-                                                                                                ? 'Badge--color--green'
-                                                                                                : 'Badge--color--red'
+                                                                                            ? 'Badge--color--green'
+                                                                                            : 'Badge--color--red'
                                                                                             } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                                                     >
                                                                                         <span
                                                                                             className={`Badge-text ${this.isTeamMemberAssigned(
                                                                                                 member
                                                                                             )
-                                                                                                    ? 'Text-color--green'
-                                                                                                    : 'Text-color--red '
+                                                                                                ? 'Text-color--green'
+                                                                                                : 'Text-color--red '
                                                                                                 } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                                         >
                                                                                             <span>

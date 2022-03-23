@@ -6,10 +6,15 @@ import { Field } from 'redux-form';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import TimeSelector from '../basic/TimeSelector';
 
+interface RenderRotationSwitchTimeProps {
+    policy: string;
+    rotateBy: string;
+}
+
 const RenderRotationSwitchTime = ({
     policy,
     rotateBy
-}: $TSFixMe) => {
+}: RenderRotationSwitchTimeProps) => {
     return (
         <>
             <ShouldRender if={rotateBy === 'weeks' || rotateBy === 'months'}>

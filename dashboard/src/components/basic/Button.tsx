@@ -3,7 +3,20 @@ import PropTypes from 'prop-types';
 import RenderBasedOnRole from './RenderBasedOnRole';
 import BasicButton from 'common-ui/components/basic/Button';
 
-export default class Button extends Component {
+interface ButtonProps {
+    title: string;
+    onClick?: Function;
+    disabled?: boolean;
+    id?: string;
+    shortcutKey?: string;
+    visibleForOwner?: boolean;
+    visibleForAdmin?: boolean;
+    visibleForViewer?: boolean;
+    visibleForMember?: boolean;
+    visibleForAll?: boolean;
+}
+
+export default class Button extends Component<ButtonProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

@@ -9,7 +9,15 @@ import { resetTeamDelete } from '../../actions/team';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 
-class RemoveTeamUserModal extends Component {
+interface RemoveTeamUserModalProps {
+    closeModal?: Function;
+    data?: object;
+    deleting?: boolean;
+    resetTeamDelete?: any;
+    teamUserDelete?: any;
+}
+
+class RemoveTeamUserModal extends Component<RemoveTeamUserModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

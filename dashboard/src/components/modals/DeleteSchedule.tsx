@@ -10,7 +10,18 @@ import { closeModal } from 'common-ui/actions/modal';
 import { deleteScheduledEvent } from '../../actions/scheduledEvent';
 import { history } from '../../store';
 
-class DeleteSchedule extends Component {
+interface DeleteScheduleProps {
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    deleteError?: string;
+    closeModal?: Function;
+    deleteScheduledEvent?: Function;
+    modalId?: string;
+    slug?: string;
+    data?: object;
+}
+
+class DeleteSchedule extends Component<DeleteScheduleProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

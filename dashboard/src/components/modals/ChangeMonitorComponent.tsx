@@ -22,7 +22,21 @@ import { addCurrentComponent } from '../../actions/component';
 
 const formName = 'changeMonitorComponentForm';
 
-class ChangeMonitorComponent extends React.Component {
+interface ChangeMonitorComponentProps {
+    closeModal: Function;
+    openModal?: Function;
+    handleSubmit: Function;
+    changeMonitorComponent: Function;
+    changeMonitorComponentModalId?: string;
+    data?: object;
+    requesting?: boolean;
+    changeMonitorComponentError?: string;
+    components?: unknown[];
+    currentProject?: object;
+    addCurrentComponent?: Function;
+}
+
+class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

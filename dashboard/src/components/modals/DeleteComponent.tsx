@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class DeleteComponent extends Component {
+interface DeleteComponentProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    componentState?: object;
+    data?: object;
+}
+
+class DeleteComponent extends Component<DeleteComponentProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

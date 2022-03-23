@@ -6,7 +6,14 @@ import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class DeleteScheduleModal extends Component {
+interface DeleteScheduleModalProps {
+    isRequesting?: boolean;
+    confirmThisDialog: Function;
+    closeThisDialog?: Function;
+    error?: string;
+}
+
+class DeleteScheduleModal extends Component<DeleteScheduleModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

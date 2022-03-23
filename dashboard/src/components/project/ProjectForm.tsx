@@ -59,7 +59,25 @@ const createOptions = (fontSize: $TSFixMe, padding: $TSFixMe) => {
     };
 };
 
-class _ProjectForm extends React.Component {
+interface _ProjectFormProps {
+    handleSubmit: Function;
+    hideForm: Function;
+    submitForm: Function;
+    errorStack?: unknown[];
+    submitFailed?: boolean;
+    requesting?: boolean;
+    stripe?: object;
+    initialValues: object;
+    createProjectError: Function;
+    createProjectRequest: Function;
+    checkCard: Function;
+    email?: string;
+    companyName?: string;
+    elementFontSize?: string;
+    activePlan?: string;
+}
+
+class _ProjectForm extends React.Component<_ProjectFormProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }

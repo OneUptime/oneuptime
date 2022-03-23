@@ -24,7 +24,19 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class CreateMsTeams extends React.Component {
+interface CreateMsTeamsProps {
+    currentProject?: object;
+    createMsTeams: Function;
+    closeThisDialog: Function;
+    handleSubmit: Function;
+    monitor?: object;
+    newMsTeams?: object;
+    data?: object;
+    formValues?: object;
+    monitorsList?: unknown[];
+}
+
+class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
     closeThisDialog: $TSFixMe;
     state = {
         monitorError: null,

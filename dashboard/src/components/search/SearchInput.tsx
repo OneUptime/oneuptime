@@ -10,7 +10,19 @@ import PropTypes from 'prop-types';
 import { searchLog, fetchLogs } from '../../actions/applicationLog';
 import { RenderField } from '../basic/RenderField';
 
-const SearchInput = (props: $TSFixMe) => {
+interface SearchInputProps {
+    searchLog?: Function;
+    fetchLogs?: Function;
+    projectId?: string;
+    componentId?: string;
+    applicationLogId?: string;
+    setDisplay?: Function;
+    reset?: Function;
+    display?: string;
+    handleSubmit?: Function;
+}
+
+const SearchInput = (props: SearchInputProps) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
     const [error, setError] = useState(null);

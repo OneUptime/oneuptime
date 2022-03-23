@@ -9,6 +9,19 @@ const errorStyle = {
     fontWeight: '350',
 };
 
+interface RenderFieldProps {
+    initialValue?: string | boolean;
+    input: object;
+    placeholder: string;
+    type: string;
+    className?: string;
+    id?: string;
+    meta: object;
+    rows?: string;
+    disabled?: boolean;
+    style?: object;
+}
+
 const RenderField = ({
     input,
     placeholder,
@@ -19,7 +32,7 @@ const RenderField = ({
     disabled,
     initialValue,
     style
-}: $TSFixMe) => (
+}: RenderFieldProps) => (
     <span>
         <span>
             <input

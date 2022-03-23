@@ -24,7 +24,20 @@ function validate(_values: $TSFixMe) {
     return error;
 }
 
-class EditDomain extends React.Component {
+interface EditDomainProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    requesting?: boolean;
+    projectId?: string;
+    domainId?: string;
+    updateDomainError?: string;
+    updateProjectDomain?: Function;
+    fetchProjectDomains?: Function;
+    resetUpdateProjectDomain?: Function;
+    currentProject?: object;
+}
+
+class EditDomain extends React.Component<EditDomainProps> {
     componentDidMount() {
 
         this.props.resetUpdateProjectDomain();

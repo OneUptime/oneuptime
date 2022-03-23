@@ -22,7 +22,34 @@ import { getIncidents, getComponentIncidents } from '../../actions/incident';
 import { closeModal } from 'common-ui/actions/modal';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
-class CreateIncident extends Component {
+interface CreateIncidentProps {
+    closeModal: Function;
+    createNewIncident: Function;
+    // subProjects: PropTypes.array,
+    currentProject?: object;
+    handleSubmit?: Function;
+    monitors?: unknown[];
+    newIncident?: object;
+    error?: object;
+    requesting?: boolean;
+    data?: object;
+    incidentPriorities: unknown[];
+    change: Function;
+    fetchCustomFields?: Function;
+    resetCreateIncident?: Function;
+    customFields?: unknown[];
+    componentId?: string;
+    monitorsList?: unknown[];
+    formValues?: object;
+    componentSlug?: string;
+    getIncidents?: Function;
+    getComponentIncidents?: Function;
+    subProjectId?: string;
+    currentProjectId?: string;
+    incidentTemplateObj?: object;
+}
+
+class CreateIncident extends Component<CreateIncidentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

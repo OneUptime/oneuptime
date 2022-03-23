@@ -8,7 +8,17 @@ import moment from 'moment';
 import ShouldRender from './ShouldRender';
 import AffectedResources from './basic/AffectedResources';
 
-class Events extends Component {
+interface EventsProps {
+    events?: unknown[];
+    secondaryTextColor?: object;
+    primaryTextColor?: object;
+    noteBackgroundColor?: object;
+    statusPageSlug?: string;
+    monitorState?: unknown[];
+    history?: object;
+}
+
+class Events extends Component<EventsProps> {
     handleNavigation = (statusPageSlug: $TSFixMe, eventSlug: $TSFixMe) => {
 
         const { history } = this.props;

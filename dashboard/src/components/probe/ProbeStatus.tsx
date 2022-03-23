@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
+interface ProbeStatusProps {
+    lastAlive?: moment | string | object;
+    id?: number;
+}
+
 function ProbeStatus({
     lastAlive,
     id
-}: $TSFixMe) {
+}: ProbeStatusProps) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {

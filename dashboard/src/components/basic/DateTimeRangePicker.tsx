@@ -10,13 +10,21 @@ import DateTimeWrapper from './DateTimeWrapper';
 
 const moment = extendMoment(originalMoment);
 
+interface DateTimeRangePickerProps {
+    currentDateRange?: object;
+    formId?: string;
+    handleEndDateTimeChange?: Function;
+    handleStartDateTimeChange?: Function;
+    style?: object;
+}
+
 function DateTimeRangePicker({
     currentDateRange,
     handleStartDateTimeChange,
     handleEndDateTimeChange,
     formId,
     style
-}: $TSFixMe) {
+}: DateTimeRangePickerProps) {
     const currentDate = moment();
     const [key, setkey] = useState(0);
     useEffect(() => {

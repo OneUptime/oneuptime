@@ -56,7 +56,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class EditMonitorSlaModal extends React.Component {
+interface EditMonitorSlaModalProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    requesting?: boolean;
+    slaError?: string;
+    updateMonitorSla?: Function;
+    currentProject?: object;
+    initialValues?: object;
+    editMonitorSlaModalId?: string;
+    formValues?: object;
+    monitorsList?: unknown[];
+    fetchMonitors?: Function;
+}
+
+class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
     state = {
         monitorError: null,
         selectedProjects: [],

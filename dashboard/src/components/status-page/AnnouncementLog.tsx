@@ -14,7 +14,17 @@ import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAnnouncementLog from '../modals/DeleteAnnouncementLog';
 
-class AnnouncementLog extends Component {
+interface AnnouncementLogProps {
+    fetchAnnouncementLogs?: Function;
+    projectId?: string;
+    statusPage?: object;
+    logs?: object;
+    requesting?: boolean;
+    error?: string;
+    openModal?: Function;
+}
+
+class AnnouncementLog extends Component<AnnouncementLogProps> {
     deleteAnnouncement: $TSFixMe;
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {

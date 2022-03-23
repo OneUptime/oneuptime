@@ -11,7 +11,16 @@ import DeleteIncident from '../modals/DeleteIncident';
 import { deleteIncident } from '../../actions/incident';
 import DataPathHoC from '../DataPathHoC';
 
-export class IncidentDeleteBox extends Component {
+interface IncidentDeleteBoxProps {
+    closeModal?: Function;
+    openModal: Function;
+    incident: object;
+    deleting: boolean;
+    currentProject?: object;
+    componentSlug?: string;
+}
+
+export class IncidentDeleteBox extends Component<IncidentDeleteBoxProps> {
     deleteIncident: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

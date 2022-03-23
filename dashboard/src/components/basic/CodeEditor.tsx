@@ -6,7 +6,13 @@ import 'prismjs/components/prism-markdown';
 import 'prismjs/themes/prism.css';
 import PropTypes from 'prop-types';
 
-class CodeEditor extends Component {
+interface CodeEditorProps {
+    code?: string;
+    onCodeChange?: Function;
+    style?: object;
+}
+
+class CodeEditor extends Component<CodeEditorProps> {
     render() {
         return (<></>
             // <Editor

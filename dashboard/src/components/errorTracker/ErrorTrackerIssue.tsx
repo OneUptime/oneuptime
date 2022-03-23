@@ -39,6 +39,20 @@ function viewMore(
 function isSelected(selectedErrorEvents: $TSFixMe, id: $TSFixMe) {
     return selectedErrorEvents.indexOf(id) > -1 ? true : false;
 }
+
+interface ErrorTrackerIssueProps {
+    errorTracker?: object;
+    errorTrackerIssue?: object;
+    componentId?: string;
+    componentSlug?: string;
+    selectErrorEvent?: Function;
+    selectedErrorEvents?: unknown[];
+    openEventMemberModal?: Function;
+    resolveSingleIssue?: Function;
+    errorTrackerStatus?: Function;
+    slug?: string;
+}
+
 function ErrorTrackerIssue({
     componentId,
     errorTrackerIssue,
@@ -50,7 +64,7 @@ function ErrorTrackerIssue({
     resolveSingleIssue,
     errorTrackerStatus,
     slug
-}: $TSFixMe) {
+}: ErrorTrackerIssueProps) {
     return (
         <tr className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem">
             <td
@@ -285,11 +299,11 @@ function ErrorTrackerIssue({
                         </button>
                         <button
                             className={`bs-Button ${errorTrackerStatus &&
-                                    errorTrackerStatus[errorTrackerIssue._id] &&
-                                    errorTrackerStatus[errorTrackerIssue._id]
-                                        .requestingResolve
-                                    ? ''
-                                    : 'bs-Button--icon bs-Button--check'
+                                errorTrackerStatus[errorTrackerIssue._id] &&
+                                errorTrackerStatus[errorTrackerIssue._id]
+                                    .requestingResolve
+                                ? ''
+                                : 'bs-Button--icon bs-Button--check'
                                 }  `}
                             type="button"
                             disabled={errorTrackerIssue.resolved}

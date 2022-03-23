@@ -4,7 +4,13 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
-class RemoveFooterLink extends Component {
+interface RemoveFooterLinkProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    data?: object;
+}
+
+class RemoveFooterLink extends Component<RemoveFooterLinkProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 
-class Unauthorised extends Component {
+interface UnauthorisedProps {
+    closeThisDialog: Function;
+}
+
+class Unauthorised extends Component<UnauthorisedProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

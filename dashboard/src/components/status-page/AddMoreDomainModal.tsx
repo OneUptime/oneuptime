@@ -26,7 +26,24 @@ function validate(_values: $TSFixMe) {
     return error;
 }
 
-class AddMoreDomainModal extends React.Component {
+interface AddMoreDomainModalProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    formValues?: object;
+    requesting?: boolean;
+    statusPageId?: string;
+    projectId?: string;
+    addDomainError?: string;
+    uploadCertFile?: Function;
+    uploadPrivateKey?: Function;
+    certFile?: object;
+    privateKeyFile?: object;
+    removeCertFile?: Function;
+    removePrivateKeyFile?: Function;
+    createDomain?: Function;
+}
+
+class AddMoreDomainModal extends React.Component<AddMoreDomainModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

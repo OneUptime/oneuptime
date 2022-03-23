@@ -12,7 +12,16 @@ import { openModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 
-export class IncidentInvestigation extends Component {
+interface IncidentInvestigationProps {
+    incident: object;
+    incidentMessages?: object;
+    currentProject?: object;
+    fetchIncidentMessages?: Function;
+    openModal?: Function;
+    deleteIncidentMessage?: Function;
+}
+
+export class IncidentInvestigation extends Component<IncidentInvestigationProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

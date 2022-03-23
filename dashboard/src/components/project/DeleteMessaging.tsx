@@ -4,7 +4,13 @@ import { changeDeleteModal } from '../../actions/project';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class DeleteMessaging extends Component {
+interface DeleteMessagingProps {
+    changeDeleteModal: Function;
+    hide: Function;
+    requesting: boolean;
+}
+
+class DeleteMessaging extends Component<DeleteMessagingProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

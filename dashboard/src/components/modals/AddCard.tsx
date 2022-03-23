@@ -42,7 +42,20 @@ const createOptions = (fontSize: $TSFixMe, padding: $TSFixMe) => {
     };
 };
 
-class _CardForm extends React.Component {
+interface _CardFormProps {
+    userId?: string;
+    stripe?: object;
+    addCardSuccess: Function;
+    addCardFailed: Function;
+    addCardRequest: Function;
+    closeModal: Function;
+    CreateCardModalId?: string;
+    requesting?: boolean;
+    error?: string;
+    elementFontSize?: number;
+}
+
+class _CardForm extends React.Component<_CardFormProps> {
     setRef: $TSFixMe;
     constructor() {
 

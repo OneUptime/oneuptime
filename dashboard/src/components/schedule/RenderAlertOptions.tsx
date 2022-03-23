@@ -1,11 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface RenderAlertOptionsProps {
+    call?: boolean;
+    email?: boolean;
+    sms?: boolean;
+}
+
 const RenderAlertOptions = ({
     call,
     sms,
     email
-}: $TSFixMe) => {
+}: RenderAlertOptionsProps) => {
     return (
         <div style={{ display: 'flex' }}>
             <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--22 Text-typeface--base Text-wrap--wrap Margin-top--5">

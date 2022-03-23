@@ -21,7 +21,26 @@ import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-class NewIncidentMessage extends Component {
+interface NewIncidentMessageProps {
+    incident?: object;
+    incidentMessage?: object;
+    incidentMessageState?: object;
+    currentProject?: object;
+    data?: object;
+    setInvestigationNote?: Function;
+    handleSubmit?: Function;
+    edit?: boolean;
+    type?: string;
+    editIncidentMessageSwitch?: Function;
+    setInternalNote?: Function;
+    incident_state?: string;
+    change?: Function;
+    closeModal?: Function;
+    noteTemplates?: object;
+    fetchIncidentMessages?: Function;
+}
+
+class NewIncidentMessage extends Component<NewIncidentMessageProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

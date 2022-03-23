@@ -13,7 +13,19 @@ import {
     resetDeleteProjectDomain,
 } from '../../actions/project';
 
-class DeleteDomain extends Component {
+interface DeleteDomainProps {
+    isRequesting?: boolean;
+    deleteError?: string;
+    closeModal?: Function;
+    resetDeleteProjectDomain?: Function;
+    deleteProjectDomain?: Function;
+    fetchProjectDomains?: Function;
+    domainId?: string;
+    projectId?: string;
+    currentProject?: object;
+}
+
+class DeleteDomain extends Component<DeleteDomainProps> {
     componentDidMount() {
 
         this.props.resetDeleteProjectDomain();

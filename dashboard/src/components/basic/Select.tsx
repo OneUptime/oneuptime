@@ -3,7 +3,11 @@ import React from 'react';
 import ReactSelect from 'react-select';
 import PropTypes from 'prop-types';
 
-const Select = (props: $TSFixMe) => <ReactSelect
+interface SelectProps {
+    style?: object;
+}
+
+const Select = (props: SelectProps) => <ReactSelect
     {...props}
     styles={{
         control: (provided: $TSFixMe) => ({

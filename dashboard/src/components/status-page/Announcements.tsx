@@ -16,7 +16,17 @@ import EditAnnouncement from '../modals/EditAnnouncement';
 import HideAnnouncement from '../modals/HideAnnouncement';
 import AnnouncementLog from './AnnouncementLog';
 
-class Announcements extends Component {
+interface AnnouncementsProps {
+    openModal?: Function;
+    projectId?: string;
+    statusPage?: object;
+    fetchAnnouncements?: Function;
+    announcements?: object;
+    requesting?: boolean;
+    announceError?: boolean;
+}
+
+class Announcements extends Component<AnnouncementsProps> {
     deleteAnnouncement: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

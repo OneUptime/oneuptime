@@ -5,7 +5,19 @@ import { filterOptions as customFilterOptions } from 'fuzzy-match-utils';
 import SelectItem from './SelectItem';
 import SelectList from './SelectList';
 
-class SelectPanel extends React.Component {
+interface SelectPanelProps {
+    ItemRenderer?: React.ReactElement;
+    options?: unknown[];
+    selected: unknown[];
+    selectAllLabel?: string;
+    onSelectedChanged?: Function;
+    disableSearch?: boolean;
+    disabled?: boolean;
+    hasSelectAll?: boolean;
+    filterOptions?: any;
+}
+
+class SelectPanel extends React.Component<SelectPanelProps> {
     onBlur: $TSFixMe;
     onFocus: $TSFixMe;
     state = {

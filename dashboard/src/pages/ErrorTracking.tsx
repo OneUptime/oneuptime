@@ -4,7 +4,6 @@ import getParentRoute from '../utils/getParentRoute';
 
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
-import PropsType from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import NewErrorTracker from '../components/errorTracker/NewErrorTracker';
@@ -18,7 +17,21 @@ import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 
-class ErrorTracking extends Component {
+interface ErrorTrackingProps {
+    component?: object;
+    currentProject?: object;
+    location?: object;
+    componentId?: string;
+    componentSlug?: string;
+    fetchErrorTrackers?: Function;
+    fetchComponent?: Function;
+    tutorialStat?: object;
+    errorTracker?: object;
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+}
+
+class ErrorTracking extends Component<ErrorTrackingProps> {
     state = {
         showNewErrorTrackerForm: false,
         page: 1,

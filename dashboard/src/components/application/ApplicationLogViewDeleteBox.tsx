@@ -13,7 +13,17 @@ import DataPathHoC from '../DataPathHoC';
 
 import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 
-class ApplicationLogViewDeleteBox extends Component {
+interface ApplicationLogViewDeleteBoxProps {
+    currentProject?: object;
+    componentId: string;
+    componentSlug: string;
+    closeModal?: Function;
+    openModal: Function;
+    applicationLog?: object;
+    deleteApplicationLog: Function;
+}
+
+class ApplicationLogViewDeleteBox extends Component<ApplicationLogViewDeleteBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };

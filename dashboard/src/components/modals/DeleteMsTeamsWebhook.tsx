@@ -4,7 +4,13 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
-class DeleteMsTeams extends Component {
+interface DeleteMsTeamsProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    data?: object;
+}
+
+class DeleteMsTeams extends Component<DeleteMsTeamsProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

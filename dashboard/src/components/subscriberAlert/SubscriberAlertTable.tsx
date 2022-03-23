@@ -24,10 +24,15 @@ function HTD1() {
     );
 }
 
+interface HTD2Props {
+    name: string;
+    style?: object;
+}
+
 function HTD2({
     name,
     style
-}: $TSFixMe) {
+}: HTD2Props) {
     return (
         <td
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -111,9 +116,13 @@ function HTD6() {
     );
 }
 
+interface TD1Props {
+    text?: any;
+}
+
 function TD1({
     text
-}: $TSFixMe) {
+}: TD1Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -134,9 +143,13 @@ TD1.propTypes = {
     text: PropTypes.any,
 };
 
+interface TD2Props {
+    text?: any;
+}
+
 function TD2({
     text
-}: $TSFixMe) {
+}: TD2Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -159,9 +172,13 @@ TD2.propTypes = {
     text: PropTypes.any,
 };
 
+interface TD3Props {
+    text?: any;
+}
+
 function TD3({
     text
-}: $TSFixMe) {
+}: TD3Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -197,9 +214,13 @@ TD3.propTypes = {
     text: PropTypes.any,
 };
 
+interface TD4Props {
+    text?: any;
+}
+
 function TD4({
     text
-}: $TSFixMe) {
+}: TD4Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -220,9 +241,13 @@ TD4.propTypes = {
     text: PropTypes.any,
 };
 
+interface TD5Props {
+    text?: string;
+}
+
 function TD5({
     text
-}: $TSFixMe) {
+}: TD5Props) {
     const incidentStatusColor = {
         identified: 'red',
         acknowledged: 'yellow',
@@ -280,9 +305,13 @@ TD5.propTypes = {
     text: PropTypes.string,
 };
 
+interface TD6Props {
+    text?: string;
+}
+
 function TD6({
     text
-}: $TSFixMe) {
+}: TD6Props) {
     return (
         <td
             aria-hidden="true"
@@ -343,7 +372,13 @@ function SubscriberAlertTableHeader() {
     );
 }
 
-class SubscriberAlertTableRowsClass extends React.Component {
+interface SubscriberAlertTableRowsClassProps {
+    alerts: unknown[];
+    openModal: Function;
+    monitors?: unknown[];
+}
+
+class SubscriberAlertTableRowsClass extends React.Component<SubscriberAlertTableRowsClassProps> {
     handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'Unknown';

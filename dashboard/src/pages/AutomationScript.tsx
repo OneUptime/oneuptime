@@ -12,7 +12,19 @@ import { fetchAutomatedScript } from '../actions/automatedScript';
 import NewScript from '../components/automationScript/NewScript';
 import AutomatedTabularList from '../components/automationScript/AutomatedTabularList';
 
-class AutomationScript extends Component {
+interface AutomationScriptProps {
+    projectId?: string;
+    fetchAutomatedScript: Function;
+    location?: {
+        pathname?: string
+    };
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+    activeProject?: string;
+    subProjects?: unknown[];
+}
+
+class AutomationScript extends Component<AutomationScriptProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

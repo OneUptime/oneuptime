@@ -35,9 +35,43 @@ import {
     fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
+
+interface MonitorDashboardViewProps {
+    currentProject?: object;
+    componentId?: string;
+    monitor?: object;
+    monitors?: unknown[];
+    loadPage?: Function;
+    destroy: Function;
+    fetchMonitorLogs?: Function;
+    fetchMonitorsIncidents: Function;
+    fetchMonitorStatuses: Function;
+    fetchLighthouseLogs: Function;
+    subProjects?: unknown[];
+    getProbes?: Function;
+    startDate?: object;
+    endDate?: object;
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string
+    }[];
+    fetchIncidentPriorities: Function;
+    fetchIncidentTemplates: Function;
+    tutorialStat?: object;
+    fetchComponentSummary?: Function;
+    componentSummaryObj?: object;
+    fetchComponent?: Function;
+    componentSlug?: string;
+    fetchDefaultTemplate?: Function;
+    switchToProjectViewerNav?: boolean;
+    fetchPaginatedMonitors?: Function;
+}
+
 // import { socket } from '../components/basic/Socket';
 
-class MonitorDashboardView extends Component {
+class MonitorDashboardView extends Component<MonitorDashboardViewProps> {
     state = {
         showNewMonitorForm: false,
         page: 1,

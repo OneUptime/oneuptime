@@ -13,7 +13,20 @@ import {
 } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
-class Message extends Component {
+interface MessageProps {
+    userData?: Function;
+    validationError?: Function;
+    subscribed?: object;
+    error?: string;
+    statuspage?: object;
+    subscribeUser?: Function;
+    openSubscribeMenu?: Function;
+    userDataReset?: Function;
+    theme?: boolean;
+    handleCloseButtonClick?: Function;
+}
+
+class Message extends Component<MessageProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { email: '' };

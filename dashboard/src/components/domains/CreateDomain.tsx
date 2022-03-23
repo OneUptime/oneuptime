@@ -24,7 +24,18 @@ function validate(_values: $TSFixMe) {
     return error;
 }
 
-class CreateDomain extends React.Component {
+interface CreateDomainProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    requesting?: boolean;
+    projectId?: string;
+    addDomainError?: string;
+    createProjectDomain?: Function;
+    fetchProjectDomains?: Function;
+    resetCreateProjectDomain?: Function;
+}
+
+class CreateDomain extends React.Component<CreateDomainProps> {
     componentDidMount() {
 
         this.props.resetCreateProjectDomain();

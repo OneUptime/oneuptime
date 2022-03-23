@@ -5,7 +5,13 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
-class DeleteDomainModal extends Component {
+interface DeleteDomainModalProps {
+    confirmThisDialog: Function;
+    closeThisDialog?: Function;
+    deleteDomain?: object;
+}
+
+class DeleteDomainModal extends Component<DeleteDomainModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }

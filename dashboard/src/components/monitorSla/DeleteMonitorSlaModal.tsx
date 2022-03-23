@@ -9,7 +9,17 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { deleteMonitorSla } from '../../actions/monitorSla';
 
-class DeleteMonitorSlaModal extends Component {
+interface DeleteMonitorSlaModalProps {
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    deleteError?: string;
+    closeModal?: Function;
+    deleteMonitorSla?: Function;
+    modalId?: string;
+    data?: object;
+}
+
+class DeleteMonitorSlaModal extends Component<DeleteMonitorSlaModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -7,7 +7,13 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 import ReactJson from 'react-json-view';
 
-class ViewJsonLogs extends Component {
+interface ViewJsonLogsProps {
+    closeModal: Function;
+    data?: object;
+    title?: string;
+}
+
+class ViewJsonLogs extends Component<ViewJsonLogsProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

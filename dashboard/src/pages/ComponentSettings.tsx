@@ -15,7 +15,28 @@ import { editComponent, fetchComponent } from '../actions/component';
 import { bindActionCreators, Dispatch } from 'redux';
 import { history } from '../store';
 
-class ComponentSettings extends Component {
+interface ComponentSettingsProps {
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string
+    }[];
+    componentSlug?: string;
+    handleSubmit?: Function;
+    fetchComponent?: Function;
+    initialValues?: {
+        name?: string
+    };
+    editComponent: Function;
+    projectId?: string;
+    projectSlug?: string;
+    editingComponent?: object;
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class ComponentSettings extends Component<ComponentSettingsProps> {
     submitForm = (values: $TSFixMe) => {
 
         if (this.props.initialValues.name === values.name) {

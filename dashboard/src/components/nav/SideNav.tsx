@@ -21,7 +21,28 @@ import { getSubProjects } from '../../actions/subProject';
 import { Route, Switch, withRouter } from 'react-router-dom';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
-class SideNav extends Component {
+interface SideNavProps {
+    project: object;
+    hideProjectSwitcher: Function;
+    showProjectSwitcher: Function;
+    hideForm: Function;
+    closeSideNav?: Function;
+    sidenavopen?: boolean;
+    allIndividualComponents?: unknown[];
+    location?: object;
+    match?: object;
+    profilePic?: string;
+    userName?: string;
+    animateSidebar?: boolean;
+    currentProject?: object;
+    subProjects?: unknown[];
+    switchToProjectViewerNav?: boolean;
+    switchToProjectViewer?: Function;
+    getSubProjects?: Function;
+    activeProject?: object;
+}
+
+class SideNav extends Component<SideNavProps> {
     showProfileMenu: $TSFixMe;
     state = { navLoading: false };
     componentDidMount() {
@@ -499,10 +520,15 @@ SideNav.propTypes = {
     activeProject: PropTypes.object,
 };
 
+interface WrappedSideNavProps {
+    currentProject?: object;
+    activeSubProjectId?: string;
+}
+
 // since sideNav is above page routes we have no access to the pages' props.match,
 // we rebuild the routes here to enable access to these properties
 
-const WrappedSideNav = (props: $TSFixMe) => {
+const WrappedSideNav = (props: WrappedSideNavProps) => {
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
 

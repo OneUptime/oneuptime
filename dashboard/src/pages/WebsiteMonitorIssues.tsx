@@ -12,12 +12,19 @@ import getParentRoute from '../utils/getParentRoute';
 import WebsiteIssuesList from '../components/monitor/WebsiteIssuesList';
 import ShouldRender from '../components/basic/ShouldRender';
 
+interface WebsiteIssuesBoxProps {
+    id?: string;
+    category?: string;
+    description?: string;
+    issues?: unknown[];
+}
+
 const WebsiteIssuesBox = ({
     id,
     category,
     description,
     issues
-}: $TSFixMe) => {
+}: WebsiteIssuesBoxProps) => {
     return (
         <div id={id} className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -53,7 +60,23 @@ WebsiteIssuesBox.propTypes = {
     issues: PropTypes.array,
 };
 
-class WebsiteMonitorIssues extends React.Component {
+interface WebsiteMonitorIssuesProps {
+    fetchMonitorIssue?: Function;
+    fetchComponent?: Function;
+    match?: object;
+    componentSlug?: string;
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string
+    }[];
+    monitor?: object;
+    monitorState?: object;
+    projectId?: string;
+}
+
+class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

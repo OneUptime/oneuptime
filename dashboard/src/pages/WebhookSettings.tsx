@@ -10,7 +10,16 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
 
-class WebhookSettings extends Component {
+interface WebhookSettingsProps {
+    location?: {
+        pathname?: string
+    };
+    icon?: string;
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class WebhookSettings extends Component<WebhookSettingsProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

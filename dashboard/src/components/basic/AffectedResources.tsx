@@ -2,11 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { capitalize } from '../../config';
 
+interface AffectedResourcesProps {
+    event?: object;
+    monitorState?: unknown[];
+    colorStyle?: "white" | "grey";
+}
+
 const AffectedResources = ({
     event,
     monitorState,
     colorStyle
-}: $TSFixMe) => {
+}: AffectedResourcesProps) => {
     const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
 

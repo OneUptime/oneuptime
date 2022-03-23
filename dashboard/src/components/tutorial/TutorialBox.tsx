@@ -7,11 +7,17 @@ import { closeTutorial } from '../../actions/tutorial';
 import ApiDoc from '../oneuptimeApi/ApiDoc';
 import ShouldRender from '../basic/ShouldRender';
 
+interface TutorialsProps {
+    type: string;
+    closeTutorial: Function;
+    currentProjectId: string;
+}
+
 const Tutorials = ({
     type,
     closeTutorial,
     currentProjectId
-}: $TSFixMe) => (
+}: TutorialsProps) => (
     <div
 
         tabIndex="0"

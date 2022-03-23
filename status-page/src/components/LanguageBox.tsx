@@ -11,7 +11,14 @@ import { openLanguageMenu } from '../actions/subscribe';
 
 import ClickOutHandler from 'react-onclickout';
 
-class LanguageBox extends Component {
+interface LanguageBoxProps {
+    statusPage?: object;
+    theme?: boolean;
+    handleCloseButtonClick?: Function;
+    translateLanguage?: Function;
+}
+
+class LanguageBox extends Component<LanguageBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.translateButton = this.translateButton.bind(this);

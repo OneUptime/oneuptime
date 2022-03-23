@@ -87,7 +87,23 @@ function validate(values: $TSFixMe) {
 
 const selector = formValueSelector('CreateSubscriber');
 
-class CreateSubscriber extends Component {
+interface CreateSubscriberProps {
+    closeThisDialog: Function;
+    createSubscriber: Function;
+    handleSubmit?: Function;
+    fetchMonitorsSubscribers?: Function;
+    fetchStatusPageSubscribers?: Function;
+    newSubscriber?: object;
+    error?: object;
+    requesting?: boolean;
+    type?: string;
+    data?: string | object;
+    createSubscriberError?: Function;
+    monitorList?: unknown[];
+    mergeMonitors?: unknown[];
+}
+
+class CreateSubscriber extends Component<CreateSubscriberProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 

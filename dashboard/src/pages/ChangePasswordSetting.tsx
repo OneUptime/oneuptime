@@ -7,7 +7,13 @@ import ChangePassword from '../components/profileSettings/ChangePassword';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
-const ChangePasswordSetting = (props: $TSFixMe) => {
+interface ChangePasswordSettingProps {
+    location?: {
+        pathname?: string
+    };
+}
+
+const ChangePasswordSetting = (props: ChangePasswordSettingProps) => {
     const {
         location: { pathname },
     } = props;

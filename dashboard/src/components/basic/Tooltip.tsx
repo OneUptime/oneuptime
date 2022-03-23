@@ -5,7 +5,14 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import TooltipModal from './TooltipModal';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class Tooltip extends Component {
+interface TooltipProps {
+    title?: string;
+    openModal?: Function;
+    body?: string;
+    children?: object | unknown[];
+}
+
+class Tooltip extends Component<TooltipProps> {
     handleClick = () => {
 
         this.props.openModal({

@@ -10,7 +10,18 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 import DataPathHoC from '../DataPathHoC';
 import { WebHookTableBody, WebHookBadgeTableBody } from './WebHookRow';
 
-class WebHookInput extends React.Component {
+interface WebHookInputProps {
+    currentProject: object;
+    deleteWebHook: Function;
+    openModal: Function;
+    data: object;
+    monitorId?: string;
+    webhooks?: object;
+    monitors?: unknown[];
+    updateWebHook?: Function;
+}
+
+class WebHookInput extends React.Component<WebHookInputProps> {
     deleteItem = () => {
         const {
 

@@ -17,7 +17,60 @@ import ScheduleComponent from './ScheduleComponent';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class AddScheduleModal extends Component {
+interface AddScheduleModalProps {
+    addCallRoutingSchedule?: Function;
+    addCallRoutingSchedules?: {
+        error?: any,
+        requesting?: any
+    };
+    closeThisDialog: Function;
+    currentProject: object;
+    data: object;
+    handleSubmit: Function;
+    initialValues?: {
+        backupFileName?: string,
+        backupFileUploaded?: boolean,
+        backup_type?: string,
+        fileName?: string,
+        fileUploaded?: boolean,
+        showAdvance?: boolean,
+        type?: string
+    };
+    introAudioState?: {
+        error?: any,
+        requesting?: any
+    };
+    removeBackupIntroAudioState?: {
+        callRoutingId?: any,
+        error?: any,
+        requesting?: any
+    };
+    removeIntroAudio?: Function;
+    removeIntroAudioState?: {
+        callRoutingId?: any,
+        error?: any,
+        requesting?: any
+    };
+    schedules?: {
+        map?: Function
+    };
+    teamMembers?: {
+        map?: Function
+    };
+    uploadBackupIntroAudioState?: {
+        callRoutingId?: any,
+        error?: any,
+        requesting?: any
+    };
+    uploadCallRoutingAudio?: Function;
+    uploadIntroAudioState?: {
+        callRoutingId?: any,
+        error?: any,
+        requesting?: any
+    };
+}
+
+export class AddScheduleModal extends Component<AddScheduleModalProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

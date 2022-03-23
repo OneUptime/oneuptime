@@ -9,7 +9,19 @@ import { getProbes } from '../actions/probe';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 
-class Probe extends React.Component {
+interface ProbeProps {
+    getProbes?: Function;
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+    _id?: string;
+    probes?: object;
+    skip?: number;
+    location?: {
+        pathname?: string
+    };
+}
+
+class Probe extends React.Component<ProbeProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

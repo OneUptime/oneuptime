@@ -2,9 +2,13 @@ import React from 'react';
 
 import { PropTypes } from 'prop-types';
 
+interface ErrorWarningProps {
+    message?: string;
+}
+
 function ErrorWarning({
     message
-}: $TSFixMe) {
+}: ErrorWarningProps) {
     return (
         <div className="Box-root Margin-vertical--12">
             <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">

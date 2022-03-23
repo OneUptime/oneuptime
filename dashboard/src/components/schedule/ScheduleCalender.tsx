@@ -5,10 +5,15 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 
+interface ScheduleCalenderProps {
+    escalations?: unknown[];
+    requestingEscalations?: boolean;
+}
+
 function ScheduleCalender({
     escalations,
     requestingEscalations
-}: $TSFixMe) {
+}: ScheduleCalenderProps) {
     const [dayOffset, setDayOffset] = useState(47);
     const [defaultDate, setDefaultDate] = useState(new Date());
 

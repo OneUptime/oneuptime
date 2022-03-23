@@ -7,9 +7,18 @@ import booleanParser from '../../utils/booleanParser';
 import { history } from '../../store';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
+
+interface AlertDisabledWarningProps {
+    alertEnable?: boolean;
+    currentProject?: {
+        slug?: string
+    };
+    page?: string;
+}
+
 // import 'assets/warning.css';
 
-class AlertDisabledWarning extends Component {
+class AlertDisabledWarning extends Component<AlertDisabledWarningProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

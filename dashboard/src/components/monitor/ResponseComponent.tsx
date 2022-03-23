@@ -30,7 +30,40 @@ const responsestyle = {
     boxShadow: 'none',
 };
 
-export class ResponseComponent extends Component {
+interface ResponseComponentProps {
+    type?: string;
+    addCriterion: Function;
+    removeCriterion: Function;
+    criterion: {
+        id: string,
+        type: string,
+        default?: boolean
+    };
+    incidentCreatedAlertEnabledForCriterion: boolean;
+    schedules: {
+        _id: string,
+        name: string
+    }[];
+    criterionBodyField: Record<string, {
+        match?: string,
+        responseType: string,
+        filter: string,
+        field1: string,
+        field2: string,
+        field3?: boolean | string
+    }>;
+    currentProject: {
+        _id: string,
+        name: string
+    };
+    arrayPush: Function;
+    criterionName: string;
+    edit: boolean;
+    scripts?: unknown[];
+    scriptsObj?: unknown[];
+}
+
+export class ResponseComponent extends Component<ResponseComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -226,9 +259,9 @@ export class ResponseComponent extends Component {
                                             >
                                                 {`${this.state
 
-                                                        .showAdvancedOption
-                                                        ? 'Hide'
-                                                        : 'Show'
+                                                    .showAdvancedOption
+                                                    ? 'Hide'
+                                                    : 'Show'
                                                     } 
                                                 Advanced Options`}
                                             </button>
@@ -668,8 +701,8 @@ export class ResponseComponent extends Component {
                                         data-testId={`criterionAdvancedOptions_${criterionType}`}
                                     >
                                         {`${this.state.showAdvancedOption
-                                                ? 'Hide'
-                                                : 'Show'
+                                            ? 'Hide'
+                                            : 'Show'
                                             }
                                         Advanced Options`}
                                     </button>

@@ -21,7 +21,17 @@ import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 
 import PricingPlan from '../basic/PricingPlan';
 import { RenderField } from '../basic/RenderField';
-export class PrivateStatusPage extends Component {
+
+interface PrivateStatusPageProps {
+    updatePrivateStatusPage: Function;
+    openModal: Function;
+    statusPage: object;
+    handleSubmit: Function;
+    fetchProjectStatusPage: Function;
+    formValues?: object;
+}
+
+export class PrivateStatusPage extends Component<PrivateStatusPageProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

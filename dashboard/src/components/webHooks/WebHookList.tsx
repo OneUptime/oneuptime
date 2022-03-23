@@ -16,7 +16,18 @@ import {
 } from '../../actions/webHook';
 import { ListLoader } from '../basic/Loader';
 
-class WebHookList extends React.Component {
+interface WebHookListProps {
+    getWebHookMonitor?: Function;
+    projectId?: string;
+    monitorId?: string;
+    isRequesting?: boolean;
+    webHook?: any;
+    paginate: Function;
+    page?: any;
+    getWebHook?: Function;
+}
+
+class WebHookList extends React.Component<WebHookListProps> {
     ready() {
 
         const { getWebHookMonitor, getWebHook } = this.props;

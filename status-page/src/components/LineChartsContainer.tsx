@@ -6,11 +6,17 @@ import moment from 'moment';
 import { fetchMonitorLogs } from '../actions/status';
 import AreaChart from './areachart';
 
+interface ChartContainerProps {
+    label?: string;
+    name?: string;
+    data: unknown[];
+}
+
 const ChartContainer = ({
     label,
     name,
     data
-}: $TSFixMe) => (
+}: ChartContainerProps) => (
     <Fragment>
         <span style={{ fontSize: '13px', display: 'block', marginTop: '10px' }}>
             {label}
@@ -28,7 +34,15 @@ ChartContainer.propTypes = {
     data: PropTypes.array.isRequired,
 };
 
-class LineChartsContainer extends React.Component {
+interface LineChartsContainerProps {
+    monitor?: object;
+    selectedCharts: object;
+    // eslint-disable-next-line react/no-unused-prop-types
+    fetchMonitorLogs: Function;
+    logs: unknown[];
+}
+
+class LineChartsContainer extends React.Component<LineChartsContainerProps> {
     render() {
 
         const { _id: monitorId } = this.props.monitor;

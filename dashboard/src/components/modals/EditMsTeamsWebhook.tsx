@@ -24,7 +24,20 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class EditWebHook extends React.Component {
+interface EditWebHookProps {
+    currentProject?: object;
+    updateMsTeams: Function;
+    closeThisDialog: Function;
+    handleSubmit: Function;
+    monitor?: object;
+    newMsTeams?: object;
+    data: object;
+    monitorsList?: unknown[];
+    initialValues?: object;
+    formValues?: object;
+}
+
+class EditWebHook extends React.Component<EditWebHookProps> {
     state = {
         monitorError: null,
         selectedProjects: [],

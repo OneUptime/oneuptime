@@ -5,7 +5,13 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ResetSmsTemplate extends Component {
+interface ResetSmsTemplateProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    resetSmsTemplates?: object;
+}
+
+class ResetSmsTemplate extends Component<ResetSmsTemplateProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

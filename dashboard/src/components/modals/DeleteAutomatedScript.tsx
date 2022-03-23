@@ -6,7 +6,13 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { connect } from 'react-redux';
 
-const DeleteAutomatedScript = (props: $TSFixMe) => {
+interface DeleteAutomatedScriptProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    deleteScript: object;
+}
+
+const DeleteAutomatedScript = (props: DeleteAutomatedScriptProps) => {
     const { confirmThisDialog, closeThisDialog } = props;
     const handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {

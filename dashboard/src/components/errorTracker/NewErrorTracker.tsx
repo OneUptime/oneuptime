@@ -18,7 +18,24 @@ import {
 import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewErrorTracker');
 
-class NewErrorTracker extends Component {
+interface NewErrorTrackerProps {
+    createErrorTracker: Function;
+    errorTrackerState: object;
+    errorTracker?: object;
+    handleSubmit: Function;
+    componentId?: string;
+    componentSlug?: string;
+    requesting?: boolean;
+    currentProject?: object;
+    edit?: boolean;
+    editErrorTrackerSwitch?: Function;
+    editErrorTracker?: Function;
+    resourceCategoryList?: unknown[];
+    showCancelBtn?: boolean;
+    toggleForm?: Function;
+}
+
+class NewErrorTracker extends Component<NewErrorTrackerProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 
-class DisabledMessage extends Component {
+interface DisabledMessageProps {
+    closeThisDialog: Function;
+}
+
+class DisabledMessage extends Component<DisabledMessageProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

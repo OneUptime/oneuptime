@@ -11,7 +11,21 @@ import moment from 'moment';
 
 const endDate = moment();
 const startDate = moment().subtract(1, 'd');
-export class MonitorViewLogsBox extends Component {
+
+interface MonitorViewLogsBoxProps {
+    currentProject?: object;
+    getMonitorLogs?: Function;
+    incidentId?: string;
+    monitorId?: string;
+    monitorLogs?: object;
+    monitorName?: string;
+    monitorType?: string;
+    agentless?: boolean;
+    probes?: unknown[];
+    projectId?: string;
+}
+
+export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

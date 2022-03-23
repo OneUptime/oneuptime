@@ -4,7 +4,13 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
-class DeleteWebhook extends Component {
+interface DeleteWebhookProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    data?: object;
+}
+
+class DeleteWebhook extends Component<DeleteWebhookProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

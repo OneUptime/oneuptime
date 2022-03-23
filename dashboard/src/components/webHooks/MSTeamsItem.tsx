@@ -9,7 +9,18 @@ import EditMsTeams from '../modals/EditMsTeamsWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import DataPathHoC from '../DataPathHoC';
 
-class MSTeamsItem extends React.Component {
+interface MSTeamsItemProps {
+    currentProject: object;
+    deleteMsTeams: Function;
+    openModal: Function;
+    data: object;
+    monitorId?: string;
+    webhooks?: object;
+    monitors?: unknown[];
+    updateMsTeams?: Function;
+}
+
+class MSTeamsItem extends React.Component<MSTeamsItemProps> {
     deleteItem = () => {
         const {
 

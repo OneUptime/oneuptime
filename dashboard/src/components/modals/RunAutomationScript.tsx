@@ -13,7 +13,17 @@ import {
 } from '../../actions/automatedScript';
 import { history } from '../../store';
 
-class RunAutomationScript extends Component {
+interface RunAutomationScriptProps {
+    closeThisDialog?: Function;
+    data?: object;
+    projectId?: string;
+    runScript?: Function;
+    fetchAutomatedScript?: Function;
+    scriptRun?: object;
+    fetchSingleAutomatedScript?: Function;
+}
+
+class RunAutomationScript extends Component<RunAutomationScriptProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

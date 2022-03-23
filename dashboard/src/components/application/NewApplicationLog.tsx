@@ -20,7 +20,25 @@ import {
 import { RenderSelect } from '../basic/RenderSelect';
 const selector = formValueSelector('NewApplicationLog');
 
-class NewApplicationLog extends Component {
+interface NewApplicationLogProps {
+    index?: unknown | unknown;
+    createApplicationLog: Function;
+    applicationLogState: object;
+    applicationLog?: object;
+    handleSubmit: Function;
+    componentId?: string;
+    componentSlug?: string;
+    requesting?: boolean;
+    currentProject?: object;
+    edit?: boolean;
+    editApplicationLogSwitch?: Function;
+    editApplicationLog?: Function;
+    resourceCategoryList?: unknown[];
+    toggleForm?: Function;
+    showCancelBtn?: boolean;
+}
+
+class NewApplicationLog extends Component<NewApplicationLogProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

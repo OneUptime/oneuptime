@@ -12,7 +12,19 @@ import ShouldRender from '../ShouldRender';
 import ClickOutHandler from 'react-onclickout';
 import { API_URL } from '../../config';
 
-class SubscribeBox extends Component {
+interface SubscribeBoxProps {
+    openSubscribeMenu?: Function;
+    selectedMenu?: Function;
+    openSelectedBox?: boolean;
+    select?: number;
+    subscribed?: object;
+    requesting?: boolean;
+    statusPage?: object;
+    theme?: boolean;
+    handleCloseButtonClick?: Function;
+}
+
+class SubscribeBox extends Component<SubscribeBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.subscribebutton = this.subscribebutton.bind(this);

@@ -14,6 +14,29 @@ import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import threatLevel from '../../utils/threatLevel';
 
+interface SecurityInfoProps {
+    name?: string;
+    projectId?: string;
+    componentSlug?: string;
+    type: string;
+    applicationSecurityId?: string;
+    applicationSecuritySlug?: string;
+    applicationSecurityLog?: object;
+    openModal?: Function;
+    scanningApplication?: boolean;
+    containerSecuritySlug?: string;
+    containerSecurityId?: string;
+    containerSecurityLog?: object;
+    scanningContainer?: boolean;
+    containerSecurities?: unknown[];
+    applicationSecurities?: unknown[];
+    scanApplicationError?: string;
+    activeApplicationSecurity?: string;
+    activeContainerSecurity?: string;
+    slug?: string;
+    scannedStatus?: unknown[];
+}
+
 const SecurityInfo = ({
     name,
     projectId,
@@ -37,7 +60,7 @@ const SecurityInfo = ({
     slug,
     scannedStatus,
     containerScannedStatus
-}: $TSFixMe) => {
+}: SecurityInfoProps) => {
     let currentScannedStatus = true;
     scannedStatus.forEach((scan: $TSFixMe) => {
         if (applicationSecurityId === scan._id) {

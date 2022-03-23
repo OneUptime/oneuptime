@@ -21,10 +21,15 @@ const noDataStyle = {
     flexBasis: 1,
 };
 
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: unknown[];
+}
+
 const CustomTooltip = ({
     active,
     payload
-}: $TSFixMe) => {
+}: CustomTooltipProps) => {
     if (active) {
         return (
             <div className="custom-tooltip">
@@ -50,7 +55,15 @@ CustomTooltip.propTypes = {
     payload: PropTypes.array,
 };
 
-class PerformanceChart extends Component {
+interface PerformanceChartProps {
+    data?: unknown[];
+    name?: string;
+    symbol?: string;
+    requesting?: boolean;
+    type?: string;
+}
+
+class PerformanceChart extends Component<PerformanceChartProps> {
     calcPercent = (val: $TSFixMe, total: $TSFixMe) => {
         val = parseFloat(val);
         total = parseFloat(total);

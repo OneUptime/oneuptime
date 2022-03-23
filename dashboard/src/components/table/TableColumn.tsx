@@ -2,7 +2,17 @@ import React, { Component } from 'react';
 import RenderBasedOnRole from '../basic/RenderBasedOnRole';
 import PropTypes from 'prop-types';
 
-export default class TableColumn extends Component {
+interface TableColumnProps {
+    title: string;
+    onClick?: Function;
+    visibleForOwner?: boolean;
+    visibleForAdmin?: boolean;
+    visibleForViewer?: boolean;
+    visibleForMember?: boolean;
+    visibleForAll?: boolean;
+}
+
+export default class TableColumn extends Component<TableColumnProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

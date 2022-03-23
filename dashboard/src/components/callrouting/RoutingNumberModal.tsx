@@ -18,7 +18,46 @@ import { countryCode } from '../common/countryCode';
 import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
 
-class RoutingNumberModal extends React.Component {
+interface RoutingNumberModalProps {
+    addCallRoutingNumber?: Function;
+    closeThisDialog?: Function;
+    currentProject?: object;
+    fetchNumber?: {
+        error?: any,
+        numbers?: {
+            basePrice?: any,
+            capabilities?: {
+                MMS?: any,
+                SMS?: any,
+                voice?: any
+            },
+            currentPrice?: any,
+            locality?: {
+                length?: any
+            },
+            phoneNumber?: {
+                length?: any
+            },
+            price?: any,
+            priceUnit?: {
+                length?: any
+            },
+            region?: {
+                length?: any
+            }
+        },
+        requesting?: any
+    };
+    fetchNumbers?: Function;
+    resetAddCallRoutingNumber?: Function;
+    resetFetchNumbers?: Function;
+    saveNumber?: {
+        error?: any,
+        requesting?: any
+    };
+}
+
+class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { countryCode: '', numberType: '' };

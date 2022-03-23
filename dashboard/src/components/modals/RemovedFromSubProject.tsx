@@ -3,7 +3,12 @@ import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 
-class RemovedFromSubProject extends Component {
+interface RemovedFromSubProjectProps {
+    data: object;
+    closeThisDialog: Function;
+}
+
+class RemovedFromSubProject extends Component<RemovedFromSubProjectProps> {
     render() {
 
         const { closeThisDialog } = this.props;

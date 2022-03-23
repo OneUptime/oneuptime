@@ -15,7 +15,15 @@ import IncomingRequestBox from '../components/webHooks/IncomingRequestBox';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 
-class Integrations extends Component {
+interface IntegrationsProps {
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class Integrations extends Component<IntegrationsProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

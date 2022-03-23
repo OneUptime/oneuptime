@@ -11,6 +11,18 @@ import DeleteCredentialModal from './DeleteCredentialModal';
 import GitCredentialModal from './GitCredentialModal';
 import paginate from '../../utils/paginate';
 
+interface GitCredentialListProps {
+    error?: string;
+    isRequesting: boolean;
+    gitCredentials?: unknown[];
+    projectId?: string;
+    deleteGitCredential?: Function;
+    openModal?: Function;
+    deleteError?: string;
+    getGitSecurities?: Function;
+    modalId?: string;
+}
+
 const GitCredentialList = ({
     isRequesting,
     error,
@@ -21,7 +33,7 @@ const GitCredentialList = ({
     openModal,
     getGitSecurities,
     modalId
-}: $TSFixMe) => {
+}: GitCredentialListProps) => {
     const [page, setPage] = useState(1);
 
     const handleDelete = (credentialId: $TSFixMe) => {

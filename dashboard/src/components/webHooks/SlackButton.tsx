@@ -6,7 +6,12 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import CreateSlackWebhook from '../modals/CreateSlackWebhook';
 
-class SlackButton extends React.Component {
+interface SlackButtonProps {
+    openModal: Function;
+    monitorId?: string;
+}
+
+class SlackButton extends React.Component<SlackButtonProps> {
     render() {
 
         const { monitorId } = this.props;

@@ -14,7 +14,16 @@ import { addCurrentComponent } from '../../actions/component';
 import DataPathHoC from '../DataPathHoC';
 import ChangeMonitorComponent from '../modals/ChangeMonitorComponent';
 
-class MonitorViewChangeComponentBox extends Component {
+interface MonitorViewChangeComponentBoxProps {
+    closeModal?: Function;
+    openModal: Function;
+    monitorState: object;
+    monitor: object;
+    changeMonitorComponent: Function;
+    component?: object;
+}
+
+class MonitorViewChangeComponentBox extends Component<MonitorViewChangeComponentBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

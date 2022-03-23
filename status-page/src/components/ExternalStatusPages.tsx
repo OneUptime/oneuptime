@@ -4,7 +4,15 @@ import { fetchExternalStatusPages } from '../actions/status';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import ShouldRender from './ShouldRender';
-class ExternalStatusPages extends Component {
+
+interface ExternalStatusPagesProps {
+    externalStatusPages?: object;
+    fetchExternalStatusPages?: Function;
+    statusPage?: object;
+    theme?: string;
+}
+
+class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
     async componentDidMount() {
 
         this.props.fetchExternalStatusPages(

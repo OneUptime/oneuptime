@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 
 import { Field } from 'redux-form';
 
-class CheckboxGroup extends React.Component {
+interface CheckboxGroupProps {
+    monitors: unknown[];
+}
+
+class CheckboxGroup extends React.Component<CheckboxGroupProps> {
     checkboxGroup() {
 
         const { monitors } = this.props;

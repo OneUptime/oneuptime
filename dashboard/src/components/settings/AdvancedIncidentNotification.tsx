@@ -27,7 +27,18 @@ const validate = (values: $TSFixMe) => {
     return errors;
 };
 
-class AdvancedIncidentNotification extends Component {
+interface AdvancedIncidentNotificationProps {
+    type: string;
+    setEmailNotification?: Function;
+    setSmsNotification?: Function;
+    handleSubmit?: Function;
+    requestingEmailIncident?: boolean;
+    requestingSmsIncident?: boolean;
+    projectId?: string;
+    setWebhookNotificationSettings?: Function;
+}
+
+class AdvancedIncidentNotification extends Component<AdvancedIncidentNotificationProps> {
     state = {
         showMoreOptions: false,
     };

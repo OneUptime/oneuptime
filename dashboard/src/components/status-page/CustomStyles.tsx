@@ -12,7 +12,14 @@ import { FormLoader } from '../basic/Loader';
 import { Field, reduxForm } from 'redux-form';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-export class CustomStyles extends Component {
+interface CustomStylesProps {
+    statusPage: object;
+    updateStatusPageCustomHTML: Function;
+    fetchProjectStatusPage: Function;
+    handleSubmit: Function;
+}
+
+export class CustomStyles extends Component<CustomStylesProps> {
     state = {
         syntaxError: {},
     };

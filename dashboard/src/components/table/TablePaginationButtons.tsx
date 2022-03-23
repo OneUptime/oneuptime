@@ -2,7 +2,20 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import Button from '../basic/Button';
 
-export default class TablePaginationButtons extends Component {
+interface TablePaginationButtonsProps {
+    isLoading: boolean;
+    onNextClicked?: Function;
+    onPreviousClicked?: Function;
+    nextButtonText?: string;
+    previousButtonText?: string;
+    forceDisableNextButton?: boolean;
+    forceDisablePreviousButton?: boolean;
+    totalItemsCount?: number;
+    currentPageCount?: number;
+    noOfItemsInPage?: number;
+}
+
+export default class TablePaginationButtons extends Component<TablePaginationButtonsProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

@@ -8,7 +8,16 @@ import { ListLoader } from '../basic/Loader';
 import { resetDomain } from '../../actions/domain';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class VerifyDomainModal extends Component {
+interface VerifyDomainModalProps {
+    confirmThisDialog: Function;
+    closeThisDialog?: Function;
+    domainField?: object;
+    requesting?: boolean;
+    propArr?: unknown[];
+    resetDomain?: Function;
+}
+
+class VerifyDomainModal extends Component<VerifyDomainModalProps> {
     componentDidMount() {
 
         this.props.resetDomain();

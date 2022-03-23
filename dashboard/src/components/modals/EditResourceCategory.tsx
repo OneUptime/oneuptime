@@ -22,7 +22,17 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class EditResourceCategoryForm extends React.Component {
+interface EditResourceCategoryFormProps {
+    handleSubmit: Function;
+    closeModal: Function;
+    projectId?: object | string;
+    updateResourceCategory: Function;
+    EditResourceCategoryModalId?: string;
+    resourceCategory?: object;
+    initialValues?: object;
+}
+
+export class EditResourceCategoryForm extends React.Component<EditResourceCategoryFormProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

@@ -9,7 +9,15 @@ import DataPathHoC from '../DataPathHoC';
 import DeleteAutomatedScript from '../modals/DeleteAutomatedScript';
 import { history } from '../../store';
 
-const DeleteScriptBox = (props: $TSFixMe) => {
+interface DeleteScriptBoxProps {
+    deleteAutomatedScript: Function;
+    currentProject?: object;
+    openModal: Function;
+    name: string;
+    automatedSlug?: string;
+}
+
+const DeleteScriptBox = (props: DeleteScriptBoxProps) => {
     const { name, openModal } = props;
     const deleteModalId = uuidv4();
 

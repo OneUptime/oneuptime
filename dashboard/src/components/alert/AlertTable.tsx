@@ -145,10 +145,15 @@ function HTD8() {
     );
 }
 
+interface TD1Props {
+    text?: any;
+    alertId?: any;
+}
+
 function TD1({
     text,
     alertId
-}: $TSFixMe) {
+}: TD1Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
@@ -196,9 +201,13 @@ TD1.propTypes = {
     alertId: PropTypes.any,
 };
 
+interface TD2Props {
+    text?: any;
+}
+
 function TD2({
     text
-}: $TSFixMe) {
+}: TD2Props) {
     return (
         <td
             className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -241,9 +250,14 @@ function TD3() {
         </td>
     );
 }
+
+interface TD4Props {
+    text?: any;
+}
+
 function TD4({
     text
-}: $TSFixMe) {
+}: TD4Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -300,9 +314,13 @@ function TD5() {
     );
 }
 
+interface TD6Props {
+    text?: any;
+}
+
 function TD6({
     text
-}: $TSFixMe) {
+}: TD6Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -323,9 +341,13 @@ TD6.propTypes = {
     text: PropTypes.any,
 };
 
+interface TD7Props {
+    text?: any;
+}
+
 function TD7({
     text
-}: $TSFixMe) {
+}: TD7Props) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -371,9 +393,13 @@ TD7.propTypes = {
     text: PropTypes.any,
 };
 
+interface TD8Props {
+    text?: string;
+}
+
 function TD8({
     text
-}: $TSFixMe) {
+}: TD8Props) {
     const incidentStatusColor = {
         identified: 'red',
         acknowledged: 'yellow',

@@ -1,11 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface StatusIndicatorProps {
+    status?: string;
+}
+
 function StatusIndicator({
     status,
     resourceName,
     monitorName
-}: $TSFixMe) {
+}: StatusIndicatorProps) {
     // When resource Name is passed, it renders the status with the same color
     let statusColor, content;
 

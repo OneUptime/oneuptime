@@ -6,6 +6,21 @@ import 'ace-builds/src-noconflict/mode-html';
 import 'ace-builds/src-noconflict/mode-css';
 import 'ace-builds/src-noconflict/theme-github';
 
+interface RenderCodeEditorProps {
+    id?: string;
+    input: object;
+    style?: object;
+    mode: string;
+    placeholder?: string;
+    height: string;
+    width: string;
+    onLoad?: Function;
+    // onBlur: PropTypes.func,
+    wrapEnabled?: boolean;
+    readOnly?: boolean;
+    name?: string;
+}
+
 const RenderCodeEditor = ({
     id,
     input,
@@ -25,7 +40,7 @@ const RenderCodeEditor = ({
     width,
     onLoad = () => { },
     name
-}: $TSFixMe) => (
+}: RenderCodeEditorProps) => (
     <AceEditor
 
         id={id}

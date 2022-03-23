@@ -2,6 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Color from '../basic/Color';
 
+interface ColorsProps {
+    currentColorPicker?: string;
+    handleClick?: Function;
+    handleChange?: Function;
+    handleClose?: Function;
+    displayColorPicker?: boolean;
+    colors?: object;
+}
+
 function Colors({
     currentColorPicker,
     handleClick,
@@ -9,7 +18,7 @@ function Colors({
     colors,
     handleChange,
     handleClose
-}: $TSFixMe) {
+}: ColorsProps) {
     return (
         <div>
             <div className="bs-Fieldset-row">

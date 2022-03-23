@@ -15,7 +15,20 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { closeModal } from 'common-ui/actions/modal';
 import { editContainerSecurity } from '../../actions/security';
 
-class EditContainerSecurity extends Component {
+interface EditContainerSecurityProps {
+    isRequesting?: boolean;
+    editError?: string;
+    propArr?: unknown[];
+    closeModal?: Function;
+    handleSubmit?: Function;
+    componentSlug?: string;
+    editContainerSecurity?: Function;
+    dockerCredentials?: unknown[];
+    resourceCategoryList?: unknown[];
+    projectSlug?: string;
+}
+
+class EditContainerSecurity extends Component<EditContainerSecurityProps> {
     componentDidUpdate(prevProps: $TSFixMe) {
 
         const { propArr, isRequesting, closeModal, editError } = this.props;

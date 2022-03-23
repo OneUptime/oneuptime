@@ -22,7 +22,34 @@ import sortByName from '../utils/sortByName';
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 
-class Container extends Component {
+interface ContainerProps {
+    projectId?: string;
+    componentId?: string;
+    componentSlug?: string;
+    fetchComponent?: Function;
+    slug?: string;
+    containerSecurities?: unknown[];
+    getContainerSecurities?: Function;
+    getContainerSecurityLogs?: Function;
+    gettingSecurityLogs?: boolean;
+    gettingContainerSecurities?: boolean;
+    location?: {
+        pathname?: string
+    };
+    component?: object;
+    // scanContainerSecuritySuccess: PropTypes.func,
+    // getContainerSecuritySuccess: PropTypes.func,
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+    skip?: number;
+    limit?: number;
+    count?: number;
+    fetchingPage?: boolean;
+    numberOfPage?: number;
+    error?: string;
+}
+
+class Container extends Component<ContainerProps> {
     state = {
         showContainerSecurityForm: false,
         page: 1,

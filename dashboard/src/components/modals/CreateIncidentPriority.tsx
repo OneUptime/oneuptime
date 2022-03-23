@@ -14,7 +14,16 @@ import { closeModal } from 'common-ui/actions/modal';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class ColorPicker extends Component {
+interface ColorPickerProps {
+    input?: object;
+    displayColorPicker: boolean;
+    id: string;
+    currentColorPicker: string;
+    handleClick: Function;
+    handleClose: Function;
+}
+
+class ColorPicker extends Component<ColorPickerProps> {
     handleChange(e: $TSFixMe) {
 
         this.props.input.onChange(e.rgb);
@@ -60,7 +69,16 @@ ColorPicker.propTypes = {
     handleClick: PropTypes.func.isRequired,
     handleClose: PropTypes.func.isRequired,
 };
-class CreateIncidentPriority extends Component {
+
+interface CreateIncidentPriorityProps {
+    newIncidentPriority: object;
+    currentProject: object;
+    closeThisDialog: Function;
+    handleSubmit: Function;
+    createIncidentPriority: Function;
+}
+
+class CreateIncidentPriority extends Component<CreateIncidentPriorityProps> {
     constructor() {
 
         super();

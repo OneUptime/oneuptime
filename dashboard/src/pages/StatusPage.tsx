@@ -45,7 +45,33 @@ import EmptyCategory from '../components/status-page/EmptyCategory';
 import { fetchComponents } from '../actions/component';
 import { fetchMonitors } from '../actions/monitor';
 
-class StatusPage extends Component {
+interface StatusPageProps {
+    statusPage: object;
+    switchStatusPage?: Function;
+    fetchProjectStatusPage?: Function;
+    fetchSubProjectStatusPages?: Function;
+    match?: object;
+    location?: {
+        pathname?: string
+    };
+    history?: object;
+    projectId?: string;
+    subProjectId?: string;
+    currentProject?: object;
+    subProjects?: unknown[];
+    switchToProjectViewerNav?: boolean;
+    fetchAllStatusPageCategories?: Function;
+    loadingCategories?: boolean;
+    allStatusPageCategories?: unknown[];
+    monitors?: unknown[];
+    updateStatusPageMonitors?: Function;
+    formState?: object;
+    activeProjectId?: string;
+    fetchComponents?: Function;
+    fetchMonitors?: Function;
+}
+
+class StatusPage extends Component<StatusPageProps> {
     state = {
         tabIndex: 0,
         monitorError: null,

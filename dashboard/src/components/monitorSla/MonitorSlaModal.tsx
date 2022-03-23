@@ -48,7 +48,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class MonitorSlaModal extends React.Component {
+interface MonitorSlaModalProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    data?: object;
+    requesting?: boolean;
+    slaError?: string;
+    createMonitorSla?: Function;
+    fetchMonitorSlas?: Function;
+    createMonitorSlaModalId?: string;
+    monitorsList?: unknown[];
+    formValues?: object;
+    fetchMonitors?: Function;
+}
+
+class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
     state = {
         setCustomFrequency: false,
         setCustomMonitorUptime: false,

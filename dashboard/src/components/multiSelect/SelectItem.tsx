@@ -1,6 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface DefaultRendererProps {
+    checked: boolean;
+    option?: Record<string, unknown>;
+    disabled?: boolean;
+    onClick?: Function;
+}
+
 //#region
 
 const DefaultRenderer = ({
@@ -8,7 +15,7 @@ const DefaultRenderer = ({
     option,
     disabled,
     onClick
-}: $TSFixMe) => (
+}: DefaultRendererProps) => (
     <span className="db-MultiSelect-item-renderer">
         <input
             type="checkbox"
@@ -34,9 +41,19 @@ DefaultRenderer.propTypes = {
     disabled: PropTypes.bool,
     onClick: PropTypes.func,
 };
+
+interface SelectItemProps {
+    checked: boolean;
+    option?: Record<string, unknown>;
+    focused?: boolean;
+    onSelectionChanged?: Function;
+    disabled?: boolean;
+    ItemRenderer: React.ReactElement;
+}
+
 //#endregion
 
-class SelectItem extends React.Component {
+class SelectItem extends React.Component<SelectItemProps> {
     handleClick: $TSFixMe;
     labelRef: $TSFixMe;
     state = {

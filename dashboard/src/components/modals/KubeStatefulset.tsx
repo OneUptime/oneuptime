@@ -10,7 +10,14 @@ import KubeIndicator from '../monitor/KubeIndicator';
 import DataPathHoC from '../DataPathHoC';
 import KubeStatefulsetData from './KubeStatefulsetData';
 
-class KubeStatefulset extends React.Component {
+interface KubeStatefulsetProps {
+    closeModal: Function;
+    data?: object;
+    openModal?: Function;
+    modals?: unknown[];
+}
+
+class KubeStatefulset extends React.Component<KubeStatefulsetProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

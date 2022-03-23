@@ -15,7 +15,15 @@ import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
 import isSubProjectViewer from '../../utils/isSubProjectViewer';
 
-export class SubProjectTable extends Component {
+interface SubProjectTableProps {
+    loop?: number;
+    openModal?: Function;
+    subProject?: object;
+    subProjectState?: object;
+    currentProject?: object;
+}
+
+export class SubProjectTable extends Component<SubProjectTableProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { subProjectModalId: uuidv4() };

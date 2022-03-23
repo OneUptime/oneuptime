@@ -16,7 +16,21 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { closeModal } from 'common-ui/actions/modal';
 import { editApplicationSecurity } from '../../actions/security';
 
-class EditApplicationSecurity extends Component {
+interface EditApplicationSecurityProps {
+    isRequesting?: boolean;
+    editError?: string;
+    propArr?: unknown[];
+    closeModal?: Function;
+    handleSubmit?: Function;
+    editApplicationSecurity?: Function;
+    componentSlug?: string;
+    projectSlug?: string;
+    gitCredentials?: unknown[];
+    resourceCategoryList?: unknown[];
+    formValues?: unknown;
+}
+
+class EditApplicationSecurity extends Component<EditApplicationSecurityProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

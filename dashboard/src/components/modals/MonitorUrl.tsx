@@ -5,7 +5,13 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import Clipboard from '../Clipboard';
 
-export class MonitorUrl extends React.Component {
+interface MonitorUrlProps {
+    closeThisDialog: Function;
+    currentProject: object;
+    data?: object;
+}
+
+export class MonitorUrl extends React.Component<MonitorUrlProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -9,6 +9,15 @@ import ShouldRender from '../basic/ShouldRender';
 import { bindActionCreators, Dispatch } from 'redux';
 import { closeIncident } from '../../actions/incident';
 
+interface BreadCrumbsProps {
+    styles: string;
+    name?: string;
+    closeIncidentRequest?: object;
+    incidents?: unknown[];
+    closeIncident?: Function;
+    currentProjectId?: string;
+}
+
 function BreadCrumbs({
     styles,
     name,
@@ -16,7 +25,7 @@ function BreadCrumbs({
     incidents,
     currentProjectId,
     closeIncident
-}: $TSFixMe) {
+}: BreadCrumbsProps) {
     const [loading, setLoading] = useState(true);
 
     const close = async () => {

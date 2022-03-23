@@ -8,6 +8,16 @@ const errorStyle = {
     topMargin: '5px',
 };
 
+interface ComponentSelectorProps {
+    input: object;
+    className?: string;
+    meta: object;
+    disabled?: boolean;
+    style?: object;
+    id?: string;
+    components: unknown[];
+}
+
 const ComponentSelector = ({
     input,
     className,
@@ -16,7 +26,7 @@ const ComponentSelector = ({
     components,
     style,
     id
-}: $TSFixMe) => {
+}: ComponentSelectorProps) => {
     const options = [{ value: '', label: 'Select Component' }].concat(
         components.map((component: $TSFixMe) => {
             return {

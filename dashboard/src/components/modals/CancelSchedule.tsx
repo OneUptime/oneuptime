@@ -10,7 +10,18 @@ import { closeModal } from 'common-ui/actions/modal';
 import { cancelScheduledEvent } from '../../actions/scheduledEvent';
 import { history } from '../../store';
 
-class CancelSchedule extends Component {
+interface CancelScheduleProps {
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    cancelError?: string;
+    closeModal?: Function;
+    cancelScheduledEvent?: Function;
+    modalId?: string;
+    slug?: string;
+    data?: object;
+}
+
+class CancelSchedule extends Component<CancelScheduleProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -10,7 +10,15 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
-class Consulting extends Component {
+interface ConsultingProps {
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class Consulting extends Component<ConsultingProps> {
     render() {
         const settings = {
             infinite: true,

@@ -4,21 +4,17 @@ import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
+import axios from 'axios';
 
 const request = chai.request.agent(app);
 
-describe('Version API', function () {
-    this.timeout(20000);
+describe('Version API', () => {
 
-    it('should get the current helm-chart version', function (done: $TSFixMe) {
-        request
-            .get('/helm-chart/version')
-            .end(function (err: $TSFixMe, res: Response) {
-                expect(res).to.have.status(200);
-                expect(res.body.helmChartVersion).to.be.equal(
-                    process.env['npm_package_version']
-                );
-                done();
-            });
+    it('should get the current helm-chart version', function () {
+        const response = axios.get('/helm-chart/version');
+        expect(response).to.have.status(200);
+        expect(response.body.helmChartVersion).to.be.equal(
+            process.env['npm_package_version']
+        );
     });
 });

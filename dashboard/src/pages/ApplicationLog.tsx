@@ -18,7 +18,26 @@ import sortByName from '../utils/sortByName';
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 
-class ApplicationLog extends Component {
+interface ApplicationLogProps {
+    tutorialStat?: object;
+    applicationLog?: object;
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string
+    }[];
+    componentId?: string;
+    componentSlug?: string;
+    loadPage?: Function;
+    fetchComponent?: Function;
+    fetchApplicationLogs?: Function;
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+}
+
+class ApplicationLog extends Component<ApplicationLogProps> {
     state = {
         showNewLogContainerForm: false,
         page: 1,

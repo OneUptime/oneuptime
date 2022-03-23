@@ -2,6 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
+interface ModalizeProps {
+    HEADER: string;
+    CONTENT: string;
+    FOOTER: string;
+}
+
 /**
  * @function Modalize
  * @param {React.Props} props Props comprise an object with 3 JSX values for `HEADER`, `CONTENT` & `FOOTER`
@@ -11,7 +17,7 @@ export function Modalize({
     HEADER,
     CONTENT,
     FOOTER
-}: $TSFixMe) {
+}: ModalizeProps) {
     return HEADER && CONTENT && FOOTER ? (
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
             <div

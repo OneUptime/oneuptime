@@ -14,7 +14,21 @@ import { history } from '../../store';
 import ResourceTabularList from './ResourceTabularList';
 import { animateSidebar } from '../../actions/animateSidebar';
 
-export class ComponentDetail extends Component {
+interface ComponentDetailProps {
+    currentProject: object;
+    component: object;
+    componentState: object;
+    deleteComponent?: Function;
+    addCurrentComponent?: Function;
+    projectName?: string;
+    projectType?: string;
+    shouldRenderProjectType?: boolean;
+    fetchComponentResources?: Function;
+    componentResources?: object | unknown[];
+    animateSidebar?: Function;
+}
+
+export class ComponentDetail extends Component<ComponentDetailProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

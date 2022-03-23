@@ -11,7 +11,15 @@ import { deleteErrorTracker } from '../../actions/errorTracker';
 import { history } from '../../store';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 
-class ErrorTrackerViewDeleteBox extends Component {
+interface ErrorTrackerViewDeleteBoxProps {
+    errorTracker?: object;
+    openModal?: Function;
+    currentProject?: object;
+    deleteErrorTracker?: Function;
+    component?: object;
+}
+
+class ErrorTrackerViewDeleteBox extends Component<ErrorTrackerViewDeleteBoxProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

@@ -4,13 +4,22 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import { Spinner } from '../basic/Loader';
 
+interface BreachedMonitorSlaProps {
+    monitor?: object;
+    sla?: object;
+    closingSla?: boolean;
+    projectId?: string;
+    userId?: string;
+    closeSla?: Function;
+}
+
 const BreachedMonitorSla = ({
     monitor,
     sla,
     userId,
     closeSla,
     closingSla
-}: $TSFixMe) => {
+}: BreachedMonitorSlaProps) => {
     const [isClosing, setIsClosing] = useState(false);
     const projectId = monitor.projectId._id || monitor.projectId;
 

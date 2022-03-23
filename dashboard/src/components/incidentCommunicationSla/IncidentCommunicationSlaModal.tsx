@@ -47,7 +47,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class IncidentCommunicationSlaModal extends React.Component {
+interface IncidentCommunicationSlaModalProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    data?: object;
+    requesting?: boolean;
+    slaError?: string;
+    createCommunicationSla?: Function;
+    fetchCommunicationSlas?: Function;
+    createIncidentSlaModalId?: string;
+    formValues?: object;
+    monitorsList?: unknown[];
+    fetchMonitors?: Function;
+}
+
+class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicationSlaModalProps> {
     state = {
         setCustom: false,
         durationHelpTextTime: '60',

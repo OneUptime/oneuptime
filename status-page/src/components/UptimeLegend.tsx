@@ -3,6 +3,16 @@ import React from 'react';
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 
+interface UptimeLegendProps {
+    background?: object;
+    secondaryTextColor?: object;
+    downtimeColor?: object;
+    uptimeColor?: object;
+    degradedColor?: object;
+    disabledColor?: object;
+    disabled?: boolean;
+}
+
 const UptimeLegend = ({
     background,
     secondaryTextColor,
@@ -11,7 +21,7 @@ const UptimeLegend = ({
     degradedColor,
     disabledColor,
     disabled
-}: $TSFixMe) => (
+}: UptimeLegendProps) => (
     <div className="uptime-legend box-inner clearfix" style={background}>
         <span className="legend-item">
             <span className="legend-color graph-up" style={uptimeColor}></span>

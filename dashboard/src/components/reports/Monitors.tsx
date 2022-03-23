@@ -12,7 +12,15 @@ import {
     getActiveMonitorsError,
 } from '../../actions/reports';
 
-class Monitors extends Component {
+interface MonitorsProps {
+    getActiveMonitors?: Function;
+    startDate?: object;
+    endDate?: object;
+    activeMonitors?: object;
+    currentProject?: object | string;
+}
+
+class Monitors extends Component<MonitorsProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

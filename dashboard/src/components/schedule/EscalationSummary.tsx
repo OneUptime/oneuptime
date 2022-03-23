@@ -5,7 +5,14 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { ListLoader } from '../basic/Loader';
 import EscalationSummarySingle from './EscalationSummarySingle';
 
-export class EscalationSummary extends Component {
+interface EscalationSummaryProps {
+    onEditClicked: Function;
+    escalations: unknown[];
+    teamMembers: unknown[];
+    groups?: unknown[];
+}
+
+export class EscalationSummary extends Component<EscalationSummaryProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {};

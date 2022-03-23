@@ -13,7 +13,14 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchCustomFields } from '../actions/monitorCustomField';
 import MonitorCustomFields from '../components/monitor/MonitorCustomFields';
 
-class MonitorSettings extends React.Component {
+interface MonitorSettingsProps {
+    location: object;
+    fetchCustomFields?: Function;
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class MonitorSettings extends React.Component<MonitorSettingsProps> {
     state = {
         tabIndex: 0,
     };

@@ -3,7 +3,13 @@ import PropTypes from 'prop-types';
 import { Subject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
-class SearchBox extends Component {
+interface SearchBoxProps {
+    onChange?: Function;
+    placeholder?: string;
+    style?: object;
+}
+
+class SearchBox extends Component<SearchBoxProps> {
     onChange$: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

@@ -8,7 +8,17 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
 import Markdown from 'markdown-to-jsx';
-class SingleAnnouncement extends Component {
+
+interface SingleAnnouncementProps {
+    statusPage?: object;
+    getSingleAnnouncement?: Function;
+    match?: object;
+    getStatusPage?: Function;
+    announcement?: object;
+    monitorState?: unknown[];
+}
+
+class SingleAnnouncement extends Component<SingleAnnouncementProps> {
     async componentDidMount() {
         const {
 

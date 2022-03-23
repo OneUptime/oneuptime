@@ -3,6 +3,16 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import SecurityInfo from './SecurityInfo';
 
+interface ContainerSecurityProps {
+    name?: string;
+    containerSecurityId?: string;
+    containerSecuritySlug?: string;
+    projectId?: string;
+    componentId?: string;
+    componentSlug?: string;
+    containerSecurityLogs?: unknown[];
+}
+
 const ContainerSecurity = ({
     name,
     containerSecurityId,
@@ -11,7 +21,7 @@ const ContainerSecurity = ({
     componentId,
     componentSlug,
     containerSecurityLogs
-}: $TSFixMe) => {
+}: ContainerSecurityProps) => {
     let securityLog = {};
     containerSecurityLogs.length > 0 &&
         containerSecurityLogs.map((containerSecurityLog: $TSFixMe) => {

@@ -12,7 +12,14 @@ import {
 import PropTypes from 'prop-types';
 import { User } from '../../config';
 
-class Invoice extends Component {
+interface InvoiceProps {
+    getInvoice: Function;
+    userId?: string;
+    invoices?: unknown[];
+    getInvoiceReset: Function;
+}
+
+class Invoice extends Component<InvoiceProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

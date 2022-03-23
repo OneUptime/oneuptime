@@ -17,7 +17,23 @@ import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
 import { fetchDefaultTemplate } from '../../actions/incidentBasicsSettings';
 import IncomingRequestEnabled from '../modals/IncomingRequestEnabled';
 
-class IncomingRequestList extends React.Component {
+interface IncomingRequestListProps {
+    projectId?: string;
+    isRequesting?: boolean;
+    fetchAllIncomingRequest?: Function;
+    setActiveIncomingRequest?: Function;
+    openModal?: Function;
+    incomingRequestList?: unknown[];
+    count?: number;
+    skip?: number;
+    limit?: number;
+    fetchError?: string;
+    activeIncomingRequest?: string;
+    fetchIncidentPriorities?: Function;
+    fetchDefaultTemplate?: Function;
+}
+
+class IncomingRequestList extends React.Component<IncomingRequestListProps> {
     state = {
         copied: false,
         page: 1,

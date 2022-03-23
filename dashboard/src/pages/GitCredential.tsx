@@ -12,7 +12,20 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import TutorialBox from '../components/tutorial/TutorialBox';
 
-class GitCredential extends Component {
+interface GitCredentialProps {
+    projectId?: string;
+    getGitCredentials?: Function;
+    gitCredentials?: unknown[];
+    getError?: string;
+    isRequesting?: boolean;
+    location?: {
+        pathname?: string
+    };
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class GitCredential extends Component<GitCredentialProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -1,14 +1,18 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+
+interface UploadFileProps {
+    input: object;
+    meta: object;
+    fileInputKey?: string | Date;
+}
+
 const UploadFile = ({
     fileInputKey,
-
     input: { value: omitValue, ...inputProps },
-
     meta: omitMeta,
-
     ...props
-}: $TSFixMe) => <input key={fileInputKey} type="file" {...inputProps} {...props} />;
+}: UploadFileProps) => <input key={fileInputKey} type="file" {...inputProps} {...props} />;
 
 UploadFile.propTypes = {
     input: PropTypes.object.isRequired,

@@ -7,7 +7,25 @@ import ComponentDetail from './ComponentDetail';
 // import sortByName from '../../utils/sortByName';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-function ComponentList(props: $TSFixMe) {
+
+interface ComponentListProps {
+    components?: unknown[];
+    skip?: number;
+    limit?: number;
+    count?: number;
+    shouldRenderProjectType?: boolean;
+    projectId?: string;
+    projectName?: string;
+    projectType?: string;
+    numberOfPage?: number;
+    // fetchComponents: PropTypes.func,
+    page?: number;
+    nextClicked?: Function;
+    prevClicked?: Function;
+    requestErrorObject?: object;
+}
+
+function ComponentList(props: ComponentListProps) {
     let componentDetails = null;
 
     const components = props.components ? props.components : [];

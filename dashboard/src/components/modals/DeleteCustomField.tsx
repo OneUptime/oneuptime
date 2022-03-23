@@ -9,7 +9,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { deleteCustomField } from '../../actions/customField';
 
-class DeleteCustomField extends Component {
+interface DeleteCustomFieldProps {
+    isRequesting?: boolean;
+    deleteError?: string;
+    closeModal?: Function;
+    deleteCustomField?: Function;
+    modalId?: string;
+    data?: object;
+}
+
+class DeleteCustomField extends Component<DeleteCustomFieldProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

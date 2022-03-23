@@ -7,7 +7,16 @@ import ProjectForm from './ProjectForm';
 import { hideForm, createProject, switchProject } from '../../actions/project';
 import PropTypes from 'prop-types';
 
-export class CreateProjectModal extends Component {
+interface CreateProjectModalProps {
+    dispatch: Function;
+    hideForm: Function;
+    switchProject: Function;
+    createProject: Function;
+    projects?: object;
+    visible?: boolean;
+}
+
+export class CreateProjectModal extends Component<CreateProjectModalProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.createProject = this.createProject.bind(this);

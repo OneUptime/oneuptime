@@ -7,7 +7,15 @@ import { deleteExternalStatusPage } from '../../actions/statusPage';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class RemoveExternalStatusPage extends Component {
+interface RemoveExternalStatusPageProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    deleteExternalStatusPage: Function;
+    data?: object;
+    requesting?: boolean;
+}
+
+class RemoveExternalStatusPage extends Component<RemoveExternalStatusPageProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

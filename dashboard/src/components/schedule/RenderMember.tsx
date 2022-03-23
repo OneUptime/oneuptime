@@ -16,6 +16,20 @@ import { bindActionCreators, Dispatch } from 'redux';
 
 import { formValueSelector } from 'redux-form';
 
+interface RenderMemberProps {
+    subProjectId: string;
+    fields: unknown[] | object;
+    policyIndex: number;
+    teamIndex: number;
+    nameIndex: number;
+    memberValue: object;
+    inputarray: string;
+    change?: Function;
+    form?: object;
+    projectGroups?: unknown[];
+    formValues?: object;
+}
+
 let RenderMember = ({
     memberValue,
     inputarray,
@@ -28,7 +42,7 @@ let RenderMember = ({
     form,
     projectGroups,
     formValues
-}: $TSFixMe) => {
+}: RenderMemberProps) => {
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
     const [type, setType] = useState({});

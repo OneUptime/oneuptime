@@ -18,7 +18,18 @@ import { bindActionCreators, Dispatch } from 'redux';
 import DeleteProject from '../components/settings/DeleteProject';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 
-class Billing extends Component {
+interface BillingProps {
+    location?: {
+        pathname?: string
+    };
+    alertEnable?: boolean;
+    currentProject?: object;
+    currentProjectId: string;
+    getSmtpConfig: Function;
+    switchToProjectViewerNav?: boolean;
+}
+
+class Billing extends Component<BillingProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

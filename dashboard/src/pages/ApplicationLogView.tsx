@@ -20,7 +20,31 @@ import LibraryList from '../components/application/LibraryList';
 
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 
-class ApplicationLogView extends Component {
+interface ApplicationLogViewProps {
+    location?: {
+        pathname?: string
+    };
+    component?: {
+        name?: string
+    }[];
+    componentId?: string;
+    fetchComponent?: Function;
+    componentSlug?: string;
+    fetchApplicationLogs?: Function;
+    currentProject?: object;
+    applicationLog?: {
+        _id?: string,
+        name?: string,
+        showQuickStart?: boolean,
+        componentId?: object
+    }[];
+    editApplicationLog?: Function;
+    switchToProjectViewerNav?: boolean;
+    logSkip?: number;
+    logLimit?: number;
+}
+
+class ApplicationLogView extends Component<ApplicationLogViewProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

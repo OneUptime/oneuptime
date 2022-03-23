@@ -13,7 +13,18 @@ import {
 import ShouldRender from '../basic/ShouldRender';
 import { resetProjectNotification } from '../../actions/notification';
 
-class RemoveSubProject extends Component {
+interface RemoveSubProjectProps {
+    closeModal?: Function;
+    closeThisDialog: Function;
+    currentProject?: object;
+    data?: object;
+    deleteSubProject?: Function;
+    resetDeleteSubProject?: Function;
+    subProjectDelete?: Function;
+    resetProjectNotification?: Function;
+}
+
+class RemoveSubProject extends Component<RemoveSubProjectProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

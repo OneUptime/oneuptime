@@ -1,7 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const FeatureList = (props: $TSFixMe) => <li className="Margin-vertical--4">
+interface FeatureListProps {
+    content: string;
+}
+
+const FeatureList = (props: FeatureListProps) => <li className="Margin-vertical--4">
     <img
         alt="check"
         src="/dashboard/assets/img/icons/acceptance.svg"

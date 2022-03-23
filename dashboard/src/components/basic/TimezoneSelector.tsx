@@ -8,6 +8,15 @@ const errorStyle = {
     topMargin: '5px',
 };
 
+interface TimezoneSelectorProps {
+    input: object;
+    placeholder?: string;
+    meta: object;
+    style?: object;
+    id?: string;
+    disabled?: boolean;
+}
+
 const TimezoneSelector = ({
     input,
     placeholder,
@@ -15,7 +24,7 @@ const TimezoneSelector = ({
     meta: { touched, error },
     id,
     disabled
-}: $TSFixMe) => {
+}: TimezoneSelectorProps) => {
     const options = [{ value: '', label: 'Select Timezone...' }].concat(
         Zones.map((zone: $TSFixMe) => ({
             value: zone.value,

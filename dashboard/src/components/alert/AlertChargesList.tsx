@@ -8,7 +8,20 @@ import { fetchAlertCharges } from '../../actions/alert';
 import { getProjectBalance } from '../../actions/project';
 import { history } from '../../store';
 
-export class AlertChargesList extends Component {
+interface AlertChargesListProps {
+    alertCharges?: unknown[];
+    isRequesting?: boolean;
+    error?: string;
+    projectId?: string;
+    slug?: string;
+    skip?: number;
+    limit?: number;
+    count?: number;
+    fetchAlertCharges: Function;
+    getProjectBalance?: Function;
+}
+
+export class AlertChargesList extends Component<AlertChargesListProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

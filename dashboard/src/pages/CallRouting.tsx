@@ -18,7 +18,29 @@ import {
     getCallRoutingLogs,
 } from '../actions/callRouting';
 
-class CallRouting extends Component {
+interface CallRoutingProps {
+    currentProject?: {
+        _id?: any,
+        name?: any,
+        slug?: any
+    };
+    getCallRoutingLogs?: Function;
+    getCallRoutingNumbers?: Function;
+    getTeamAndSchedules?: Function;
+    location?: {
+        pathname?: string
+    };
+    match?: {
+        params?: {
+            projectId?: {
+                length?: any
+            }
+        }
+    };
+    switchToProjectViewerNav?: boolean;
+}
+
+class CallRouting extends Component<CallRoutingProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

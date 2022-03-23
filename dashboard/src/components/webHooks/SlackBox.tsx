@@ -6,7 +6,11 @@ import SlackList from './SlackList';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import SlackButton from './SlackButton';
 
-class SlackBox extends React.Component {
+interface SlackBoxProps {
+    monitorId?: string;
+}
+
+class SlackBox extends React.Component<SlackBoxProps> {
     render() {
         return (
             <div className="Box-root Margin-vertical--12">

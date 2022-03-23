@@ -5,7 +5,14 @@ import AffectedResources from './basic/AffectedResources';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-class OngoingSchedule extends Component {
+interface OngoingScheduleProps {
+    monitorState?: unknown[];
+    statusData?: object;
+    history?: object;
+    ongoing?: unknown[];
+}
+
+class OngoingSchedule extends Component<OngoingScheduleProps> {
     render() {
         return <>
 

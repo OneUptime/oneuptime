@@ -13,7 +13,23 @@ import { animateSidebar } from '../../actions/animateSidebar';
 import { API_URL } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 
-export class IncidentList extends Component {
+interface IncidentListProps {
+    nextClicked: Function;
+    prevClicked: Function;
+    incidents?: object;
+    monitorState: object;
+    currentProject?: object;
+    filteredIncidents?: unknown[];
+    requesting?: boolean;
+    isFiltered?: boolean;
+    markAsRead?: Function;
+    animateSidebar?: Function;
+    page?: number;
+    numberOfPage?: number;
+    componentSlug?: string;
+}
+
+export class IncidentList extends Component<IncidentListProps> {
     handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'No monitor in this incident';

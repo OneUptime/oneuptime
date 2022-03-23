@@ -9,7 +9,15 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteSlackTeam from '../modals/deleteSlackTeam';
 import DataPathHoC from '../DataPathHoC';
 
-class SlackTeamItem extends React.Component {
+interface SlackTeamItemProps {
+    deleteSlackLink?: Function;
+    deleteTeam: object;
+    team?: object;
+    projectId?: string;
+    openModal?: Function;
+}
+
+class SlackTeamItem extends React.Component<SlackTeamItemProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -9,7 +9,16 @@ import APISettings from '../components/settings/APISettings';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
-class OneUptimeApi extends Component {
+
+interface OneUptimeApiProps {
+    location?: {
+        pathname?: string
+    };
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class OneUptimeApi extends Component<OneUptimeApiProps> {
     render() {
         const {
 

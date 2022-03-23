@@ -13,7 +13,17 @@ import { openModal } from 'common-ui/actions/modal';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
 
-export class IncidentInternal extends Component {
+interface IncidentInternalProps {
+    incident: object;
+    incidentMessages?: object;
+    currentProject?: object;
+    fetchIncidentMessages?: Function;
+    openModal?: Function;
+    deleteIncidentMessage?: Function;
+    fetchIncidentNoteTemplates?: Function;
+}
+
+export class IncidentInternal extends Component<IncidentInternalProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

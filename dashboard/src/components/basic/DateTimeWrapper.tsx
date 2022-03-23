@@ -41,6 +41,17 @@ const styles = () => ({
     },
 });
 
+interface DateTimeWrapperProps {
+    input: object;
+    style?: object;
+    meta: object;
+    classes?: object;
+    minDate?: string | object;
+    id?: string;
+    label?: string;
+    maxDate?: string | object;
+}
+
 const DateTimeWrapper = ({
     input,
     meta: { touched, error },
@@ -50,7 +61,7 @@ const DateTimeWrapper = ({
     id,
     label,
     maxDate
-}: $TSFixMe) => {
+}: DateTimeWrapperProps) => {
     if (!input.value) {
         input.value = null;
     }

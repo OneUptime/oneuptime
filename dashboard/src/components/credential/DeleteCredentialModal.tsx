@@ -6,7 +6,19 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
-class DeleteCredentialModal extends Component {
+interface DeleteCredentialModalProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    deleteCredentialError?: string;
+    propArr: unknown[];
+    getSecurities?: boolean;
+    getSecuritiesError?: string;
+    securities?: unknown[];
+    slug?: string;
+}
+
+class DeleteCredentialModal extends Component<DeleteCredentialModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

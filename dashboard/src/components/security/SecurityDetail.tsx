@@ -3,12 +3,19 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Spinner } from '../basic/Loader';
 
+interface SecurityDetailProps {
+    applicationSecurityLog?: object;
+    type: string;
+    more?: Function;
+    containerSecurityLog?: object;
+}
+
 const SecurityDetail = ({
     applicationSecurityLog,
     containerSecurityLog,
     type,
     more
-}: $TSFixMe) => {
+}: SecurityDetailProps) => {
     let vulnerabilities = null;
     if (applicationSecurityLog && applicationSecurityLog.data) {
         const securityLog =

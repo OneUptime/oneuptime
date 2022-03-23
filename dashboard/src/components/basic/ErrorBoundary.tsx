@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 
 import PropTypes from 'prop-types';
 
-class ErrorBoundary extends Component {
+interface ErrorBoundaryProps {
+    children?: any;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { error: null, hasError: false };

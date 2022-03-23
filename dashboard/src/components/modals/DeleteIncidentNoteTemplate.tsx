@@ -13,7 +13,20 @@ import {
     fetchIncidentNoteTemplates,
 } from '../../actions/incidentNoteTemplate';
 
-class DeleteIncidentNoteTemplate extends Component {
+interface DeleteIncidentNoteTemplateProps {
+    projectId?: string;
+    closeModal: Function;
+    templateId?: string;
+    deletingTemplate?: boolean;
+    deleteError?: string;
+    skip?: number;
+    limit?: number;
+    deleteIncidentNoteTemplate?: Function;
+    deleteIncidentNoteTemplateFailure?: Function;
+    fetchIncidentNoteTemplates?: Function;
+}
+
+class DeleteIncidentNoteTemplate extends Component<DeleteIncidentNoteTemplateProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

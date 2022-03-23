@@ -12,7 +12,14 @@ import { closeModal } from 'common-ui/actions/modal';
 import { resetPerformanceTrackerKey } from '../../actions/performanceTracker';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class TrackerInfo extends Component {
+interface TrackerInfoProps {
+    data?: object;
+    closeModal?: Function;
+    trackerObj?: object;
+    resetPerformanceTrackerKey?: Function;
+}
+
+class TrackerInfo extends Component<TrackerInfoProps> {
     state = {
         hidden: true,
         confirmBoxHidden: true,

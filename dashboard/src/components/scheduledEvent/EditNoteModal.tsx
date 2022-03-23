@@ -19,7 +19,22 @@ import {
 } from '../../actions/scheduledEvent';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-class EditNoteModal extends Component {
+interface EditNoteModalProps {
+    data?: object;
+    handleSubmit?: Function;
+    closeThisDialog?: Function;
+    event_state?: string;
+    updatingInternalNote?: boolean;
+    updatingInvestigationNote?: boolean;
+    updateInternalError?: string;
+    modalId?: string;
+    closeModal?: Function;
+    change?: Function;
+    updateScheduledEventNoteInternal?: Function;
+    updateInvestigationError?: string;
+}
+
+class EditNoteModal extends Component<EditNoteModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

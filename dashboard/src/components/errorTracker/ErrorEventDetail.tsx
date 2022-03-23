@@ -23,7 +23,26 @@ import { openModal } from 'common-ui/actions/modal';
 import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
 import { history } from '../../store';
 
-class ErrorEventDetail extends Component {
+interface ErrorEventDetailProps {
+    errorEvent?: object;
+    navigationLink?: Function;
+    ignoreErrorEvent?: Function;
+    projectId?: string;
+    componentId?: string;
+    componentSlug?: string;
+    errorTrackerId?: string;
+    errorTrackerSlug?: string;
+    errorTrackerIssue?: object;
+    unresolveErrorEvent?: Function;
+    resolveErrorEvent?: Function;
+    errorTrackerStatus?: object;
+    openModal?: Function;
+    errorTrackerState?: object;
+    deleteErrorTrackerIssue?: Function;
+    currentProject?: object;
+}
+
+class ErrorEventDetail extends Component<ErrorEventDetailProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

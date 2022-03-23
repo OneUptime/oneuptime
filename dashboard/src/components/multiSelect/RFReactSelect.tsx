@@ -43,6 +43,23 @@ function transformValue(value: $TSFixMe, options: $TSFixMe, isMulti: $TSFixMe) {
     return isMulti ? filteredOptions : filteredOptions[0];
 }
 
+interface RFReactSelectProps {
+    input: {
+        name: string,
+        value: string,
+        onBlur: Function,
+        onChange: Function,
+        onFocus: Function
+    };
+    options: unknown[];
+    isMulti?: boolean;
+    disabled?: boolean;
+    className?: string;
+    placeholder?: string;
+    labelKey?: string;
+    valueKey?: string;
+}
+
 const RFReactSelect = ({
     input,
     options,
@@ -52,7 +69,7 @@ const RFReactSelect = ({
     className,
     placeholder,
     disabled
-}: $TSFixMe) => {
+}: RFReactSelectProps) => {
     const { name, value, onBlur, onChange, onFocus } = input;
     const transformedValue = transformValue(value, options, isMulti);
     return (

@@ -59,7 +59,16 @@ const styles = {
 const endDate = moment();
 const startDate = moment().subtract(30, 'd');
 
-export class Reports extends Component {
+interface ReportsProps {
+    location?: {
+        pathname?: string
+    };
+    currentProjectId?: string;
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+export class Reports extends Component<ReportsProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

@@ -5,7 +5,15 @@ import PropTypes from 'prop-types';
 import { sendEmailVerificationLink } from '../../actions/profile';
 import { ListLoader } from '../basic/Loader';
 
-class UnVerifiedEmailBox extends Component {
+interface UnVerifiedEmailBoxProps {
+    initialValues?: object;
+    emailVerificationRequesting?: boolean;
+    emailVerificationError?: object;
+    emailVerificationData?: object;
+    sendEmailVerificationLink: Function;
+}
+
+class UnVerifiedEmailBox extends Component<UnVerifiedEmailBoxProps> {
     handleSendEmailVerification = () => {
 
         const { email } = this.props.initialValues;

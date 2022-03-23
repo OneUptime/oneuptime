@@ -6,6 +6,15 @@ import { formValueSelector } from 'redux-form';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderMember } from './RenderMember';
 
+interface RenderMembersProps {
+    subProjectId: string;
+    meta: object;
+    fields: unknown[] | object;
+    policyIndex: number;
+    teamIndex: number;
+    form: unknown[] | object;
+}
+
 let RenderMembers = ({
     fields,
     meta: { error, submitFailed },
@@ -13,7 +22,7 @@ let RenderMembers = ({
     policyIndex,
     teamIndex,
     form
-}: $TSFixMe) => {
+}: RenderMembersProps) => {
     const policyRotation = form[policyIndex].teams[teamIndex];
 
     return (

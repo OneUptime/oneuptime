@@ -35,6 +35,15 @@ const greyBackground = {
     backgroundColor: 'rgba(107, 124, 147, 0.2)',
 };
 
+interface ProbeBarProps {
+    index?: number;
+    name?: string;
+    status?: string;
+    selectbutton?: Function;
+    activeProbe?: number;
+    lastAlive?: moment | string;
+}
+
 function ProbeBar({
     index,
     name,
@@ -42,7 +51,7 @@ function ProbeBar({
     selectbutton,
     activeProbe,
     lastAlive
-}: $TSFixMe) {
+}: ProbeBarProps) {
     const [now, setNow] = useState(Date.now());
 
     useEffect(() => {

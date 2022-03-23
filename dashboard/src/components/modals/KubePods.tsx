@@ -10,7 +10,14 @@ import KubeIndicator from '../monitor/KubeIndicator';
 import KubePodData from './KubePodData';
 import DataPathHoC from '../DataPathHoC';
 
-class KubePods extends React.Component {
+interface KubePodsProps {
+    closeModal: Function;
+    openModal?: Function;
+    data?: object;
+    modals?: unknown[];
+}
+
+class KubePods extends React.Component<KubePodsProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

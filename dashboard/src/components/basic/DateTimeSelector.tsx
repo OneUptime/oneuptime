@@ -43,6 +43,17 @@ const styles = () => ({
     },
 });
 
+interface DateTimeSelectorProps {
+    input: object;
+    style?: object;
+    meta: object;
+    classes?: object;
+    minDate?: string | object;
+    id?: string;
+    label?: string;
+    maxDate?: string | object;
+}
+
 const DateTimeSelector = ({
     input,
     meta: { touched, error },
@@ -52,7 +63,7 @@ const DateTimeSelector = ({
     id,
     label,
     maxDate
-}: $TSFixMe) => {
+}: DateTimeSelectorProps) => {
     if (!input.value) {
         input.value = null;
     }

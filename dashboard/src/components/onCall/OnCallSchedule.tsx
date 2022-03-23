@@ -3,11 +3,17 @@ import PropTypes from 'prop-types';
 import moment from 'moment-timezone';
 import { history } from '../../store';
 
+interface OnCallScheduleProps {
+    status?: string;
+    schedules?: unknown[];
+    slug?: string;
+}
+
 const OnCallSchedule = ({
     status,
     schedules,
     slug
-}: $TSFixMe) => {
+}: OnCallScheduleProps) => {
     let color;
     switch (status) {
         case 'active':

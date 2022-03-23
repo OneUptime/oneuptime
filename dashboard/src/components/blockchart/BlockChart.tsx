@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-class BlockChart extends Component {
+interface BlockChartProps {
+    time: object | boolean;
+}
+
+class BlockChart extends Component<BlockChartProps> {
     render() {
         let bar = null;
         let title = null;

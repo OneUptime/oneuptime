@@ -24,7 +24,19 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class CreateSlack extends React.Component {
+interface CreateSlackProps {
+    currentProject?: object;
+    createSlack: Function;
+    closeThisDialog: Function;
+    handleSubmit: Function;
+    monitor?: object;
+    newSlack?: object;
+    data?: object;
+    formValues?: object;
+    monitorsList?: unknown[];
+}
+
+class CreateSlack extends React.Component<CreateSlackProps> {
     state = {
         monitorError: null,
         selectedProjects: [],

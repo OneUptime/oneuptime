@@ -12,7 +12,17 @@ import {
     resetDeleteAnnouncement,
 } from '../../actions/statusPage';
 
-class DeleteAnnouncementLog extends Component {
+interface DeleteAnnouncementLogProps {
+    closeThisDialog?: Function;
+    deleteAnnouncementLog?: Function;
+    isRequesting?: boolean;
+    deleteError?: string;
+    fetchAnnouncementLogs?: Function;
+    data?: object;
+    resetDeleteAnnouncement?: Function;
+}
+
+class DeleteAnnouncementLog extends Component<DeleteAnnouncementLogProps> {
     componentDidMount() {
 
         this.props.resetDeleteAnnouncement();

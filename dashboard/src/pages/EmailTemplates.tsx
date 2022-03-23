@@ -12,7 +12,17 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
 
-class EmailTemplates extends Component {
+interface EmailTemplatesProps {
+    getEmailTemplates: Function;
+    currentProject: object;
+    getSmtpConfig: Function;
+    location?: {
+        pathname?: string
+    };
+    switchToProjectViewerNav?: boolean;
+}
+
+class EmailTemplates extends Component<EmailTemplatesProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

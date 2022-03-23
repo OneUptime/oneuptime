@@ -9,7 +9,18 @@ import RenderIfAdmin from '../basic/RenderIfAdmin';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSlack from '../modals/DeleteSlackWebhook';
 
-class SlackItem extends React.Component {
+interface SlackItemProps {
+    currentProject: object;
+    deleteSlack: Function;
+    openModal: Function;
+    data: object;
+    monitorId?: string;
+    webhooks?: object;
+    monitors?: unknown[];
+    updateSlack?: Function;
+}
+
+class SlackItem extends React.Component<SlackItemProps> {
     deleteItem = () => {
         const {
 

@@ -7,7 +7,12 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 import moment from 'moment';
 
-class KubeJobData extends React.Component {
+interface KubeJobDataProps {
+    closeModal: Function;
+    data?: object;
+}
+
+class KubeJobData extends React.Component<KubeJobDataProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

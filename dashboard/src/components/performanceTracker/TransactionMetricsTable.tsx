@@ -4,7 +4,14 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import TableComponent from './TableComponent';
 
-export class TransactionMetricsTable extends Component {
+interface TransactionMetricsTableProps {
+    heading?: any;
+    subHeading?: any;
+    title?: any;
+    type?: any;
+}
+
+export class TransactionMetricsTable extends Component<TransactionMetricsTableProps> {
     handleKeyBoard: $TSFixMe;
     render() {
 

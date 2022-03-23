@@ -6,7 +6,14 @@ import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class DeleteStatusPageModal extends Component {
+interface DeleteStatusPageModalProps {
+    isRequesting?: boolean;
+    confirmThisDialog: Function;
+    closeThisDialog?: Function;
+    error?: string;
+}
+
+class DeleteStatusPageModal extends Component<DeleteStatusPageModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }

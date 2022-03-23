@@ -1,10 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface ConsoleLogViewProps {
+    consoleLogs?: string[];
+    name?: string;
+}
+
 const ConsoleLogView = ({
     consoleLogs = [],
     name
-}: $TSFixMe) => {
+}: ConsoleLogViewProps) => {
     if (!consoleLogs.length) {
         consoleLogs.push('There are no logs to show');
     }

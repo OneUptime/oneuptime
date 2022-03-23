@@ -28,7 +28,27 @@ function validate(_values: $TSFixMe) {
     return error;
 }
 
-class EditMoreDomainModal extends React.Component {
+interface EditMoreDomainModalProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    requesting?: boolean;
+    statusPageId?: string;
+    projectId?: string;
+    updateDomainError?: string;
+    uploadCertFile?: Function;
+    uploadPrivateKey?: Function;
+    certFile?: object;
+    privateKeyFile?: object;
+    removeCertFile?: Function;
+    removePrivateKeyFile?: Function;
+    updateDomain?: Function;
+    domain?: object;
+    formValues?: object;
+    uploadCertFileSuccess?: Function;
+    uploadPrivateKeySuccess?: Function;
+}
+
+class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
     componentDidMount() {
         const {
 

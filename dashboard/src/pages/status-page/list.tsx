@@ -10,7 +10,9 @@ import StatusPageActions from '../../actions/status-page';
 
 const listActions = new StatusPageActions().getListActions();
 
-class StatusPages extends Page {
+interface StatusPagesProps {}
+
+class StatusPages extends Page<StatusPagesProps> {
     constructor(props: $TSFixMe) {
         super({
             pageName: 'StatusPages',

@@ -19,7 +19,28 @@ import {
 import { ACCOUNTS_URL } from '../config';
 import { ListLoader } from './basic/Loader';
 
-class Incident extends Component {
+interface IncidentProps {
+    match?: object;
+    statusData?: object;
+    getStatusPage?: Function;
+    login: object;
+    history?: object;
+    fetchIncident?: Function;
+    fetchIncidentNotes?: Function;
+    moreIncidentNotes?: Function;
+    count?: string | number;
+    skip?: string | number;
+    fetchingIncidentNotes?: boolean;
+    fetchingIncident?: boolean;
+    incident?: object;
+    incidentNotes?: unknown[];
+    requestingStatus?: boolean;
+    fetchLastIncidentTimeline?: Function;
+    lastIncidentTimeline?: object;
+    status?: object;
+}
+
+class Incident extends Component<IncidentProps> {
     handleIncidentStatus: $TSFixMe;
     componentDidMount() {
         const {

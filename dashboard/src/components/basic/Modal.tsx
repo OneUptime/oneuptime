@@ -3,7 +3,17 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 
-class Modal extends Component {
+interface ModalProps {
+    confirmThisDialog?: Function;
+    closeThisDialog?: Function;
+    title?: string;
+    closeButtonLabel?: string;
+    affirmativeButtonLabel?: string;
+    children?: object;
+    isLoading?: boolean;
+}
+
+class Modal extends Component<ModalProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape': {

@@ -10,7 +10,13 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { PropTypes } from 'prop-types';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
 
-class ProfileBilling extends Component {
+interface ProfileBillingProps {
+    location?: {
+        pathname?: string
+    };
+}
+
+class ProfileBilling extends Component<ProfileBillingProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

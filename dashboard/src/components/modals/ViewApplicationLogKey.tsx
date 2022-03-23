@@ -9,7 +9,15 @@ import ShouldRender from '../basic/ShouldRender';
 import TooltipMini from '../basic/TooltipMini';
 import { API_URL } from '../../config';
 
-class ViewApplicationLogKey extends Component {
+interface ViewApplicationLogKeyProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    currentProject?: object;
+    data?: object;
+}
+
+class ViewApplicationLogKey extends Component<ViewApplicationLogKeyProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

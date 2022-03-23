@@ -13,7 +13,24 @@ import {
     showEventCard,
 } from '../actions/status';
 
-class EventsMain extends Component {
+interface EventsMainProps {
+    fetchMoreFutureEvents?: Function;
+    requestingmoreevents?: boolean;
+    projectId?: string;
+    skip?: number;
+    count?: number;
+    statusPageId?: string;
+    statusPageSlug?: string;
+    statusPage?: object;
+    fetchFutureEvents?: Function;
+    futureEvents?: object;
+    individualEvents?: object;
+    monitorState?: unknown[];
+    showEventCardState?: boolean;
+    showEventCard?: Function;
+}
+
+class EventsMain extends Component<EventsMainProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

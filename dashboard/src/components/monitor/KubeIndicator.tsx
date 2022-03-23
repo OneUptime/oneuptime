@@ -1,11 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface KubeIndicatorProps {
+    status?: string;
+}
+
 function KubeIndicator({
     status,
     resourceName,
     index
-}: $TSFixMe) {
+}: KubeIndicatorProps) {
     let statusColor, content;
 
     switch (status) {

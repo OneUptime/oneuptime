@@ -21,7 +21,22 @@ const formatNumber = (phoneNumberString: $TSFixMe) => {
     }
     return phoneNumberString;
 };
-class CallRoutingLog extends Component {
+
+interface CallRoutingLogProps {
+    count?: number;
+    currentProject?: object;
+    error?: string;
+    getCallRoutingLogs?: Function;
+    limit?: number;
+    logs?: {
+        length?: number,
+        map?: Function
+    };
+    requesting?: boolean;
+    skip?: number;
+}
+
+class CallRoutingLog extends Component<CallRoutingLogProps> {
     componentDidMount() { }
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {

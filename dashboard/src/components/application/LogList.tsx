@@ -13,7 +13,16 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { socket } from '../basic/Socket';
 
-class LogList extends Component {
+interface LogListProps {
+    applicationLogId?: string;
+    applicationLog?: object;
+    logs?: object;
+    openModal?: Function;
+    handleNavigationButtonClick?: Function;
+    getLogSuccess?: Function;
+}
+
+class LogList extends Component<LogListProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { viewJsonModalId: uuidv4() };

@@ -2,7 +2,12 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import RenderBasedOnRole from '../basic/RenderBasedOnRole';
 
-export default class TableItemColumnData extends Component {
+interface TableItemColumnDataProps {
+    column: object;
+    item: object;
+}
+
+export default class TableItemColumnData extends Component<TableItemColumnDataProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

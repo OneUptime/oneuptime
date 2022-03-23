@@ -14,7 +14,20 @@ import {
 } from '../../config';
 import Badge from '../common/Badge';
 
-export class MonitorTabularList extends Component {
+interface MonitorTabularListProps {
+    nextClicked: Function;
+    prevClicked: Function;
+    componentSlug: string;
+    monitors?: object;
+    monitorState: object;
+    currentProject?: object;
+    activeProbe?: number;
+    probes?: unknown[];
+    startDate?: object;
+    endDate?: object;
+}
+
+export class MonitorTabularList extends Component<MonitorTabularListProps> {
     render() {
         if (
 

@@ -4,7 +4,6 @@ import getParentRoute from '../utils/getParentRoute';
 
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
-import PropsType from 'prop-types';
 
 import { fetchErrorTrackers, editErrorTracker } from '../actions/errorTracker';
 import { fetchComponent } from '../actions/component';
@@ -15,7 +14,22 @@ import ErrorTrackerDetail from '../components/errorTracker/ErrorTrackerDetail';
 import ErrorTrackerViewDeleteBox from '../components/errorTracker/ErrorTrackerViewDeleteBox';
 import LibraryList from '../components/application/LibraryList';
 
-class ErrorTrackingView extends Component {
+interface ErrorTrackingViewProps {
+    component?: object;
+    currentProject?: object;
+    location?: object;
+    fetchErrorTrackers?: Function;
+    componentSlug?: string;
+    fetchComponent?: Function;
+    errorTracker?: unknown[];
+    editErrorTracker?: Function;
+    componentId?: string;
+    switchToProjectViewerNav?: boolean;
+    trackerLimit?: number;
+    trackerSkip?: number;
+}
+
+class ErrorTrackingView extends Component<ErrorTrackingViewProps> {
     componentDidMount() {
         this.ready();
     }

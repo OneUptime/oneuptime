@@ -31,7 +31,27 @@ import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import DisabledMessage from '../modals/DisabledMessage';
 import { updateprobebysocket } from '../../actions/socket';
 
-export class MonitorViewHeader extends Component {
+interface MonitorViewHeaderProps {
+    componentSlug: string;
+    monitor: object;
+    editMonitorSwitch: Function;
+    fetchMonitorLogs: Function;
+    fetchMonitorStatuses: Function;
+    monitorState: object;
+    deleteMonitor: Function;
+    openModal?: Function;
+    closeModal?: Function;
+    index: string;
+    subProjects: unknown[];
+    currentProject: object;
+    activeProbe?: number;
+    selectedProbe: Function;
+    probes?: unknown[];
+    creating?: boolean;
+    toggleEdit?: Function;
+}
+
+export class MonitorViewHeader extends Component<MonitorViewHeaderProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

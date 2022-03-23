@@ -23,7 +23,22 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class EditComponent extends Component {
+interface EditComponentProps {
+    initialValues?: {
+        name?: string
+    };
+    closeModal: Function;
+    editComponentModalId?: string;
+    editComponent: Function;
+    projectId?: string;
+    editingComponent?: {
+        error?: string,
+        requesting?: boolean
+    };
+    handleSubmit?: Function;
+}
+
+class EditComponent extends Component<EditComponentProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

@@ -25,7 +25,37 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { Fade } from 'react-awesome-reveal';
 import { socket } from '../basic/Socket';
 
-class ContainerSecurityDetail extends Component {
+interface ContainerSecurityDetailProps {
+    projectId?: string;
+    componentId?: string;
+    componentSlug?: string;
+    containerSecurityId?: string;
+    fetchComponent?: Function;
+    getContainerSecurityLog?: Function;
+    containerSecuritySlug?: string;
+    containerSecurity?: object;
+    isRequesting?: boolean;
+    getContainerError?: string;
+    containerSecurityLog?: object;
+    gettingSecurityLog?: boolean;
+    getDockerCredentials?: Function;
+    getContainerSecurityBySlug?: Function;
+    gettingCredentials?: boolean;
+    fetchLogError?: string;
+    location?: {
+        pathname?: string
+    };
+    components?: {
+        name?: string
+    }[];
+    scanContainerSecuritySuccess?: Function;
+    getContainerSecuritySuccess?: Function;
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+    fetchCredentialError?: Function;
+}
+
+class ContainerSecurityDetail extends Component<ContainerSecurityDetailProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

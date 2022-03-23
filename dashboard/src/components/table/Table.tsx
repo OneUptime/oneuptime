@@ -7,7 +7,32 @@ import TableFooter from './TableFooter';
 import TableItems from './TableItems';
 import TableColumns from './TableColumns';
 
-class Table extends Component {
+interface TableProps {
+    id?: string;
+    title: string;
+    description: string;
+    columns: unknown[];
+    isLoading: boolean // this contains props like [{name, id, onClick, itemPropertyKey, itemPropertyNullText, itemPropertyDescriptionKey, itemPropertyDescriptionNullText, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }];
+    items: unknown[];
+    displayNoItemsMessageWhenThereAreNoItems?: boolean;
+    noItemsMessage?: string;
+    headerButtons?: string // Message that should be displayed if there are no items,;
+    onNextClicked?: Function // [{id, title, shortcutKey, onClick, visibleForOwner, visibleForAdmin, visibleForViewer, visibleForMember }];
+    onPreviousClicked?: Function;
+    nextButtonText?: string;
+    previousButtonText?: string;
+    forceDisableNextButton?: boolean;
+    forceDisablePreviousButton?: boolean;
+    totalItemsCount?: number;
+    friendlyName?: string;
+    friendlyNamePlural?: string;
+    currentPageCount?: number;
+    noOfItemsInPage?: number;
+    actionButtons?: unknown[];
+    onClickTableRow?: Function;
+}
+
+class Table extends Component<TableProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

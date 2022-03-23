@@ -7,6 +7,18 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ShouldRender from './ShouldRender';
 
+interface QuickTipBoxProps {
+    title?: string;
+    id?: string;
+    content?: object;
+    icon?: string;
+    callToActionLink?: string;
+    callToAction?: string;
+    projectId?: string;
+    closeTutorial?: Function;
+    hideActionButton?: boolean;
+}
+
 function QuickTipBox({
     title,
     id,
@@ -17,7 +29,7 @@ function QuickTipBox({
     projectId,
     closeTutorial,
     hideActionButton
-}: $TSFixMe) {
+}: QuickTipBoxProps) {
     return (
         <div
 

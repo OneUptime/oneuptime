@@ -19,7 +19,23 @@ import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-class EditIncidentTemplate extends React.Component {
+interface EditIncidentTemplateProps {
+    handleSubmit: Function;
+    currentProject: object;
+    setRevealIncidentSettingsVariables: Function;
+    revealVariables: boolean;
+    settingsVariables: unknown[];
+    incidentPriorities: unknown[];
+    updatingIncidentTemplate?: boolean;
+    updateIncidentTemplateError?: string;
+    updateIncidentTemplate?: Function;
+    closeModal?: Function;
+    updateIncidentTemplateFailure?: Function;
+    data?: object;
+    change?: Function;
+}
+
+class EditIncidentTemplate extends React.Component<EditIncidentTemplateProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

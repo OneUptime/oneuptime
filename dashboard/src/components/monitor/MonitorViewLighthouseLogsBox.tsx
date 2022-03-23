@@ -13,7 +13,19 @@ import AddSiteUrl from '../modals/AddSiteUrl';
 import MonitorLighthouseLogsList from './MonitorLighthouseLogsList';
 import Select from '../../components/basic/Select';
 
-export class MonitorViewLighthouseLogsBox extends Component {
+interface MonitorViewLighthouseLogsBoxProps {
+    componentId: string;
+    componentSlug?: string;
+    currentProject?: object;
+    monitor: object;
+    editMonitor?: Function;
+    fetchLighthouseLogs?: Function;
+    requesting?: boolean;
+    openModal?: Function;
+    closeModal?: Function;
+}
+
+export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthouseLogsBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

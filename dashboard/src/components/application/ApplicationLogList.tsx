@@ -6,7 +6,23 @@ import ApplicationLogDetail from './ApplicationLogDetail';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-export const ApplicationLogList = (props: $TSFixMe) => {
+interface ApplicationLogListProps {
+    projectId?: string;
+    applicationLogs?: unknown[];
+    componentId?: string;
+    componentSlug?: string;
+    prevClicked?: Function;
+    nextClicked?: Function;
+    error?: string;
+    skip?: number;
+    limit?: number;
+    page?: number;
+    count?: number;
+    numberOfPage?: number;
+    fetchingPage?: boolean;
+}
+
+export const ApplicationLogList = (props: ApplicationLogListProps) => {
     const applicationLogs = props.applicationLogs ? props.applicationLogs : [];
     let applicationLogDetails = null;
     const skip = props.skip;

@@ -17,7 +17,16 @@ const noDataStyle = {
     height: '150px',
 };
 
-class ResolveTime extends Component {
+interface ResolveTimeProps {
+    getResolveTime?: Function;
+    filter?: string;
+    startDate?: object;
+    endDate?: object;
+    currentProject?: object | string;
+    resolveTimeReports?: object;
+}
+
+class ResolveTime extends Component<ResolveTimeProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

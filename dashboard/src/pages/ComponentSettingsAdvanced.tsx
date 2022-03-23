@@ -17,7 +17,20 @@ import DataPathHoC from '../components/DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';
 
-class ComponentSettingsAdvanced extends Component {
+interface ComponentSettingsAdvancedProps {
+    showDeleteModal?: Function;
+    openModal?: Function;
+    slug?: string;
+    component: object;
+    deleteComponent?: Function;
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class ComponentSettingsAdvanced extends Component<ComponentSettingsAdvancedProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

@@ -4,7 +4,14 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ChartComponent from './ChartComponent';
 
-export class WebTransactionsChart extends Component {
+interface WebTransactionsChartProps {
+    heading?: any;
+    subHeading?: any;
+    title?: any;
+    type?: any;
+}
+
+export class WebTransactionsChart extends Component<WebTransactionsChartProps> {
     handleKeyBoard: $TSFixMe;
     render() {
 

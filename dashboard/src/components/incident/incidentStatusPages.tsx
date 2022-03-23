@@ -6,6 +6,17 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 
+interface IncidentStatusPagesProps {
+    statusPages: object;
+    requesting: boolean;
+    projectId: string;
+    incidentId: string;
+    skip?: number;
+    limit?: number;
+    count?: number;
+    fetchIncidentStatusPages: Function;
+}
+
 const IncidentStatusPages = ({
     statusPages,
     fetchIncidentStatusPages,
@@ -15,7 +26,7 @@ const IncidentStatusPages = ({
     skip,
     count,
     limit
-}: $TSFixMe) => {
+}: IncidentStatusPagesProps) => {
     const [page, setPage] = useState(1);
     const numberOfPages = Math.ceil(parseInt(count) / 10);
     const nextPage = () => {

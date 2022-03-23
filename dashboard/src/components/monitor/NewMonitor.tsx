@@ -77,7 +77,71 @@ const defaultScript =
     '   done();\n' +
     '}\n';
 
-class NewMonitor extends Component {
+interface NewMonitorProps {
+    index?: unknown | unknown;
+    editMonitorSwitch: Function;
+    currentProject: object;
+    editMonitor: Function;
+    createMonitor: Function;
+    monitor: object;
+    handleSubmit: Function;
+    fetchMonitorsIncidents: Function;
+    fetchMonitorsSubscribers: Function;
+    fetchSchedules: Function;
+    editMonitorProp?: object;
+    component?: object;
+    edit?: boolean;
+    name?: string;
+    type?: string;
+    mode?: string;
+    authentication?: string;
+    category?: string;
+    subProject?: string;
+    monitorSchedules?: unknown[];
+    monitorSla?: string;
+    incidentCommunicationSla?: string;
+    resourceCategoryList?: unknown[];
+    schedules?: unknown[];
+    monitorId?: string;
+    setMonitorCriteria?: Function;
+    fetchMonitorCriteria?: Function;
+    showUpgradeForm?: Function;
+    project?: object;
+    currentPlanId?: string;
+    projectId?: string;
+    componentSlug?: string;
+    subProjects?: unknown[];
+    toggleEdit?: Function;
+    logFile?: Function;
+    resetFile?: Function;
+    identityFile?: string;
+    configurationFile?: string;
+    uploadingIdentityFile?: boolean;
+    uploadingConfigurationFile?: boolean;
+    setFileInputKey?: Function;
+    fileInputKey?: string;
+    uploadIdentityFile?: Function;
+    fetchCommunicationSlas?: Function;
+    incidentSlas?: unknown[];
+    requestingSla?: boolean;
+    fetchMonitorSlas?: Function;
+    monitorSlas?: unknown[];
+    requestingMonitorSla?: boolean;
+    change?: Function;
+    initialValues?: Record<string, any>;
+    currentMonitorCriteria?: Record<string, any>[];
+    uploadConfigurationFile?: Function;
+    logConfigFile?: Function;
+    setConfigInputKey?: Function;
+    resetConfigFile?: Function;
+    configFileInputKey?: string;
+    fetchAutomatedScript?: Function;
+    scripts?: unknown[];
+    showCancelBtn?: boolean;
+    toggleForm?: Function;
+}
+
+class NewMonitor extends Component<NewMonitorProps> {
     tabIndexRef: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

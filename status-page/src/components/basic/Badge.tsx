@@ -1,13 +1,21 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface BadgeProps {
+    children?: string | unknown[];
+    color?: string;
+    id?: string;
+    fontColor?: string;
+    backgroundColor?: string;
+}
+
 function Badge({
     children,
     color = 'green',
     backgroundColor,
     fontColor,
     ...props
-}: $TSFixMe) {
+}: BadgeProps) {
     const shadow = fontColor
         ? { boxShadow: `inset 0 0 0 1px ${fontColor}` }
         : {};

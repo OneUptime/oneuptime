@@ -11,7 +11,16 @@ import DisableMonitor from '../modals/DisableMonitor';
 import { disableMonitor } from '../../actions/monitor';
 import DataPathHoC from '../DataPathHoC';
 
-export class MonitorViewDisableBox extends Component {
+interface MonitorViewDisableBoxProps {
+    closeModal?: Function;
+    openModal: Function;
+    monitorState: object;
+    monitor: object;
+    disableMonitor: Function;
+    tabSelected: Function;
+}
+
+export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { disableModalId: uuidv4() };

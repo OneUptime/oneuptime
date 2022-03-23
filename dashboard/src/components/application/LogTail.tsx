@@ -10,7 +10,14 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { getLogSuccess } from '../../actions/applicationLog';
 import { socket } from '../basic/Socket';
 
-class LogTail extends Component {
+interface LogTailProps {
+    applicationLogId?: string;
+    applicationLog?: object;
+    logs?: object;
+    getLogSuccess?: Function;
+}
+
+class LogTail extends Component<LogTailProps> {
     componentWillUnmount() {
 
         socket.removeListener(`createLog-${this.props.applicationLogId}`);
@@ -136,9 +143,13 @@ LogTail.propTypes = {
 
 export default connect(mapStateToProps, mapDispatchToProps)(LogTail);
 
+interface LogItemProps {
+    value?: object;
+}
+
 const LogItem = ({
     value
-}: $TSFixMe) => {
+}: LogItemProps) => {
     const [show, setShow] = useState(false);
     const [hover, setHover] = useState(false);
     const [copy, setCopy] = useState(false);

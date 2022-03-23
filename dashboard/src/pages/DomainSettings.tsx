@@ -10,7 +10,14 @@ import { openModal, closeModal } from '../actions/modal';
 import { fetchCustomFields } from '../actions/monitorCustomField';
 import Domains from '../components/domains/Domains';
 
-class DomainSettings extends React.Component {
+interface DomainSettingsProps {
+    location: object;
+    fetchCustomFields?: Function;
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class DomainSettings extends React.Component<DomainSettingsProps> {
     ready = () => {
 
         const { fetchCustomFields } = this.props;

@@ -21,12 +21,19 @@ const getItemStyle = (isDragging: $TSFixMe, draggableStyle: $TSFixMe) => {
     };
 };
 
+interface RenderMonitorsProps {
+    fields: object;
+    subProject: object;
+    form?: string;
+    statusPageCategory?: string;
+}
+
 const RenderMonitors = ({
     fields,
     subProject,
     form,
     statusPageCategory
-}: $TSFixMe) => (
+}: RenderMonitorsProps) => (
     <ul>
         {fields.map((monitor: $TSFixMe, index: $TSFixMe) => {
             return (

@@ -9,7 +9,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { deleteIncomingRequest } from '../../actions/incomingRequest';
 
-class DeleteIncomingRequest extends Component {
+interface DeleteIncomingRequestProps {
+    isRequesting?: boolean;
+    deleteError?: string;
+    closeModal?: Function;
+    deleteIncomingRequest?: Function;
+    projectId?: string;
+    requestId?: string;
+}
+
+class DeleteIncomingRequest extends Component<DeleteIncomingRequestProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

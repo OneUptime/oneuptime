@@ -20,9 +20,40 @@ import {
     resetErrorDate,
 } from '../../actions/performanceTrackerMetric';
 
+interface ChartComponentProps {
+    heading?: any;
+    subHeading?: any;
+    title?: {
+        map?: Function
+    };
+    fetchTimeMetrics?: Function;
+    fetchThroughputMetrics?: Function;
+    setThroughputStartDate?: Function;
+    setThroughputEndDate?: Function;
+    setTimeStartDate?: Function;
+    setTimeEndDate?: Function;
+    timeStartDate?: any;
+    timeEndDate?: any;
+    throughputStartDate?: any;
+    throughputEndDate?: any;
+    timeMetrics?: object;
+    throughputMetrics?: object;
+    type?: string;
+    performanceTracker?: object;
+    resetTimeDate?: Function;
+    resetThroughputDate?: Function;
+    fetchErrorMetrics?: Function;
+    setErrorStartDate?: Function;
+    setErrorEndDate?: Function;
+    resetErrorDate?: Function;
+    errorMetrics?: object;
+    errorStartDate?: any;
+    errorEndDate?: any;
+}
+
 //import ShouldRender from '../../components/basic/ShouldRender';
 
-export class ChartComponent extends Component {
+export class ChartComponent extends Component<ChartComponentProps> {
     currentDate: $TSFixMe;
     startDate: $TSFixMe;
     componentDidMount() {

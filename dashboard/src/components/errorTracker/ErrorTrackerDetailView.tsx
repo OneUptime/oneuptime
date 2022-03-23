@@ -11,7 +11,23 @@ import ErrorEventIssueMember from '../modals/ErrorEventIssueMember';
 import ShouldRender from '../basic/ShouldRender';
 import AlertPanel from '../basic/AlertPanel';
 
-class ErrorTrackerDetailView extends Component {
+interface ErrorTrackerDetailViewProps {
+    errorTrackerIssues?: object;
+    errorTracker?: object;
+    projectId?: string;
+    slug?: string;
+    componentId?: string;
+    componentSlug?: string;
+    handleNavigationButtonClick?: string;
+    ignoreErrorEvent?: Function;
+    resolveErrorEvent?: string;
+    openModal?: Function;
+    updateErrorEventMember?: Function;
+    teamMembers?: unknown[];
+    errorTrackerStatus?: object;
+}
+
+class ErrorTrackerDetailView extends Component<ErrorTrackerDetailViewProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

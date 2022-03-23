@@ -4,7 +4,11 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { IS_LOCALHOST } from '../../config';
 
-export class StatusHeader extends Component {
+interface StatusHeaderProps {
+    statusPage: object;
+}
+
+export class StatusHeader extends Component<StatusHeaderProps> {
     render() {
 
         const { statusPage } = this.props;

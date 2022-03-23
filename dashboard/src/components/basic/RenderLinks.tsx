@@ -4,6 +4,17 @@ import DataPathHoC from '../DataPathHoC';
 import UpdateFooterLink from '../modals/FooterLink';
 import RemoveFooterLink from '../modals/RemoveFooterLink';
 
+interface RenderLinksProps {
+    submitForm: Function;
+    removeFooterLink: Function;
+    createFooterLinkModalId?: string;
+    deleting?: boolean;
+    removeFooterLinkModalId?: string;
+    statusPage?: object;
+    openModal: Function;
+    fields: unknown[] | object;
+}
+
 const RenderLinks = ({
     fields,
     openModal,
@@ -13,7 +24,7 @@ const RenderLinks = ({
     removeFooterLink,
     removeFooterLinkModalId,
     deleting
-}: $TSFixMe) => {
+}: RenderLinksProps) => {
     return (
         <div>
             <table className="Table">

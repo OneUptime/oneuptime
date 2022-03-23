@@ -5,7 +5,11 @@ import ShouldRender from '../basic/ShouldRender';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
 
-class ErrorEventTimeline extends Component {
+interface ErrorEventTimelineProps {
+    errorEvent?: object;
+}
+
+class ErrorEventTimeline extends Component<ErrorEventTimelineProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -43,7 +43,13 @@ if (userData !== undefined) {
     store.dispatch(loadPage('Home'));
 }
 
-const App = (props: $TSFixMe) => {
+interface AppProps {
+    currentProject?: object;
+    activeSubProjectId?: string;
+    activeProject?: object;
+}
+
+const App = (props: AppProps) => {
     const hideProjectNav =
         props.currentProject?._id !== props.activeSubProjectId;
     const titleToExclude = [

@@ -5,7 +5,16 @@ import { withRouter } from 'react-router-dom';
 import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
 
-function Row(props: $TSFixMe) {
+interface RowProps {
+    name: string;
+    users?: string;
+    scheduleSlug: string;
+    monitors?: string;
+    slug?: string;
+    bottonTitle?: string;
+}
+
+function Row(props: RowProps) {
     const path = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
     return (
         <tr

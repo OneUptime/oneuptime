@@ -31,7 +31,19 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class CreateWebHook extends React.Component {
+interface CreateWebHookProps {
+    currentProject?: object;
+    createWebHook: Function;
+    closeThisDialog: Function;
+    handleSubmit: Function;
+    monitor?: object;
+    newWebHook?: object;
+    formValues?: object;
+    data?: object;
+    monitorsList?: unknown[];
+}
+
+class CreateWebHook extends React.Component<CreateWebHookProps> {
     state = {
         monitorError: null,
         selectedProjects: [],

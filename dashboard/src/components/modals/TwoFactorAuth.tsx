@@ -18,7 +18,18 @@ import {
     generateTwoFactorQRCode,
 } from '../../actions/profile';
 
-class TwoFactorAuthModal extends Component {
+interface TwoFactorAuthModalProps {
+    handleSubmit: Function;
+    closeThisDialog: Function;
+    generateTwoFactorQRCode?: Function;
+    setTwoFactorAuth?: Function;
+    profileSettings?: object;
+    qrCode?: object;
+    twoFactorAuthSetting?: object;
+    verifyTwoFactorAuthToken?: Function;
+}
+
+class TwoFactorAuthModal extends Component<TwoFactorAuthModalProps> {
     state = { next: false };
 
     async componentDidMount() {

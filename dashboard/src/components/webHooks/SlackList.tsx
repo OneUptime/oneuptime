@@ -14,7 +14,18 @@ import { ListLoader } from '../basic/Loader';
 
 import { User } from '../../config';
 
-class SlackList extends React.Component {
+interface SlackListProps {
+    getSlack?: Function;
+    projectId?: string;
+    monitorId?: string;
+    isRequesting?: boolean;
+    slacks?: object;
+    paginate: Function;
+    pages?: object;
+    getSlackMonitor?: Function;
+}
+
+class SlackList extends React.Component<SlackListProps> {
     ready() {
 
         const { getSlackMonitor, monitorId, getSlack } = this.props;

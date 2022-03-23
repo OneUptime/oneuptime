@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class DeleteIncidentMessage extends Component {
+interface DeleteIncidentMessageProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    incidentMessageState?: object;
+    data?: object;
+}
+
+class DeleteIncidentMessage extends Component<DeleteIncidentMessageProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

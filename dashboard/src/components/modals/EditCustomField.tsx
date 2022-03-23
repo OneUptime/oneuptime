@@ -23,7 +23,18 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class UpdateCustomField extends React.Component {
+interface UpdateCustomFieldProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    updateCustomField: Function;
+    updateCustomFieldModalId?: string;
+    initialValues?: object;
+    requesting?: boolean;
+    updateFieldError?: string;
+    projectId?: string;
+}
+
+class UpdateCustomField extends React.Component<UpdateCustomFieldProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

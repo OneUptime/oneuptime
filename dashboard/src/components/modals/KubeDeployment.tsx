@@ -10,7 +10,14 @@ import KubeIndicator from '../monitor/KubeIndicator';
 import DataPathHoC from '../DataPathHoC';
 import KubeDeploymentData from './KubeDeploymentData';
 
-class KubeDeployment extends React.Component {
+interface KubeDeploymentProps {
+    closeModal: Function;
+    data?: object;
+    openModal?: Function;
+    modals?: unknown[];
+}
+
+class KubeDeployment extends React.Component<KubeDeploymentProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

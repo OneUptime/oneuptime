@@ -17,7 +17,24 @@ import MonitorSlaModal from './MonitorSlaModal';
 import EditMonitorSlaModal from './EditMonitorSlaModal';
 import DeleteMonitorSlaModal from './DeleteMonitorSlaModal';
 
-class MonitorSla extends Component {
+interface MonitorSlaProps {
+    openModal: Function;
+    skip?: string | number;
+    limit?: string | number;
+    count?: string | number;
+    requesting?: boolean;
+    projectId?: string;
+    fetchMonitorSlas?: Function;
+    currentProject?: object;
+    monitorSlas?: unknown[];
+    fetchSlaError?: string;
+    updateMonitorSla?: Function;
+    setActiveMonitorSla?: Function;
+    activeSla?: string;
+    monitors?: unknown[];
+}
+
+class MonitorSla extends Component<MonitorSlaProps> {
     limit: $TSFixMe;
     constructor() {
 

@@ -12,7 +12,19 @@ import { RenderField } from '../basic/RenderField';
 import { editMonitor, resetEditMonitor } from '../../actions/monitor';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
 
-class ThirdPartyVariables extends Component {
+interface ThirdPartyVariablesProps {
+    currentProject?: object;
+    editMonitor?: Function;
+    handleSubmit: Function;
+    monitor?: object;
+    editingMonitor?: boolean;
+    editError?: string;
+    fetchCustomFields?: Function;
+    resetEditMonitor?: Function;
+    customFields?: unknown[];
+}
+
+class ThirdPartyVariables extends Component<ThirdPartyVariablesProps> {
     componentDidMount() {
         const {
 

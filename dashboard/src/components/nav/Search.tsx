@@ -29,7 +29,32 @@ import { fetchMonitorSlas } from '../../actions/monitorSla';
 import moment from 'moment';
 import { addPerformanceTracker } from '../../actions/performanceTracker';
 
-class Search extends Component {
+interface SearchProps {
+    searcResult?: unknown[];
+    searchValues?: object;
+    addCurrentComponent?: Function;
+    animateSidebar?: Function;
+    componentList?: object;
+    resetSearch?: Function;
+    search?: Function;
+    currentProject?: object;
+    switchStatusPage?: Function;
+    addScheduleEvent?: Function;
+    fetchMonitors?: Function;
+    markAsRead?: Function;
+    addIncident?: Function;
+    fetchMonitorsIncidents?: Function;
+    getMonitorLogs?: Function;
+    fetchLighthouseLogs?: Function;
+    getProbes?: Function;
+    fetchCommunicationSlas?: Function;
+    fetchMonitorSlas?: Function;
+    addPerformanceTracker?: Function;
+    subProject?: object;
+    closeSearchBar?: Function;
+}
+
+class Search extends Component<SearchProps> {
     activeRef: $TSFixMe;
     containerRef: $TSFixMe;
     constructor() {

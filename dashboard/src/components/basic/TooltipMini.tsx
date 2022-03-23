@@ -13,7 +13,12 @@ const TooltipDesign = withStyles(theme => ({
     },
 }))(Tooltip);
 
-const TooltipMini = (props: $TSFixMe) => <TooltipDesign title={props.title}>{props.content}</TooltipDesign>;
+interface TooltipMiniProps {
+    title?: string;
+    content?: object;
+}
+
+const TooltipMini = (props: TooltipMiniProps) => <TooltipDesign title={props.title}>{props.content}</TooltipDesign>;
 
 TooltipMini.propTypes = {
     title: PropTypes.string,

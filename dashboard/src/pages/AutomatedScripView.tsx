@@ -23,7 +23,22 @@ import UpdateScript from '../components/automationScript/UpdateScript';
 import RunAutomationScript from '../components/modals/RunAutomationScript';
 import moment from 'moment';
 
-const AutomatedScripView = (props: $TSFixMe) => {
+interface AutomatedScripViewProps {
+    history: object;
+    openModal?: Function;
+    fetchSingleAutomatedScript?: Function;
+    currentProject?: object;
+    match?: object;
+    script?: object;
+    location?: object;
+    requesting?: boolean;
+    details?: object;
+    switchToProjectViewerNav?: boolean;
+    activeProject?: string;
+    subProjects?: unknown[];
+}
+
+const AutomatedScripView = (props: AutomatedScripViewProps) => {
     const { history } = props;
 
     const parentRoute = getParentRoute(history.location.pathname);

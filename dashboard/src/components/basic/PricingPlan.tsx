@@ -11,6 +11,15 @@ import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
 
+interface PricingPlanComponentProps {
+    plan: string;
+    hideChildren: boolean;
+    children: React.ReactElement;
+    currentProject?: object;
+    openModal?: Function;
+    disabled?: boolean;
+}
+
 const PricingPlanComponent = ({
     plan,
     hideChildren,
@@ -18,7 +27,7 @@ const PricingPlanComponent = ({
     currentProject,
     openModal,
     disabled = false
-}: $TSFixMe) => {
+}: PricingPlanComponentProps) => {
     let category;
     const [pricingPlanModalId] = useState(uuidv4()); // initialise modal ID
     const isEnterprise =

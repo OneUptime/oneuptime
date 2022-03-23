@@ -4,7 +4,13 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
-class DeleteSlackTeam extends Component {
+interface DeleteSlackTeamProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    data?: object;
+}
+
+class DeleteSlackTeam extends Component<DeleteSlackTeamProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

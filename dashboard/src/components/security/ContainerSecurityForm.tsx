@@ -14,7 +14,23 @@ import { getDockerCredentials } from '../../actions/credential';
 import { openModal } from 'common-ui/actions/modal';
 import DockerCredentialModal from '../credential/DockerCredentialModal';
 
-class ContainerSecurityForm extends Component {
+interface ContainerSecurityFormProps {
+    addContainerSecurity?: Function;
+    handleSubmit?: Function;
+    componentId?: string;
+    projectId?: string;
+    addingContainer?: boolean;
+    addContainerError?: string;
+    dockerCredentials?: unknown[];
+    getDockerCredentials?: Function;
+    requestingDockerCredentials?: boolean;
+    openModal?: Function;
+    resourceCategoryList?: unknown[];
+    toggleForm?: Function;
+    showCancelBtn?: boolean;
+}
+
+class ContainerSecurityForm extends Component<ContainerSecurityFormProps> {
     componentDidMount() {
 
         const { projectId, getDockerCredentials } = this.props;

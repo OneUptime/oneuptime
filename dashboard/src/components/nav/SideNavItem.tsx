@@ -12,7 +12,22 @@ import { history } from '../../store';
 import { toggleProjectSettingsMore } from '../../actions/page';
 import { User, PricingPlan } from '../../config';
 
-export class SidebarNavItem extends Component {
+interface SidebarNavItemProps {
+    match: object;
+    location: object;
+    route: object;
+    schedule?: object;
+    currentProject?: object;
+    component?: object;
+    loadPage: Function // eslint-disable-line;
+    animateSidebar?: Function;
+    toggleProjectSettingsMore: Function;
+    closeMoreRoute: Function;
+    toggleMoreBtn: boolean;
+    activeSubProjectId?: string;
+}
+
+export class SidebarNavItem extends Component<SidebarNavItemProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.RenderListItems = this.RenderListItems.bind(this);

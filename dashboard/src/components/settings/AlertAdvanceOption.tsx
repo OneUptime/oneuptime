@@ -22,7 +22,22 @@ import AlertBilling from '../modals/AlertBilling';
 import Tooltip from '../basic/Tooltip';
 import { FormLoader } from '../basic/Loader';
 
-export class AlertAdvanceOption extends Component {
+interface AlertAdvanceOptionProps {
+    handleSubmit: Function;
+    isRequesting?: boolean;
+    projectId?: string;
+    alertOptionsUpdate?: Function;
+    formValues?: object;
+    change?: Function;
+    alertEnable?: boolean;
+    stripe?: object;
+    paymentIntent?: string;
+    openModal: Function;
+    balance?: number;
+    currentProject?: object;
+}
+
+export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps> {
     state = {
         MessageBoxId: uuidv4(),
     };

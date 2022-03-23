@@ -17,7 +17,16 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class DeleteCaution extends Component {
+interface DeleteCautionProps {
+    hide: Function;
+    deleteProject: Function;
+    hideOnDelete: Function;
+    requesting?: boolean;
+    handleSubmit?: Function;
+    deleteSuccess?: boolean;
+}
+
+class DeleteCaution extends Component<DeleteCautionProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

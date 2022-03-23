@@ -10,7 +10,16 @@ import PropTypes from 'prop-types';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
-class Advanced extends Component {
+interface AdvancedProps {
+    hideDeleteModal: Function;
+    location?: {
+        pathname?: string
+    };
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class Advanced extends Component<AdvancedProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':

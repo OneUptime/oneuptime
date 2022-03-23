@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ConfirmErrorTrackerIssueAction extends Component {
+interface ConfirmErrorTrackerIssueActionProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    errorTrackerStatus?: object;
+    data?: object;
+}
+
+class ConfirmErrorTrackerIssueAction extends Component<ConfirmErrorTrackerIssueActionProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

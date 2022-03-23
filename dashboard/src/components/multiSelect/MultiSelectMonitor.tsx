@@ -8,6 +8,16 @@ const errorStyle = {
     topMargin: '5px',
 };
 
+interface MultiSelectMonitorProps {
+    meta: object;
+    input: object;
+    data?: any;
+    valueField?: string;
+    textField?: string;
+    placeholder?: string;
+    fields?: unknown[] | object;
+}
+
 const MultiSelectMonitor = ({
     input,
     data,
@@ -15,7 +25,7 @@ const MultiSelectMonitor = ({
     valueField,
     textField,
     placeholder
-}: $TSFixMe) => {
+}: MultiSelectMonitorProps) => {
     return (
         <span style={{ width: '100%' }}>
             <span>

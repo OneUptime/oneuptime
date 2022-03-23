@@ -6,7 +6,11 @@ import MSTeamsList from './MSTeamsList';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import MSTeamsButton from './MSTeamsButton';
 
-class MSTeamsBox extends React.Component {
+interface MSTeamsBoxProps {
+    monitorId?: string;
+}
+
+class MSTeamsBox extends React.Component<MSTeamsBoxProps> {
     render() {
         return (
             <div className="Box-root Margin-vertical--12">

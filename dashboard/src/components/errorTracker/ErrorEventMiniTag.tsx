@@ -2,7 +2,11 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 
-class ErrorEventMiniTag extends Component {
+interface ErrorEventMiniTagProps {
+    errorEvent?: object;
+}
+
+class ErrorEventMiniTag extends Component<ErrorEventMiniTagProps> {
     render() {
 
         const { errorEvent } = this.props;

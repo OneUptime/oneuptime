@@ -5,7 +5,17 @@ import { connect } from 'react-redux';
 import { ListLoader } from '../basic/Loader';
 import moment from 'moment';
 
-export class InvoiceList extends Component {
+interface InvoiceListProps {
+    nextClicked: Function;
+    invoices?: unknown[];
+    isRequesting?: boolean;
+    error?: object;
+    has_more?: boolean;
+    nextCount: number;
+    prevClicked: Function;
+}
+
+export class InvoiceList extends Component<InvoiceListProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

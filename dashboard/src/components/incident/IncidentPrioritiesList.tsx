@@ -4,7 +4,13 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { openModal } from 'common-ui/actions/modal';
 
-class IncidentPrioritiesListClass extends React.Component {
+interface IncidentPrioritiesListClassProps {
+    incidentPrioritiesList: unknown[];
+    handleEditIncidentPriority: Function;
+    handleDeleteIncidentPriority: Function;
+}
+
+class IncidentPrioritiesListClass extends React.Component<IncidentPrioritiesListClassProps> {
     render() {
         return (
             <div

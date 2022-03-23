@@ -3,7 +3,20 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { Spinner } from '../basic/Loader';
 
-const FooterButton = (props: $TSFixMe) => {
+interface FooterButtonProps {
+    acknowledged: object;
+    resolved: object;
+    className?: string;
+    onClick?: Function;
+    route?: string;
+    homeRoute?: string;
+    state: object;
+    multipleIncidentRequest: object;
+    incidentRequest: object;
+    incidentId?: string;
+}
+
+const FooterButton = (props: FooterButtonProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <>
@@ -34,12 +47,12 @@ const FooterButton = (props: $TSFixMe) => {
                         </svg>
                     )}
                 {props.state.resolveLoad ? null : !props.acknowledged &&
-                  !props.state.resolveLoad ? (
+                    !props.state.resolveLoad ? (
                     <div className="bs-circle"></div>
                 ) : null}
                 {props.state.resolveLoad ? null : props.acknowledged &&
-                  !props.resolved &&
-                  !props.state.resolveLoad ? (
+                    !props.resolved &&
+                    !props.state.resolveLoad ? (
                     <div className="bs-ticks"></div>
                 ) : null}
                 <div
@@ -73,15 +86,15 @@ const FooterButton = (props: $TSFixMe) => {
                     {!props.acknowledged
                         ? 'Acknowledge Incident'
                         : props.acknowledged && !props.resolved
-                        ? 'Resolve Incident'
-                        : !props.route ||
-                          (props.route &&
-                              !(
-                                  props.route === props.homeRoute ||
-                                  !props.incidentId
-                              ))
-                        ? 'The Incident is Resolved'
-                        : null}
+                            ? 'Resolve Incident'
+                            : !props.route ||
+                                (props.route &&
+                                    !(
+                                        props.route === props.homeRoute ||
+                                        !props.incidentId
+                                    ))
+                                ? 'The Incident is Resolved'
+                                : null}
                 </div>
             </button>
         </>

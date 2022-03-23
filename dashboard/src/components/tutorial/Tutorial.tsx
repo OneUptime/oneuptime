@@ -2,7 +2,12 @@ import React from 'react';
 import { tutorials } from '../../config';
 import PropTypes from 'prop-types';
 
-class Tutorial extends React.Component {
+interface TutorialProps {
+    deprecated?: boolean;
+    type?: string;
+}
+
+class Tutorial extends React.Component<TutorialProps> {
     mounted: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

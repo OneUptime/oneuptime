@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class DeleteApplicationLog extends Component {
+interface DeleteApplicationLogProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    applicationLogState?: object;
+    data?: object;
+}
+
+class DeleteApplicationLog extends Component<DeleteApplicationLogProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

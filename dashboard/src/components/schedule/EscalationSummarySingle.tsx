@@ -3,6 +3,16 @@ import PropTypes from 'prop-types';
 import DateTime from '../../utils/DateTime';
 import moment from 'moment-timezone';
 
+interface EscalationSummarySingleProps {
+    isActiveTeam: boolean;
+    isNextActiveTeam: boolean;
+    teamMemberList: unknown[];
+    groups?: unknown[];
+    escalation: object;
+    hasNextEscalationPolicy: boolean;
+    currentEscalationPolicyCount: number;
+}
+
 const EscalationSummarySingle = ({
     isActiveTeam,
     isNextActiveTeam,
@@ -11,7 +21,7 @@ const EscalationSummarySingle = ({
     escalation,
     hasNextEscalationPolicy,
     currentEscalationPolicyCount
-}: $TSFixMe) => {
+}: EscalationSummarySingleProps) => {
     const data = isActiveTeam
         ? escalation.activeTeam
         : escalation.nextActiveTeam;

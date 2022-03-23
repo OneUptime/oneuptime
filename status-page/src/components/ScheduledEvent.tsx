@@ -19,7 +19,26 @@ import AffectedResources from './basic/AffectedResources';
 
 import { Link } from 'react-router-dom';
 
-class ScheduledEvent extends Component {
+interface ScheduledEventProps {
+    fetchEventNote?: Function;
+    match?: object;
+    fetchingNotes?: boolean;
+    statusData?: object;
+    getStatusPage?: Function;
+    login: object;
+    fetchEvent?: Function;
+    fetchingEvent?: boolean;
+    scheduledEvent?: object;
+    eventNotes?: unknown[];
+    moreEventNote?: Function;
+    count?: string | number;
+    skip?: string | number;
+    history?: object;
+    monitorState?: unknown[];
+    status?: object;
+}
+
+class ScheduledEvent extends Component<ScheduledEventProps> {
     componentDidMount() {
         const {
 

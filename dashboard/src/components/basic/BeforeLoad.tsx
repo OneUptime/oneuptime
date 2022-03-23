@@ -2,7 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { User, getQueryVar } from '../../config';
 
-class BeforeLoad extends React.Component {
+interface BeforeLoadProps {
+    children?: any;
+}
+
+class BeforeLoad extends React.Component<BeforeLoadProps> {
     isAuthenticated: $TSFixMe;
     redirect: $TSFixMe;
     constructor(props: $TSFixMe) {

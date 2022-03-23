@@ -7,7 +7,17 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal } from 'common-ui/actions/modal';
 import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 
-export class ApplicationSecurityDeleteBox extends Component {
+interface ApplicationSecurityDeleteBoxProps {
+    componentId: string;
+    componentSlug: string;
+    projectId: string;
+    applicationSecurityId: string;
+    applicationSecuritySlug?: string;
+    openModal: Function;
+    deleting?: boolean;
+}
+
+export class ApplicationSecurityDeleteBox extends Component<ApplicationSecurityDeleteBoxProps> {
     handleDelete = ({
         projectId,
         componentId,

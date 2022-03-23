@@ -2,7 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import SelectItem from './SelectItem';
 
-class SelectList extends React.Component {
+interface SelectListProps {
+    selected: unknown[];
+    options?: unknown[];
+    focusIndex: number;
+    onSelectedChanged?: Function;
+    onClick: Function;
+    disabled?: boolean;
+    ItemRenderer: React.ReactElement;
+}
+
+class SelectList extends React.Component<SelectListProps> {
     handleSelectionChanged = (option: $TSFixMe, checked: $TSFixMe) => {
 
         const { selected, onSelectedChanged, disabled } = this.props;

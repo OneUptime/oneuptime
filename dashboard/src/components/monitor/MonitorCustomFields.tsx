@@ -14,7 +14,19 @@ import CreateMonitorCustomField from '../modals/CreateMonitorCustomField';
 import DataPathHoC from '../DataPathHoC';
 import EditMonitorCustomField from '../modals/EditMonitorCustomField';
 
-class MonitorCustomFields extends Component {
+interface MonitorCustomFieldsProps {
+    currentProject?: object;
+    error?: string;
+    requesting?: boolean;
+    customFields?: unknown[];
+    count?: number;
+    limit?: number;
+    skip?: number;
+    openModal: Function;
+    fetchCustomFields: Function;
+}
+
+class MonitorCustomFields extends Component<MonitorCustomFieldsProps> {
     limit: $TSFixMe;
     constructor() {
 

@@ -8,7 +8,17 @@ import { FormLoader } from '../basic/Loader';
 import { deleteScheduledEventNote } from '../../actions/scheduledEvent';
 import { closeModal } from 'common-ui/actions/modal';
 
-class DeleteNoteModal extends Component {
+interface DeleteNoteModalProps {
+    closeThisDialog: Function;
+    data?: object;
+    deletingNote?: boolean;
+    deleteScheduledEventNote?: Function;
+    deleteError?: string;
+    closeModal?: Function;
+    modalId?: string;
+}
+
+class DeleteNoteModal extends Component<DeleteNoteModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

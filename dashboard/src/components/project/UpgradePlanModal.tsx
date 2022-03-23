@@ -11,7 +11,18 @@ import { createMonitor, resetCreateMonitor } from '../../actions/monitor';
 import PropTypes from 'prop-types';
 import { PricingPlan } from '../../config';
 
-export class UpgradePlanModal extends Component {
+interface UpgradePlanModalProps {
+    dispatch: Function;
+    hideUpgradeForm: Function;
+    changePlan: Function;
+    resetCreateMonitor: Function;
+    projects?: object;
+    visible?: boolean;
+    currentProject?: object;
+    initialValues?: object;
+}
+
+export class UpgradePlanModal extends Component<UpgradePlanModalProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.upgradePlan = this.upgradePlan.bind(this);

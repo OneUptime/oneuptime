@@ -38,7 +38,38 @@ import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { RenderSelect } from '../basic/RenderSelect';
-export class IncidentStatus extends Component {
+
+interface IncidentStatusProps {
+    handleSubmit: Function;
+    resolveIncident: Function;
+    acknowledgeIncident: Function;
+    updateIncident: Function;
+    closeIncident?: Function;
+    closeincident?: object;
+    requesting?: boolean;
+    incident: object;
+    currentProject: object;
+    subProjects: unknown[];
+    multiple?: boolean;
+    count?: number;
+    openModal: Function;
+    projectId?: string;
+    description?: string;
+    route?: string;
+    incidentRequest: object;
+    multipleIncidentRequest?: object;
+    markAsRead?: Function;
+    getIncidentTimeline?: Function;
+    animateSidebar?: Function;
+    escalations?: unknown[];
+    editable?: boolean;
+    incidentPriorities: unknown[];
+    incidentId?: string;
+    fetchIncidentMessages?: Function;
+    activeIncident?: string;
+}
+
+export class IncidentStatus extends Component<IncidentStatusProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

@@ -13,6 +13,22 @@ import ShouldRender from '../basic/ShouldRender';
 import EditApplicationSecurity from '../modals/EditApplicationSecurity';
 import threatLevel from '../../utils/threatLevel';
 
+interface ApplicationSecurityViewProps {
+    isRequesting?: boolean;
+    applicationSecurityId?: string;
+    applicationSecuritySlug?: string;
+    projectId?: string;
+    componentId?: string;
+    componentSlug?: string;
+    openModal?: Function;
+    securityLog?: object;
+    scanning?: boolean;
+    applicationSecurity?: object;
+    scanError?: string;
+    activeApplicationSecurity?: string;
+    scannedStatus?: string;
+}
+
 const ApplicationSecurityView = ({
     isRequesting,
     applicationSecurityId,
@@ -27,7 +43,7 @@ const ApplicationSecurityView = ({
     scanError,
     activeApplicationSecurity,
     scannedStatus
-}: $TSFixMe) => {
+}: ApplicationSecurityViewProps) => {
     const handleSubmit = ({
         projectId,
         applicationSecurityId

@@ -9,7 +9,15 @@ import ShouldRender from '../basic/ShouldRender';
 import TooltipMini from '../basic/TooltipMini';
 import { API_URL } from '../../config';
 
-class ViewErrorTrackerKey extends Component {
+interface ViewErrorTrackerKeyProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    currentProject?: object;
+    data?: object;
+}
+
+class ViewErrorTrackerKey extends Component<ViewErrorTrackerKeyProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

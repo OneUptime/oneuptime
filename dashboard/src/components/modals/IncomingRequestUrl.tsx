@@ -7,7 +7,13 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 import copyToClipboard from '../../utils/copyToClipboard';
 
-export class IncomingRequestUrl extends React.Component {
+interface IncomingRequestUrlProps {
+    closeModal?: Function;
+    incomingRequest?: object;
+    currentProject?: object;
+}
+
+export class IncomingRequestUrl extends React.Component<IncomingRequestUrlProps> {
     state = {
         copied: false,
     };

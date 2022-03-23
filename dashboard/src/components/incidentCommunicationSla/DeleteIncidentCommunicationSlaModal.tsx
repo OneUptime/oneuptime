@@ -10,7 +10,17 @@ import { closeModal } from 'common-ui/actions/modal';
 // import { history } from '../../store';
 import { deleteCommunicationSla } from '../../actions/incidentCommunicationSla';
 
-class DeleteIncidentCommunicationSlaModal extends Component {
+interface DeleteIncidentCommunicationSlaModalProps {
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    deleteError?: string;
+    closeModal?: Function;
+    deleteCommunicationSla?: Function;
+    modalId?: string;
+    data?: object;
+}
+
+class DeleteIncidentCommunicationSlaModal extends Component<DeleteIncidentCommunicationSlaModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

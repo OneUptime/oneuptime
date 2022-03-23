@@ -5,7 +5,16 @@ import PropTypes from 'prop-types';
 import IncidentTimelineList from './IncidentTimelineList';
 import { getIncidentTimeline } from '../../actions/incident';
 
-export class IncidentTimelineBox extends Component {
+interface IncidentTimelineBoxProps {
+    currentProject?: object;
+    getIncidentTimeline?: Function;
+    incident?: object;
+    incidentTimeline?: object;
+    next?: Function;
+    previous?: Function;
+}
+
+export class IncidentTimelineBox extends Component<IncidentTimelineBoxProps> {
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
 

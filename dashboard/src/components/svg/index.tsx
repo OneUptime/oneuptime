@@ -181,9 +181,13 @@ const TimeFilledIcon = () => {
     );
 };
 
+interface CircleIconProps {
+    className?: string;
+}
+
 const CircleIcon = ({
     className
-}: $TSFixMe) => {
+}: CircleIconProps) => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -201,9 +205,13 @@ const CircleIcon = ({
     );
 };
 
+interface DashIconProps {
+    className?: string;
+}
+
 const DashIcon = ({
     className
-}: $TSFixMe) => {
+}: DashIconProps) => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"

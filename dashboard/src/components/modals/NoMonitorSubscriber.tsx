@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 
-class NoMonitorSubscriber extends Component {
+interface NoMonitorSubscriberProps {
+    closeThisDialog: Function;
+}
+
+class NoMonitorSubscriber extends Component<NoMonitorSubscriberProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

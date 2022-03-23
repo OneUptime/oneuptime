@@ -9,7 +9,15 @@ import { closeModal } from 'common-ui/actions/modal';
 import { resetBrandingColors } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 
-class ConfirmResetBrandColors extends Component {
+interface ConfirmResetBrandColorsProps {
+    closeModal?: Function;
+    closeThisDialog: Function;
+    statusPage?: object;
+    data?: object;
+    resetBrandingColors?: Function;
+}
+
+class ConfirmResetBrandColors extends Component<ConfirmResetBrandColorsProps> {
     deleteSubProject: $TSFixMe;
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);

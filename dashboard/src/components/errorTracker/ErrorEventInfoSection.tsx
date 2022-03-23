@@ -1,10 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface RenderTagContentProps {
+    title?: string;
+    value?: string;
+}
+
 function RenderTagContent({
     title,
     value
-}: $TSFixMe) {
+}: RenderTagContentProps) {
     return (
         <div className="Flex-flex Margin-vertical--4 ">
             <span
@@ -30,9 +35,14 @@ RenderTagContent.propTypes = {
     value: PropTypes.string,
 };
 RenderTagContent.displayName = 'RenderTagContent';
+
+interface ErrorEventInfoSectionProps {
+    errorEvent?: object;
+}
+
 function ErrorEventInfoSection({
     errorEvent
-}: $TSFixMe) {
+}: ErrorEventInfoSectionProps) {
     const errorEventDetails = errorEvent.errorEvent;
     return (
         <div>

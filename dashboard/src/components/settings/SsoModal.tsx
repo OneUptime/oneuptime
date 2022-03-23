@@ -129,7 +129,24 @@ const fields = [
     },
 ];
 
-class Component extends React.Component {
+interface ComponentProps {
+    handleSubmit: Function;
+    // eslint-disable-next-line react/no-unused-prop-types
+    createSso: Function;
+    fetchSsos: Function;
+    // eslint-disable-next-line react/no-unused-prop-types
+    initialValues?: object;
+    closeThisDialog: Function;
+    onSubmit: Function;
+    formTitle: string;
+    sso?: object;
+    addingSso?: boolean;
+    updatingSso?: boolean;
+    currentProject?: object;
+    formError?: string;
+}
+
+class Component extends React.Component<ComponentProps> {
     state = {
         copied: false,
     };

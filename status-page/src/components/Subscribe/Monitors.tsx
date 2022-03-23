@@ -13,7 +13,23 @@ import {
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../ShouldRender';
 
-class Monitors extends Component {
+interface MonitorsProps {
+    userDetails?: object;
+    subscribeUser?: Function;
+    validationError?: Function;
+    statuspage?: object;
+    monitors?: unknown[];
+    map?: Function;
+    subscribed?: object;
+    requesting?: boolean;
+    error?: string;
+    openSubscribeMenu?: Function;
+    userDataReset?: Function;
+    theme?: boolean;
+    handleCloseButtonClick?: Function;
+}
+
+class Monitors extends Component<MonitorsProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

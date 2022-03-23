@@ -13,7 +13,30 @@ import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
 import { history } from '../../store';
 import { API_URL } from '../../config';
 
-export class IncidentMessageThread extends Component {
+interface IncidentMessageThreadProps {
+    title?: string;
+    description?: string;
+    slug?: string;
+    incident: object;
+    incidentMessages?: object;
+    canPrev?: boolean;
+    canNext?: boolean;
+    requesting?: boolean;
+    type?: string;
+    error?: string;
+    olderMessage?: Function;
+    newerMessage?: Function;
+    openModal?: Function;
+    createMessageModalId?: string;
+    editMessageModalId?: string;
+    deleteMessageModalId?: string;
+    deleteIncidentMessage?: Function;
+    count?: number;
+    numberOfPages?: number;
+    page?: number;
+}
+
+export class IncidentMessageThread extends Component<IncidentMessageThreadProps> {
     render() {
         const {
 
@@ -1038,6 +1061,19 @@ export class IncidentMessageThread extends Component {
                                                                             <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                                 <div
                                                                                     className={`Badge Badge--color--${incidentMessage.eventType ===
+                                                                                        'identified'
+                                                                                        ? 'green'
+                                                                                        : incidentMessage.eventType ===
+                                                                                            'acknowledged'
+                                                                                            ? 'yellow'
+                                                                                            : incidentMessage.eventType ===
+                                                                                                'resolved'
+                                                                                                ? 'green'
+                                                                                                : null
+                                                                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
+                                                                                >
+                                                                                    <span
+                                                                                        className={`Badge-text Text-color--${incidentMessage.eventType ===
                                                                                             'identified'
                                                                                             ? 'green'
                                                                                             : incidentMessage.eventType ===
@@ -1047,19 +1083,6 @@ export class IncidentMessageThread extends Component {
                                                                                                     'resolved'
                                                                                                     ? 'green'
                                                                                                     : null
-                                                                                        } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
-                                                                                >
-                                                                                    <span
-                                                                                        className={`Badge-text Text-color--${incidentMessage.eventType ===
-                                                                                                'identified'
-                                                                                                ? 'green'
-                                                                                                : incidentMessage.eventType ===
-                                                                                                    'acknowledged'
-                                                                                                    ? 'yellow'
-                                                                                                    : incidentMessage.eventType ===
-                                                                                                        'resolved'
-                                                                                                        ? 'green'
-                                                                                                        : null
                                                                                             } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                                     >
                                                                                         {
@@ -1366,16 +1389,16 @@ export class IncidentMessageThread extends Component {
                                                                                                 >
                                                                                                     <div
                                                                                                         className={`Badge ${incidentMessage.alertStatus ===
-                                                                                                                'Success'
-                                                                                                                ? 'Badge--color--green'
-                                                                                                                : 'Badge--color--red'
+                                                                                                            'Success'
+                                                                                                            ? 'Badge--color--green'
+                                                                                                            : 'Badge--color--red'
                                                                                                             } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                                                                                     >
                                                                                                         <span
                                                                                                             className={`Badge-text ${incidentMessage.alertStatus ===
-                                                                                                                    'Success'
-                                                                                                                    ? 'Text-color--green'
-                                                                                                                    : 'Text-color--red'
+                                                                                                                'Success'
+                                                                                                                ? 'Text-color--green'
+                                                                                                                : 'Text-color--red'
                                                                                                                 } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                                                                                         >
                                                                                                             <span>

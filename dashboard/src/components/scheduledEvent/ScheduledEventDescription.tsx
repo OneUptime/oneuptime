@@ -13,6 +13,18 @@ import EditSchedule from '../modals/EditSchedule';
 import { Spinner } from '../basic/Loader';
 import { resolveScheduledEvent } from '../../actions/scheduledEvent';
 
+interface ScheduledEventDescriptionProps {
+    scheduledEvent?: object;
+    isOngoing?: boolean;
+    history?: object;
+    openModal?: Function;
+    monitorList?: unknown[];
+    resolveScheduledEvent?: Function;
+    resolving?: boolean;
+    slug?: string;
+    projectId?: string;
+}
+
 function ScheduledEventDescription({
     scheduledEvent,
     isOngoing,
@@ -23,7 +35,7 @@ function ScheduledEventDescription({
     resolving,
     slug,
     projectId
-}: $TSFixMe) {
+}: ScheduledEventDescriptionProps) {
     const handleMonitorListing = (event: $TSFixMe, monitorState: $TSFixMe) => {
         const affectedMonitors: $TSFixMe = [];
         const eventMonitors: $TSFixMe = [];

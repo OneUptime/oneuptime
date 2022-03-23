@@ -11,7 +11,18 @@ import SsoDeleteModal from './SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './SsoModal';
 import ShouldRender from '../basic/ShouldRender';
 
-export class Sso extends React.Component {
+interface SsoProps {
+    ssosObj: object;
+    fetchSsos: Function;
+    fetchSso: Function;
+    deleteSso: Function;
+    openModal: Function;
+    modalId?: string;
+    modalList?: unknown[];
+    projectId?: string;
+}
+
+export class Sso extends React.Component<SsoProps> {
     state = {
         ssoModalId: uuidv4(),
         page: 1,

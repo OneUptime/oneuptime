@@ -17,6 +17,17 @@ const renderFeatures = (features: Response) => {
     }
     return null;
 };
+
+interface CustomTutorialProps {
+    components?: unknown[];
+    tutorialStat?: object;
+    monitors?: unknown[];
+    currentProjectId?: string;
+    slug?: string;
+    projectTeamMembers?: unknown[];
+    hideActionButton?: boolean;
+}
+
 const CustomTutorial = ({
     components,
     tutorialStat,
@@ -25,7 +36,7 @@ const CustomTutorial = ({
     slug,
     projectTeamMembers,
     hideActionButton
-}: $TSFixMe) => (
+}: CustomTutorialProps) => (
 
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         {/* Here, component and monitor notifier */}

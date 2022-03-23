@@ -166,7 +166,22 @@ const placeholders = {
     },
 };
 
-export class RenderOption extends Component {
+interface RenderOptionProps {
+    bodyfield?: unknown[] | object;
+    addArrayField?: Function;
+    removeArrayField?: Function;
+    addField?: Function;
+    removeField?: Function;
+    updateCriteriaField?: Function;
+    level?: number;
+    fieldnameprop?: string;
+    type?: string;
+    change: Function;
+    criterionType?: string;
+    formCriteria?: unknown[];
+}
+
+export class RenderOption extends Component<RenderOptionProps> {
     render() {
         const {
 

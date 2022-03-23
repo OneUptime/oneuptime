@@ -4,7 +4,12 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class About extends Component {
+interface AboutProps {
+    closeThisDialog: Function;
+    versions?: object;
+}
+
+class About extends Component<AboutProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

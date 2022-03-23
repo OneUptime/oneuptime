@@ -45,6 +45,15 @@ const styles = {
     }),
 };
 
+interface MultiSelectFieldProps {
+    meta: object;
+    input: object;
+    options?: unknown[];
+    classNamePrefix?: string;
+    className?: string;
+    placeholder?: string;
+}
+
 const MultiSelectField = ({
     options,
     className,
@@ -52,7 +61,7 @@ const MultiSelectField = ({
     input,
     meta,
     placeholder
-}: $TSFixMe) => {
+}: MultiSelectFieldProps) => {
     return (
         <div>
             <div>

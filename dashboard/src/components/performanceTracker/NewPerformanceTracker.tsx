@@ -17,7 +17,22 @@ import {
 
 const selector = formValueSelector('NewPerformanceTracker');
 
-class NewPerformanceTracker extends Component {
+interface NewPerformanceTrackerProps {
+    performanceTracker?: object;
+    handleSubmit: Function;
+    componentId?: string;
+    componentSlug?: string;
+    currentProject?: object;
+    edit?: boolean;
+    newPerformanceTracker?: object;
+    performanceTrackerUpdate?: object;
+    createPerformanceTracker?: Function;
+    updatePerformanceTracker?: Function;
+    toggleForm?: Function;
+    showCancelBtn?: boolean;
+}
+
+class NewPerformanceTracker extends Component<NewPerformanceTrackerProps> {
     cancelEdit: $TSFixMe;
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);

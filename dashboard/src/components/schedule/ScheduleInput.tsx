@@ -5,11 +5,23 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 
+interface ScheduleInputProps {
+    schedules: {
+        _id: string,
+        name: string
+    }[];
+    currentProject?: {
+        _id: string,
+        name: string
+    };
+    fields?: any[];
+}
+
 const ScheduleInput = ({
     schedules = [],
     fields,
     currentProject = {}
-}: $TSFixMe) => {
+}: ScheduleInputProps) => {
     useEffect(() => {
         // add default schedule fields if none is available
         if (fields && !fields.length) {

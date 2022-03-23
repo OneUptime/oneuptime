@@ -43,7 +43,20 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class SmsTemplatesFormBox extends Component {
+interface SmsTemplatesFormBoxProps {
+    handleSubmit: Function;
+    setRevealVariable: Function;
+    template?: unknown[] | object;
+    editSmsTemplates: object;
+    resetSmsTemplates: object;
+    revealVariable?: object | unknown[];
+    submitForm: Function;
+    resetTemplate: Function;
+    openModal?: Function;
+    closeModal?: Function;
+}
+
+export class SmsTemplatesFormBox extends Component<SmsTemplatesFormBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

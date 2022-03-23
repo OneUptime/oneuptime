@@ -12,6 +12,19 @@ import { RenderField } from '../basic/RenderField';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
 
+interface RenderSingleEscalationProps {
+    subProjectId: string;
+    call: boolean;
+    sms: boolean;
+    email: boolean;
+    push: boolean;
+    policy: string;
+    policyIndex: number;
+    rotateBy?: string;
+    rotationInterval?: number;
+    fields: unknown[] | object;
+}
+
 const RenderSingleEscalation = ({
     policy,
     email,
@@ -23,7 +36,7 @@ const RenderSingleEscalation = ({
     policyIndex,
     fields,
     rotationInterval
-}: $TSFixMe) => {
+}: RenderSingleEscalationProps) => {
     const [rotationFreqVisible, setRotationFreqVisibility] = useState(
         !!rotateBy
     );

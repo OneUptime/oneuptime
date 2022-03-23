@@ -23,7 +23,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class PricingPlanModal extends Component {
+interface PricingPlanModalProps {
+    closeThisDialog?: Function;
+    propArr?: unknown[];
+    handleSubmit?: Function;
+    isRequesting?: boolean;
+    error?: string;
+    closeModal?: Function;
+    currentProject?: object;
+    currentPlanId?: string;
+    modalId?: string;
+    changePlan?: Function;
+    activePlan?: string;
+}
+
+class PricingPlanModal extends Component<PricingPlanModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }

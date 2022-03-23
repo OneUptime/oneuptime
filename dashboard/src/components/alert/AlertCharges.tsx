@@ -9,7 +9,16 @@ import { downloadAlertCharges } from '../../actions/alert';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 
-class AlertCharge extends Component {
+interface AlertChargeProps {
+    projectId?: string;
+    downloadAlertCharges: Function;
+    downloadedAlertCharges?: object | unknown[];
+    error?: string;
+    requesting?: boolean;
+    alertCharges?: object | unknown[];
+}
+
+class AlertCharge extends Component<AlertChargeProps> {
     csvLink = React.createRef();
 
     constructor(props: $TSFixMe) {

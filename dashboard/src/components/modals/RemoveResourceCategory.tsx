@@ -8,7 +8,15 @@ import { closeModal } from 'common-ui/actions/modal';
 import { deleteResourceCategory } from '../../actions/resourceCategories';
 import { bindActionCreators, Dispatch } from 'redux';
 
-class RemoveResourceCategory extends Component {
+interface RemoveResourceCategoryProps {
+    deleteResourceCategoryObj: object;
+    projectId?: string;
+    deleteResourceCategory?: Function;
+    closeModal?: Function;
+    data?: object;
+}
+
+class RemoveResourceCategory extends Component<RemoveResourceCategoryProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

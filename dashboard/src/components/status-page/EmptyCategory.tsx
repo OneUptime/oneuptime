@@ -1,9 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface EmptyCategoryProps {
+    tabSelected?: Function;
+}
+
 function EmptyCategory({
     tabSelected
-}: $TSFixMe) {
+}: EmptyCategoryProps) {
     return (
         <div className="bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">

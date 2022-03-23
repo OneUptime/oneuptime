@@ -9,7 +9,15 @@ import { closeModal } from 'common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteGroup } from '../../actions/group';
 
-class removeGroup extends Component {
+interface removeGroupProps {
+    closeModal?: Function;
+    closeThisDialog: Function;
+    data?: object;
+    deleteGroup?: Function;
+    groupDelete?: object;
+}
+
+class removeGroup extends Component<removeGroupProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

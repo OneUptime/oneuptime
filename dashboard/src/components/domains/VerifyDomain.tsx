@@ -13,7 +13,21 @@ import {
     resetVerifyProjectDomain,
 } from '../../actions/project';
 
-class VerifyDomain extends Component {
+interface VerifyDomainProps {
+    requesting?: boolean;
+    verificationToken?: string;
+    verifyError?: string;
+    domainId?: string;
+    projectId?: string;
+    domain?: string;
+    closeModal?: Function;
+    verifyProjectDomain?: Function;
+    fetchProjectDomains?: Function;
+    resetVerifyProjectDomain?: Function;
+    currentProject?: object;
+}
+
+class VerifyDomain extends Component<VerifyDomainProps> {
     componentDidMount() {
 
         this.props.resetVerifyProjectDomain();

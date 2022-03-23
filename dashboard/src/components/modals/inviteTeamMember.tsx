@@ -42,7 +42,19 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class FormModal extends Component {
+interface FormModalProps {
+    handleSubmit: Function;
+    team: object;
+    teamCreate: (...args: unknown[]) => unknown;
+    closeThisDialog: Function;
+    data: object;
+    currentProject: object;
+    openModal: Function;
+    closeModal: Function;
+    subProjects: unknown[];
+}
+
+export class FormModal extends Component<FormModalProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

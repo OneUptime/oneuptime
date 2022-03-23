@@ -12,7 +12,20 @@ import DeleteCard from '../modals/DeleteCard';
 import { ListLoader } from '../basic/Loader';
 import { User } from '../../config';
 
-class PaymentCard extends Component {
+interface PaymentCardProps {
+    userId?: string;
+    fetchCards: Function;
+    cards?: unknown[];
+    count?: number;
+    openModal: Function;
+    settingDefaultCard?: boolean;
+    setDefaultCard: Function;
+    requesting?: boolean;
+    requestingDefaultCardId?: string;
+    modalId?: string;
+}
+
+class PaymentCard extends Component<PaymentCardProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

@@ -1,11 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface IssueIndicatorProps {
+    status: string;
+}
+
 const IssueIndicator = ({
     status,
     resourceName,
     count
-}: $TSFixMe) => {
+}: IssueIndicatorProps) => {
     let statusColor, content;
 
     switch (status) {

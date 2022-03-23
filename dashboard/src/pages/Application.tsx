@@ -22,7 +22,34 @@ import sortByName from '../utils/sortByName';
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 
-class Application extends Component {
+interface ApplicationProps {
+    componentId?: string;
+    componentSlug?: string;
+    slug?: string;
+    projectId?: string;
+    fetchComponent?: Function;
+    getApplicationSecurities?: Function;
+    applicationSecurities?: unknown[];
+    getApplicationSecurityLogs?: Function;
+    gettingSecurityLogs?: boolean;
+    gettingApplicationSecurities?: boolean;
+    location?: {
+        pathname?: string
+    };
+    component?: object;
+    // scanApplicationSecuritySuccess: PropTypes.func,
+    // getApplicationSecuritySuccess: PropTypes.func,
+    switchToProjectViewerNav?: boolean;
+    currentProject?: object;
+    skip?: number;
+    limit?: number;
+    count?: number;
+    fetchingPage?: boolean;
+    numberOfPage?: number;
+    error?: string;
+}
+
+class Application extends Component<ApplicationProps> {
     state = {
         showApplicationSecurityForm: false,
         page: 1,

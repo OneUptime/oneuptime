@@ -36,7 +36,18 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class TemplatesFormBox extends Component {
+interface TemplatesFormBoxProps {
+    handleSubmit: Function;
+    setRevealVariable: Function;
+    template?: unknown[] | object;
+    editEmailTemplates: object;
+    resetEmailTemplates: object;
+    revealVariable?: object | unknown[];
+    submitForm: Function;
+    resetTemplate: Function;
+}
+
+export class TemplatesFormBox extends Component<TemplatesFormBoxProps> {
     render() {
         const {
 

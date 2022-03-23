@@ -29,7 +29,25 @@ import { history } from '../../store';
 
 const selector = formValueSelector('NewComponent');
 
-class NewComponent extends Component {
+interface NewComponentProps {
+    index?: unknown | unknown;
+    editComponentSwitch: Function;
+    currentProject: object;
+    editComponent: Function;
+    createComponent: Function;
+    component: object;
+    handleSubmit: Function;
+    fetchSchedules: Function;
+    editComponentProp?: object;
+    edit?: boolean;
+    name?: string;
+    showUpgradeForm?: Function;
+    toggleForm?: Function;
+    showCancelBtn?: boolean;
+    activeSubProjectId?: string;
+}
+
+class NewComponent extends Component<NewComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

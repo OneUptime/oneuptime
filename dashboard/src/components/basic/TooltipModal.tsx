@@ -3,7 +3,13 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import Modal from './Modal';
 
-class TooltipModal extends Component {
+interface TooltipModalProps {
+    closeThisDialog: Function;
+    title?: string;
+    body?: string;
+}
+
+class TooltipModal extends Component<TooltipModalProps> {
     render() {
 
         const { title, body, closeThisDialog } = this.props;

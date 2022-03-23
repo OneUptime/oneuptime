@@ -6,12 +6,19 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSingleEscalation } from './RenderSingleEscalation';
 
+interface RenderEscalationProps {
+    subProjectId: string;
+    meta: object;
+    fields: unknown[] | object;
+    form: unknown[];
+}
+
 let RenderEscalation = ({
     fields,
     meta: { error, submitFailed },
     subProjectId,
     form
-}: $TSFixMe) => {
+}: RenderEscalationProps) => {
     return (
         <ul>
             {fields.map((policy: $TSFixMe, i: $TSFixMe) => {

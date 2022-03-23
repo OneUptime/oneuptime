@@ -31,12 +31,19 @@ function renderLibraries() {
     return list;
 }
 
+interface QuickStartProps {
+    close?: Function;
+    appId?: string;
+    appKey?: string;
+    library?: string;
+}
+
 const QuickStart = ({
     appId,
     appKey,
     close,
     library
-}: $TSFixMe) => {
+}: QuickStartProps) => {
     const guide = metricsQuickStart
         .getQuickStarts(appId, appKey)
         .filter(quickStart => quickStart.id === library)[0];

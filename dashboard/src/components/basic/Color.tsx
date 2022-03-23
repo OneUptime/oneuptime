@@ -3,6 +3,18 @@ import PropTypes from 'prop-types';
 
 import { SketchPicker } from 'react-color';
 
+interface ColorProps {
+    id: string;
+    title: string;
+    currentColorPicker?: string;
+    handleClick?: Function;
+    handleChange?: Function;
+    handleClose?: Function;
+    displayColorPicker?: boolean;
+    color?: object;
+    style?: object;
+}
+
 function Color({
     currentColorPicker,
     handleClick,
@@ -11,7 +23,7 @@ function Color({
     handleChange,
     handleClose,
     ...props
-}: $TSFixMe) {
+}: ColorProps) {
     return (
         <div
             className="Box-root Box-root Box-root Flex-flex"

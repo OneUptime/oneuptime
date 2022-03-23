@@ -44,12 +44,19 @@ const styles = () => ({
     },
 });
 
+interface TimeSelectorProps {
+    input: object;
+    style?: object;
+    meta: object;
+    classes?: object;
+}
+
 const TimeSelector = ({
     input,
     meta: { touched, error },
     style,
     classes
-}: $TSFixMe) => {
+}: TimeSelectorProps) => {
     if (!input.value) {
         input.value = null;
     }

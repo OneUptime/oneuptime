@@ -4,7 +4,12 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ResetCssModal extends Component {
+interface ResetCssModalProps {
+    closeThisDialog: Function;
+    confirmThisDialog: Function;
+}
+
+class ResetCssModal extends Component<ResetCssModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

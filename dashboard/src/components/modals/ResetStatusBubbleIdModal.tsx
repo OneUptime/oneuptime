@@ -4,7 +4,12 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ResetStatusBubbleIdModal extends Component {
+interface ResetStatusBubbleIdModalProps {
+    closeThisDialog: Function;
+    confirmThisDialog: Function;
+}
+
+class ResetStatusBubbleIdModal extends Component<ResetStatusBubbleIdModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

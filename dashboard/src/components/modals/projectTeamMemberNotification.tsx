@@ -6,7 +6,13 @@ import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ProjectTeamMemberNotification extends Component {
+interface ProjectTeamMemberNotificationProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    team: object;
+}
+
+class ProjectTeamMemberNotification extends Component<ProjectTeamMemberNotificationProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

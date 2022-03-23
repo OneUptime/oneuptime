@@ -16,7 +16,24 @@ import EditIncidentCommunicationSlaModal from './EditIncidentCommunicationSlaMod
 import DeleteIncidentCommunicationSlaModal from './DeleteIncidentCommunicationSlaModal';
 import secondsToHms from '../../utils/secondsToHms';
 
-class IncidentCommunicationSla extends Component {
+interface IncidentCommunicationSlaProps {
+    openModal: Function;
+    skip?: string | number;
+    limit?: string | number;
+    count?: string | number;
+    requesting?: boolean;
+    projectId?: string;
+    fetchCommunicationSlas?: Function;
+    currentProject?: object;
+    incidentSlas?: unknown[];
+    fetchSlaError?: string;
+    updateCommunicationSla?: Function;
+    setActiveSla?: Function;
+    activeSla?: string;
+    monitors?: unknown[];
+}
+
+class IncidentCommunicationSla extends Component<IncidentCommunicationSlaProps> {
     limit: $TSFixMe;
     constructor() {
 

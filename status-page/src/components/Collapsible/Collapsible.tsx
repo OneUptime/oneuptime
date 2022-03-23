@@ -3,7 +3,46 @@ import PropTypes from 'prop-types';
 
 import setInTransition from './setInTransition';
 
-class Collapsible extends Component {
+interface CollapsibleProps {
+    transitionTime?: number;
+    transitionCloseTime?: number;
+    triggerTagName?: string;
+    easing?: string;
+    open?: boolean;
+    containerElementProps?: object;
+    triggerElementProps?: object;
+    classParentString?: string;
+    openedClassName?: string;
+    triggerStyle?: object;
+    statusColorStyle?: object;
+    triggerClassName?: string;
+    triggerOpenedClassName?: string;
+    contentOuterClassName?: string;
+    contentInnerClassName?: string;
+    accordionPosition?: string | number;
+    handleTriggerClick?: Function;
+    onOpen?: Function;
+    onClose?: Function;
+    onOpening?: Function;
+    onClosing?: Function;
+    onTriggerOpening?: Function;
+    onTriggerClosing?: Function;
+    trigger?: string | React.ReactElement;
+    triggerWhenOpen?: string | React.ReactElement;
+    triggerDisabled?: boolean;
+    lazyRender?: boolean;
+    overflowWhenOpen?: "hidden" | "visible" | "auto" | "scroll" | "inherit" | "initial" | "unset";
+    contentHiddenWhenClosed?: boolean;
+    className?: string;
+    children?: object;
+    triggerSibling?: React.ReactElement | (...args: unknown[]) => unknown;
+    tabIndex?: number;
+    contentContainerTagName?: string;
+    closedIconClass?: string;
+    openIconClass?: string;
+}
+
+class Collapsible extends Component<CollapsibleProps> {
     innerRef: $TSFixMe;
     timeout: $TSFixMe;
     constructor(props: $TSFixMe) {
@@ -86,9 +125,9 @@ class Collapsible extends Component {
             height: innerRef.scrollHeight,
             transition: `height ${this.props.transitionCloseTime
 
-                    ? this.props.transitionCloseTime
+                ? this.props.transitionCloseTime
 
-                    : this.props.transitionTime
+                : this.props.transitionTime
 
                 }ms ${this.props.easing}`,
             inTransition: setInTransition(innerRef.scrollHeight),
@@ -265,9 +304,9 @@ class Collapsible extends Component {
 
         const parentClassString = `${this.props.classParentString} ${this.state.isClosed
 
-                ? this.props.className
+            ? this.props.className
 
-                : this.props.openedClassName
+            : this.props.openedClassName
             }`;
 
         const outerClassString = `${this.props.classParentString}__contentOuter ${this.props.contentOuterClassName}`;

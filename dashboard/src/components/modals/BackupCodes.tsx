@@ -10,7 +10,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { generateBackupCodes } from '../../actions/profile.js';
 
-class BackupCodesModal extends React.Component {
+interface BackupCodesModalProps {
+    closeThisDialog?: Function;
+    generateBackupCodes?: Function;
+    profileSettings?: object;
+    backupCodesState?: object;
+}
+
+class BackupCodesModal extends React.Component<BackupCodesModalProps> {
     state = {
         copied: false,
         codes: null,

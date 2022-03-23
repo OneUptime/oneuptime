@@ -33,7 +33,22 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class CreateSchedule extends React.Component {
+interface CreateScheduleProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    createScheduledEvent: Function;
+    fetchscheduledEvents: Function;
+    createScheduledEventModalId?: string;
+    data?: object;
+    requesting?: boolean;
+    scheduledEventError?: string;
+    minStartDate?: string | object;
+    monitors?: unknown[];
+    formValues?: object;
+    change?: Function;
+}
+
+class CreateSchedule extends React.Component<CreateScheduleProps> {
     state = {
         currentDate: moment(),
         dateError: null,

@@ -211,6 +211,20 @@ const calculateTime = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => 
     return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
 };
 
+interface MonitorChartProps {
+    start?: string | object | moment;
+    end?: string | object | moment;
+    monitor?: object;
+    data?: unknown[];
+    statuses?: unknown[];
+    status?: string;
+    showAll?: boolean;
+    activeProbe?: number;
+    probes?: unknown[];
+    requesting?: boolean;
+    openModal?: Function;
+}
+
 export function MonitorChart({
     start,
     end,
@@ -223,7 +237,7 @@ export function MonitorChart({
     probes,
     requesting,
     openModal
-}: $TSFixMe) {
+}: MonitorChartProps) {
     const [now, setNow] = useState(Date.now());
     const [kubeMonitoring] = useState(true);
 

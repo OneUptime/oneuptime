@@ -4,12 +4,18 @@ import { capitalize } from '../../config';
 
 import { Translate } from 'react-auto-translate';
 
+interface AffectedResourcesProps {
+    event?: object;
+    monitorState?: unknown[];
+    colorStyle?: "white" | "grey";
+}
+
 const AffectedResources = ({
     event,
     monitorState,
     colorStyle,
     cleanTheme = false
-}: $TSFixMe) => {
+}: AffectedResourcesProps) => {
     const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
 

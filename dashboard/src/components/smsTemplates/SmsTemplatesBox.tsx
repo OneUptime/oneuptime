@@ -14,7 +14,15 @@ import IsAdmin from '../basic/IsAdmin';
 import IsOwner from '../basic/IsOwner';
 import { RenderSelect } from '../basic/RenderSelect';
 
-class SmsTemplatesBox extends React.Component {
+interface SmsTemplatesBoxProps {
+    smsTemplates: object;
+    editSmsTemplates: Function;
+    currentProject: object;
+    resetSmsTemplates: Function;
+    changeShowingTemplate: Function;
+}
+
+class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
     submitForm = (values: $TSFixMe) => {
 
         const { currentProject } = this.props;

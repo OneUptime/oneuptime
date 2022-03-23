@@ -11,7 +11,18 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { updateSubscriberOption } from '../../actions/statusPage';
 
-class SubscriberAdvanceOption extends React.Component {
+interface SubscriberAdvanceOptionProps {
+    updateSubscriberOption: Function;
+    closeModal: Function;
+    handleSubmit: Function;
+    subscriberAdvanceOptionModalId?: string;
+    requesting?: boolean;
+    error?: object;
+    statusPage?: object;
+    subscriberOption?: object;
+}
+
+class SubscriberAdvanceOption extends React.Component<SubscriberAdvanceOptionProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

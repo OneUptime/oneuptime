@@ -6,7 +6,12 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import CreateWebHook from '../modals/CreateWebHook';
 import DataPathHoC from '../DataPathHoC';
 
-class WebHookButton extends React.Component {
+interface WebHookButtonProps {
+    openModal: Function;
+    monitorId?: string;
+}
+
+class WebHookButton extends React.Component<WebHookButtonProps> {
     render() {
 
         const { monitorId } = this.props;

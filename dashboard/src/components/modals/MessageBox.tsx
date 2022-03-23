@@ -6,7 +6,19 @@ import PropTypes, { string } from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 
-class MessageBox extends Component {
+interface MessageBoxProps {
+    closeModal: Function;
+    title?: string;
+    message?: string;
+    messageBoxId?: string;
+    data?: {
+        title?: string,
+        message?: string,
+        messageBoxId?: unknown
+    };
+}
+
+class MessageBox extends Component<MessageBoxProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

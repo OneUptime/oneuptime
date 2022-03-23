@@ -8,7 +8,18 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 
-class ScheduledEvent extends Component {
+interface ScheduledEventProps {
+    projectId?: string;
+    location?: {
+        pathname?: string
+    };
+    requesting?: boolean;
+    fetchingMonitors?: boolean;
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class ScheduledEvent extends Component<ScheduledEventProps> {
     render() {
         const {
 

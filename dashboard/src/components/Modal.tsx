@@ -1,8 +1,18 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
+interface ModalProps {
+    onConfirm?: Function;
+    item: object;
+    onClose: Function;
+    extraClasses?: string;
+    zIndex: number;
+    title?: string;
+    body?: object;
+}
+
 const composableComponent = (ComposedComponent: $TSFixMe) => {
-    class Modal extends Component {
+    class Modal extends Component<ModalProps> {
         constructor(props: $TSFixMe) {
             super(props);
 

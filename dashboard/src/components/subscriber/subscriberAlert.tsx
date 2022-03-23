@@ -9,7 +9,21 @@ import {
 } from '../subscriberAlert/SubscriberAlertTable';
 import { ListLoader } from '../basic/Loader';
 
-export class SubscriberAlert extends Component {
+interface SubscriberAlertProps {
+    previous: Function;
+    isRequesting?: boolean;
+    alerts?: unknown[];
+    count?: unknown | unknown;
+    skip?: unknown | unknown;
+    limit?: unknown | unknown;
+    incidents?: unknown[];
+    incident?: object;
+    next: Function;
+    error?: string;
+    page?: number;
+}
+
+export class SubscriberAlert extends Component<SubscriberAlertProps> {
     render() {
         if (
 

@@ -8,7 +8,24 @@ import InviteTeamMemberModal from '../modals/inviteTeamMember.js';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 
-const TeamMemberProjectBox = (props: $TSFixMe) => {
+interface TeamMemberProjectBoxProps {
+    openModal: Function;
+    paginate: Function;
+    teamMembers: object;
+    team: object;
+    pages: object;
+    canPaginateBackward: boolean;
+    canPaginateForward: boolean;
+    subProjectName: string;
+    currentProjectId: string;
+    inviteModalId: string;
+    membersPerPage: number;
+    allTeamLength?: number;
+    modalList?: unknown[];
+    showProjectName?: boolean;
+}
+
+const TeamMemberProjectBox = (props: TeamMemberProjectBoxProps) => {
     const handleKeyboard = (event: $TSFixMe) => {
         const { modalList, allTeamLength } = props;
 
@@ -262,8 +279,8 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                             <button
                                 data-test="TeamSettings-paginationButton"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
-                                        ? 'Is--disabled'
-                                        : ''
+                                    ? 'Is--disabled'
+                                    : ''
                                     }`}
                                 disabled={!props.canPaginateBackward}
                                 type="button"
@@ -285,8 +302,8 @@ const TeamMemberProjectBox = (props: $TSFixMe) => {
                             <button
                                 data-test="TeamSettings-paginationButton"
                                 className={`Button bs-ButtonLegacy ${!props.canPaginateForward
-                                        ? 'Is--disabled'
-                                        : ''
+                                    ? 'Is--disabled'
+                                    : ''
                                     }`}
                                 disabled={!props.canPaginateForward}
                                 type="button"

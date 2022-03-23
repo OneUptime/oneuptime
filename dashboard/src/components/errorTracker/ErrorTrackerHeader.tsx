@@ -10,7 +10,27 @@ import ViewErrorTrackerKey from '../modals/ViewErrorTrackerKey';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import Badge from '../common/Badge';
 
-class ErrorTrackerHeader extends Component {
+interface ErrorTrackerHeaderProps {
+    errorTracker?: object;
+    isDetails?: boolean;
+    errorTrackerIssue?: object;
+    viewMore?: Function;
+    errorTrackerState?: object;
+    deleteErrorTracker?: Function;
+    openModal?: Function;
+    deleteModalId?: string;
+    editErrorTracker?: Function;
+    trackerKeyModalId?: string;
+    resetErrorTrackerKey?: Function;
+    currentDateRange?: object;
+    formId?: string;
+    handleStartDateTimeChange?: Function;
+    handleEndDateTimeChange?: Function;
+    handleFilterUpdate?: Function;
+    showComponentWithIssue?: boolean;
+}
+
+class ErrorTrackerHeader extends Component<ErrorTrackerHeaderProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -92,11 +112,11 @@ class ErrorTrackerHeader extends Component {
                                     id={`error-tracker-title-${errorTracker.name}`}
                                 >
                                     {`${showComponentWithIssue
+                                        ? errorTracker.componentId
                                             ? errorTracker.componentId
-                                                ? errorTracker.componentId
-                                                    .name + '/'
-                                                : ''
+                                                .name + '/'
                                             : ''
+                                        : ''
                                         }${errorTracker.name} (${errorTrackerIssue
                                             ? errorTrackerIssue
                                                 .errorTrackerIssues.length

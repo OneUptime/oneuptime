@@ -4,7 +4,15 @@ import ShouldRender from '../basic/ShouldRender';
 import { hideIncident } from '../../actions/incident';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
-class HideIncidentBox extends Component {
+
+interface HideIncidentBoxProps {
+    hideIncident?: Function;
+    hideIncidentError?: string;
+    incident?: object;
+    currentProject?: object;
+}
+
+class HideIncidentBox extends Component<HideIncidentBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

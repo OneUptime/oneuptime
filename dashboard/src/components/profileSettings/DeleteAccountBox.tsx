@@ -10,7 +10,15 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAccount from '../modals/DeleteAccount';
 
-export class DeleteAccountBox extends Component {
+interface DeleteAccountBoxProps {
+    closeModal?: Function;
+    openModal: Function;
+    deleteAccountSetting?: {
+        requesting?: boolean
+    };
+}
+
+export class DeleteAccountBox extends Component<DeleteAccountBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };

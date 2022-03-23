@@ -1,9 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface OnCallTableHeaderProps {
+    text: string;
+}
+
 function OnCallTableHeader({
     text
-}: $TSFixMe) {
+}: OnCallTableHeaderProps) {
     return (
         <td
             className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"
@@ -32,10 +36,15 @@ OnCallTableHeader.propTypes = {
     text: PropTypes.string.isRequired,
 };
 
+interface OnCallTableBodyProps {
+    text: string;
+    type?: string;
+}
+
 function OnCallTableBody({
     text,
     type
-}: $TSFixMe) {
+}: OnCallTableBodyProps) {
     return type !== 'button' ? (
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">

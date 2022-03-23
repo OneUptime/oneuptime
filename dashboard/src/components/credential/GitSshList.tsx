@@ -11,6 +11,18 @@ import DeleteCredentialModal from './DeleteCredentialModal';
 import GitSshModal from './GitSshModal';
 import paginate from '../../utils/paginate';
 
+interface GitSshListProps {
+    error?: string;
+    isRequesting: boolean;
+    gitSsh?: unknown[];
+    projectId?: string;
+    deleteGitCredential?: Function;
+    openModal?: Function;
+    deleteError?: string;
+    getGitSecurities?: Function;
+    modalId?: string;
+}
+
 const GitSshList = ({
     isRequesting,
     error,
@@ -21,7 +33,7 @@ const GitSshList = ({
     openModal,
     getGitSecurities,
     modalId
-}: $TSFixMe) => {
+}: GitSshListProps) => {
     const [page, setPage] = useState(1);
 
     const handleDelete = (credentialId: $TSFixMe) => {

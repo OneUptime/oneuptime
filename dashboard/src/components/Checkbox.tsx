@@ -3,10 +3,15 @@ import React from 'react';
 
 import { Field } from 'redux-form';
 
+interface CheckboxProps {
+    name: string;
+    text: string;
+}
+
 const Checkbox = ({
     name,
     text
-}: $TSFixMe) => {
+}: CheckboxProps) => {
     return (
         <div className="bs-Fieldset-row">
             <label

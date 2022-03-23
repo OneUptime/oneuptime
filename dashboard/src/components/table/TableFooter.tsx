@@ -3,7 +3,22 @@ import TablePaginationButtons from './TablePaginationButtons';
 import TablePaginationCount from './TablePaginationCount';
 import PropTypes from 'prop-types';
 
-export default class TableFooter extends Component {
+interface TableFooterProps {
+    isLoading: boolean;
+    onNextClicked?: Function;
+    onPreviousClicked?: Function;
+    nextButtonText?: string;
+    previousButtonText?: string;
+    forceDisableNextButton?: boolean;
+    forceDisablePreviousButton?: boolean;
+    totalItemsCount?: number;
+    friendlyName?: string;
+    friendlyNamePlural?: string;
+    currentPageCount?: number;
+    noOfItemsInPage?: number;
+}
+
+export default class TableFooter extends Component<TableFooterProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

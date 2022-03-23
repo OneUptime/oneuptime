@@ -4,7 +4,6 @@ import getParentRoute from '../utils/getParentRoute';
 
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
-import PropsType from 'prop-types';
 
 import {
     fetchErrorTrackers,
@@ -17,7 +16,26 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import ErrorEventDetail from '../components/errorTracker/ErrorEventDetail';
 import { history } from '../store';
-class ErrorEventView extends Component {
+
+interface ErrorEventViewProps {
+    component?: object;
+    currentProject?: object;
+    location?: object;
+    componentSlug?: string;
+    componentId?: string;
+    match?: object;
+    fetchErrorEvent?: Function;
+    fetchComponent?: Function;
+    errorTracker?: unknown[];
+    fetchErrorTrackers?: Function;
+    errorEvent?: object;
+    setCurrentErrorEvent?: Function;
+    switchToProjectViewerNav?: boolean;
+    trackerSkip?: number;
+    trackerLimit?: number;
+}
+
+class ErrorEventView extends Component<ErrorEventViewProps> {
     componentDidMount() {
         this.ready();
     }

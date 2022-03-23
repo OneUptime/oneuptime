@@ -9,7 +9,19 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubProjectApiKey from './SubProjectApiKey';
 
-class ConfirmationDialog extends Component {
+interface ConfirmationDialogProps {
+    data?: {
+        ConfirmationDialogId?: string,
+        SubProjectModalId?: string,
+        subProjectTitle?: string,
+        subProjectId?: string,
+        confirm?: Function
+    };
+    openModal?: Function;
+    closeModal?: Function;
+}
+
+class ConfirmationDialog extends Component<ConfirmationDialogProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

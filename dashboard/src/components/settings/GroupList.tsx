@@ -15,7 +15,23 @@ import { User } from '../../config';
 import Unauthorised from '../modals/Unauthorised';
 import Badge from '../common/Badge';
 
-export class GroupList extends Component {
+interface GroupListProps {
+    count?: number;
+    currentProject?: object;
+    limit?: number;
+    openModal?: Function;
+    skip?: number;
+    groupError?: object;
+    modalId?: string;
+    modalList?: unknown[];
+    project?: object;
+    parentProject?: boolean;
+    groups?: unknown[];
+    getProjectGroups?: Function;
+    createGroupRequest?: object;
+}
+
+export class GroupList extends Component<GroupListProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { groupModalId: uuidv4() };

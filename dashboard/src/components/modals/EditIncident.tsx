@@ -14,7 +14,11 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-class EditIncident extends Component {
+interface EditIncidentProps {
+    incidentPriorities: unknown[];
+}
+
+class EditIncident extends Component<EditIncidentProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

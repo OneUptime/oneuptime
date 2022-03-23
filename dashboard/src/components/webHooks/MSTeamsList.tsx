@@ -14,7 +14,18 @@ import { ListLoader } from '../basic/Loader';
 
 import { User } from '../../config';
 
-class MSTeamsList extends React.Component {
+interface MSTeamsListProps {
+    getMsTeams?: Function;
+    projectId?: string;
+    monitorId?: string;
+    isRequesting?: boolean;
+    msTeams?: object;
+    pages?: object;
+    paginate: Function;
+    getMsTeamsMonitor?: Function;
+}
+
+class MSTeamsList extends React.Component<MSTeamsListProps> {
     ready() {
 
         const { getMsTeamsMonitor, monitorId, getMsTeams } = this.props;

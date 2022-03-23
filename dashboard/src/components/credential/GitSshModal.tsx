@@ -17,7 +17,20 @@ import {
     updateGitCredential,
 } from '../../actions/credential';
 
-class GitSshModal extends Component {
+interface GitSshModalProps {
+    isRequesting?: boolean;
+    addCredentialError?: string;
+    propArr?: unknown[];
+    projectId?: string;
+    addGitCredential?: Function;
+    closeModal?: Function;
+    handleSubmit?: Function;
+    updateGitCredential?: Function;
+    updateCredentialError?: string;
+    updatingCredential?: boolean;
+}
+
+class GitSshModal extends Component<GitSshModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

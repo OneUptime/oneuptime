@@ -26,7 +26,18 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class CreateMonitorCustomField extends React.Component {
+interface CreateMonitorCustomFieldProps {
+    closeModal: Function;
+    handleSubmit: Function;
+    createCustomField: Function;
+    fetchCustomFields: Function;
+    createCustomFieldModalId?: string;
+    data?: object;
+    requesting?: boolean;
+    createFieldError?: string;
+}
+
+class CreateMonitorCustomField extends React.Component<CreateMonitorCustomFieldProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

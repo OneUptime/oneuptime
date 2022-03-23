@@ -11,7 +11,24 @@ import {
 import { fetchMonitors } from '../../actions/monitor';
 import EventBox from './EventBox';
 
-class ScheduledEventBox extends Component {
+interface ScheduledEventBoxProps {
+    fetchscheduledEvents: Function;
+    profileSettings?: object;
+    error?: object;
+    requesting?: boolean;
+    projectId?: string;
+    fetchMonitors?: Function;
+    fetchingMonitors?: boolean;
+    currentProject?: object;
+    fetchSubProjectScheduledEvents?: Function;
+    subProjects?: unknown[];
+    subProjectScheduledEvents?: unknown[];
+    modalList?: unknown[];
+    nextPage?: Function;
+    prevPage?: Function;
+}
+
+class ScheduledEventBox extends Component<ScheduledEventBoxProps> {
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

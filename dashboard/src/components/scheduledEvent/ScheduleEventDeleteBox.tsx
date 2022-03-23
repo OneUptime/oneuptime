@@ -11,7 +11,15 @@ import DataPathHoC from '../DataPathHoC';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 
-class ScheduleEventDeleteBox extends Component {
+interface ScheduleEventDeleteBoxProps {
+    projectId: string;
+    scheduledEventId: string;
+    deleting?: boolean;
+    openModal: Function;
+    scheduledEvent: object;
+}
+
+class ScheduleEventDeleteBox extends Component<ScheduleEventDeleteBoxProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

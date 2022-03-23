@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import AceCodeEditor from '../basic/AceCodeEditor';
 
-class ErrorEventStackTrace extends Component {
+interface ErrorEventStackTraceProps {
+    errorEvent?: object;
+}
+
+class ErrorEventStackTrace extends Component<ErrorEventStackTraceProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

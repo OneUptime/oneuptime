@@ -6,7 +6,16 @@ import RenderIfOwner from '../basic/RenderIfOwner';
 import RenderIfMember from '../basic/RenderIfMember';
 import RenderIfViewer from '../basic/RenderIfViewer';
 
-export default class RenderBasedOnRole extends Component {
+interface RenderBasedOnRoleProps {
+    children: any;
+    visibleForOwner?: boolean;
+    visibleForAdmin?: boolean;
+    visibleForViewer?: boolean;
+    visibleForMember?: boolean;
+    visibleForAll?: boolean;
+}
+
+export default class RenderBasedOnRole extends Component<RenderBasedOnRoleProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

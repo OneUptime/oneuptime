@@ -10,7 +10,18 @@ import { closeModal } from 'common-ui/actions/modal';
 import { history } from '../../store';
 import { deleteContainerSecurity } from '../../actions/security';
 
-class DeleteContainerSecurity extends Component {
+interface DeleteContainerSecurityProps {
+    closeThisDialog: Function;
+    isRequesting?: boolean;
+    deleteContainerError?: string;
+    closeModal?: Function;
+    deleteContainerSecurity?: Function;
+    modalId?: string;
+    slug?: string;
+    propArr?: unknown[];
+}
+
+class DeleteContainerSecurity extends Component<DeleteContainerSecurityProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

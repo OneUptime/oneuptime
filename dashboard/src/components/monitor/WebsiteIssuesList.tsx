@@ -25,9 +25,13 @@ const ProcessedDescription = (text: $TSFixMe) => {
 
 ProcessedDescription.displayName = 'ProcessedDescription';
 
+interface WebsiteIssuesListProps {
+    issues?: unknown[];
+}
+
 const WebsiteIssuesList = ({
     issues
-}: $TSFixMe) => {
+}: WebsiteIssuesListProps) => {
     return (
         <div>
             <table id="websiteIssuesList" className="Table">

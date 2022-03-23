@@ -24,11 +24,17 @@ const theme = createTheme({
     },
 });
 
+interface WeekSelectorProps {
+    input: object;
+    style?: object;
+    classes: object;
+}
+
 let WeekSelector = ({
     classes,
     input,
     style
-}: $TSFixMe) => {
+}: WeekSelectorProps) => {
     const [selectedDate, selectDate] = useState(new Date());
 
     const handleChange = (option: $TSFixMe) => {

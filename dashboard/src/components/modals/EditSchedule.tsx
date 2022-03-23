@@ -32,7 +32,23 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class UpdateSchedule extends React.Component {
+interface UpdateScheduleProps {
+    currentProject?: object;
+    closeModal: Function;
+    handleSubmit: Function;
+    updateScheduledEvent: Function;
+    updateScheduledEventModalId?: string;
+    requesting?: boolean;
+    scheduledEventError?: string;
+    initialValues?: object;
+    startDate?: string | object;
+    formValues?: object;
+    monitors?: unknown[];
+    change?: Function;
+    switch?: string;
+}
+
+class UpdateSchedule extends React.Component<UpdateScheduleProps> {
     handleChangeEndDate: $TSFixMe;
     state = {
         currentDate: moment(),

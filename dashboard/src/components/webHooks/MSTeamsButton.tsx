@@ -6,7 +6,12 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import CreateMsTeams from '../modals/CreateMsTeamsWebhook';
 import DataPathHoC from '../DataPathHoC';
 
-class MSTeamsButton extends React.Component {
+interface MSTeamsButtonProps {
+    openModal: Function;
+    monitorId?: string;
+}
+
+class MSTeamsButton extends React.Component<MSTeamsButtonProps> {
     render() {
 
         const { monitorId } = this.props;

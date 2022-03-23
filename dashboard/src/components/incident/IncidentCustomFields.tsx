@@ -14,7 +14,21 @@ import CreateCustomField from '../modals/CreateCustomField';
 import DataPathHoC from '../DataPathHoC';
 import EditCustomField from '../modals/EditCustomField';
 
-class IncidentCustomFields extends Component {
+interface IncidentCustomFieldsProps {
+    currentProject?: object;
+    error?: string;
+    requesting?: boolean;
+    customFields?: unknown[];
+    count?: number;
+    limit?: number;
+    skip?: number;
+    openModal: Function;
+    fetchCustomFields: Function;
+    paginate?: Function;
+    page?: number;
+}
+
+class IncidentCustomFields extends Component<IncidentCustomFieldsProps> {
     componentDidMount() {
 
         const { fetchCustomFields, currentProject, limit } = this.props;

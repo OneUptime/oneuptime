@@ -13,7 +13,31 @@ import { ListLoader } from '../basic/Loader';
 import { v4 as uuidv4 } from 'uuid';
 import sortByName from '../../utils/sortByName';
 
-const ScheduleProjectBox = (props: $TSFixMe) => {
+interface ScheduleProjectBoxProps {
+    openModal: Function;
+    prevClicked: Function;
+    nextClicked: Function;
+    subProjectSchedule: object;
+    schedules: unknown[];
+    canPaginateBackward: boolean;
+    canPaginateForward: boolean;
+    isRequesting: boolean;
+    skip?: unknown | unknown;
+    limit?: unknown | unknown;
+    count: number;
+    numberOfSchedules: number;
+    subProjectName: string;
+    currentProject: object;
+    subProject: object;
+    projectId: string;
+    scheduleModalId: string;
+    subProjects?: unknown[];
+    allScheduleLength?: number;
+    modalList?: unknown[];
+    page?: number;
+}
+
+const ScheduleProjectBox = (props: ScheduleProjectBoxProps) => {
     const handleKeyboard = (event: $TSFixMe) => {
         const { modalList, allScheduleLength } = props;
 
@@ -90,8 +114,8 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                 >
                                     <button
                                         id={`btnCreateSchedule_${props.subProjectName
-                                                ? props.subProjectName
-                                                : props.currentProject.name
+                                            ? props.subProjectName
+                                            : props.currentProject.name
                                             }`}
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         type="button"
@@ -222,8 +246,8 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                 <button
                                     id="btnPrev"
                                     className={`Button bs-ButtonLegacy ${!props.canPaginateBackward
-                                            ? 'Is--disabled'
-                                            : ''
+                                        ? 'Is--disabled'
+                                        : ''
                                         }`}
                                     data-db-analytics-name="list_view.pagination.previous"
                                     disabled={!props.canPaginateBackward}
@@ -252,8 +276,8 @@ const ScheduleProjectBox = (props: $TSFixMe) => {
                                 <button
                                     id="btnNext"
                                     className={`Button bs-ButtonLegacy ${!props.canPaginateForward
-                                            ? 'Is--disabled'
-                                            : ''
+                                        ? 'Is--disabled'
+                                        : ''
                                         }`}
                                     data-db-analytics-name="list_view.pagination.next"
                                     disabled={!props.canPaginateForward}

@@ -11,6 +11,18 @@ import DeleteCredentialModal from './DeleteCredentialModal';
 import DockerCredentialModal from './DockerCredentialModal';
 import paginate from '../../utils/paginate';
 
+interface DockerCredentialListProps {
+    error?: string;
+    isRequesting: boolean;
+    dockerCredentials?: unknown[];
+    deleteError?: string;
+    projectId?: string;
+    openModal?: Function;
+    deleteDockerCredential?: Function;
+    getDockerSecurities?: Function;
+    modalId?: string;
+}
+
 const DockerCredentialList = ({
     isRequesting,
     error,
@@ -21,7 +33,7 @@ const DockerCredentialList = ({
     openModal,
     getDockerSecurities,
     modalId
-}: $TSFixMe) => {
+}: DockerCredentialListProps) => {
     const [page, setPage] = useState(1);
 
     const handleDelete = (credentialId: $TSFixMe) => {

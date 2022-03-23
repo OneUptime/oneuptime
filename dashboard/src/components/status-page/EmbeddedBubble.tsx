@@ -105,7 +105,41 @@ const createScript = (url: string, css: $TSFixMe) => {
         </script>`;
 };
 
-export class EmbeddedBubble extends Component {
+interface EmbeddedBubbleProps {
+    change?: Function;
+    customCodeValue?: any;
+    embeddedCss?: {
+        error?: any,
+        requesting?: any
+    };
+    handleSubmit?: Function;
+    openModal?: Function;
+    projectId?: any;
+    resetEmbeddedCss?: {
+        error?: any,
+        requesting?: any
+    };
+    resetStatusBubbleId?: Function;
+    resetStatusPageEmbeddedCss?: Function;
+    statusBubble?: {
+        error?: any,
+        requesting?: any
+    };
+    statusBubbleId?: any;
+    statusPage?: {
+        status?: {
+            _id?: any,
+            colors?: any,
+            projectId?: {
+                _id?: any
+            }
+        }
+    };
+    statusPageId?: any;
+    updateStatusPageEmbeddedCss?: Function;
+}
+
+export class EmbeddedBubble extends Component<EmbeddedBubbleProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

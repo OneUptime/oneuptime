@@ -8,7 +8,20 @@ import { withRouter } from 'react-router-dom';
 import ShouldRender from './ShouldRender';
 import { capitalize } from '../config';
 
-class Notes extends Component {
+interface NotesProps {
+    notes?: unknown[];
+    secondaryTextColor?: object;
+    primaryTextColor?: object;
+    noteBackgroundColor?: object;
+    statusPageSlug?: string;
+    degradedColor?: object;
+    uptimeColor?: object;
+    downtimeColor?: object;
+    incidentTimelines?: unknown[];
+    history?: object;
+}
+
+class Notes extends Component<NotesProps> {
     handleIncidentStatus = (incident: $TSFixMe, timelines: $TSFixMe) => {
         let incidentTimeline = null,
             timelineStatus = null;

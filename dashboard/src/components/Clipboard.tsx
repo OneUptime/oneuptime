@@ -2,7 +2,11 @@ import React from 'react';
 import Clipboard from 'clipboard';
 import PropTypes from 'prop-types';
 
-class ClipboardWrap extends React.Component {
+interface ClipboardWrapProps {
+    value?: string;
+}
+
+class ClipboardWrap extends React.Component<ClipboardWrapProps> {
     button: $TSFixMe;
     clipboard: $TSFixMe;
     input: $TSFixMe;

@@ -6,6 +6,21 @@ import { PropTypes } from 'prop-types';
 import { history } from '../../store';
 import pageTitles from '../../utils/pageTitles';
 
+interface BreadCrumbItemProps {
+    route: string;
+    name: string;
+    projectId?: string;
+    slug?: string;
+    pageTitle?: string;
+    type?: string;
+    status?: string;
+    containerType?: string;
+    icon?: string;
+    // addBtn: PropTypes.bool,
+    btnText?: string;
+    toggleForm?: Function;
+}
+
 function BreadCrumbItem({
     route,
     name,
@@ -18,7 +33,7 @@ function BreadCrumbItem({
     icon,
     btnText,
     toggleForm
-}: $TSFixMe) {
+}: BreadCrumbItemProps) {
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
 

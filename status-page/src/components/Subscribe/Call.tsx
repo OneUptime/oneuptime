@@ -13,7 +13,20 @@ import {
 } from '../../actions/subscribe';
 import ShouldRender from '../ShouldRender';
 
-class Call extends Component {
+interface CallProps {
+    userData?: Function;
+    validationError?: Function;
+    subscribed?: object;
+    error?: string;
+    statuspage?: object;
+    subscribeUser?: Function;
+    openSubscribeMenu?: Function;
+    userDataReset?: Function;
+    theme?: boolean;
+    handleCloseButtonClick?: Function;
+}
+
+class Call extends Component<CallProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { country: 'us' };

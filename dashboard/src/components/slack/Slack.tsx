@@ -7,7 +7,11 @@ import { User } from '../../config';
 import SlackTeamList from './SlackTeamList';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 
-class Slack extends React.Component {
+interface SlackProps {
+    projectId: string;
+}
+
+class Slack extends React.Component<SlackProps> {
     render() {
 
         const { projectId } = this.props;

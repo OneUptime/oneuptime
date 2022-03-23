@@ -5,7 +5,13 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 
-export class DeleteSiteUrl extends Component {
+interface DeleteSiteUrlProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    requesting?: boolean;
+}
+
+export class DeleteSiteUrl extends Component<DeleteSiteUrlProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

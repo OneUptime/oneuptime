@@ -16,7 +16,20 @@ import {
     updateDockerCredential,
 } from '../../actions/credential';
 
-class DockerCredentialModal extends Component {
+interface DockerCredentialModalProps {
+    isRequesting?: boolean;
+    addCredentialError?: string;
+    propArr?: unknown[];
+    projectId?: string;
+    addDockerCredential?: Function;
+    closeModal?: Function;
+    handleSubmit?: Function;
+    updateDockerCredential?: Function;
+    updateCredentialError?: string;
+    updatingCredential?: boolean;
+}
+
+class DockerCredentialModal extends Component<DockerCredentialModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

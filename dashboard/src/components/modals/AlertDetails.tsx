@@ -5,7 +5,12 @@ import moment from 'moment';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
-class AlertDetailsModal extends Component {
+interface AlertDetailsModalProps {
+    closeThisDialog: Function;
+    data: object;
+}
+
+class AlertDetailsModal extends Component<AlertDetailsModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

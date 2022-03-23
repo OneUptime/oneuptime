@@ -49,7 +49,12 @@ export const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-class SocketApp extends Component {
+interface SocketAppProps {
+    project?: object;
+    activeProjectId?: string;
+}
+
+class SocketApp extends Component<SocketAppProps> {
     shouldComponentUpdate(nextProps: $TSFixMe) {
         if (
             this.props.project !== nextProps.project ||

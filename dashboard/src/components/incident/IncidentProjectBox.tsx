@@ -7,7 +7,24 @@ import IncidentList from '../incident/IncidentList';
 import DataPathHoC from '../DataPathHoC';
 import DropDownMenu from '../basic/DropDownMenu';
 
-const IncidentProjectBox = (props: $TSFixMe) => {
+interface IncidentProjectBoxProps {
+    openModal: Function;
+    componentId?: string;
+    nextClicked: Function;
+    prevClicked: Function;
+    subProjectIncident: object;
+    subProjectName: string;
+    currentProjectId: string;
+    creating: boolean;
+    createIncidentModalId: string;
+    allProjectLength?: number;
+    modalList?: unknown[];
+    page?: number;
+    componentSlug?: string;
+    showProjectName?: boolean;
+}
+
+const IncidentProjectBox = (props: IncidentProjectBoxProps) => {
     const [incidents, setIncidents] = useState({});
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [filterOption, setFilterOption] = useState('Filter By');

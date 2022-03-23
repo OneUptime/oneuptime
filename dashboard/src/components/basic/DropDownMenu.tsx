@@ -3,12 +3,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PropTypes } from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 
+interface DropDownMenuProps {
+    options?: unknown[];
+    value?: string;
+    updateState?: Function;
+    id?: string;
+}
+
 const DropDownMenu = ({
     options,
     value,
     updateState,
     id
-}: $TSFixMe) => {
+}: DropDownMenuProps) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 

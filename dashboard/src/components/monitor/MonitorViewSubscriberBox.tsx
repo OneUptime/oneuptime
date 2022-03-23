@@ -17,7 +17,19 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { history } from '../../store';
 import UploadFileForm from '../modals/UploadFile';
 
-export class MonitorViewSubscriberBox extends Component {
+interface MonitorViewSubscriberBoxProps {
+    monitor: object;
+    currentProject: object;
+    fetchMonitorsSubscribers: Function;
+    monitorId: string;
+    closeModal?: Function;
+    openModal?: Function;
+    create?: boolean;
+    export?: boolean;
+    exportCSV: Function;
+}
+
+export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

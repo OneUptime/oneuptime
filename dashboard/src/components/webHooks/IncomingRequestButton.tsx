@@ -6,7 +6,12 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import CreateIncomingRequest from '../modals/CreateIncomingRequest';
 
-class IncomingRequestButton extends React.Component {
+interface IncomingRequestButtonProps {
+    openModal: Function;
+    currentProject?: object;
+}
+
+class IncomingRequestButton extends React.Component<IncomingRequestButtonProps> {
     render() {
 
         const { currentProject } = this.props;

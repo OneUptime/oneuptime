@@ -7,7 +7,9 @@ import TutorialBox from '../../components/tutorial/TutorialBox';
 import BreadCrumbItem from '../../components/breadCrumb/BreadCrumbItem';
 import { history } from '../../store';
 
-class Page extends Component {
+interface PageProps {}
+
+class Page extends Component<PageProps> {
     constructor({
         pageName,
         friendlyPageName,

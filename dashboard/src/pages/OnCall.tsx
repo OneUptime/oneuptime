@@ -21,7 +21,29 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { LoadingState } from '../components/basic/Loader';
 
-export class OnCall extends Component {
+interface OnCallProps {
+    subProjectSchedules: unknown[];
+    subProjects: unknown[];
+    fetchProjectSchedule: Function;
+    fetchSubProjectSchedules: Function;
+    history: object;
+    currentProjectId: string;
+    isRequesting?: boolean;
+    paginate: Function;
+    createSchedule: Function;
+    pages: object;
+    openModal: Function;
+    currentProject: object;
+    tutorialStat?: object;
+    location?: {
+        pathname?: string
+    };
+    modalList?: unknown[];
+    switchToProjectViewerNav?: boolean;
+    projectId?: string;
+}
+
+export class OnCall extends Component<OnCallProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { scheduleModalId: uuidv4() };

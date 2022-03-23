@@ -18,7 +18,16 @@ const noDataStyle = {
     height: '150px',
 };
 
-class Incidents extends Component {
+interface IncidentsProps {
+    getIncidents?: Function;
+    filter?: string;
+    startDate?: object;
+    endDate?: object;
+    currentProject?: object | string;
+    incidentReports?: object;
+}
+
+class Incidents extends Component<IncidentsProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

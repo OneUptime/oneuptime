@@ -13,7 +13,16 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { openModal } from 'common-ui/actions/modal';
 
-export const StatusPageLanguage = (props: $TSFixMe) => {
+interface StatusPageLanguageProps {
+    updateStatusPageLanguage: Function;
+    multipleLanguages?: unknown[];
+    statusPage: object;
+    handleSubmit: Function;
+    fetchProjectStatusPage: Function;
+    formValues?: object;
+}
+
+export const StatusPageLanguage = (props: StatusPageLanguageProps) => {
     const [error, setError] = useState('');
     const [language] = useState([
         'English',

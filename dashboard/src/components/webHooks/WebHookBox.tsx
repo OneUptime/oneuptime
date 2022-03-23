@@ -6,7 +6,11 @@ import WebHookList from './WebHookList';
 import WebHookButton from './WebHookButton';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 
-class WebHookBox extends React.Component {
+interface WebHookBoxProps {
+    monitorId?: string;
+}
+
+class WebHookBox extends React.Component<WebHookBoxProps> {
     render() {
         return (
             <div className="Box-root Margin-vertical--12">

@@ -6,7 +6,11 @@ import { connect } from 'react-redux';
 import ChangePasswordForm from '../components/auth/ChangePasswordForm';
 import { history } from '../store';
 
-class ChangePasswordPage extends React.Component {
+interface ChangePasswordPageProps {
+    match: object;
+}
+
+class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
     token: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

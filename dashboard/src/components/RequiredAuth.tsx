@@ -4,8 +4,12 @@ import PropTypes from 'prop-types';
 import { User } from '../config';
 import { history } from '../store';
 
+interface AuthenticationProps {
+    location?: object;
+}
+
 export default function (ComposedComponent: $TSFixMe) {
-    class Authentication extends Component {
+    class Authentication extends Component<AuthenticationProps> {
         isAuthenticated: $TSFixMe;
         constructor(props: $TSFixMe) {
             super(props);

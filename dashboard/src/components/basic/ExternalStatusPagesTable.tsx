@@ -9,7 +9,12 @@ import { openModal } from 'common-ui/actions/modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
-export class ExternalStatusPagesTable extends Component {
+interface ExternalStatusPagesTableProps {
+    statusPage?: object;
+    openModal: Function;
+}
+
+export class ExternalStatusPagesTable extends Component<ExternalStatusPagesTableProps> {
     state = {
         deleteExternalStatusPageModalId: uuidv4(),
     };

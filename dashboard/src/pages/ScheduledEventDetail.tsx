@@ -24,7 +24,30 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
 import { socket } from '../components/basic/Socket';
 
-class ScheduledEventDetail extends Component {
+interface ScheduledEventDetailProps {
+    location?: {
+        pathname?: string
+    };
+    scheduledEventId?: string;
+    fetchScheduledEvent?: Function;
+    projectId?: string;
+    scheduledEventSlug?: string;
+    scheduledEvent?: object;
+    requesting?: boolean;
+    fetchScheduledEventNotesInternal?: Function;
+    internalNotesList?: object;
+    updateScheduledEventNoteInvestigationSuccess?: Function;
+    updateScheduledEventNoteInternalSuccess?: Function;
+    deleteScheduledEventNoteSuccess?: Function;
+    createScheduledEventNoteSuccess?: Function;
+    monitorList?: unknown[];
+    currentProject: object;
+    switchToProjectViewerNav?: boolean;
+    activeProjectId?: string;
+    history?: object;
+}
+
+class ScheduledEventDetail extends Component<ScheduledEventDetailProps> {
     limit: $TSFixMe;
     type: $TSFixMe;
     constructor(props: $TSFixMe) {

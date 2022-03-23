@@ -16,7 +16,20 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { createScheduledEventNote } from '../../actions/scheduledEvent';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-class AddNoteModal extends Component {
+interface AddNoteModalProps {
+    data?: object;
+    handleSubmit?: Function;
+    closeThisDialog?: Function;
+    createScheduledEventNote?: Function;
+    event_state?: string;
+    creatingNote?: boolean;
+    createError?: string;
+    modalId?: string;
+    closeModal?: Function;
+    change?: Function;
+}
+
+class AddNoteModal extends Component<AddNoteModalProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -5,7 +5,14 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ConfirmBalanceTopUp extends Component {
+interface ConfirmBalanceTopUpProps {
+    confirmThisDialog: Function;
+    closeThisDialog: Function;
+    data?: object;
+    isRequesting?: boolean;
+}
+
+class ConfirmBalanceTopUp extends Component<ConfirmBalanceTopUpProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

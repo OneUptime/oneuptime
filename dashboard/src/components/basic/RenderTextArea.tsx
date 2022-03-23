@@ -1,6 +1,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+interface RenderTextAreaProps {
+    input: object;
+    placeholder: string;
+    type?: string;
+    className?: string;
+    maxlength?: number;
+    meta: object;
+    rows?: string;
+    disabled?: boolean;
+    style: object;
+    initialValue?: string;
+    id: string;
+}
+
 const RenderTextArea = ({
     input,
     placeholder,
@@ -13,7 +27,7 @@ const RenderTextArea = ({
     style,
     id,
     initialValue
-}: $TSFixMe) => (
+}: RenderTextAreaProps) => (
     <span style={{ display: 'block', width: '100%' }}>
         <textarea
             id={id || 'feedback-textarea'}

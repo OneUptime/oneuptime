@@ -8,12 +8,19 @@ import ShouldRender from '../basic/ShouldRender';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 
+interface CheckboxProps {
+    label: string;
+    name: string;
+    disabled: boolean;
+    id?: string;
+}
+
 const Checkbox = ({
     label,
     name,
     disabled,
     id
-}: $TSFixMe) => (
+}: CheckboxProps) => (
     <div className="bs-Fieldset-fields" style={{ maxHeight: '20px' }}>
         <div className="Box-root" style={{ height: '5px' }}></div>
         <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
@@ -49,6 +56,20 @@ Checkbox.propTypes = {
     id: PropTypes.string,
 };
 
+interface RenderMonitorProps {
+    subProject: object;
+    monitorIndex: number;
+    monitor: string;
+    monitors: unknown[];
+    allMonitors: unknown[];
+    allComponents: unknown[];
+    fields: object;
+    dispatch: Function;
+    errors: object;
+    form?: string;
+    statusPageCategory?: string;
+}
+
 let RenderMonitor = ({
     subProject,
     monitorIndex,
@@ -61,7 +82,7 @@ let RenderMonitor = ({
     errors,
     form = 'StatuspageMonitors',
     statusPageCategory
-}: $TSFixMe) => {
+}: RenderMonitorProps) => {
     const currentMonitorForm = monitors[monitorIndex];
     const { monitor: currentMonitorID } = currentMonitorForm;
     const getParentComponent = (monitor: $TSFixMe) => allComponents.filter(

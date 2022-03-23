@@ -8,7 +8,18 @@ import ProbeStatus from '../probe/ProbeStatus';
 import ShouldRender from '../basic/ShouldRender';
 import { IS_SAAS_SERVICE } from '../../config';
 
-class ProbeDetail extends Component {
+interface ProbeDetailProps {
+    data?: {
+        ProbeDetailModalId?: string,
+        closeModal?: Function,
+        probesData?: {
+            probeName?: string,
+            lastAlive?: string
+        }
+    };
+}
+
+class ProbeDetail extends Component<ProbeDetailProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

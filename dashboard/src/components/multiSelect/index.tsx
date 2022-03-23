@@ -3,7 +3,22 @@ import PropTypes from 'prop-types';
 import Dropdown from './DropDown';
 import SelectPanel from './SelectPanel';
 
-class MultiSelect extends Component {
+interface MultiSelectProps {
+    selected?: unknown[];
+    options?: unknown[];
+    valueRenderer?: unknown;
+    ItemRenderer?: React.ReactElement;
+    selectAllLabel?: string;
+    onSelectedChanged?: Function;
+    disableSearch?: boolean;
+    disabled?: boolean;
+    hasSelectAll?: boolean;
+    isLoading?: boolean;
+    shouldToggleHover?: boolean;
+    filterOptions?: any;
+}
+
+class MultiSelect extends Component<MultiSelectProps> {
     state = {};
 
     getSelectedText() {

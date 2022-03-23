@@ -81,7 +81,21 @@ const validate = (values: $TSFixMe, props: $TSFixMe) => {
     return errors;
 };
 
-export class EmailSmtpBox extends Component {
+interface EmailSmtpBoxProps {
+    smtpConfigurations?: object;
+    updateSmtpConfig?: Function;
+    postSmtpConfig?: Function;
+    currentProject?: object;
+    deleteSmtpConfig?: Function;
+    setSmtpConfig?: Function;
+    handleSubmit?: Function;
+    showEmailSmtpConfiguration?: boolean;
+    emailSmtpDelete?: object;
+    deleteSmtpConfigError?: Function;
+    change?: Function;
+}
+
+export class EmailSmtpBox extends Component<EmailSmtpBoxProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.changeValue = this.changeValue.bind(this);

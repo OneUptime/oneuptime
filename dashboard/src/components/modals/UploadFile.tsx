@@ -19,7 +19,28 @@ import {
 import { Spinner } from '../basic/Loader';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
 
-class UploadFile extends Component {
+interface UploadFileProps {
+    closeModal: Function;
+    downloadCsvTemplate?: Function;
+    importSubscribersFromCsvFile?: Function;
+    uploadSubscriberModalId?: string;
+    csvDownload?: {
+        requesting?: boolean
+    };
+    data?: {
+        monitorId?: string,
+        subProjectId?: string
+    };
+    createSubscriber?: {
+        requesting?: boolean,
+        error?: string
+    };
+    closeThisDialog?: Function;
+    fetchMonitorsSubscribers?: Function;
+    handleSubmit?: Function;
+}
+
+class UploadFile extends Component<UploadFileProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

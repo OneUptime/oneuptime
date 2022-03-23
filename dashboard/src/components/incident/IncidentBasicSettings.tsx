@@ -16,7 +16,19 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
 
-class IncidentBasicSettings extends React.Component {
+interface IncidentBasicSettingsProps {
+    handleSubmit: Function;
+    currentProject: object;
+    reset: Function;
+    updateIncidentBasicSettings: object;
+    updateBasicIncidentSettings: Function;
+    setRevealIncidentSettingsVariables: Function;
+    revealVariables: boolean;
+    settingsVariables: unknown[];
+    incidentPriorities: unknown[];
+}
+
+class IncidentBasicSettings extends React.Component<IncidentBasicSettingsProps> {
     submit = async (values: $TSFixMe) => {
 
         const projectId = this.props.currentProject._id;

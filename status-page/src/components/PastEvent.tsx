@@ -13,7 +13,24 @@ import {
     showEventCard,
 } from '../actions/status';
 
-class PastEvent extends Component {
+interface PastEventProps {
+    fetchMorePastEvents?: Function;
+    requestingmoreevents?: boolean;
+    projectId?: string;
+    skip?: number;
+    count?: number;
+    statusPageId?: string;
+    statusPageSlug?: string;
+    statusPage?: object;
+    fetchPastEvents?: Function;
+    pastEvents?: object;
+    individualEvents?: object;
+    monitorState?: unknown[];
+    showEventCardState?: boolean;
+    showEventCard?: Function;
+}
+
+class PastEvent extends Component<PastEventProps> {
     constructor(props: $TSFixMe) {
         super(props);
 

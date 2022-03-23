@@ -38,7 +38,26 @@ const bulletpoints = {
     listStylePosition: 'inside',
 };
 
-class CreateIncomingRequest extends Component {
+interface CreateIncomingRequestProps {
+    closeModal: Function;
+    openModal: Function;
+    handleSubmit: Function;
+    createIncomingRequest?: Function;
+    requesting?: boolean;
+    requestError?: string;
+    formValues?: object;
+    data?: object;
+    incidentPriorities?: unknown[];
+    destroy: Function;
+    change: Function // to manually destroy the form state;
+    fetchCustomFields?: Function // to manually change redux form state;
+    customFields?: unknown[];
+    fetchMonitorCustomFields?: Function;
+    monitorCustomFields?: unknown[];
+    monitorsList?: unknown[];
+}
+
+class CreateIncomingRequest extends Component<CreateIncomingRequestProps> {
     state = {
         monitorError: null,
         filterShowing: false,

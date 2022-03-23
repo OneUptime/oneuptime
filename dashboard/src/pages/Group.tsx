@@ -12,7 +12,18 @@ import { getGroups } from '../actions/group';
 import { User } from '../config.js';
 import { subProjectTeamLoading } from '../actions/team';
 
-class Groups extends Component {
+interface GroupsProps {
+    location?: {
+        pathname?: string
+    };
+    getGroups?: Function;
+    projectGroups?: object;
+    subProjectTeamLoading?: Function;
+    currentProject?: object;
+    switchToProjectViewerNav?: boolean;
+}
+
+class Groups extends Component<GroupsProps> {
     componentDidMount() {
 
         this.props.getGroups();

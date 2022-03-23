@@ -4,10 +4,15 @@ import PropTypes from 'prop-types';
 
 import { EscalationSingle } from './EscalationSingle';
 
+interface EscalationsListProps {
+    escalations: unknown[];
+    subProjectId: string;
+}
+
 const EscalationsList = ({
     escalations,
     subProjectId
-}: $TSFixMe) => {
+}: EscalationsListProps) => {
     return escalations.length > 0 ? (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">

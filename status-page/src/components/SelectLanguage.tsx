@@ -6,11 +6,17 @@ import LanguageBox from './LanguageBox';
 import ShouldRender from './ShouldRender';
 import { openLanguageMenu } from '../actions/subscribe';
 
+interface SelectLanguageProps {
+    isShown?: boolean;
+    setIsShown?: Function;
+    theme?: boolean;
+}
+
 const SelectLanguage = ({
     isShown,
     setIsShown,
     theme
-}: $TSFixMe) => {
+}: SelectLanguageProps) => {
     const popupReff = useRef();
     const documentClickHandler = useRef();
 

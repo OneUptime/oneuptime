@@ -7,7 +7,13 @@ import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 import ConsoleLogView from '../monitor/ConsoleLogView';
 
-class ViewScriptLogs extends Component {
+interface ViewScriptLogsProps {
+    closeModal: Function;
+    data?: object;
+    title?: string;
+}
+
+class ViewScriptLogs extends Component<ViewScriptLogsProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

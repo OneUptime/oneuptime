@@ -11,7 +11,18 @@ import { bindActionCreators, Dispatch } from 'redux';
 import RunAutomationScript from '../modals/RunAutomationScript';
 import { fetchAutomatedScript } from '../../actions/automatedScript';
 
-const AutomatedTabularList = (props: $TSFixMe) => {
+interface AutomatedTabularListProps {
+    scriptsObj?: object;
+    history: object;
+    openModal?: Function;
+    currentProject?: object;
+    fetchAutomatedScript?: Function;
+    toggleNewScript?: Function;
+    subProjectName?: string;
+    showProjectName?: boolean;
+}
+
+const AutomatedTabularList = (props: AutomatedTabularListProps) => {
     const [automatedId] = useState(uuidv4);
     const { scripts, count, requesting } = props.scriptsObj;
     let { skip, limit } = props.scriptsObj;

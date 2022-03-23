@@ -26,7 +26,14 @@ const textboxstyle = {
         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 };
 const newSelector = formValueSelector('NewMonitor');
-export class ApiAdvance extends Component {
+
+interface ApiAdvanceProps {
+    pushArray?: Function;
+    bodytype?: string;
+    index?: number;
+}
+
+export class ApiAdvance extends Component<ApiAdvanceProps> {
     addValue = () => {
 
         this.props.pushArray('NewMonitor', `headers_${this.props.index}`, {

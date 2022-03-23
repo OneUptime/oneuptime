@@ -44,7 +44,45 @@ import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
 import MonitorViewChangeComponentBox from '../components/monitor/MonitorViewChangeComponentBox';
 import { fetchComponent } from '../actions/component';
-class MonitorView extends React.Component {
+
+interface MonitorViewProps {
+    projectId?: string;
+    slug?: string;
+    monitorId?: string;
+    componentId?: string;
+    monitor?: object;
+    edit?: boolean;
+    fetchMonitorsIncidents: Function;
+    fetchMonitorsSubscribers: Function;
+    initialValues: object;
+    getMonitorLogs: Function;
+    fetchLighthouseLogs: Function;
+    location?: {
+        pathname?: string
+    };
+    component?: object;
+    getProbes: Function;
+    probeList?: object;
+    currentProject: object;
+    fetchIncidentPriorities: Function;
+    fetchIncidentTemplates: Function;
+    fetchCommunicationSlas?: Function;
+    fetchMonitorSlas?: Function;
+    requestingIncidentSla?: boolean;
+    requestingMonitorSla?: boolean;
+    monitorSlas?: unknown[];
+    history?: Function;
+    scheduleWarning?: unknown[];
+    defaultSchedule?: boolean;
+    fetchSchedules?: Function;
+    componentSlug?: string;
+    fetchComponent?: Function;
+    requestingComponent?: boolean;
+    fetchDefaultTemplate?: Function;
+    switchToProjectViewerNav?: boolean;
+}
+
+class MonitorView extends React.Component<MonitorViewProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

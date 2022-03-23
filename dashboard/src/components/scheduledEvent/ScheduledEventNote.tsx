@@ -20,7 +20,23 @@ import {
     prevPage,
 } from '../../actions/scheduledEvent';
 
-export class ScheduledEventNote extends Component {
+interface ScheduledEventNoteProps {
+    type?: string;
+    notes?: unknown[];
+    count?: number;
+    openModal?: Function;
+    projectId: string;
+    scheduledEventId: string;
+    scheduledEvent?: object;
+    fetchScheduledEventNotesInternal?: Function;
+    skip?: number | string;
+    limit?: number | string;
+    prevPage?: Function;
+    nextPage?: Function;
+    pages?: object;
+}
+
+export class ScheduledEventNote extends Component<ScheduledEventNoteProps> {
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

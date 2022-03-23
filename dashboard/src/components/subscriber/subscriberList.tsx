@@ -16,7 +16,18 @@ import { openModal } from 'common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSubscriber from '../modals/DeleteSubscriber';
 
-export class SubscriberList extends Component {
+interface SubscriberListProps {
+    nextClicked: Function;
+    prevClicked: Function;
+    monitorState: object;
+    monitorId: string;
+    deleteSubscriber: Function;
+    fetchMonitorsSubscribers?: Function;
+    subProjectId?: string;
+    openModal?: Function;
+}
+
+export class SubscriberList extends Component<SubscriberListProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -552,7 +563,16 @@ SubscriberList.propTypes = {
 
 export default connect(mapStateToProps, mapDispatchToProps)(SubscriberList);
 
-const RemoveBtn = (props: $TSFixMe) => {
+interface RemoveBtnProps {
+    openModal: Function;
+    deleteSubscriber: Function;
+    deleteSubscriberModalId: string;
+    projectId: string;
+    _id: string;
+    index: number;
+}
+
+const RemoveBtn = (props: RemoveBtnProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

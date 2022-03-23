@@ -16,7 +16,19 @@ import ShouldRender from '../basic/ShouldRender';
 import DataPathHoC from '../DataPathHoC';
 import ConfirmationDialog from './ConfirmationDialog';
 
-class SubProjectApiKey extends Component {
+interface SubProjectApiKeyProps {
+    closeModal?: Function;
+    data?: object;
+    resetSubProjectKeyReset?: Function;
+    resetSubProjectToken?: Function;
+    subProjectResetToken?: object;
+    subproject?: object;
+    openModal?: Function;
+    modals?: unknown[];
+    closeThisDialog: Function;
+}
+
+class SubProjectApiKey extends Component<SubProjectApiKeyProps> {
     state = {
         hidden: true,
         confirmationModalId: uuidv4(),

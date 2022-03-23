@@ -19,7 +19,20 @@ import {
 } from '../../actions/incidentNoteTemplate';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-class CreateIncidentNoteTemplate extends React.Component {
+interface CreateIncidentNoteTemplateProps {
+    handleSubmit: Function;
+    currentProject: object;
+    creatingNoteTemplate?: boolean;
+    creatingNoteTemplateError?: string;
+    closeModal?: Function;
+    createIncidentNoteTemplate?: Function;
+    fetchIncidentNoteTemplates?: Function;
+    createIncidentNoteTemplateFailure?: Function;
+    formValues?: object;
+    change?: Function;
+}
+
+class CreateIncidentNoteTemplate extends React.Component<CreateIncidentNoteTemplateProps> {
     state = {
         showVariables: false,
     };

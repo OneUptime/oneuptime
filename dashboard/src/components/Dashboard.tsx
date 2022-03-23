@@ -27,7 +27,23 @@ import IncidentCreated from './incident/IncidentCreated';
 import { closeModal } from '../actions/modal';
 import LoadingBar from 'react-top-loading-bar';
 
-export class DashboardApp extends Component {
+interface DashboardAppProps {
+    project: object;
+    profile: object;
+    notification: object;
+    getProjects?: Function;
+    hideProfileMenu?: Function;
+    closeNotificationMenu?: Function;
+    showForm?: Function;
+    location: object;
+    children?: any;
+    projectId?: string;
+    currentModal?: object;
+    closeModal?: Function;
+    pageName?: string;
+}
+
+export class DashboardApp extends Component<DashboardAppProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

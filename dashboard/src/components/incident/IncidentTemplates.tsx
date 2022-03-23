@@ -15,7 +15,24 @@ import {
 import EditIncidentTemplate from '../modals/EditIncidentTemplate';
 import DeleteIncidentTemplate from '../modals/DeleteIncidentTemplate';
 
-class IncidentTemplates extends Component {
+interface IncidentTemplatesProps {
+    openModal: Function;
+    skip?: string | number;
+    limit?: string | number;
+    count?: string | number;
+    currentProject?: object;
+    fetchingTemplates?: boolean;
+    settingDefaultTemplate?: boolean;
+    templates?: unknown[];
+    fetchIncidentTemplates?: Function;
+    setDefaultTemplate?: Function;
+    activeTemplate?: string;
+    setActiveTemplate?: Function;
+    fetchTemplateError?: string;
+    setDefaultTemplateError?: string;
+}
+
+class IncidentTemplates extends Component<IncidentTemplatesProps> {
     limit: $TSFixMe;
     constructor() {
 

@@ -19,7 +19,31 @@ import { Link } from 'react-router-dom';
 import Badge from '../common/Badge';
 import MessageBox from '../modals/MessageBox';
 
-class EventBox extends Component {
+interface EventBoxProps {
+    openModal: Function;
+    skip?: string | number;
+    limit?: string | number;
+    count?: number;
+    name?: string;
+    slug?: string;
+    scheduledEvents?: unknown[];
+    error?: object;
+    requesting?: boolean;
+    projectId?: string;
+    fetchingMonitors?: boolean;
+    monitors?: unknown[];
+    currentProject?: object;
+    subProjects?: unknown[];
+    prevClicked?: Function;
+    nextClicked?: Function;
+    parentProjectId?: string;
+    modalList?: unknown[];
+    allScheduleEventLength?: number;
+    pages?: object;
+    currentSubProject?: object;
+}
+
+class EventBox extends Component<EventBoxProps> {
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

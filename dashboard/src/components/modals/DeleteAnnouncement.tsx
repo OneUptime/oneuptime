@@ -13,7 +13,19 @@ import {
     fetchAnnouncements,
 } from '../../actions/statusPage';
 
-class DeleteAnnouncement extends Component {
+interface DeleteAnnouncementProps {
+    closeThisDialog?: Function;
+    data?: object;
+    deleteAnnouncement?: Function;
+    isRequesting?: boolean;
+    deleteError?: string;
+    modalId?: string;
+    statusPage?: object;
+    resetDeleteAnnouncement?: Function;
+    fetchAnnouncements?: Function;
+}
+
+class DeleteAnnouncement extends Component<DeleteAnnouncementProps> {
     componentDidMount() {
 
         this.props.resetDeleteAnnouncement();

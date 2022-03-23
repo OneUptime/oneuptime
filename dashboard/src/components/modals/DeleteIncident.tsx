@@ -11,7 +11,14 @@ import { deleteIncident } from '../../actions/incident';
 
 import { history } from '../../store';
 
-class DeleteIncident extends Component {
+interface DeleteIncidentProps {
+    data: object;
+    closeModal?: Function;
+    deleteIncident?: Function;
+    deleting?: boolean;
+}
+
+class DeleteIncident extends Component<DeleteIncidentProps> {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

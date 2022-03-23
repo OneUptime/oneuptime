@@ -59,7 +59,29 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class Branding extends Component {
+interface BrandingProps {
+    statusPage: object;
+    handleSubmit: Function;
+    resetLogoCache: Function;
+    createFaviconCache: Function;
+    resetFaviconCache: Function;
+    createBannerCache: Function;
+    resetBannerCache: Function;
+    setStatusPageColors: Function;
+    updateStatusPageBranding: Function;
+    createLogoCache: Function;
+    logourl?: string;
+    colors?: object;
+    reset: Function;
+    copyright?: string;
+    fetchProjectStatusPage: Function;
+    resetBrandingColors: Function;
+    openModal?: Function;
+    faviconurl?: string;
+    bannerurl?: string;
+}
+
+export class Branding extends Component<BrandingProps> {
     state = {
         displayColorPicker: false,
         currentColorPicker: '',

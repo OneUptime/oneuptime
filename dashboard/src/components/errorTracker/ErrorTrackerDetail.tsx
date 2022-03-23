@@ -26,7 +26,31 @@ import moment from 'moment';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import { socket } from '../basic/Socket';
 
-class ErrorTrackerDetail extends Component {
+interface ErrorTrackerDetailProps {
+    errorTracker?: object;
+    fetchErrorTrackerIssues?: Function;
+    currentProject?: object;
+    componentId?: string;
+    componentSlug?: string;
+    errorTrackerIssue?: object;
+    isDetails?: boolean;
+    deleteErrorTracker?: Function;
+    openModal?: Function;
+    editErrorTrackerSwitch?: Function;
+    resetErrorTrackerKey?: Function;
+    closeModal?: Function;
+    startDate?: string;
+    endDate?: string;
+    ignoreErrorEvent?: Function;
+    resolveErrorEvent?: Function;
+    updateErrorEventMember?: Function;
+    subProjectTeamLoading?: Function;
+    teamMembers?: unknown[];
+    showComponentWithIssue?: boolean;
+    getErrorEventSuccess?: Function;
+}
+
+class ErrorTrackerDetail extends Component<ErrorTrackerDetailProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
