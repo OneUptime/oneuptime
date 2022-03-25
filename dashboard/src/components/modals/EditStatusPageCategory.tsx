@@ -32,11 +32,11 @@ interface EditStatusPageCategoryProps {
 }
 
 class EditStatusPageCategory extends React.Component<EditStatusPageCategoryProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -84,7 +84,7 @@ class EditStatusPageCategory extends React.Component<EditStatusPageCategoryProps
         this.props.closeModal({});
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, updatingCategory, updateError } = this.props;
 

@@ -52,7 +52,7 @@ export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps>
         }
     };
 
-    render() {
+    override render() {
         let disabling = false;
         if (
 

@@ -1,7 +1,10 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-class ErrorBoundary extends Component {
+class ErrorBoundary extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { error: null, hasError: false };
@@ -12,7 +15,7 @@ class ErrorBoundary extends Component {
         return { hasError: true, error };
     }
 
-    render() {
+    override render() {
 
         if (this.state.hasError || this.state.error) {
             return (

@@ -12,11 +12,11 @@ interface OnCallScheduleModalProps {
 }
 
 class OnCallScheduleModal extends Component<OnCallScheduleModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -31,7 +31,7 @@ class OnCallScheduleModal extends Component<OnCallScheduleModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
 

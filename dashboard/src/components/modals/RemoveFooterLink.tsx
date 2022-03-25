@@ -11,11 +11,11 @@ interface RemoveFooterLinkProps {
 }
 
 class RemoveFooterLink extends Component<RemoveFooterLinkProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -32,7 +32,7 @@ class RemoveFooterLink extends Component<RemoveFooterLinkProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { data, closeThisDialog } = this.props;
 

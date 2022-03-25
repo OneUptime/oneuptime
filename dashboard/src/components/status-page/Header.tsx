@@ -9,7 +9,7 @@ interface StatusHeaderProps {
 }
 
 export class StatusHeader extends Component<StatusHeaderProps> {
-    render() {
+    override render() {
 
         const { statusPage } = this.props;
         let publicStatusPageUrl, statusPageSlug;

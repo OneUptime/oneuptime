@@ -13,7 +13,7 @@ interface TransactionMetricsTableProps {
 
 export class TransactionMetricsTable extends Component<TransactionMetricsTableProps> {
     handleKeyBoard: $TSFixMe;
-    render() {
+    override render() {
 
         const { heading, title, subHeading, type } = this.props;
         return (

@@ -12,7 +12,7 @@ interface MSTeamsButtonProps {
 }
 
 class MSTeamsButton extends React.Component<MSTeamsButtonProps> {
-    render() {
+    override render() {
 
         const { monitorId } = this.props;
 

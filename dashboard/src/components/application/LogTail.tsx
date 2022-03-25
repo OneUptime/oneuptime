@@ -18,11 +18,11 @@ interface LogTailProps {
 }
 
 class LogTail extends Component<LogTailProps> {
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         socket.removeListener(`createLog-${this.props.applicationLogId}`);
     }
-    render() {
+    override render() {
 
         if (this.props.applicationLogId) {
             // join application log room

@@ -2,7 +2,10 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
 const composableComponent = (ComposedComponent: $TSFixMe) => {
-    class Modal extends Component {
+    class Modal extends Component<ComponentProps> {
+
+        public static propTypes = {};
+
         constructor(props: $TSFixMe) {
             super(props);
 
@@ -37,7 +40,7 @@ const composableComponent = (ComposedComponent: $TSFixMe) => {
                 this.props.onClose(this.props.item);
             }
         };
-        render() {
+        override render() {
 
             const { zIndex } = this.props;
 

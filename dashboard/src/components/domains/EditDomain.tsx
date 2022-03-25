@@ -38,13 +38,13 @@ interface EditDomainProps {
 }
 
 class EditDomain extends React.Component<EditDomainProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetUpdateProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -111,7 +111,7 @@ class EditDomain extends React.Component<EditDomainProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { requesting, updateDomainError, handleSubmit } = this.props;
 

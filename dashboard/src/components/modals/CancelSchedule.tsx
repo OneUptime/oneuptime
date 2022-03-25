@@ -22,11 +22,11 @@ interface CancelScheduleProps {
 }
 
 class CancelSchedule extends Component<CancelScheduleProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -59,7 +59,7 @@ class CancelSchedule extends Component<CancelScheduleProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, closeThisDialog, cancelError } = this.props;
         return (

@@ -10,7 +10,7 @@ import StatusPageActions from '../../actions/status-page';
 
 const listActions = new StatusPageActions().getListActions();
 
-interface StatusPagesProps {}
+interface StatusPagesProps { }
 
 class StatusPages extends Page<StatusPagesProps> {
     constructor(props: $TSFixMe) {
@@ -23,9 +23,9 @@ class StatusPages extends Page<StatusPagesProps> {
         });
     }
 
-    componentDidMount() { }
+    override componentDidMount() { }
 
-    render() {
+    override render() {
         return this.renderCommon(
             <>
                 <Table

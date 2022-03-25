@@ -21,11 +21,11 @@ interface ConfirmScanModalProps {
 }
 
 class ConfirmScanModal extends Component<ConfirmScanModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -66,9 +66,9 @@ class ConfirmScanModal extends Component<ConfirmScanModalProps> {
         return closeModal({ id: containerSecurityId });
     };
 
-    render() {
+    override render() {
         return (
-            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center" >
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

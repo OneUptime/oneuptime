@@ -1,12 +1,15 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-class SsoDeleteModal extends Component {
-    componentDidMount() {
+class SsoDeleteModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -23,7 +26,7 @@ class SsoDeleteModal extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { confirmThisDialog, closeThisDialog } = this.props;
 

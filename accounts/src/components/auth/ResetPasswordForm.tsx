@@ -32,7 +32,7 @@ export class ResetPasswordForm extends Component<ResetPasswordFormProps> {
         this.props.resetPassword(values);
     };
 
-    render() {
+    override render() {
 
         const resetPasswordError = this.props.resetPasswordState.error;
         let header;

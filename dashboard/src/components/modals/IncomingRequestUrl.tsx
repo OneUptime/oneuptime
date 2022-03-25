@@ -18,11 +18,11 @@ export class IncomingRequestUrl extends React.Component<IncomingRequestUrlProps>
         copied: false,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -49,7 +49,7 @@ export class IncomingRequestUrl extends React.Component<IncomingRequestUrlProps>
         this.setState({ copied: true });
     };
 
-    render() {
+    override render() {
 
         const { closeModal, currentProject, incomingRequest } = this.props;
 

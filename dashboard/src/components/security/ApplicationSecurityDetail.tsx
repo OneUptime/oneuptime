@@ -134,7 +134,7 @@ class ApplicationSecurityDetail extends Component<ApplicationSecurityDetailProps
             }
         }
     }
-    componentWillUnMount() {
+    override componentWillUnmount() {
 
         socket.removeListener(`security_${this.props.applicationSecurityId}`);
 
@@ -143,7 +143,7 @@ class ApplicationSecurityDetail extends Component<ApplicationSecurityDetailProps
             `securityLog_${this.props.applicationSecurityId}`
         );
     }
-    componentDidMount() {
+    override componentDidMount() {
         resetIdCounter();
         const {
 
@@ -196,7 +196,7 @@ class ApplicationSecurityDetail extends Component<ApplicationSecurityDetailProps
         });
     };
 
-    render() {
+    override render() {
         const {
 
             applicationSecurity,

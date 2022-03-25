@@ -18,7 +18,10 @@ import UserAdminModeEnableBox from '../components/user/UserAdminModeEnableBox';
 import UserAdminModeDisableBox from '../components/user/UserAdminModeDisableBox';
 import { User as LsUser } from '../config';
 
-class User extends Component {
+class User extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     componentDidMount = async () => {
 
         await this.props.fetchUserProjects(this.props.match.params.userId);
@@ -28,9 +31,9 @@ class User extends Component {
         await this.props.fetchUserloginHistory(this.props.match.params.userId);
     };
 
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12" >
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">

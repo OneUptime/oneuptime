@@ -34,7 +34,7 @@ class Domains extends Component<DomainsProps> {
         this.limit = 10;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchProjectDomains, currentProject } = this.props;
         if (currentProject) {
@@ -79,7 +79,7 @@ class Domains extends Component<DomainsProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

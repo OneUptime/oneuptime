@@ -28,7 +28,10 @@ function Validate(values: $TSFixMe) {
     return errors;
 }
 
-export class Plans extends Component {
+export class Plans extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     getPlansFromToggle: $TSFixMe;
     initialType: $TSFixMe;
     plansArr: $TSFixMe;
@@ -49,7 +52,7 @@ export class Plans extends Component {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchTrial, currentProject } = this.props;
         fetchTrial(currentProject._id);
@@ -113,7 +116,7 @@ export class Plans extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

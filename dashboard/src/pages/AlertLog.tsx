@@ -35,7 +35,7 @@ class AlertLog extends Component<AlertLogProps> {
         super(props);
         this.state = {};
     }
-    componentDidMount() {
+    override componentDidMount() {
 
         if (this.props?.activeProjectId) {
             this.ready();
@@ -74,7 +74,7 @@ class AlertLog extends Component<AlertLogProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             subProjects,

@@ -6,12 +6,15 @@ import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class UserDeleteModal extends Component {
-    componentDidMount() {
+class UserDeleteModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -28,7 +31,7 @@ class UserDeleteModal extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

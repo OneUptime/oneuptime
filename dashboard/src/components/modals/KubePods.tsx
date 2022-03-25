@@ -18,11 +18,11 @@ interface KubePodsProps {
 }
 
 class KubePods extends React.Component<KubePodsProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -64,7 +64,7 @@ class KubePods extends React.Component<KubePodsProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { data } = this.props;
         const podData = data.data;

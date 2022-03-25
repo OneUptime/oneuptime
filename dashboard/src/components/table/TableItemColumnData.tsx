@@ -44,7 +44,7 @@ export default class TableItemColumnData extends Component<TableItemColumnDataPr
         </td>;
     }
 
-    render() {
+    override render() {
 
         const { column } = this.props;
 

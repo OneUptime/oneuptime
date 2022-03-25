@@ -43,7 +43,7 @@ export class ContainerSecurityDeleteBox extends Component<ContainerSecurityDelet
         });
     };
 
-    render() {
+    override render() {
         const {
 
             deleting,

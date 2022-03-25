@@ -31,11 +31,11 @@ interface GitSshModalProps {
 }
 
 class GitSshModal extends Component<GitSshModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -108,7 +108,7 @@ class GitSshModal extends Component<GitSshModalProps> {
             : addGitCredential({ projectId, data: values });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

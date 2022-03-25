@@ -68,7 +68,7 @@ export class MonitorDetail extends Component<MonitorDetailProps> {
         this.selectbutton = this.selectbutton.bind(this);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchMonitorLogs, monitor } = this.props;
 
@@ -243,7 +243,7 @@ export class MonitorDetail extends Component<MonitorDetailProps> {
         return string.replace('-', ' ');
     };
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         if (this.state.nowHandler) {
 
@@ -251,7 +251,7 @@ export class MonitorDetail extends Component<MonitorDetailProps> {
         }
     }
 
-    render() {
+    override render() {
 
         const { createIncidentModalId, startDate, endDate } = this.state;
         const {

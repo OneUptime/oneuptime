@@ -34,7 +34,7 @@ export class IncidentInternal extends Component<IncidentInternalProps> {
             deleteMessageModalId: uuidv4(),
         };
     }
-    componentDidMount() {
+    override componentDidMount() {
 
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
@@ -109,7 +109,7 @@ export class IncidentInternal extends Component<IncidentInternalProps> {
 
         return promise;
     };
-    render() {
+    override render() {
         let count = 0;
         let skip = 0;
         let limit = 0;

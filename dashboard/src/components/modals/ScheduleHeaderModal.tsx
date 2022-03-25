@@ -16,11 +16,11 @@ interface ScheduleHeaderModalProps {
 }
 
 class ScheduleHeaderModal extends Component<ScheduleHeaderModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -48,7 +48,7 @@ class ScheduleHeaderModal extends Component<ScheduleHeaderModalProps> {
         this.props.closeThisDialog();
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog, data } = this.props;
 

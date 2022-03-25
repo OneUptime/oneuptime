@@ -48,7 +48,7 @@ interface TemplatesFormBoxProps {
 }
 
 export class TemplatesFormBox extends Component<TemplatesFormBoxProps> {
-    render() {
+    override render() {
         const {
 
             template,

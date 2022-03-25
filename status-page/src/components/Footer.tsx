@@ -7,7 +7,7 @@ interface FooterProps {
 }
 
 class Footer extends Component<FooterProps> {
-    render() {
+    override render() {
 
         const { link } = this.props;
         if (!link.url) return null;

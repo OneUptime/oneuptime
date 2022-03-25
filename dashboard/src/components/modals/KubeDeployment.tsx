@@ -18,11 +18,11 @@ interface KubeDeploymentProps {
 }
 
 class KubeDeployment extends React.Component<KubeDeploymentProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -60,7 +60,7 @@ class KubeDeployment extends React.Component<KubeDeploymentProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { data } = this.props;
         const deploymentData = data.data;

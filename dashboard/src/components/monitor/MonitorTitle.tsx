@@ -26,7 +26,7 @@ export class MonitorTitle extends Component<MonitorTitleProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.setLastAlive();
     }
 
@@ -60,7 +60,7 @@ export class MonitorTitle extends Component<MonitorTitleProps> {
         return string.replace('-', ' ');
     };
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         if (this.state.nowHandler) {
 
@@ -68,7 +68,7 @@ export class MonitorTitle extends Component<MonitorTitleProps> {
         }
     }
 
-    render() {
+    override render() {
         const {
 
             monitor,

@@ -10,11 +10,11 @@ interface AboutProps {
 }
 
 class About extends Component<AboutProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -29,7 +29,7 @@ class About extends Component<AboutProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { versions } = this.props;
         const currentYear = new Date().getFullYear();

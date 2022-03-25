@@ -52,13 +52,13 @@ class NewScript extends Component<NewScriptProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetScripts();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -423,7 +423,7 @@ class NewScript extends Component<NewScriptProps> {
         </>;
     };
 
-    render() {
+    override render() {
 
         const { addScriptsError, requesting } = this.props;
         return (

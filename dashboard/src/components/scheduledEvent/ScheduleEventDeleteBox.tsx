@@ -32,7 +32,7 @@ class ScheduleEventDeleteBox extends Component<ScheduleEventDeleteBoxProps> {
     cancelScheduleEvent = () => {
         alert('im to cancel');
     };
-    render() {
+    override render() {
 
         const { deleteModalId, cancelModalId } = this.state;
         const {

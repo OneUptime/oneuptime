@@ -37,11 +37,11 @@ export class GroupList extends Component<GroupListProps> {
         this.state = { groupModalId: uuidv4() };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -120,7 +120,7 @@ export class GroupList extends Component<GroupListProps> {
             });
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

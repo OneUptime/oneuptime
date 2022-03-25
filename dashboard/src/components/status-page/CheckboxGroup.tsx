@@ -44,7 +44,7 @@ class CheckboxGroup extends React.Component<CheckboxGroupProps> {
         });
     }
 
-    render() {
+    override render() {
         return <div>{this.checkboxGroup()}</div>;
     }
 }

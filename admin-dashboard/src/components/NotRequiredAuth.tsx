@@ -4,7 +4,10 @@ import { User } from '../config';
 import { history } from '../store';
 
 export default function (ComposedComponent: $TSFixMe) {
-    class NotAuthentication extends Component {
+    class NotAuthentication extends Component<ComponentProps> {
+
+        public static propTypes = {};
+
         isAuthenticated: $TSFixMe;
         constructor(props: $TSFixMe) {
             super(props);
@@ -14,7 +17,7 @@ export default function (ComposedComponent: $TSFixMe) {
             this.isAuthenticated = User.isLoggedIn();
         }
 
-        componentDidMount() {
+        override componentDidMount() {
             if (this.isAuthenticated) {
                 history.push('/admin/project/project/monitoring');
             }
@@ -26,7 +29,7 @@ export default function (ComposedComponent: $TSFixMe) {
             }
         }
 
-        render() {
+        override render() {
             return <ComposedComponent {...this.props} />;
         }
     }

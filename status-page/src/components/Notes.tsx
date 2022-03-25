@@ -106,7 +106,7 @@ class Notes extends Component<NotesProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             statusPageSlug,

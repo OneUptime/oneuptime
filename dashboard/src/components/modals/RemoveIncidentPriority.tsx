@@ -17,11 +17,11 @@ interface RemoveIncidentPriorityProps {
 }
 
 class RemoveIncidentPriority extends Component<RemoveIncidentPriorityProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -48,7 +48,7 @@ class RemoveIncidentPriority extends Component<RemoveIncidentPriorityProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         return (

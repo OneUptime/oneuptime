@@ -44,7 +44,7 @@ class MonitorViewChangeComponentBox extends Component<MonitorViewChangeComponent
         }
     };
 
-    render() {
+    override render() {
         let changingComponent = false;
         if (
 

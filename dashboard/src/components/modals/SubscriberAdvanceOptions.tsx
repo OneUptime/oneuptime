@@ -23,11 +23,11 @@ interface SubscriberAdvanceOptionProps {
 }
 
 class SubscriberAdvanceOption extends React.Component<SubscriberAdvanceOptionProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -77,7 +77,7 @@ class SubscriberAdvanceOption extends React.Component<SubscriberAdvanceOptionPro
         });
     };
 
-    render() {
+    override render() {
 
         const { requesting, error } = this.props.subscriberOption;
 

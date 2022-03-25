@@ -10,11 +10,11 @@ interface ResetCssModalProps {
 }
 
 class ResetCssModal extends Component<ResetCssModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -31,7 +31,7 @@ class ResetCssModal extends Component<ResetCssModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
 

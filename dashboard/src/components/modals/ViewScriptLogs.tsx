@@ -14,11 +14,11 @@ interface ViewScriptLogsProps {
 }
 
 class ViewScriptLogs extends Component<ViewScriptLogsProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -40,7 +40,7 @@ class ViewScriptLogs extends Component<ViewScriptLogsProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
             viewScriptLogModalId,
             title,

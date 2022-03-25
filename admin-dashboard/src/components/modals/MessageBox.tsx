@@ -6,12 +6,15 @@ import PropTypes, { string } from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import { closeModal } from 'common-ui/actions/modal';
 
-class MessageBox extends Component {
-    componentDidMount() {
+class MessageBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -33,7 +36,7 @@ class MessageBox extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { data } = this.props;
 

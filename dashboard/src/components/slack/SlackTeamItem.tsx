@@ -36,7 +36,7 @@ class SlackTeamItem extends React.Component<SlackTeamItemProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { deleteModalId } = this.state;
         const {

@@ -30,11 +30,11 @@ interface GitCredentialModalProps {
 }
 
 class GitCredentialModal extends Component<GitCredentialModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -111,7 +111,7 @@ class GitCredentialModal extends Component<GitCredentialModalProps> {
             : addGitCredential({ projectId, data: values });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

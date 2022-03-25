@@ -8,14 +8,17 @@ import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 
-export class SidebarNavItem extends Component {
+export class SidebarNavItem extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
         this.RenderListItems = this.RenderListItems.bind(this);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { route } = this.props;
         navKeyBind(route);
@@ -26,7 +29,7 @@ export class SidebarNavItem extends Component {
         });
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         const { route } = this.props;
         cleanBind(route);
@@ -82,7 +85,7 @@ export class SidebarNavItem extends Component {
         );
     };
 
-    render() {
+    override render() {
         const { RenderListItems } = this;
 
         const { route, location, match, loadPage } = this.props;

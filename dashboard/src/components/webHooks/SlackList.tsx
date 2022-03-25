@@ -38,11 +38,11 @@ class SlackList extends React.Component<SlackListProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.paginate('reset');
     }
@@ -118,7 +118,7 @@ class SlackList extends React.Component<SlackListProps> {
         paginate('next');
     };
 
-    render() {
+    override render() {
 
         const { slacks, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = slacks;

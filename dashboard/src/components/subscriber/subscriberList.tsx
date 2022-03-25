@@ -35,7 +35,7 @@ export class SubscriberList extends Component<SubscriberListProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             subProjectId,
@@ -58,7 +58,7 @@ export class SubscriberList extends Component<SubscriberListProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const monitor = this.props.monitorState.monitorsList.monitors
             .map((monitor: $TSFixMe) => monitor.monitors.find(

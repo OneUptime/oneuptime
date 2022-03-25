@@ -65,7 +65,7 @@ class StatusPageSubscriber extends Component<StatusPageSubscriberProps> {
         }
     };
 
-    async componentDidMount() {
+    async override componentDidMount() {
         const {
 
             fetchStatusPageSubscribers,
@@ -125,7 +125,7 @@ class StatusPageSubscriber extends Component<StatusPageSubscriberProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             subscribers,

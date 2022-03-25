@@ -66,7 +66,7 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps> {
         this.deleteMonitor = this.deleteMonitor.bind(this);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             fetchMonitorLogs,
@@ -96,7 +96,7 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps> {
             endDate
         );
     }
-    componentWillUnmount() {
+    override componentWillUnmount() {
         // socket.removeListener(`updateProbe`);
     }
     handleStartDateTimeChange = (val: $TSFixMe) => {
@@ -175,7 +175,7 @@ export class MonitorViewHeader extends Component<MonitorViewHeaderProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             deleteModalId,

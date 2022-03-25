@@ -57,7 +57,7 @@ export class GroupTable extends Component<GroupTableProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { group, disabled, deleteDisable } = this.props;
         return (

@@ -21,11 +21,11 @@ interface DeleteCardProps {
 }
 
 class DeleteCard extends Component<DeleteCardProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -68,7 +68,7 @@ class DeleteCard extends Component<DeleteCardProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { requesting, deleteCardModalId, error } = this.props;
         return (

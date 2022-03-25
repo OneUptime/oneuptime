@@ -13,7 +13,10 @@ import UserAddModal from '../components/user/UserAddModal';
 
 import * as _ from 'lodash';
 
-class Users extends Component {
+class Users extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -24,13 +27,13 @@ class Users extends Component {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
 
         this.props.fetchUsers();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -110,7 +113,7 @@ class Users extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { users, user, requesting } = this.props;
         let canNext =

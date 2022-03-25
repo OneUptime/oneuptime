@@ -12,7 +12,10 @@ import EmailLogsContentViewModal from './EmailLogsContentViewModal';
 import EmailLogsErrorViewModal from './EmailLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-export class EmailLogsList extends Component {
+export class EmailLogsList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -39,7 +42,7 @@ export class EmailLogsList extends Component {
         }
     };
 
-    render() {
+    override render() {
         if (
 
             this.props.emailLogs &&

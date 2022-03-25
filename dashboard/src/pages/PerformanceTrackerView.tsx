@@ -108,7 +108,7 @@ class PerformanceTrackerView extends Component<PerformanceTrackerViewProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             componentSlug,
@@ -149,7 +149,7 @@ class PerformanceTrackerView extends Component<PerformanceTrackerViewProps> {
         resetPerformanceTrackerKeyReset();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         this.removeListeners();
     }
 
@@ -174,7 +174,7 @@ class PerformanceTrackerView extends Component<PerformanceTrackerViewProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

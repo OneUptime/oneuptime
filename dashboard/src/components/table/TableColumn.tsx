@@ -30,7 +30,7 @@ export default class TableColumn extends Component<TableColumnProps> {
         );
     }
 
-    render() {
+    override render() {
         const {
 
             visibleForOwner,

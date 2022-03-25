@@ -10,7 +10,10 @@ import { blockUser } from '../../actions/user';
 import UserBlockModal from './UserBlockModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserBlockBox extends Component {
+export class UserBlockBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { blockModalId: uuidv4() };
@@ -42,7 +45,7 @@ export class UserBlockBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

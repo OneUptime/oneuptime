@@ -33,7 +33,7 @@ export class ProbeList extends Component<ProbeListProps> {
         this.state = { ProbeDetailModalId: uuidv4() };
     }
 
-    render() {
+    override render() {
         if (
 
             this.props.probesList &&

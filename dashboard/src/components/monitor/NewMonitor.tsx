@@ -183,7 +183,7 @@ class NewMonitor extends Component<NewMonitorProps> {
         this.tabIndexRef = createRef();
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { editMonitorProp } = this.props;
         const userId = User.getUserId();
@@ -918,7 +918,7 @@ class NewMonitor extends Component<NewMonitorProps> {
         this.props.toggleEdit(false);
     };
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         if (this.props.edit) {
             this.cancelEdit();
@@ -1089,7 +1089,7 @@ class NewMonitor extends Component<NewMonitorProps> {
             </div>
         );
     };
-    render() {
+    override render() {
         const requesting =
 
             (this.props.monitor.newMonitor.requesting && !this.props.edit) ||

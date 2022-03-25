@@ -35,11 +35,11 @@ class SubProjectApiKey extends Component<SubProjectApiKeyProps> {
         oldApiKey: '',
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -104,7 +104,7 @@ class SubProjectApiKey extends Component<SubProjectApiKeyProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             subProjectResetToken,

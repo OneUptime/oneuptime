@@ -36,7 +36,7 @@ interface ErrorEventViewProps {
 }
 
 class ErrorEventView extends Component<ErrorEventViewProps> {
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
     componentDidUpdate(prevProps: $TSFixMe) {
@@ -174,7 +174,7 @@ class ErrorEventView extends Component<ErrorEventViewProps> {
             errorEventId
         );
     };
-    render() {
+    override render() {
         const {
 
             location: { pathname },

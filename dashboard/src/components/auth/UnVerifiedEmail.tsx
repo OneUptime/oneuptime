@@ -21,7 +21,7 @@ class UnVerifiedEmailBox extends Component<UnVerifiedEmailBoxProps> {
         this.props.sendEmailVerificationLink({ email });
     };
 
-    render() {
+    override render() {
         const {
 
             emailVerificationRequesting,

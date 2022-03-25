@@ -23,11 +23,11 @@ interface ConfirmChangeRoleProps {
 }
 
 class ConfirmChangeRole extends Component<ConfirmChangeRoleProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     handleKeyBoard = (e: $TSFixMe) => {
@@ -50,7 +50,7 @@ class ConfirmChangeRole extends Component<ConfirmChangeRoleProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             data: { updateTeamMemberRole, name, values, role, userId, newRole },

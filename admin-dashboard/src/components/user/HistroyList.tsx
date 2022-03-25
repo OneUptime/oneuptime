@@ -5,8 +5,11 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 
-export class HistoryList extends Component {
-    render() {
+export class HistoryList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         if (
 
             this.props.history &&

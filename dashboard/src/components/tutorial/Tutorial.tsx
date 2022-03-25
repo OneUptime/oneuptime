@@ -22,12 +22,12 @@ class Tutorial extends React.Component<TutorialProps> {
         if (this.mounted) this.setState({ currentSlide: value });
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.mounted = true;
         this.loopCard();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         this.mounted = false;
     }
 
@@ -105,7 +105,7 @@ class Tutorial extends React.Component<TutorialProps> {
         }, 10000);
     }
 
-    render() {
+    override render() {
 
         const { deprecated, type } = this.props;
 

@@ -12,12 +12,15 @@ import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 import { addProbe, resetAddProbe } from '../../actions/probe';
 
-class ProbeAddModal extends Component {
-    componentDidMount() {
+class ProbeAddModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -49,7 +52,7 @@ class ProbeAddModal extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

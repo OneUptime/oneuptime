@@ -34,7 +34,7 @@ export class DeleteAccountBox extends Component<DeleteAccountBoxProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { deleteModalId } = this.state;
 

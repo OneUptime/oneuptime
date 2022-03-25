@@ -19,7 +19,7 @@ interface SettingsProps {
 }
 
 class Settings extends Component<SettingsProps> {
-    render() {
+    override render() {
         const {
 
             location: { pathname },

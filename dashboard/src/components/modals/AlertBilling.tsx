@@ -22,11 +22,11 @@ interface AlertBillingProps {
 }
 
 class AlertBilling extends Component<AlertBillingProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -50,7 +50,7 @@ class AlertBilling extends Component<AlertBillingProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { data, confirmThisDialog, isRequesting } = this.props;
 

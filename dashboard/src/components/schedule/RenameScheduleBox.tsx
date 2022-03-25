@@ -26,7 +26,10 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-export class RenameScheduleBox extends Component {
+export class RenameScheduleBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     submitForm = (values: $TSFixMe) => {
 
         const { scheduleId, renameSchedule, subProjectId } = this.props;
@@ -45,9 +48,9 @@ export class RenameScheduleBox extends Component {
         }
     };
 
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div className="Box-root Margin-bottom--12" >
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">

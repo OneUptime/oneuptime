@@ -22,11 +22,11 @@ interface ConfirmationDialogProps {
 }
 
 class ConfirmationDialog extends Component<ConfirmationDialogProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     handleKeyBoard = (e: $TSFixMe) => {
@@ -49,7 +49,7 @@ class ConfirmationDialog extends Component<ConfirmationDialogProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             data: {

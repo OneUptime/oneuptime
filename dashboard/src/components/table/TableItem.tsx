@@ -15,7 +15,7 @@ export default class TableItem extends Component<TableItemProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { item, columns, onClick, actionButtons } = this.props;
 

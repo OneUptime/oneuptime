@@ -44,7 +44,7 @@ class ErrorTrackerViewDeleteBox extends Component<ErrorTrackerViewDeleteBoxProps
 
         return promise;
     };
-    render() {
+    override render() {
 
         const { deleteModalId } = this.state;
 

@@ -101,7 +101,7 @@ export class Links extends Component<LinksProps> {
         this.submitForm({ links: newLinks });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, statusPage, openModal } = this.props;
         const {

@@ -22,7 +22,10 @@ import AlertPanel from './basic/AlertPanel';
 import { closeModal } from '../actions/modal';
 import { loadDashboard } from '../actions/dashboard';
 
-export class DashboardApp extends Component {
+export class DashboardApp extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     componentDidMount = async () => {
         const {
 
@@ -91,7 +94,7 @@ export class DashboardApp extends Component {
             id: this.props.currentModal ? this.props.currentModal.id : '',
         });
 
-    render() {
+    override render() {
         const {
             children,
 

@@ -138,7 +138,7 @@ export class ScheduledEventNote extends Component<ScheduledEventNoteProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { type, count, notes, skip, limit } = this.props;
         const canNext = count > Number(skip) + Number(limit) ? true : false;

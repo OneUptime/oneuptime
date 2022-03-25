@@ -12,7 +12,7 @@ interface SlackProps {
 }
 
 class Slack extends React.Component<SlackProps> {
-    render() {
+    override render() {
 
         const { projectId } = this.props;
         const userToken = User.getAccessToken();

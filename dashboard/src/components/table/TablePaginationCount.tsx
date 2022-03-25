@@ -15,7 +15,7 @@ export default class TablePaginationCount extends Component<TablePaginationCount
         super(props);
     }
 
-    render() {
+    override render() {
         const {
 
             totalItemsCount,

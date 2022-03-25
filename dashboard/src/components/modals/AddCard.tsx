@@ -70,11 +70,11 @@ class _CardForm extends React.Component<_CardFormProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -174,7 +174,7 @@ class _CardForm extends React.Component<_CardFormProps> {
             this.props.addCardFailed('Network Error, please try again later.');
         }
     };
-    render() {
+    override render() {
 
         const { requesting, error, elementFontSize } = this.props;
         return (
@@ -329,7 +329,7 @@ const CardForm = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(_CardForm)
 );
 
-class AddCard extends React.Component {
+class AddCard extends Component<ComponentProps> {
     constructor() {
 
         super();
@@ -353,7 +353,7 @@ class AddCard extends React.Component {
         });
     }
 
-    render() {
+    override render() {
 
         const { elementFontSize } = this.state;
         return (

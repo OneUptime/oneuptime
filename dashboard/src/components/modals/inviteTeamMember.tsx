@@ -63,11 +63,11 @@ export class FormModal extends Component<FormModalProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -180,7 +180,7 @@ export class FormModal extends Component<FormModalProps> {
             }),
         });
 
-    render() {
+    override render() {
 
         const { handleSubmit, closeThisDialog, data } = this.props;
         return (

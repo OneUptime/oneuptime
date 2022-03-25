@@ -20,7 +20,7 @@ export default class TablePaginationButtons extends Component<TablePaginationBut
         super(props);
     }
 
-    render() {
+    override render() {
         const {
 
             isLoading,

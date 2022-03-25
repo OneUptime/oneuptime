@@ -68,10 +68,10 @@ class Search extends Component<SearchProps> {
         sectionActive: 0,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoardScroll);
     }
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoardScroll);
     }
     scrollToViewPort() {
@@ -490,7 +490,7 @@ class Search extends Component<SearchProps> {
                 return '';
         }
     };
-    render() {
+    override render() {
 
         const searchObj = this.props.searcResult;
 

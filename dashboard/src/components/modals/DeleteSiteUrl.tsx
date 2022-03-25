@@ -12,11 +12,11 @@ interface DeleteSiteUrlProps {
 }
 
 export class DeleteSiteUrl extends Component<DeleteSiteUrlProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -33,7 +33,7 @@ export class DeleteSiteUrl extends Component<DeleteSiteUrlProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         return (

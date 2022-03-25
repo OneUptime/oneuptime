@@ -55,7 +55,7 @@ export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps> {
         }
     };
 
-    render() {
+    override render() {
         let deleting = false;
         if (
 

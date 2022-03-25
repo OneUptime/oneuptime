@@ -19,11 +19,11 @@ interface IncidentHeaderModalProps {
 }
 
 class IncidentHeaderModal extends Component<IncidentHeaderModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -83,7 +83,7 @@ class IncidentHeaderModal extends Component<IncidentHeaderModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog, data } = this.props;
 

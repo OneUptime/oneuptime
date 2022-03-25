@@ -31,7 +31,7 @@ class AutomationScript extends Component<AutomationScriptProps> {
             toggleNewScript: false,
         };
     }
-    componentDidMount() {
+    override componentDidMount() {
 
         const projectId = this.props.activeProject;
         if (projectId) {
@@ -50,7 +50,7 @@ class AutomationScript extends Component<AutomationScriptProps> {
         }
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

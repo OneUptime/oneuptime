@@ -158,11 +158,11 @@ class Component extends React.Component<ComponentProps> {
         // reset it after 0.5 secs
         setTimeout(() => this.setState({ copied: false }), 500);
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -189,7 +189,7 @@ class Component extends React.Component<ComponentProps> {
         closeThisDialog();
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

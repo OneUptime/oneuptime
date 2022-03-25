@@ -43,7 +43,7 @@ interface LineChartsContainerProps {
 }
 
 class LineChartsContainer extends React.Component<LineChartsContainerProps> {
-    render() {
+    override render() {
 
         const { _id: monitorId } = this.props.monitor;
         let requesting = true;

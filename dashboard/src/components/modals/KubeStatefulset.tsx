@@ -18,11 +18,11 @@ interface KubeStatefulsetProps {
 }
 
 class KubeStatefulset extends React.Component<KubeStatefulsetProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -60,7 +60,7 @@ class KubeStatefulset extends React.Component<KubeStatefulsetProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { data } = this.props;
         const statefulsetData = data.data;

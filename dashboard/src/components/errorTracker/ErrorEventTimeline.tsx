@@ -71,7 +71,7 @@ class ErrorEventTimeline extends Component<ErrorEventTimelineProps> {
             status.charAt(0).toUpperCase() + status.slice(1);
         return `${capitalizedText}d by`;
     };
-    render() {
+    override render() {
 
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;

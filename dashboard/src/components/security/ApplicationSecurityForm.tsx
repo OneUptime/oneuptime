@@ -33,7 +33,7 @@ interface ApplicationSecurityFormProps {
 }
 
 class ApplicationSecurityForm extends Component<ApplicationSecurityFormProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, getGitCredentials } = this.props;
         if (projectId) {
@@ -80,7 +80,7 @@ class ApplicationSecurityForm extends Component<ApplicationSecurityFormProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

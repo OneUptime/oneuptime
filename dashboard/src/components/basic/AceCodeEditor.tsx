@@ -18,7 +18,7 @@ interface AceCodeEditorProps {
 }
 
 class AceCodeEditor extends Component<AceCodeEditorProps> {
-    render() {
+    override render() {
 
         const { value, mode, name, height, markers, theme } = this.props;
         return (

@@ -50,7 +50,7 @@ class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
 
         this.props.changeShowingTemplate(value);
     };
-    render() {
+    override render() {
         const templates =
 
             this.props.smsTemplates &&
@@ -62,7 +62,7 @@ class SmsTemplatesBox extends React.Component<SmsTemplatesBoxProps> {
                 ? this.props.smsTemplates.smsTemplates.templates
                 : [];
         return (
-            <div id="smsTemplate" className="Box-root Margin-vertical--12">
+            <div id="smsTemplate" className="Box-root Margin-vertical--12" >
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="Box-root Margin-bottom--12">

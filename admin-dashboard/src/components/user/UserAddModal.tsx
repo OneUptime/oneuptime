@@ -12,12 +12,15 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { addUser, resetAddUser } from '../../actions/user';
 
-class UserAddModal extends Component {
-    componentDidMount() {
+class UserAddModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -50,7 +53,7 @@ class UserAddModal extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

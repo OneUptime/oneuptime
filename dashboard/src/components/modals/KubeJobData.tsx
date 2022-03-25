@@ -13,11 +13,11 @@ interface KubeJobDataProps {
 }
 
 class KubeJobData extends React.Component<KubeJobDataProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -133,7 +133,7 @@ class KubeJobData extends React.Component<KubeJobDataProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { data } = this.props;
         const jobData = data.data;

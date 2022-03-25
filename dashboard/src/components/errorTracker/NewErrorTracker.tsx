@@ -36,11 +36,11 @@ interface NewErrorTrackerProps {
 }
 
 class NewErrorTracker extends Component<NewErrorTrackerProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     handleKeyBoard = (e: $TSFixMe) => {
@@ -125,7 +125,7 @@ class NewErrorTracker extends Component<NewErrorTrackerProps> {
         const { editErrorTrackerSwitch, errorTracker } = this.props;
         editErrorTrackerSwitch(errorTracker._id);
     };
-    render() {
+    override render() {
         const {
 
             handleSubmit,

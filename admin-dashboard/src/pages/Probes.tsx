@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import ProbeAddModal from '../components/probe/ProbeAddModal';
 
-class Probes extends React.Component {
+class Probes extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -19,13 +19,13 @@ class Probes extends React.Component {
         this.state = { addModalId: uuidv4(), page: 1 };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
 
         this.props.getProbes(0, 10);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -78,7 +78,7 @@ class Probes extends React.Component {
         });
     };
 
-    render() {
+    override render() {
         return (
             <div
                 id="oneuptimeProbe"

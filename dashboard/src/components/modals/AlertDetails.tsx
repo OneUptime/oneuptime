@@ -11,11 +11,11 @@ interface AlertDetailsModalProps {
 }
 
 class AlertDetailsModal extends Component<AlertDetailsModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -48,7 +48,7 @@ class AlertDetailsModal extends Component<AlertDetailsModalProps> {
             2} others`;
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         return (

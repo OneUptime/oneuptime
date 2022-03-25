@@ -86,7 +86,7 @@ class ScheduledEventDetail extends Component<ScheduledEventDetailProps> {
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -190,7 +190,7 @@ class ScheduledEventDetail extends Component<ScheduledEventDetailProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

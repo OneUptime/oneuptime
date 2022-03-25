@@ -34,7 +34,10 @@ const getListStyle = (isDraggingOver: $TSFixMe) => ({
     height: '90%'
 });
 
-class MonitorsWithCategory extends Component {
+class MonitorsWithCategory extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     renderAddMonitorButton = (subProject: $TSFixMe) => {
 
         const { category } = this.props;
@@ -105,7 +108,7 @@ class MonitorsWithCategory extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { category, statusPage, subProjects } = this.props;
         const { status } = statusPage;

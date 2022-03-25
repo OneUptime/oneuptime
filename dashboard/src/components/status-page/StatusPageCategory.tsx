@@ -31,7 +31,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps> {
         page: 1,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
         const {
 
@@ -46,7 +46,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps> {
         fetchStatusPageCategories({ projectId, skip, limit: 10, statusPageId });
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -134,7 +134,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps> {
         });
     };
 
-    render() {
+    override render() {
         const footerBorderTopStyle = { margin: 0, padding: 0 };
         let canNext =
 

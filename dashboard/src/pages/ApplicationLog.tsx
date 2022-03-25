@@ -89,7 +89,7 @@ class ApplicationLog extends Component<ApplicationLogProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.loadPage('Logs');
         this.setState({ requesting: true });
@@ -142,7 +142,7 @@ class ApplicationLog extends Component<ApplicationLogProps> {
                 .then(() => this.setState({ requesting: false }));
         }
     };
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         socket.removeListener(`createApplicationLog-${this.props.componentId}`);
     }
@@ -151,7 +151,7 @@ class ApplicationLog extends Component<ApplicationLogProps> {
 
             showNewLogContainerForm: !prevState.showNewLogContainerForm,
         }));
-    render() {
+    override render() {
 
         if (this.props.currentProject) {
 

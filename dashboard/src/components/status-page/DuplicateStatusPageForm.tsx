@@ -42,11 +42,11 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
         super(props);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -104,7 +104,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, subProjects } = this.props;
         return (

@@ -16,7 +16,7 @@ export default class TableHeader extends Component<TableHeaderProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { title, description, headerButtons } = this.props;
 

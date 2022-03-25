@@ -41,7 +41,7 @@ class LanguageBox extends Component<LanguageBoxProps> {
         this.props.translateLanguage(this.state.language);
         this.translateButton();
     };
-    render() {
+    override render() {
 
         const { statusPage } = this.props;
         const languages = statusPage.multipleLanguages;

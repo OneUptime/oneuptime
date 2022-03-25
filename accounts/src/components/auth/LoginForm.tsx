@@ -36,7 +36,7 @@ export class LoginForm extends Component<LoginFormProps> {
         serverResponse: '',
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const query = queryString.parse(this.props.location.search).status;
         let serverResponse = '';
@@ -55,7 +55,7 @@ export class LoginForm extends Component<LoginFormProps> {
 
         this.props.changeLogin(data);
     }
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
         const { serverResponse } = this.state;

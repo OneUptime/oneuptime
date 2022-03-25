@@ -408,7 +408,7 @@ export class IncidentStatus extends Component<IncidentStatusProps> {
         return '';
     };
 
-    render() {
+    override render() {
         const isUserSubProjectId =
 
             this.props.incident.projectId &&

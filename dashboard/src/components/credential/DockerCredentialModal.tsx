@@ -30,11 +30,11 @@ interface DockerCredentialModalProps {
 }
 
 class DockerCredentialModal extends Component<DockerCredentialModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -117,7 +117,7 @@ class DockerCredentialModal extends Component<DockerCredentialModalProps> {
             : addDockerCredential({ projectId, data: values });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

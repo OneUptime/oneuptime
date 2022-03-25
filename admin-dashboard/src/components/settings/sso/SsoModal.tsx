@@ -127,7 +127,7 @@ const fields = [
     },
 ];
 
-class Component extends React.Component {
+class Component extends Component<ComponentProps> {
     state = {
         copied: false,
     };
@@ -139,11 +139,11 @@ class Component extends React.Component {
         // reset it after 0.5 secs
         setTimeout(() => this.setState({ copied: false }), 500);
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -170,7 +170,7 @@ class Component extends React.Component {
         closeThisDialog();
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

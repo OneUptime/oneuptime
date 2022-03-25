@@ -18,7 +18,7 @@ interface ComponentIssueProps {
 }
 
 class ComponentIssue extends Component<ComponentIssueProps> {
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             component,
@@ -43,7 +43,7 @@ class ComponentIssue extends Component<ComponentIssueProps> {
         const { component, currentProject } = this.props;
         return `/dashboard/project/${currentProject.slug}/component/${component._id}/error-trackers/${componentIssue.errorTrackerId.slug}`;
     }
-    render() {
+    override render() {
 
         const { component, errorTrackers } = this.props;
 

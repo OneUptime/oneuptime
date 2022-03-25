@@ -11,7 +11,7 @@ interface IncidentPrioritiesListClassProps {
 }
 
 class IncidentPrioritiesListClass extends React.Component<IncidentPrioritiesListClassProps> {
-    render() {
+    override render() {
         return (
             <div
                 id="incidentPrioritiesList"

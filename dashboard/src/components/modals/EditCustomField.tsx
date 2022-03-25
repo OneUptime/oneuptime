@@ -35,11 +35,11 @@ interface UpdateCustomFieldProps {
 }
 
 class UpdateCustomField extends React.Component<UpdateCustomFieldProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -96,7 +96,7 @@ class UpdateCustomField extends React.Component<UpdateCustomFieldProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

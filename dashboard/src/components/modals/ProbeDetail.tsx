@@ -20,11 +20,11 @@ interface ProbeDetailProps {
 }
 
 class ProbeDetail extends Component<ProbeDetailProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -46,7 +46,7 @@ class ProbeDetail extends Component<ProbeDetailProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { ProbeDetailModalId, closeModal, probesData } = this.props.data;
         const isOffline =

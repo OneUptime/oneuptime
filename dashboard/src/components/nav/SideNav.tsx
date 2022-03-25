@@ -45,7 +45,7 @@ interface SideNavProps {
 class SideNav extends Component<SideNavProps> {
     showProfileMenu: $TSFixMe;
     state = { navLoading: false };
-    componentDidMount() {
+    override componentDidMount() {
 
         if (this.props.currentProject) {
 
@@ -204,7 +204,7 @@ class SideNav extends Component<SideNavProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             location,

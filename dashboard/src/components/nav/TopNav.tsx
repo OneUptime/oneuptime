@@ -101,7 +101,7 @@ class TopContent extends Component<TopContentProps> {
         history.push(`/dashboard/project/${val}`);
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             userSettings,
@@ -142,7 +142,7 @@ class TopContent extends Component<TopContentProps> {
         this.updateDimensions();
         window.addEventListener('resize', this.updateDimensions);
     }
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.ArrowDown);
         window.removeEventListener('resize', this.updateDimensions);
     }
@@ -349,7 +349,7 @@ class TopContent extends Component<TopContentProps> {
         );
     };
 
-    render() {
+    override render() {
         const IMG_URL =
 
             this.props.profilePic &&

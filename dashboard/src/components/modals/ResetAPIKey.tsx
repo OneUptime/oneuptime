@@ -6,12 +6,15 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class ResetAPIKey extends Component {
-    componentDidMount() {
+class ResetAPIKey extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -28,7 +31,7 @@ class ResetAPIKey extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
 

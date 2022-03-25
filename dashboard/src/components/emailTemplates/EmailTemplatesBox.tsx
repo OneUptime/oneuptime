@@ -53,7 +53,7 @@ class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
 
         this.props.changeShowingTemplate(value);
     };
-    render() {
+    override render() {
         const templates =
 
             this.props.emailTemplates &&
@@ -65,7 +65,7 @@ class EmailTemplatesBox extends React.Component<EmailTemplatesBoxProps> {
                 ? this.props.emailTemplates.emailTemplates.templates
                 : [];
         return (
-            <div id="emailTemplate" className="Box-root Margin-vertical--12">
+            <div id="emailTemplate" className="Box-root Margin-vertical--12" >
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div

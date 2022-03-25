@@ -28,7 +28,7 @@ class ColorPicker extends Component<ColorPickerProps> {
 
         this.props.input.onChange(e.rgb);
     }
-    render() {
+    override render() {
         const {
 
             displayColorPicker,
@@ -87,11 +87,11 @@ class CreateIncidentPriority extends Component<CreateIncidentPriorityProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -122,7 +122,7 @@ class CreateIncidentPriority extends Component<CreateIncidentPriorityProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, closeThisDialog } = this.props;
 

@@ -13,7 +13,7 @@ interface WebTransactionsChartProps {
 
 export class WebTransactionsChart extends Component<WebTransactionsChartProps> {
     handleKeyBoard: $TSFixMe;
-    render() {
+    override render() {
 
         const { heading, title, subHeading, type } = this.props;
         return (

@@ -15,7 +15,10 @@ import {
 } from '../../actions/project';
 import { history } from '../../store';
 
-export class DeleteProjectModal extends Component {
+export class DeleteProjectModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -47,7 +50,7 @@ export class DeleteProjectModal extends Component {
         else history.push('/');
     }
 
-    render() {
+    override render() {
 
         const { deleted } = this.state;
 

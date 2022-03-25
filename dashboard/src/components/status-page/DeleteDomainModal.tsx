@@ -12,11 +12,11 @@ interface DeleteDomainModalProps {
 }
 
 class DeleteDomainModal extends Component<DeleteDomainModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -33,7 +33,7 @@ class DeleteDomainModal extends Component<DeleteDomainModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { confirmThisDialog, closeThisDialog, deleteDomain } = this.props;
         return (

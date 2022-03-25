@@ -34,7 +34,7 @@ class MembersList extends Component<MembersListProps> {
         this.handlePrevious = this.handlePrevious.bind(this);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             getActiveMembers,
@@ -134,7 +134,7 @@ class MembersList extends Component<MembersListProps> {
         });
     }
 
-    render() {
+    override render() {
         const count =
 
             this.props.activeMembers &&

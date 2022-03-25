@@ -93,7 +93,7 @@ class WebHookInput extends React.Component<WebHookInputProps> {
         return temp;
     }
 
-    render() {
+    override render() {
 
         const { data, webhooks, monitors, monitorId } = this.props;
 

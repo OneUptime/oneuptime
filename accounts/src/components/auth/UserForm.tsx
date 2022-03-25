@@ -27,7 +27,7 @@ class UserForm extends Component<UserFormProps> {
         serverResponse: '',
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const query = queryString.parse(this.props.location.search);
 
@@ -43,7 +43,7 @@ class UserForm extends Component<UserFormProps> {
         this.props.getEmailFromToken(query.token);
     }
 
-    render() {
+    override render() {
         const { serverResponse } = this.state;
         return (
             <div id="main-body" className="box css" style={{ width: 500 }}>

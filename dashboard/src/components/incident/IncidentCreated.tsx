@@ -48,7 +48,7 @@ class IncidentCreated extends Component<IncidentCreatedProps> {
         this.props.closeNotification(project_Id, notificationId);
     };
 
-    render() {
+    override render() {
 
         const { notifications } = this.props;
 

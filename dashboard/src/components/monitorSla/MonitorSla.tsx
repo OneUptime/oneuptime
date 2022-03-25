@@ -46,7 +46,7 @@ class MonitorSla extends Component<MonitorSlaProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, fetchMonitorSlas } = this.props;
         if (projectId) {
@@ -351,7 +351,7 @@ class MonitorSla extends Component<MonitorSlaProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

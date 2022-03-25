@@ -113,7 +113,7 @@ class Collapsible extends Component<CollapsibleProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.clearTimeout(this.timeout);
     }
 
@@ -242,7 +242,7 @@ class Collapsible extends Component<CollapsibleProps> {
 
     setInnerRef = (ref: $TSFixMe) => this.innerRef = ref;
 
-    render() {
+    override render() {
         const dropdownStyle = {
 
             height: this.state.height,
@@ -393,7 +393,7 @@ class Collapsible extends Component<CollapsibleProps> {
                 >
                     <div className={innerClassString.trim()}>{children}</div>
                 </div>
-            </ContentContainerElement>
+            </ContentContainerElement >
         );
     }
 }

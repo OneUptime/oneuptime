@@ -12,20 +12,20 @@ import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 import ShouldRender from '../basic/ShouldRender';
 
-export class Component extends React.Component {
+export class Component extends Component<ComponentProps> {
     state = {
         ssoModalId: uuidv4(),
         page: 1,
     };
 
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchSsos();
 
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -107,7 +107,7 @@ export class Component extends React.Component {
         this.setState({ page: this.state.page + 1 });
     };
 
-    render() {
+    override render() {
 
         const { ssos } = this.props;
         const { count, skip, limit } = ssos;

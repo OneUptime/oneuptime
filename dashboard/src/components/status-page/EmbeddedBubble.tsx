@@ -190,7 +190,7 @@ export class EmbeddedBubble extends Component<EmbeddedBubbleProps> {
             showMoreOptions: !prevState.showMoreOptions,
         }));
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

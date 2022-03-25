@@ -20,11 +20,11 @@ class ConfirmResetLayout extends Component<ConfirmResetLayoutProps> {
     state = {
         requesting: false,
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -51,7 +51,7 @@ class ConfirmResetLayout extends Component<ConfirmResetLayoutProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { closeModal, data, closeThisDialog } = this.props;
         return (

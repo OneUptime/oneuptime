@@ -12,7 +12,7 @@ export default class TableActionButtons extends Component<TableActionButtonsProp
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { actionButtons, item } = this.props;
 

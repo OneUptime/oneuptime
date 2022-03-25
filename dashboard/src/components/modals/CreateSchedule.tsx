@@ -59,13 +59,13 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
         selectData: [],
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -399,7 +399,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
             currentDate,
             selectedProjects,

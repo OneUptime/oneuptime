@@ -58,7 +58,7 @@ class ApplicationLogViewDeleteBox extends Component<ApplicationLogViewDeleteBoxP
                 return false;
         }
     };
-    render() {
+    override render() {
 
         const { deleteModalId } = this.state;
         return (

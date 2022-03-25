@@ -279,7 +279,7 @@ class ErrorTrackerDetail extends Component<ErrorTrackerDetailProps> {
             this.state.filters
         );
     };
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             fetchErrorTrackerIssues,
@@ -319,13 +319,13 @@ class ErrorTrackerDetail extends Component<ErrorTrackerDetailProps> {
             this.props.subProjectTeamLoading(this.props.currentProject._id);
         }
     }
-    componentWillUnmount() {
+    override componentWillUnmount() {
         socket.removeListener(
 
             `createErrorEvent-${this.props.errorTracker._id}`
         );
     }
-    render() {
+    override render() {
         const {
 
             errorTracker,

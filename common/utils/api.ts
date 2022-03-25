@@ -25,23 +25,44 @@ export default class API {
         return defaultHeaders;
     }
 
-    public static async get(url: URL, data?: JSONValue, headers?: Headers): Promise<HTTPRepsonse> {
+    public static async get(
+        url: URL,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPRepsonse> {
         return await this.fetch(HTTPMethod.GET, url, data, headers);
     }
 
-    public static async delete(url: URL, data?: JSONValue, headers?: Headers): Promise<HTTPRepsonse> {
+    public static async delete(
+        url: URL,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPRepsonse> {
         return await this.fetch(HTTPMethod.DELETE, url, data, headers);
     }
 
-    public static async put(url: URL, data?: JSONValue, headers?: Headers): Promise<HTTPRepsonse> {
+    public static async put(
+        url: URL,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPRepsonse> {
         return await this.fetch(HTTPMethod.PUT, url, data, headers);
     }
 
-    public static async post(url: URL, data?: JSONValue, headers?: Headers): Promise<HTTPRepsonse> {
+    public static async post(
+        url: URL,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPRepsonse> {
         return await this.fetch(HTTPMethod.POST, url, data, headers);
     }
 
-    private static async fetch(method: HTTPMethod, url: URL, data?: JSONValue, headers?: Headers): Promise<HTTPRepsonse> {
+    private static async fetch(
+        method: HTTPMethod,
+        url: URL,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPRepsonse> {
         const apiHeaders: Headers = this.getHeaders(headers);
 
         try {
@@ -60,16 +81,19 @@ export default class API {
                 // do whatever you want with native error
                 throw this.getErrorResponse(error);
             } else {
-                throw new APIException(error.message)
+                throw new APIException(error.message);
             }
         }
     }
 
     private static getErrorResponse(error: AxiosError): HTTPErrorResponse {
         if (error.response) {
-            return new HTTPErrorResponse(error.response.status, error.response.data);
+            return new HTTPErrorResponse(
+                error.response.status,
+                error.response.data
+            );
         }
 
-        throw new APIException("No error response body");
+        throw new APIException('No error response body');
     }
 }

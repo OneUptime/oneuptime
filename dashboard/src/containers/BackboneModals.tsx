@@ -11,7 +11,7 @@ interface ModalsProps {
 }
 
 export class Modals extends Component<ModalsProps> {
-    render() {
+    override render() {
 
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {
             const ModalComponent = Modal(item.content);

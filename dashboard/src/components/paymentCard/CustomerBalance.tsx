@@ -42,13 +42,16 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-export class CustomerBalance extends Component {
+export class CustomerBalance extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     state = {
         MessageBoxId: uuidv4(),
         createTopUpModalId: uuidv4(),
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         // fetch the project
 
         getProjects();
@@ -179,7 +182,7 @@ export class CustomerBalance extends Component {
             });
     };
 
-    render() {
+    override render() {
 
         const { balance } = this.props;
         return (
@@ -424,10 +427,13 @@ const CustomerBalanceFormStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm)
 );
 
-export default class CustomerBalanceWithCheckout extends Component {
-    render() {
+export default class CustomerBalanceWithCheckout extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')} >
                 <Elements>
                     <CustomerBalanceFormStripe />
                 </Elements>

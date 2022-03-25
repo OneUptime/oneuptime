@@ -26,8 +26,11 @@ function submitUserForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe) {
     props.addUsers(props.projectId, scheduleId, { users });
 }
 
-export class UserBox extends Component {
-    componentDidMount() {
+export class UserBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
 
         if (this.props.projectId && this.props.users.length === 0) {
 
@@ -35,9 +38,9 @@ export class UserBox extends Component {
         }
     }
 
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div className="Box-root Margin-bottom--12" >
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <form

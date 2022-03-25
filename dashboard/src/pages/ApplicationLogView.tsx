@@ -52,7 +52,7 @@ class ApplicationLogView extends Component<ApplicationLogViewProps> {
             tabIndex: 0,
         };
     }
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -159,7 +159,7 @@ class ApplicationLogView extends Component<ApplicationLogViewProps> {
         });
         this.setState({ tabIndex: index });
     };
-    render() {
+    override render() {
         const {
 
             location: { pathname },

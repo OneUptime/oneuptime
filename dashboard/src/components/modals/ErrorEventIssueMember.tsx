@@ -13,11 +13,11 @@ interface ErrorEventIssueMemberProps {
 }
 
 class ErrorEventIssueMember extends Component<ErrorEventIssueMemberProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -48,7 +48,7 @@ class ErrorEventIssueMember extends Component<ErrorEventIssueMemberProps> {
         );
         return memberExist ? true : false;
     };
-    render() {
+    override render() {
 
         const { data, closeThisDialog, errorTrackerIssueMembers } = this.props;
 

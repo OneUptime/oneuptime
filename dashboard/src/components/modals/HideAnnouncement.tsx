@@ -28,13 +28,13 @@ interface HideAnnouncementProps {
 }
 
 class HideAnnouncement extends Component<HideAnnouncementProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetDeleteAnnouncement();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -96,7 +96,7 @@ class HideAnnouncement extends Component<HideAnnouncementProps> {
             });
     };
 
-    render() {
+    override render() {
         const {
 
             closeThisDialog,

@@ -9,12 +9,15 @@ import { resetTeamDelete } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 
-class ProjectRemoveUserModal extends Component {
-    componentDidMount() {
+class ProjectRemoveUserModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -40,7 +43,7 @@ class ProjectRemoveUserModal extends Component {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             teamUserDelete,

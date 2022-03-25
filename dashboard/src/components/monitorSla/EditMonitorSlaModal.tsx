@@ -79,13 +79,13 @@ class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
         selectData: [],
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -372,7 +372,7 @@ class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

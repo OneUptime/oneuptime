@@ -16,14 +16,14 @@ import {
     resetErrorMessage,
 } from '../../actions/group';
 
-export class GroupForm extends React.Component {
+export class GroupForm extends Component<ComponentProps> {
     state = {
         teamMemberIds: [],
         teams: [],
         projectTeam: [],
         teamMemberId: '',
     };
-    componentDidMount() {
+    override componentDidMount() {
 
         const projectTeam = this.props.teamMembers.filter((project: $TSFixMe) => {
 
@@ -73,7 +73,7 @@ export class GroupForm extends React.Component {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -213,7 +213,7 @@ export class GroupForm extends React.Component {
             teams: newTeam,
         });
     };
-    render() {
+    override render() {
         const {
 
             handleSubmit,

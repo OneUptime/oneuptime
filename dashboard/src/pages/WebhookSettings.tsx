@@ -26,7 +26,7 @@ class WebhookSettings extends Component<WebhookSettingsProps> {
         this.props = props;
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

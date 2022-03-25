@@ -19,11 +19,11 @@ interface DeleteCredentialModalProps {
 }
 
 class DeleteCredentialModal extends Component<DeleteCredentialModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -40,7 +40,7 @@ class DeleteCredentialModal extends Component<DeleteCredentialModalProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

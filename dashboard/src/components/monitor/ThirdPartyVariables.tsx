@@ -25,7 +25,7 @@ interface ThirdPartyVariablesProps {
 }
 
 class ThirdPartyVariables extends Component<ThirdPartyVariablesProps> {
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             currentProject,
@@ -63,7 +63,7 @@ class ThirdPartyVariables extends Component<ThirdPartyVariablesProps> {
         this.props.editMonitor(currentProject._id, postObj);
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

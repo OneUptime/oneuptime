@@ -31,11 +31,11 @@ class SlackTeamList extends React.Component<SlackTeamListProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.paginate('reset');
     }
@@ -76,7 +76,7 @@ class SlackTeamList extends React.Component<SlackTeamListProps> {
         paginate('next');
     };
 
-    render() {
+    override render() {
 
         const { projectId, teams } = this.props;
         const { error, requesting } = teams;

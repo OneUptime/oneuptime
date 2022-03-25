@@ -139,7 +139,7 @@ interface OnCallAlertBoxProps {
 }
 
 export class OnCallAlertBox extends Component<OnCallAlertBoxProps> {
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             subProjectId,
@@ -228,7 +228,7 @@ export class OnCallAlertBox extends Component<OnCallAlertBoxProps> {
         </button>
     );
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

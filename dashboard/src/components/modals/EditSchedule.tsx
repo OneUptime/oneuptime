@@ -60,13 +60,13 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
         monitorError: null,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -413,7 +413,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
             currentDate,
             selectedProjects,

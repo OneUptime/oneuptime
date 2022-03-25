@@ -4,7 +4,8 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "compile": "tsc"
     },
     "author": "",
     "license": "ISC",
@@ -14,6 +15,12 @@
         "@fortawesome/free-regular-svg-icons": "^6.1.0",
         "@fortawesome/free-solid-svg-icons": "^6.1.0",
         "@fortawesome/react-fontawesome": "^0.1.18",
+        "@types/react": "^17.0.43",
+        "common": "file:../common",
+        "prop-types": "^15.8.1",
         "react": "^17.0.2"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.23"
     }
 }

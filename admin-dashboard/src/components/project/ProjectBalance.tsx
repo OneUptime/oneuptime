@@ -33,7 +33,10 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-class ProjectBalance extends Component {
+class ProjectBalance extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     state = {
         MessageBoxId: uuidv4(),
         createTopUpModalId: uuidv4(),
@@ -83,7 +86,7 @@ class ProjectBalance extends Component {
             });
     };
 
-    render() {
+    override render() {
 
         const { balance } = this.props;
         return (

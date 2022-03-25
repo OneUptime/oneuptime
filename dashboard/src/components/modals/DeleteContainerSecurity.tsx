@@ -22,11 +22,11 @@ interface DeleteContainerSecurityProps {
 }
 
 class DeleteContainerSecurity extends Component<DeleteContainerSecurityProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -75,7 +75,7 @@ class DeleteContainerSecurity extends Component<DeleteContainerSecurityProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

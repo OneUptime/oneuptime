@@ -10,7 +10,10 @@ import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import ShouldRender from '../basic/ShouldRender';
 
-export class AuditLogsList extends Component {
+export class AuditLogsList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -37,7 +40,7 @@ export class AuditLogsList extends Component {
         }
     };
 
-    render() {
+    override render() {
         if (
 
             this.props.auditLogs &&

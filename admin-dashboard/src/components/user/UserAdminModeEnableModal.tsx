@@ -12,12 +12,15 @@ import { ValidateField } from '../../config';
 
 const formName = 'UserAdminModeEnableForm';
 
-class UserAdminModeEnableModal extends Component {
-    componentDidMount() {
+class UserAdminModeEnableModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -39,7 +42,7 @@ class UserAdminModeEnableModal extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

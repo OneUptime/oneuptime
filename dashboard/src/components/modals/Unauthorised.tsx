@@ -8,11 +8,11 @@ interface UnauthorisedProps {
 }
 
 class Unauthorised extends Component<UnauthorisedProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -27,7 +27,7 @@ class Unauthorised extends Component<UnauthorisedProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
 

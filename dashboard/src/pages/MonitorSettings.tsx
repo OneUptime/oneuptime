@@ -36,7 +36,7 @@ class MonitorSettings extends React.Component<MonitorSettingsProps> {
         );
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -62,7 +62,7 @@ class MonitorSettings extends React.Component<MonitorSettingsProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

@@ -21,11 +21,11 @@ interface DuplicateStatusPageConfirmationProps {
 }
 
 class DuplicateStatusPageConfirmation extends Component<DuplicateStatusPageConfirmationProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -65,9 +65,9 @@ class DuplicateStatusPageConfirmation extends Component<DuplicateStatusPageConfi
         });
     };
 
-    render() {
+    override render() {
         return (
-            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center" >
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

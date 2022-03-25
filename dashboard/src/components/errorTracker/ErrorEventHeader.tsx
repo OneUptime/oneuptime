@@ -44,7 +44,7 @@ class ErrorEventHeader extends Component<ErrorEventHeaderProps> {
             unresolveErrorEvent(errorTrackerIssue._id);
         }
     };
-    render() {
+    override render() {
         const {
 
             errorEvent,

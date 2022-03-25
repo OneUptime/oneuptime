@@ -104,13 +104,13 @@ interface CreateSubscriberProps {
 }
 
 class CreateSubscriber extends Component<CreateSubscriberProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.props.createSubscriberError('');
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -165,7 +165,7 @@ class CreateSubscriber extends Component<CreateSubscriberProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

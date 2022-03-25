@@ -72,7 +72,7 @@ class AdvancedIncidentNotification extends Component<AdvancedIncidentNotificatio
         }
     };
 
-    render() {
+    override render() {
         const {
 
             type,

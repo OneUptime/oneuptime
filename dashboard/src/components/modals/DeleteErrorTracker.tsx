@@ -13,11 +13,11 @@ interface DeleteErrorTrackerProps {
 }
 
 class DeleteErrorTracker extends Component<DeleteErrorTrackerProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class DeleteErrorTracker extends Component<DeleteErrorTrackerProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         let deleting = false;

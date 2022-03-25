@@ -19,7 +19,7 @@ interface ConsultingProps {
 }
 
 class Consulting extends Component<ConsultingProps> {
-    render() {
+    override render() {
         const settings = {
             infinite: true,
             speed: 1000,

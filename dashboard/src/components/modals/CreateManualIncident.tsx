@@ -41,7 +41,7 @@ class CreateManualIncident extends Component<CreateManualIncidentProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchCustomFields } = this.props;
 
@@ -51,7 +51,7 @@ class CreateManualIncident extends Component<CreateManualIncidentProps> {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -155,7 +155,7 @@ class CreateManualIncident extends Component<CreateManualIncidentProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

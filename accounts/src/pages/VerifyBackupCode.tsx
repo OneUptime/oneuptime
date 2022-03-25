@@ -26,7 +26,7 @@ export class VerifyBackupCode extends Component<VerifyBackupCodeProps> {
         this.props = props;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
     }
@@ -38,7 +38,7 @@ export class VerifyBackupCode extends Component<VerifyBackupCodeProps> {
         this.props.verifyBackupCode({ ...values, email });
     };
 
-    render() {
+    override render() {
 
         if (!this.props.login.user.email)
 

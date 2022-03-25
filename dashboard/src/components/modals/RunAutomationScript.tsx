@@ -24,11 +24,11 @@ interface RunAutomationScriptProps {
 }
 
 class RunAutomationScript extends Component<RunAutomationScriptProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -71,7 +71,7 @@ class RunAutomationScript extends Component<RunAutomationScriptProps> {
             closeThisDialog();
         });
     };
-    render() {
+    override render() {
         const {
 
             closeThisDialog,

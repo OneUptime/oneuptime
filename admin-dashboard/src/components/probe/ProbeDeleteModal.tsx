@@ -9,12 +9,15 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { deleteProbe } from '../../actions/probe';
 
-class ProbeDeleteModal extends Component {
-    componentDidMount() {
+class ProbeDeleteModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -40,7 +43,7 @@ class ProbeDeleteModal extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, error, closeThisDialog } = this.props;
 

@@ -19,11 +19,11 @@ interface DeleteIncidentProps {
 }
 
 class DeleteIncident extends Component<DeleteIncidentProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -74,7 +74,7 @@ class DeleteIncident extends Component<DeleteIncidentProps> {
         return promise;
     };
 
-    render() {
+    override render() {
 
         const { deleting, closeModal } = this.props;
 

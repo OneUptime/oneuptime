@@ -88,7 +88,7 @@ class StatusPage extends Component<StatusPageProps> {
         });
     };
 
-    async componentDidMount() {
+    async override componentDidMount() {
 
         const projectId = this.props.projectId && this.props.projectId;
         const statusPageSlug = history.location.pathname
@@ -284,7 +284,7 @@ class StatusPage extends Component<StatusPageProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

@@ -35,13 +35,16 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class AdminNotes extends Component {
+export class AdminNotes extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     submitForm = async (values: $TSFixMe) => {
 
         await this.props.addNote(this.props.id, values.adminNotes);
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, requesting } = this.props;
         return (

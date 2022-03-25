@@ -115,7 +115,7 @@ export class SmsSmtpBox extends Component<SmsSmtpBoxProps> {
         this.props.setSmtpConfig(e.target.checked);
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
         return (

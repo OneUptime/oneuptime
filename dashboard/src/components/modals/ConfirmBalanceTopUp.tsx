@@ -13,11 +13,11 @@ interface ConfirmBalanceTopUpProps {
 }
 
 class ConfirmBalanceTopUp extends Component<ConfirmBalanceTopUpProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class ConfirmBalanceTopUp extends Component<ConfirmBalanceTopUpProps> {
         }
     };
 
-    render() {
+    override render() {
         let recharging = false;
 
         if (this.props.isRequesting) {

@@ -5,12 +5,12 @@ import RoutingNumberList from './RoutingNumberList';
 import RoutingNumberButton from './RoutingNumberButton';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 
-interface RoutingNumberBoxProps {}
+interface RoutingNumberBoxProps { }
 
 class RoutingNumberBox extends React.Component<RoutingNumberBoxProps> {
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12" >
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">

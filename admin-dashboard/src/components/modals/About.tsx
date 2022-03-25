@@ -3,12 +3,15 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-class About extends Component {
-    componentDidMount() {
+class About extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -23,7 +26,7 @@ class About extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { versions, closeThisDialog, probes } = this.props;
         const currentYear = new Date().getFullYear();

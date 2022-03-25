@@ -54,7 +54,7 @@ class CallRouting extends Component<CallRoutingProps> {
         resetIdCounter();
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -93,7 +93,7 @@ class CallRouting extends Component<CallRoutingProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

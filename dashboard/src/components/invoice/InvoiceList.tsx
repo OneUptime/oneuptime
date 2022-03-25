@@ -22,7 +22,7 @@ export class InvoiceList extends Component<InvoiceListProps> {
         this.props = props;
     }
 
-    render() {
+    override render() {
         const {
 
             has_more,

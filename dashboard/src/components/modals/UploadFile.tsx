@@ -68,11 +68,11 @@ class UploadFile extends Component<UploadFileProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -270,7 +270,7 @@ class UploadFile extends Component<UploadFileProps> {
         reader.readAsText(files[0], 'UTF-8');
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

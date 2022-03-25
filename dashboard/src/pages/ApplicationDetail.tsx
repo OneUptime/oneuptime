@@ -3,8 +3,11 @@ import React, { Component } from 'react';
 import { Fade } from 'react-awesome-reveal';
 import ApplicationSecurityDetail from '../components/security/ApplicationSecurityDetail';
 
-class ApplicationDetail extends Component {
-    render() {
+class ApplicationDetail extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
             <Fade>
                 <div className="Margin-vertical--12">
@@ -16,7 +19,7 @@ class ApplicationDetail extends Component {
                         </div>
                     </div>
                 </div>
-            </Fade>
+            </Fade >
         );
     }
 }

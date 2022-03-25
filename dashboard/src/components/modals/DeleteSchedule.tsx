@@ -22,11 +22,11 @@ interface DeleteScheduleProps {
 }
 
 class DeleteSchedule extends Component<DeleteScheduleProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -67,7 +67,7 @@ class DeleteSchedule extends Component<DeleteScheduleProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, closeThisDialog, deleteError } = this.props;
         return (

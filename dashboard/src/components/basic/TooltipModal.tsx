@@ -10,7 +10,7 @@ interface TooltipModalProps {
 }
 
 class TooltipModal extends Component<TooltipModalProps> {
-    render() {
+    override render() {
 
         const { title, body, closeThisDialog } = this.props;
         return (

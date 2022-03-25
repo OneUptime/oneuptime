@@ -41,14 +41,14 @@ class DockerCredential extends Component<DockerCredentialProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, getDockerCredentials } = this.props;
         // load all the Docker Credentials
         getDockerCredentials({ projectId });
     }
 
-    render() {
+    override render() {
         const {
 
             projectId,

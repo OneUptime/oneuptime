@@ -13,11 +13,11 @@ interface DeleteIncidentMessageProps {
 }
 
 class DeleteIncidentMessage extends Component<DeleteIncidentMessageProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class DeleteIncidentMessage extends Component<DeleteIncidentMessageProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         let deleting = false;

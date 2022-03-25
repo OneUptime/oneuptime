@@ -25,7 +25,7 @@ export class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
         externalStatusPageModalId: uuidv4(),
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.fetchExternalStatusPages(
 
@@ -35,7 +35,7 @@ export class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
         );
     }
 
-    render() {
+    override render() {
 
         const { statusPage, openModal } = this.props;
         const { externalStatusPageModalId } = this.state;

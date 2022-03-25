@@ -34,7 +34,7 @@ class MonitorCustomFields extends Component<MonitorCustomFieldsProps> {
         this.limit = 10;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchCustomFields, currentProject } = this.props;
         const projectId = currentProject._id;
@@ -61,7 +61,7 @@ class MonitorCustomFields extends Component<MonitorCustomFieldsProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

@@ -1,7 +1,6 @@
-import ExceptionCode from "./exceptionCode";
+import ExceptionCode from './exceptionCode';
 
 export default class Exception extends Error {
-
     private _code: ExceptionCode = ExceptionCode.GeneralException;
 
     public get code(): ExceptionCode {
@@ -16,7 +15,4 @@ export default class Exception extends Error {
         super(message);
         this.code = code;
     }
-
 }
-
-

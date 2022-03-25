@@ -18,7 +18,10 @@ import { fetchProjectTeam } from '../actions/project';
 import ProjectBalance from '../components/project/ProjectBalance';
 import ProjectDomain from '../components/project/ProjectDomain';
 
-class Project extends Component {
+class Project extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     componentDidMount = async () => {
 
         this.props.fetchProject(this.props.slug);
@@ -47,9 +50,9 @@ class Project extends Component {
         }
     }
 
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12" >
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">

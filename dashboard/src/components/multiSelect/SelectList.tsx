@@ -65,14 +65,14 @@ class SelectList extends React.Component<SelectListProps> {
             </li>
         ));
     }
-    render() {
+    override render() {
         return (
             <ul
                 className="db-MultiSelect-select-list"
                 style={{ margin: 0, paddingLeft: 0 }}
             >
                 {this.renderItems()}
-            </ul>
+            </ul >
         );
     }
 }

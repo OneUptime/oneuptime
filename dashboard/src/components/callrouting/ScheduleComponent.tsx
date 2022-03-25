@@ -60,7 +60,7 @@ interface ScheduleComponentProps {
 }
 
 export class ScheduleComponent extends Component<ScheduleComponentProps> {
-    render() {
+    override render() {
         const {
 
             data,

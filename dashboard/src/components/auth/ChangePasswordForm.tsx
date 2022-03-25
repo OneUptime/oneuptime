@@ -31,9 +31,9 @@ export class ChangePasswordForm extends Component<ChangePasswordFormProps> {
         this.props.changePassword(values);
     };
 
-    render() {
+    override render() {
         return (
-            <div id="main-body" className="box css">
+            <div id="main-body" className="box css" >
                 <div className="inner">
                     <form
 

@@ -20,7 +20,7 @@ export default class RenderBasedOnRole extends Component<RenderBasedOnRoleProps>
         super(props);
     }
 
-    render() {
+    override render() {
         const {
 
             visibleForOwner,

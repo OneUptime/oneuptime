@@ -29,7 +29,7 @@ interface IncidentCustomFieldsProps {
 }
 
 class IncidentCustomFields extends Component<IncidentCustomFieldsProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchCustomFields, currentProject, limit } = this.props;
         const projectId = currentProject._id;
@@ -56,7 +56,7 @@ class IncidentCustomFields extends Component<IncidentCustomFieldsProps> {
         this.props.paginate('next');
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

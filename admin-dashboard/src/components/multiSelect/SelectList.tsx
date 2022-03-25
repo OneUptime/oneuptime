@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import SelectItem from './SelectItem';
 
-class SelectList extends React.Component {
+class SelectList extends Component<ComponentProps> {
     handleSelectionChanged = (option: $TSFixMe, checked: $TSFixMe) => {
 
         const { selected, onSelectedChanged, disabled } = this.props;
@@ -55,14 +55,14 @@ class SelectList extends React.Component {
             </li>
         ));
     }
-    render() {
+    override render() {
         return (
             <ul
                 className="db-MultiSelect-select-list"
                 style={{ margin: 0, paddingLeft: 0 }}
             >
                 {this.renderItems()}
-            </ul>
+            </ul >
         );
     }
 }

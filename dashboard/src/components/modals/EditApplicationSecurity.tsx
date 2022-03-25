@@ -31,11 +31,11 @@ interface EditApplicationSecurityProps {
 }
 
 class EditApplicationSecurity extends Component<EditApplicationSecurityProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -93,7 +93,7 @@ class EditApplicationSecurity extends Component<EditApplicationSecurityProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

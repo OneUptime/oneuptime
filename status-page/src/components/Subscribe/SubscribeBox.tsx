@@ -44,7 +44,7 @@ class SubscribeBox extends Component<SubscribeBoxProps> {
 
         this.props.selectedMenu(data);
     };
-    render() {
+    override render() {
 
         const { statusPage } = this.props;
         const {

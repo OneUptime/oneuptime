@@ -15,11 +15,11 @@ interface AddSeatsProps {
 }
 
 class AddSeats extends Component<AddSeatsProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -36,9 +36,9 @@ class AddSeats extends Component<AddSeatsProps> {
         }
     };
 
-    render() {
+    override render() {
         return (
-            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center" >
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

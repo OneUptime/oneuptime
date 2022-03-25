@@ -13,7 +13,10 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { history } from '../../store';
 
-export class ExitProjectBox extends Component {
+export class ExitProjectBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleClick = () => {
         const {
 
@@ -47,7 +50,7 @@ export class ExitProjectBox extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

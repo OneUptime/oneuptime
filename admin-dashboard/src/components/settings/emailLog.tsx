@@ -10,9 +10,12 @@ import {
     emailLogStatusChange,
 } from '../../actions/emailLogs';
 
-class EmailLog extends Component {
+class EmailLog extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleKeyBoard: $TSFixMe;
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchEmailLogStatus();
     }
@@ -35,7 +38,7 @@ class EmailLog extends Component {
 
         this.props.emailLogStatusChange({ status: values.emailStatusToggler });
     };
-    render() {
+    override render() {
 
         const { changeEmailLogStatus, handleSubmit } = this.props;
         return (

@@ -2,12 +2,15 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
-class CallLogsErrorViewModal extends Component {
-    componentDidMount() {
+class CallLogsErrorViewModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -21,7 +24,7 @@ class CallLogsErrorViewModal extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, error, closeThisDialog, content } = this.props;
         return (

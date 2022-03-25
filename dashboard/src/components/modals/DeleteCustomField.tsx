@@ -19,11 +19,11 @@ interface DeleteCustomFieldProps {
 }
 
 class DeleteCustomField extends Component<DeleteCustomFieldProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -67,7 +67,7 @@ class DeleteCustomField extends Component<DeleteCustomFieldProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, modalId, closeModal, deleteError } = this.props;
         return (

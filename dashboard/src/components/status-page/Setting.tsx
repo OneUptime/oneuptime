@@ -25,7 +25,10 @@ function validate(_values: $TSFixMe) {
     return error;
 }
 
-export class Setting extends Component {
+export class Setting extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     state = {
         verifyModalId: uuidv4(),
         deleteDomainModalId: uuidv4(),
@@ -155,7 +158,7 @@ export class Setting extends Component {
         });
     };
 
-    render() {
+    override render() {
         let statusPageId = '';
         let statusPageSlug = '';
         let hosted = '';

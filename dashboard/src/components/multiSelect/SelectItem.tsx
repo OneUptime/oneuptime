@@ -60,7 +60,7 @@ class SelectItem extends React.Component<SelectItemProps> {
         hovered: false,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.updateFocus();
     }
 
@@ -104,7 +104,7 @@ class SelectItem extends React.Component<SelectItemProps> {
 
         e.preventDefault();
     };
-    render() {
+    override render() {
 
         const { option, checked, disabled, ItemRenderer, focused } = this.props;
         const { hovered } = this.state;

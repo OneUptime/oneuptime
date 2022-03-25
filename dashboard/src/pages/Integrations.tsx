@@ -44,7 +44,7 @@ class Integrations extends Component<IntegrationsProps> {
             tabIndex: index,
         });
     };
-    render() {
+    override render() {
         const {
 
             location: { pathname },

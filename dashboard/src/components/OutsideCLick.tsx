@@ -5,7 +5,10 @@ import React, { Component } from 'react';
  */
 
 export default (ComposedComponent: $TSFixMe, extras: $TSFixMe) => {
-    class OutsideCkick extends Component {
+    class OutsideCkick extends Component<ComponentProps> {
+
+        public static propTypes = {};
+
         wrapperRef: $TSFixMe;
         constructor(props: $TSFixMe) {
             super(props);
@@ -14,11 +17,11 @@ export default (ComposedComponent: $TSFixMe, extras: $TSFixMe) => {
             this.handleClickOutside = this.handleClickOutside.bind(this);
         }
 
-        componentDidMount() {
+        override componentDidMount() {
             document.addEventListener('mousedown', this.handleClickOutside);
         }
 
-        componentWillUnmount() {
+        override componentWillUnmount() {
             document.removeEventListener('mousedown', this.handleClickOutside);
         }
 
@@ -38,12 +41,12 @@ export default (ComposedComponent: $TSFixMe, extras: $TSFixMe) => {
             }
         };
 
-        render() {
+        override render() {
             return (
-                <div ref={this.setWrapperRef}>
+                <div ref={this.setWrapperRef} >
                     {' '}
-                    <ComposedComponent {...this.props} />{' '}
-                </div>
+                    < ComposedComponent {...this.props} />{' '}
+                </div >
             );
         }
     }

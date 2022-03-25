@@ -18,7 +18,7 @@ export class EscalationSummary extends Component<EscalationSummaryProps> {
         this.state = {};
     }
 
-    render() {
+    override render() {
 
         const { onEditClicked, escalations, teamMembers, groups } = this.props;
 

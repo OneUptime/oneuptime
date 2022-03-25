@@ -27,11 +27,11 @@ interface DeleteIncidentNoteTemplateProps {
 }
 
 class DeleteIncidentNoteTemplate extends Component<DeleteIncidentNoteTemplateProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -80,7 +80,7 @@ class DeleteIncidentNoteTemplate extends Component<DeleteIncidentNoteTemplatePro
         });
     };
 
-    render() {
+    override render() {
 
         const { deletingTemplate, deleteError } = this.props;
         return (

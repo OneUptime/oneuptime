@@ -186,7 +186,7 @@ const smtpOptions = [
     },
 ];
 
-export class Component extends React.Component {
+export class Component extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -195,7 +195,7 @@ export class Component extends React.Component {
         };
     }
 
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchSettings(settingsType);
     }
@@ -284,7 +284,7 @@ export class Component extends React.Component {
         this.props.saveSettings(settingsType, values);
     };
 
-    render() {
+    override render() {
 
         const { settings, handleSubmit, smtpForm } = this.props;
         return (

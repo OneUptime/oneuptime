@@ -117,7 +117,7 @@ export class ResponseComponent extends Component<ResponseComponentProps> {
         this.props.addCriterion({ type, id: uuidv4() });
     }
 
-    render() {
+    override render() {
         const {
 
             type,

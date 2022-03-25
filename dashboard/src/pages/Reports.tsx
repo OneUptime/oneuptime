@@ -175,7 +175,7 @@ export class Reports extends Component<ReportsProps> {
         });
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

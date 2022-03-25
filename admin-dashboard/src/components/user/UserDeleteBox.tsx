@@ -10,7 +10,10 @@ import { deleteUser } from '../../actions/user';
 import UserDeleteModal from './UserDeleteModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserDeleteBox extends Component {
+export class UserDeleteBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -44,7 +47,7 @@ export class UserDeleteBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

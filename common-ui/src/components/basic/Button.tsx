@@ -1,42 +1,61 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { MouseOnClick, KeyboardEventProp } from '../../types/htmlEvents';
 
-export default class Button extends Component {
-    constructor(props: $TSFixMe) {
+export enum ShortcutKey {
+    Enter = "Enter",
+    Esc = "Esc",
+    New = "N",
+    Settings = "S"
+}
+
+export interface ComponentProps {
+    title: string;
+    onClick: MouseOnClick;
+    disabled?: boolean;
+    id: string;
+    shortcutKey?: ShortcutKey;
+}
+
+export default class Button extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    constructor(props: ComponentProps) {
         super(props);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         if (this.props.shortcutKey) {
             window.addEventListener('keydown', this.handleKeyboard.bind(this));
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         if (this.props.shortcutKey) {
             window.removeEventListener('keydown', this.handleKeyboard.bind(this));
         }
     }
 
-    handleKeyboard(event: $TSFixMe) {
+    handleKeyboard(event: KeyboardEventProp) {
 
         const { shortcutKey, onClick } = this.props;
 
-        if (event.target.localName === 'body' && event.key) {
+        if (event.target instanceof HTMLBodyElement && event.key && shortcutKey) {
             switch (event.key) {
                 case shortcutKey.toUpperCase():
                 case shortcutKey.toLowerCase():
                     onClick && onClick();
-                    return false;
+                    return;
                 default:
-                    return false;
+                    return;
             }
         }
     }
 
-    render() {
+    override render() {
 
         const { title, shortcutKey, id, onClick, disabled } = this.props;
 

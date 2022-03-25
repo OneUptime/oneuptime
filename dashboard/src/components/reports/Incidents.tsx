@@ -35,7 +35,7 @@ class Incidents extends Component<IncidentsProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             getIncidents,
@@ -82,7 +82,7 @@ class Incidents extends Component<IncidentsProps> {
         }
     }
 
-    render() {
+    override render() {
 
         const { incidents } = this.state;
 

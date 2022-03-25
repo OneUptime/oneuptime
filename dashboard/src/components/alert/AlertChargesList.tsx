@@ -28,7 +28,7 @@ export class AlertChargesList extends Component<AlertChargesListProps> {
         this.props = props;
         this.state = {};
     }
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchAlertCharges, getProjectBalance } = this.props;
 
@@ -62,7 +62,7 @@ export class AlertChargesList extends Component<AlertChargesListProps> {
         this.setState({ page: !this.state.page ? 2 : this.state.page + 1 });
     };
 
-    render() {
+    override render() {
         const {
 
             alertCharges,

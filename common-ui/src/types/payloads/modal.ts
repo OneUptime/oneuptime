@@ -1,9 +1,9 @@
-export type OpenModalAction = {
+export type OpenModalActionPayload = {
     id: string;
     onClose: Function;
     content: string;
 };
 
-export type CloseModalAction = {
+export type CloseModalActionPayload = {
     id: string;
 };

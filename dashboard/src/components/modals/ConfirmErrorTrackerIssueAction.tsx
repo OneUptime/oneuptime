@@ -13,11 +13,11 @@ interface ConfirmErrorTrackerIssueActionProps {
 }
 
 class ConfirmErrorTrackerIssueAction extends Component<ConfirmErrorTrackerIssueActionProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class ConfirmErrorTrackerIssueAction extends Component<ConfirmErrorTrackerIssueA
         }
     };
 
-    render() {
+    override render() {
         let deleting = false;
         if (
 

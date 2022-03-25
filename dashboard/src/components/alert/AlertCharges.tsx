@@ -36,7 +36,7 @@ class AlertCharge extends Component<AlertChargeProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             alertCharges,

@@ -35,11 +35,11 @@ export class ProfileMenu extends Component<ProfileMenuProps> {
         this.state = { aboutId: uuidv4() };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleShortcut);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleShortcut);
     }
 
@@ -93,7 +93,7 @@ export class ProfileMenu extends Component<ProfileMenuProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { profileSettings, position } = this.props;
 

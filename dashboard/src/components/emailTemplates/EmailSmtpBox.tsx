@@ -147,7 +147,7 @@ export class EmailSmtpBox extends Component<EmailSmtpBoxProps> {
         this.props.deleteSmtpConfigError('');
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, change } = this.props;
 

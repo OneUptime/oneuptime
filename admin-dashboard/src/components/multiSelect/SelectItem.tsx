@@ -36,14 +36,14 @@ DefaultRenderer.propTypes = {
 };
 //#endregion
 
-class SelectItem extends React.Component {
+class SelectItem extends Component<ComponentProps> {
     handleClick: $TSFixMe;
     labelRef: $TSFixMe;
     state = {
         hovered: false,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.updateFocus();
     }
 
@@ -87,7 +87,7 @@ class SelectItem extends React.Component {
 
         e.preventDefault();
     };
-    render() {
+    override render() {
 
         const { option, checked, disabled, ItemRenderer, focused } = this.props;
         const { hovered } = this.state;

@@ -44,11 +44,11 @@ class EditComponent extends Component<EditComponentProps> {
         super(props);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -170,7 +170,7 @@ class EditComponent extends Component<EditComponentProps> {
         </div>
     );
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

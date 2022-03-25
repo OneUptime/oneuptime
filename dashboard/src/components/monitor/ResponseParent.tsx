@@ -24,7 +24,7 @@ export class ResponseParent extends Component<ResponseParentProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }
-    render() {
+    override render() {
 
         const { fields, bodyfield, level, type, criterionType } = this.props;
         return (

@@ -33,11 +33,11 @@ export class SubProjects extends Component<SubProjectsProps> {
         this.state = { subProjectModalId: uuidv4(), page: 1 };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -107,7 +107,7 @@ export class SubProjects extends Component<SubProjectsProps> {
             });
     };
 
-    render() {
+    override render() {
 
         const { limit, skip, count, subProjectState } = this.props;
         const { subProjects } = subProjectState;

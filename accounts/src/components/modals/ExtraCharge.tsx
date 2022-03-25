@@ -10,11 +10,11 @@ interface ExtraChargeProps {
 }
 
 class ExtraCharge extends React.Component<ExtraChargeProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     handleKeyBoard = (e: $TSFixMe) => {
@@ -29,7 +29,7 @@ class ExtraCharge extends React.Component<ExtraChargeProps> {
                 return false;
         }
     };
-    render() {
+    override render() {
         return (
             <div>
                 <div
@@ -94,7 +94,7 @@ class ExtraCharge extends React.Component<ExtraChargeProps> {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
         );
     }
 }

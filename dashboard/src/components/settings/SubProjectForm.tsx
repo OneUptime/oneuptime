@@ -32,11 +32,11 @@ interface SubProjectFormProps {
 }
 
 export class SubProjectForm extends React.Component<SubProjectFormProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -121,7 +121,7 @@ export class SubProjectForm extends React.Component<SubProjectFormProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

@@ -57,7 +57,7 @@ class ComponentSettingsAdvanced extends Component<ComponentSettingsAdvancedProps
         return promise;
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

@@ -10,7 +10,10 @@ import { v4 as uuidv4 } from 'uuid';
 import About from '../modals/About';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProfileMenu extends Component {
+export class ProfileMenu extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { aboutId: uuidv4() };
@@ -34,11 +37,11 @@ export class ProfileMenu extends Component {
         });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleShortcut);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleShortcut);
     }
 
@@ -52,7 +55,7 @@ export class ProfileMenu extends Component {
         }
     };
 
-    render() {
+    override render() {
         const name = User.getName();
         const email = User.getEmail();
 

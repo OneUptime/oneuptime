@@ -43,11 +43,11 @@ class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps
             changeMonitorSuccessMessageBoxId: uuidv4(),
         };
     }
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -146,7 +146,7 @@ class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps
         });
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

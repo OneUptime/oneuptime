@@ -20,7 +20,7 @@ interface SsoPageProps {
 }
 
 class SsoPage extends Component<SsoPageProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         const currentProject = JSON.parse(User.getProject());
         const isScalePlan = currentProject?.stripePlanId
@@ -32,7 +32,7 @@ class SsoPage extends Component<SsoPageProps> {
             history.push(`/dashboard/project/${currentProject.slug}`);
         }
     }
-    render() {
+    override render() {
         const {
 
             location: { pathname },

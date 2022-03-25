@@ -11,9 +11,9 @@ interface MSTeamsBoxProps {
 }
 
 class MSTeamsBox extends React.Component<MSTeamsBoxProps> {
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12" >
                 <div className="db-RadarRulesLists-page">
                     <div className="Box-root Margin-bottom--12">
                         <div className="bs-ContentSection Card-root Card-shadow--medium">

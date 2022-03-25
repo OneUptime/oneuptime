@@ -36,12 +36,12 @@ class Billing extends Component<BillingProps> {
         this.props = props;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.getSmtpConfig(this.props.currentProjectId);
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

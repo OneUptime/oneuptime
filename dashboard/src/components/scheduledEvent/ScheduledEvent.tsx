@@ -36,7 +36,7 @@ class ScheduledEventBox extends Component<ScheduledEventBoxProps> {
         this.state = {};
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             projectId,
@@ -94,7 +94,7 @@ class ScheduledEventBox extends Component<ScheduledEventBoxProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             profileSettings,

@@ -27,12 +27,12 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
     }
 
-    render() {
+    override render() {
 
         const { masterAdminExists, requestingMasterAdmin } = this.props;
 

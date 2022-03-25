@@ -25,23 +25,23 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
     }
 
-    render() {
+    override render() {
         return (
             <div id="wrap" style={{ paddingTop: 0 }}>
                 {/* Header */}
-                <div id="header">
+                < div id="header" >
                     <h1>
                         <a href="/">OneUptime</a>
                     </h1>
-                </div>
+                </div >
                 {/* RESET PASSWORD BOX */}
 
-                <ChangePasswordForm token={this.token} />
+                < ChangePasswordForm token={this.token} />
                 <div className="below-box">
                     <p>
                         <Link to="/login">
@@ -69,7 +69,7 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
                         </li>
                     </ul>
                 </div>
-            </div>
+            </div >
         );
     }
 }

@@ -173,7 +173,7 @@ class NewComponent extends Component<NewComponentProps> {
         this.props.editComponentSwitch(this.props.index);
     };
 
-    render() {
+    override render() {
         const requesting =
 
             (this.props.component.newComponent.requesting &&

@@ -246,7 +246,7 @@ export class Branding extends Component<BrandingProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
         let faviconImage = <span />;

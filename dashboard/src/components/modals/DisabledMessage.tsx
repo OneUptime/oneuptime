@@ -8,11 +8,11 @@ interface DisabledMessageProps {
 }
 
 class DisabledMessage extends Component<DisabledMessageProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -27,7 +27,7 @@ class DisabledMessage extends Component<DisabledMessageProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         return (

@@ -20,7 +20,7 @@ interface ScheduledEventProps {
 }
 
 class ScheduledEvent extends Component<ScheduledEventProps> {
-    render() {
+    override render() {
         const {
 
             location: { pathname },

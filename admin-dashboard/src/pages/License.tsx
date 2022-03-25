@@ -5,15 +5,18 @@ import PropTypes from 'prop-types';
 import LicenseSetting from '../components/license/LicenseSetting';
 import { fetchLicense } from '../actions/license';
 
-class License extends Component {
+class License extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     componentDidMount = async () => {
 
         await this.props.fetchLicense();
     };
 
-    render() {
+    override render() {
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12" >
                 <div>
                     <div>
                         <div className="db-BackboneViewContainer">

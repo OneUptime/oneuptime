@@ -21,7 +21,10 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-class ProjectUpgrade extends Component {
+class ProjectUpgrade extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     enterprisePlan: $TSFixMe;
     getPlansFromToggle: $TSFixMe;
     plansArr: $TSFixMe;
@@ -116,7 +119,7 @@ class ProjectUpgrade extends Component {
         changePlan(_id, values.planId, name, oldPlan, newPlan);
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, isRequesting, error, activeForm } = this.props;
 

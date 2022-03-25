@@ -23,7 +23,7 @@ class Dropdown extends React.Component<DropdownProps> {
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.addEventListener('touchstart', this.handleDocumentClick);
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
@@ -112,7 +112,7 @@ class Dropdown extends React.Component<DropdownProps> {
         );
     };
 
-    render() {
+    override render() {
         const { expanded, hasFocus } = this.state;
 
         const { children, isLoading, disabled } = this.props;

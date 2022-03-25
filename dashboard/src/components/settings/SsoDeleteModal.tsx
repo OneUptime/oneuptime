@@ -7,11 +7,11 @@ interface SsoDeleteModalProps {
 }
 
 class SsoDeleteModal extends Component<SsoDeleteModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -28,7 +28,7 @@ class SsoDeleteModal extends Component<SsoDeleteModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { confirmThisDialog, closeThisDialog } = this.props;
 

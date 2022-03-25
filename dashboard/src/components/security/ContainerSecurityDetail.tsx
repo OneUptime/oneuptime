@@ -128,7 +128,7 @@ class ContainerSecurityDetail extends Component<ContainerSecurityDetailProps> {
             }
         }
     }
-    componentWillUnMount() {
+    override componentWillUnmount() {
 
         socket.removeListener(`security_${this.props.containerSecurity._id}`);
 
@@ -138,7 +138,7 @@ class ContainerSecurityDetail extends Component<ContainerSecurityDetailProps> {
         );
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         resetIdCounter();
         const {
 
@@ -191,7 +191,7 @@ class ContainerSecurityDetail extends Component<ContainerSecurityDetailProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             containerSecurity,

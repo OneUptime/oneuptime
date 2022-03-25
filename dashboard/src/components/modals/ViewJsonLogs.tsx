@@ -14,11 +14,11 @@ interface ViewJsonLogsProps {
 }
 
 class ViewJsonLogs extends Component<ViewJsonLogsProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -40,7 +40,7 @@ class ViewJsonLogs extends Component<ViewJsonLogsProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { viewJsonModalId, title, jsonLog, rootName } = this.props.data;
         return (

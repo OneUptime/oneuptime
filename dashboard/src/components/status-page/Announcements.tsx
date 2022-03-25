@@ -37,7 +37,7 @@ class Announcements extends Component<AnnouncementsProps> {
         };
     }
 
-    async componentDidMount() {
+    async override componentDidMount() {
 
         const { fetchAnnouncements, projectId, statusPage } = this.props;
 
@@ -88,7 +88,7 @@ class Announcements extends Component<AnnouncementsProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { createAnnounceentModalId, deleteModalId } = this.state;
         const {

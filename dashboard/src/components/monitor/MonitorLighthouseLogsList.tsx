@@ -47,7 +47,7 @@ export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsLi
         }
     };
 
-    render() {
+    override render() {
 
         const { deleteSiteUrlModalId } = this.state;
 

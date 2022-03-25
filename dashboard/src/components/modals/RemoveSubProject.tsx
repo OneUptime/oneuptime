@@ -25,11 +25,11 @@ interface RemoveSubProjectProps {
 }
 
 class RemoveSubProject extends Component<RemoveSubProjectProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -71,7 +71,7 @@ class RemoveSubProject extends Component<RemoveSubProjectProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             subProjectDelete,

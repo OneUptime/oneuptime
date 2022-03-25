@@ -11,7 +11,7 @@ export default class TableColumns extends Component<TableColumnsProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { columns } = this.props;
 

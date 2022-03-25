@@ -19,11 +19,11 @@ interface EditIncidentProps {
 }
 
 class EditIncident extends Component<EditIncidentProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -59,7 +59,7 @@ class EditIncident extends Component<EditIncidentProps> {
             .then(() => this.props.closeThisDialog());
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

@@ -49,11 +49,11 @@ class CreateAnnouncement extends Component<CreateAnnouncementProps> {
     state = {
         monitorError: null,
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -357,7 +357,7 @@ class CreateAnnouncement extends Component<CreateAnnouncementProps> {
         </>;
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

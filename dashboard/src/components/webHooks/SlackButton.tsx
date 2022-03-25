@@ -12,7 +12,7 @@ interface SlackButtonProps {
 }
 
 class SlackButton extends React.Component<SlackButtonProps> {
-    render() {
+    override render() {
 
         const { monitorId } = this.props;
 

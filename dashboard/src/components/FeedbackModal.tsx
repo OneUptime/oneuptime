@@ -51,7 +51,7 @@ export class FeedbackModal extends Component<FeedbackModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

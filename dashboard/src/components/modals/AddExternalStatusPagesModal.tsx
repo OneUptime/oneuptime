@@ -23,11 +23,11 @@ interface AddExternalStatusPagesModalProps {
 }
 
 class AddExternalStatusPagesModal extends Component<AddExternalStatusPagesModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -70,7 +70,7 @@ class AddExternalStatusPagesModal extends Component<AddExternalStatusPagesModalP
         });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

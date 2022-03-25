@@ -23,7 +23,10 @@ import DataPathHoC from '../DataPathHoC';
 import { TeamListLoader } from '../basic/Loader';
 import DropDownMenu from '../basic/DropDownMenu';
 
-class ProjectUser extends Component {
+class ProjectUser extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -316,7 +319,7 @@ class ProjectUser extends Component {
                 }
             });
     };
-    render() {
+    override render() {
         const {
 
             count,

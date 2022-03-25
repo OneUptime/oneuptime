@@ -36,7 +36,7 @@ class SmsTemplates extends Component<SmsTemplatesProps> {
         this.props.getSmtpConfig(this.props.currentProject._id);
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -49,7 +49,7 @@ class SmsTemplates extends Component<SmsTemplatesProps> {
         }
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

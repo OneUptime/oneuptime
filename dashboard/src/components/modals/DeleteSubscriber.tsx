@@ -13,11 +13,11 @@ interface DeleteSubscriberProps {
 }
 
 class DeleteSubscriber extends Component<DeleteSubscriberProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class DeleteSubscriber extends Component<DeleteSubscriberProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { deleting } = this.props.data;
 

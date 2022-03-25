@@ -24,7 +24,7 @@ interface GroupsProps {
 }
 
 class Groups extends Component<GroupsProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.getGroups();
 
@@ -83,7 +83,7 @@ class Groups extends Component<GroupsProps> {
             });
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

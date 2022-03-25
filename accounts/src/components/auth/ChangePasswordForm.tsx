@@ -35,7 +35,7 @@ export class ChangePasswordForm extends Component<ChangePasswordFormProps> {
         this.props.changePassword(values);
     };
 
-    render() {
+    override render() {
 
         const changePasswordStateError = this.props.changePasswordState.error;
         let header;

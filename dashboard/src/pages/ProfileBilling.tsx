@@ -23,7 +23,7 @@ class ProfileBilling extends Component<ProfileBillingProps> {
         this.props = props;
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

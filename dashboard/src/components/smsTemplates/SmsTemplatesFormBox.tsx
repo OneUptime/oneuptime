@@ -82,7 +82,7 @@ export class SmsTemplatesFormBox extends Component<SmsTemplatesFormBoxProps> {
             id: this.state.openSmsTemplateResetModalId,
         });
     }
-    render() {
+    override render() {
         const {
 
             template,

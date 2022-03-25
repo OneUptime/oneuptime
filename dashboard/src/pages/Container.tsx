@@ -100,7 +100,7 @@ class Container extends Component<ContainerProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             projectId,
@@ -176,7 +176,7 @@ class Container extends Component<ContainerProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         socket.removeListener(
 
             `createContainerSecurity-${this.props.componentId}`
@@ -189,7 +189,7 @@ class Container extends Component<ContainerProps> {
             showContainerSecurityForm: !prevState.showContainerSecurityForm,
         }));
 
-    render() {
+    override render() {
         const {
 
             componentId,

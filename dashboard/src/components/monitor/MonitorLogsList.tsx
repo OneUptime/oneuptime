@@ -37,16 +37,16 @@ export class MonitorLogsList extends Component<MonitorLogsListProps> {
             viewScriptLogModalId: uuidv4(),
         };
     }
-    componentDidMount() {
+    override componentDidMount() {
         // const { updatemonitorlogbysocket } = this.props;
         // socket.on(`updateMonitorLog-${this.props.projectId}`, function(data) {
         //     updatemonitorlogbysocket(data);
         // });
     }
-    componentWillUnmount() {
+    override componentWillUnmount() {
         // socket.removeListener(`updateMonitorLog-${this.props.projectId}`);
     }
-    render() {
+    override render() {
 
         const { monitorLogs } = this.props;
         let skip = monitorLogs && monitorLogs.skip ? monitorLogs.skip : null;

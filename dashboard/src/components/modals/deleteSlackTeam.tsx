@@ -11,11 +11,11 @@ interface DeleteSlackTeamProps {
 }
 
 class DeleteSlackTeam extends Component<DeleteSlackTeamProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -32,7 +32,7 @@ class DeleteSlackTeam extends Component<DeleteSlackTeamProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { data, closeThisDialog } = this.props;
 

@@ -12,7 +12,10 @@ import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class DeleteStatusPageBox extends Component {
+export class DeleteStatusPageBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -58,7 +61,7 @@ export class DeleteStatusPageBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

@@ -50,7 +50,7 @@ export class ApiAdvance extends Component<ApiAdvanceProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { bodytype } = this.props;
         return (

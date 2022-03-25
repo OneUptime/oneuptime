@@ -35,7 +35,10 @@ import { fetchErrorTrackersByProject } from '../actions/errorTracker';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
 import { fetchUnresolvedIncidents } from '../actions/incident';
 
-class Home extends Component {
+class Home extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -55,7 +58,7 @@ class Home extends Component {
             tabIndex: index,
         });
     };
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.loadPage('Home');
 
@@ -144,7 +147,7 @@ class Home extends Component {
         this.props.closeBreachedMonitorSla(projectId, monitorId);
     };
 
-    render() {
+    override render() {
         const {
 
             escalations,

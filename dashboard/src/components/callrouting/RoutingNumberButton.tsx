@@ -22,7 +22,7 @@ class RoutingNumberButton extends React.Component<RoutingNumberButtonProps> {
         };
     }
 
-    render() {
+    override render() {
 
         const { addNumberModalId } = this.state;
         return (

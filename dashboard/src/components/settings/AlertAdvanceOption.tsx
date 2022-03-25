@@ -159,7 +159,7 @@ export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps> {
         }
     }
 
-    render() {
+    override render() {
 
         const { alertEnable, formValues } = this.props;
 
@@ -1021,10 +1021,13 @@ const AlertAdvanceOptionFormStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm)
 );
 
-export default class AlertAdvanceOptionWithCheckout extends Component {
-    render() {
+export default class AlertAdvanceOptionWithCheckout extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')} >
                 <Elements>
                     <AlertAdvanceOptionFormStripe />
                 </Elements>

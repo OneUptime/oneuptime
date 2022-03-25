@@ -16,7 +16,7 @@ import {
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
-class AuditLogs extends React.Component {
+class AuditLogs extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -61,7 +61,7 @@ class AuditLogs extends React.Component {
         this.setState({ page: this.state.page + 1 });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.fetchAuditLogs();
 
@@ -78,7 +78,7 @@ class AuditLogs extends React.Component {
         this.setState({ page: 1 });
     };
 
-    render() {
+    override render() {
 
         const { auditLogStatus } = this.props;
         return (

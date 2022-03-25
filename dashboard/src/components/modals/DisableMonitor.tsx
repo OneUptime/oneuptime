@@ -13,11 +13,11 @@ interface DisableMonitorProps {
 }
 
 class DisableMonitor extends Component<DisableMonitorProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class DisableMonitor extends Component<DisableMonitorProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         let disabling = false;

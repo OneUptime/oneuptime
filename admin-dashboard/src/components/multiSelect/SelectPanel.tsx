@@ -5,7 +5,7 @@ import { filterOptions as customFilterOptions } from 'fuzzy-match-utils';
 import SelectItem from './SelectItem';
 import SelectList from './SelectList';
 
-class SelectPanel extends React.Component {
+class SelectPanel extends Component<ComponentProps> {
     onBlur: $TSFixMe;
     onFocus: $TSFixMe;
     state = {
@@ -93,7 +93,7 @@ class SelectPanel extends React.Component {
         this.setState({ focusIndex: tempFocus });
     }
 
-    render() {
+    override render() {
         const {
 
             ItemRenderer,

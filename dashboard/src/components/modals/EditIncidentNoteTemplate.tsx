@@ -35,11 +35,11 @@ class EditIncidentNoteTemplate extends React.Component<EditIncidentNoteTemplateP
     state = {
         showVariables: false,
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -121,7 +121,7 @@ class EditIncidentNoteTemplate extends React.Component<EditIncidentNoteTemplateP
         this.props.change('incidentNote', val);
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

@@ -7,7 +7,10 @@ import ShouldRender from '../basic/ShouldRender';
 import { unblockProject } from '../../actions/project';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProjectUnblockBox extends Component {
+export class ProjectUnblockBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -20,7 +23,7 @@ export class ProjectUnblockBox extends Component {
         return unblockProject(project._id);
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

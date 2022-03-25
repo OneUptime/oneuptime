@@ -161,7 +161,7 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps> {
         );
     };
 
-    render() {
+    override render() {
         const probeOptions =
 
             this.props.probes && this.props.probes.length > 0

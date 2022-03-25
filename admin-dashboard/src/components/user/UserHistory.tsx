@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { fetchUserloginHistory } from '../../actions/user';
 
-class UserHistory extends React.Component {
+class UserHistory extends Component<ComponentProps> {
     constructor() {
 
         super();
@@ -32,9 +32,9 @@ class UserHistory extends React.Component {
 
         this.setState({ page: this.state.page + 1 });
     };
-    render() {
+    override render() {
         return (
-            <div className="bs-BIM">
+            <div className="bs-BIM" >
                 <div className="Box-root Margin-bottom--12">
                     <div className="bs-ContentSection Card-root Card-shadow--medium">
                         <div className="Box-root">

@@ -5,12 +5,15 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 
-class ConfirmBalanceTopUp extends Component {
-    componentDidMount() {
+class ConfirmBalanceTopUp extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -27,7 +30,7 @@ class ConfirmBalanceTopUp extends Component {
         }
     };
 
-    render() {
+    override render() {
         let recharging = false;
 
         if (this.props.isRequesting) {

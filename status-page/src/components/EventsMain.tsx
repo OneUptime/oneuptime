@@ -63,7 +63,7 @@ class EventsMain extends Component<EventsMainProps> {
         );
     };
 
-    render() {
+    override render() {
         let event = '';
         let contentBackground,
             primaryTextColor,

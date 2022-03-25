@@ -56,7 +56,7 @@ interface ChartComponentProps {
 export class ChartComponent extends Component<ChartComponentProps> {
     currentDate: $TSFixMe;
     startDate: $TSFixMe;
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             performanceTracker,
@@ -281,7 +281,7 @@ export class ChartComponent extends Component<ChartComponentProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             heading,

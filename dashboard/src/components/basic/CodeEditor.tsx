@@ -13,7 +13,7 @@ interface CodeEditorProps {
 }
 
 class CodeEditor extends Component<CodeEditorProps> {
-    render() {
+    override render() {
         return (<></>
             // <Editor
             //     {...this.props}

@@ -24,7 +24,7 @@ class BackupCodesModal extends React.Component<BackupCodesModalProps> {
         close: false,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             profileSettings: { data },
@@ -36,7 +36,7 @@ class BackupCodesModal extends React.Component<BackupCodesModalProps> {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -75,7 +75,7 @@ class BackupCodesModal extends React.Component<BackupCodesModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { generateBackupCodes } = this.props;
         const backupCodes = this.refineCodes();

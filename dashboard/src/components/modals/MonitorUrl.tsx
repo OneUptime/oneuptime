@@ -12,11 +12,11 @@ interface MonitorUrlProps {
 }
 
 export class MonitorUrl extends React.Component<MonitorUrlProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -31,7 +31,7 @@ export class MonitorUrl extends React.Component<MonitorUrlProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog, data, currentProject } = this.props;
 

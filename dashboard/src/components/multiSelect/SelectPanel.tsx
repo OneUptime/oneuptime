@@ -105,7 +105,7 @@ class SelectPanel extends React.Component<SelectPanelProps> {
         this.setState({ focusIndex: tempFocus });
     }
 
-    render() {
+    override render() {
         const {
 
             ItemRenderer,

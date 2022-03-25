@@ -18,11 +18,11 @@ interface IncomingRequestEnabledToggleProps {
 }
 
 class IncomingRequestEnabledToggle extends Component<IncomingRequestEnabledToggleProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -67,7 +67,7 @@ class IncomingRequestEnabledToggle extends Component<IncomingRequestEnabledToggl
         );
     };
 
-    render() {
+    override render() {
 
         const { propArr, isRequesting, closeModal, projectId } = this.props;
         return (

@@ -34,11 +34,11 @@ interface NewPerformanceTrackerProps {
 
 class NewPerformanceTracker extends Component<NewPerformanceTrackerProps> {
     cancelEdit: $TSFixMe;
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     validate = (values: $TSFixMe) => {
@@ -123,7 +123,7 @@ class NewPerformanceTracker extends Component<NewPerformanceTrackerProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, edit, performanceTracker } = this.props;
         return (

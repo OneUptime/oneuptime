@@ -37,11 +37,11 @@ export class AddResourceCategoryForm extends React.Component<AddResourceCategory
         super(props);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -80,7 +80,7 @@ export class AddResourceCategoryForm extends React.Component<AddResourceCategory
         });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
         return (

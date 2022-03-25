@@ -63,7 +63,7 @@ class ErrorEventStackTrace extends Component<ErrorEventStackTraceProps> {
         }
         return codeSnippet;
     };
-    render() {
+    override render() {
 
         const { errorEvent } = this.props;
         const errorEventDetails = errorEvent.errorEvent;

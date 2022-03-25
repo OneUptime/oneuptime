@@ -3,12 +3,12 @@ import React from 'react';
 import { withRouter } from 'react-router-dom';
 import { ListLoader } from '../basic/Loader';
 
-class ZapierBox extends React.Component {
+class ZapierBox extends Component<ComponentProps> {
     state = {
         isLoading: true,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         const embededZapierTemplates = 7;
         const zapierEmbededWidget = `https://zapier.com/apps/embed/widget.js?services=oneuptime&limit=${embededZapierTemplates}&html_id=zapierId`;
         const script = document.createElement('script');
@@ -20,7 +20,7 @@ class ZapierBox extends React.Component {
         this.setState({ isLoading: false });
     }
 
-    render() {
+    override render() {
         const { isLoading } = this.state;
 
         return (

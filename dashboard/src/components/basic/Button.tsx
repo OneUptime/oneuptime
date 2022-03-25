@@ -21,7 +21,7 @@ export default class Button extends Component<ButtonProps> {
         super(props);
     }
 
-    render() {
+    override render() {
         const {
 
             visibleForOwner,

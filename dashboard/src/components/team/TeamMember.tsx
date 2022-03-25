@@ -25,7 +25,10 @@ import DropDownMenu from '../basic/DropDownMenu';
 import ExitProjectModal from '../settings/ExitProjectModal';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 
-export class TeamMember extends Component {
+export class TeamMember extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -102,7 +105,7 @@ export class TeamMember extends Component {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

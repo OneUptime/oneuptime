@@ -65,7 +65,7 @@ class EditIncomingRequest extends Component<EditIncomingRequestProps> {
         selectData: [],
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             fetchCustomFields,
@@ -82,7 +82,7 @@ class EditIncomingRequest extends Component<EditIncomingRequestProps> {
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -1031,7 +1031,7 @@ class EditIncomingRequest extends Component<EditIncomingRequestProps> {
         this.props.change('noteContent', val);
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

@@ -10,7 +10,10 @@ import { deleteProject } from '../../actions/project';
 import ProjectDeleteModal from './ProjectDeleteModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProjectDeleteBox extends Component {
+export class ProjectDeleteBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -44,7 +47,7 @@ export class ProjectDeleteBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

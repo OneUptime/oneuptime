@@ -19,7 +19,7 @@ interface SingleAnnouncementProps {
 }
 
 class SingleAnnouncement extends Component<SingleAnnouncementProps> {
-    async componentDidMount() {
+    async override componentDidMount() {
         const {
 
             match: {
@@ -36,7 +36,7 @@ class SingleAnnouncement extends Component<SingleAnnouncementProps> {
             announcementSlug
         );
     }
-    render() {
+    override render() {
 
         const { announcement, monitorState } = this.props;
 

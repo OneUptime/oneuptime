@@ -84,7 +84,7 @@ class PerformanceTracker extends Component<PerformanceTrackerProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.loadPage('Performance Tracker');
 
@@ -181,7 +181,7 @@ class PerformanceTracker extends Component<PerformanceTrackerProps> {
             showNewPerformanceTrackerForm: !prevState.showNewPerformanceTrackerForm,
         }));
 
-    render() {
+    override render() {
 
         if (this.props.currentProject) {
 

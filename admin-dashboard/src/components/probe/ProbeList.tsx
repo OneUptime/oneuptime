@@ -16,7 +16,10 @@ import { reduxForm, Field } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
 
-export class ProbeList extends Component {
+export class ProbeList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -55,7 +58,7 @@ export class ProbeList extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { selectedProbe } = this.state;
         const {

@@ -10,7 +10,7 @@ export default class TableDescription extends Component<TableDescriptionProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { description } = this.props;
 

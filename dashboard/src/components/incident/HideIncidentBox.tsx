@@ -31,7 +31,7 @@ class HideIncidentBox extends Component<HideIncidentBoxProps> {
         };
         hideIncident(data);
     };
-    render() {
+    override render() {
 
         const { hideIncidentError } = this.props;
         return (

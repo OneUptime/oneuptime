@@ -10,7 +10,10 @@ import { enableAdminMode } from '../../actions/user';
 import UserAdminModeEnableModal from './UserAdminModeEnableModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserAdminModeEnableBox extends Component {
+export class UserAdminModeEnableBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { AdminModeModalId: uuidv4() };
@@ -45,7 +48,7 @@ export class UserAdminModeEnableBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

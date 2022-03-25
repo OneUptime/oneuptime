@@ -58,7 +58,7 @@ class TableComponent extends Component<TableComponentProps> {
 
     next = () => this.setState(prevState => ({ page: prevState.page + 1 }));
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             performanceTracker,
@@ -328,7 +328,7 @@ class TableComponent extends Component<TableComponentProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             heading,

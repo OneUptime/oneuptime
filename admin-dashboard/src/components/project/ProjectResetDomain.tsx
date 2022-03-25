@@ -13,8 +13,11 @@ import {
     resetProjectDomainOnMount,
 } from '../../actions/project';
 
-class ProjectResetDomain extends Component {
-    componentDidMount() {
+class ProjectResetDomain extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
 
         this.props.resetProjectDomainOnMount();
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -59,7 +62,7 @@ class ProjectResetDomain extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { requesting, resetError } = this.props;
         return (

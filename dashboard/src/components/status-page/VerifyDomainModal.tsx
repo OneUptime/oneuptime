@@ -18,13 +18,13 @@ interface VerifyDomainModalProps {
 }
 
 class VerifyDomainModal extends Component<VerifyDomainModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetDomain();
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -41,7 +41,7 @@ class VerifyDomainModal extends Component<VerifyDomainModalProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             confirmThisDialog,

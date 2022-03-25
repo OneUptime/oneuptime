@@ -27,11 +27,11 @@ interface DeleteCautionProps {
 }
 
 class DeleteCaution extends Component<DeleteCautionProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -55,7 +55,7 @@ class DeleteCaution extends Component<DeleteCautionProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             hide,

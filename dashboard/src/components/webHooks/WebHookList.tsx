@@ -41,11 +41,11 @@ class WebHookList extends React.Component<WebHookListProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.paginate('reset');
     }
@@ -119,7 +119,7 @@ class WebHookList extends React.Component<WebHookListProps> {
         paginate('next');
     };
 
-    render() {
+    override render() {
 
         const { webHook, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = webHook;

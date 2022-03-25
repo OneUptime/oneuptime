@@ -28,7 +28,7 @@ class Events extends Component<EventsProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { statusPageSlug } = this.props;
         return (

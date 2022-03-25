@@ -75,7 +75,7 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps> {
         confirmResetModalId: uuidv4(),
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { statusPage } = this.props;
         const { layout } = statusPage.status;
@@ -238,7 +238,7 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps> {
                 return true;
             });
     };
-    render() {
+    override render() {
 
         const { statusPage } = this.props;
         const pageLayout = statusPage && statusPage.updateLayout;

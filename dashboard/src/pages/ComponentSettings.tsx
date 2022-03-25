@@ -50,7 +50,7 @@ class ComponentSettings extends Component<ComponentSettingsProps> {
             );
         });
     };
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, componentSlug, fetchComponent } = this.props;
         if (projectId && componentSlug) {
@@ -71,7 +71,7 @@ class ComponentSettings extends Component<ComponentSettingsProps> {
             }
         }
     }
-    render() {
+    override render() {
         const {
 
             location: { pathname },

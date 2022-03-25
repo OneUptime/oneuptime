@@ -26,7 +26,7 @@ class Tooltip extends Component<TooltipProps> {
         });
     };
 
-    render() {
+    override render() {
         return (
             <div
                 style={{
@@ -48,7 +48,7 @@ class Tooltip extends Component<TooltipProps> {
                     }}
                     onClick={this.handleClick}
                 />
-            </div>
+            </div >
         );
     }
 }

@@ -9,8 +9,11 @@ import { openSideNav } from '../../actions/page';
 import { getVersion } from '../../actions/version';
 import { getProbes } from '../../actions/probe';
 
-class TopContent extends Component {
-    componentDidMount() {
+class TopContent extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
 
         const { getVersion } = this.props;
         getVersion();
@@ -36,7 +39,7 @@ class TopContent extends Component {
         }
     };
 
-    render() {
+    override render() {
         const IMG_URL =
 
             this.props.profilePic && this.props.profilePic !== ''

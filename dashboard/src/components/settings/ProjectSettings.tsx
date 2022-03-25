@@ -26,7 +26,10 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-export class ProjectSettings extends Component {
+export class ProjectSettings extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     submitForm = (values: $TSFixMe) => {
         const projectName = values.project_name;
         const {
@@ -73,7 +76,7 @@ export class ProjectSettings extends Component {
         }
     };
 
-    render() {
+    override render() {
         return (
             <div
                 onKeyDown={this.handleKeyBoard}

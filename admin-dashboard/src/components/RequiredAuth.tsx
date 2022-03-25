@@ -5,7 +5,10 @@ import { User } from '../config';
 import { history } from '../store';
 
 export default function (ComposedComponent: $TSFixMe) {
-    class Authentication extends Component {
+    class Authentication extends Component<ComponentProps> {
+
+        public static propTypes = {};
+
         isAuthenticated: $TSFixMe;
         constructor(props: $TSFixMe) {
             super(props);
@@ -15,7 +18,7 @@ export default function (ComposedComponent: $TSFixMe) {
             this.isAuthenticated = User.isLoggedIn();
         }
 
-        componentDidMount() {
+        override componentDidMount() {
             if (!this.isAuthenticated) {
                 history.push('/login', {
 
@@ -37,7 +40,7 @@ export default function (ComposedComponent: $TSFixMe) {
             router: PropTypes.object,
         };
 
-        render() {
+        override render() {
             return <ComposedComponent {...this.props} />;
         }
     }

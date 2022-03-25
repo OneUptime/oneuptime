@@ -45,7 +45,7 @@ class IncidentCommunicationSla extends Component<IncidentCommunicationSlaProps> 
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, fetchCommunicationSlas } = this.props;
         fetchCommunicationSlas(projectId, 0, this.limit);
@@ -326,7 +326,7 @@ class IncidentCommunicationSla extends Component<IncidentCommunicationSlaProps> 
             });
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

@@ -4,10 +4,13 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { DASHBOARD_URL } from '../../config';
 
-export class ProjectDetails extends Component {
-    render() {
+export class ProjectDetails extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <div className="Box-root Margin-bottom--12">
+            <div className="Box-root Margin-bottom--12" >
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
                     <div className="Box-root">
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">

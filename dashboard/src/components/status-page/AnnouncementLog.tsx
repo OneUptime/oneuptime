@@ -34,7 +34,7 @@ class AnnouncementLog extends Component<AnnouncementLogProps> {
             deleteModalId: uuidv4(),
         };
     }
-    async componentDidMount() {
+    async override componentDidMount() {
 
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         await fetchAnnouncementLogs(projectId, statusPage._id, 0, this.limit);
@@ -80,7 +80,7 @@ class AnnouncementLog extends Component<AnnouncementLogProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

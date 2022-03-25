@@ -62,11 +62,11 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
         super(props);
         this.state = { countryCode: '', numberType: '' };
     }
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.resetFetchNumbers();
 
@@ -149,7 +149,7 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { fetchNumber, saveNumber, closeThisDialog } = this.props;
         const isRequesting = saveNumber && saveNumber.requesting ? true : false;

@@ -69,7 +69,7 @@ export class RegisterForm extends Component<RegisterFormProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { step } = this.props.register;
         return (

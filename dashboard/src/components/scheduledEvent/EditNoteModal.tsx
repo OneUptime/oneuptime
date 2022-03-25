@@ -35,11 +35,11 @@ interface EditNoteModalProps {
 }
 
 class EditNoteModal extends Component<EditNoteModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -122,7 +122,7 @@ class EditNoteModal extends Component<EditNoteModalProps> {
         this.props.change('content', val);
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

@@ -72,7 +72,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         this.state = { createIncidentModalId: uuidv4(), page: {} };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -263,7 +263,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { createIncidentModalId } = this.state;
 

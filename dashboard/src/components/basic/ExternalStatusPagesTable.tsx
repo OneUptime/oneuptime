@@ -18,7 +18,7 @@ export class ExternalStatusPagesTable extends Component<ExternalStatusPagesTable
     state = {
         deleteExternalStatusPageModalId: uuidv4(),
     };
-    render() {
+    override render() {
 
         const { statusPage, openModal } = this.props;
         const { deleteExternalStatusPageModalId } = this.state;

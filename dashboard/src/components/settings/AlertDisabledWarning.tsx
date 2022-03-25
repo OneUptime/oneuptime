@@ -25,7 +25,7 @@ class AlertDisabledWarning extends Component<AlertDisabledWarningProps> {
             showWarning: true,
         };
     }
-    render() {
+    override render() {
 
         const { alertEnable, currentProject, page } = this.props;
         const slug = currentProject ? currentProject.slug : null;

@@ -44,13 +44,13 @@ class CreateSlack extends React.Component<CreateSlackProps> {
         selectedMonitors: [],
         selectData: [],
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -354,7 +354,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

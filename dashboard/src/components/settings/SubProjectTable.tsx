@@ -99,7 +99,7 @@ export class SubProjectTable extends Component<SubProjectTableProps> {
             });
     };
 
-    render() {
+    override render() {
 
         const { subProject, subProjectState } = this.props;
         const disabled =

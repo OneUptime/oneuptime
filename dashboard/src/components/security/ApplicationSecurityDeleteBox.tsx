@@ -43,7 +43,7 @@ export class ApplicationSecurityDeleteBox extends Component<ApplicationSecurityD
         });
     };
 
-    render() {
+    override render() {
         const {
 
             deleting,

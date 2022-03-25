@@ -5,8 +5,11 @@ import { connect } from 'react-redux';
 import { User } from '../../config';
 import moment from 'moment';
 
-class NotificationMenu extends Component {
-    render() {
+class NotificationMenu extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         const userId = User.getUserId();
 
         return this.props.visible ? (

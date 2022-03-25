@@ -26,13 +26,13 @@ interface DeleteDomainProps {
 }
 
 class DeleteDomain extends Component<DeleteDomainProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetDeleteProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -79,7 +79,7 @@ class DeleteDomain extends Component<DeleteDomainProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, deleteError } = this.props;
         return (

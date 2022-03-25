@@ -68,7 +68,7 @@ class MultiSelect extends Component<MultiSelectProps> {
             onSelectedChanged(selected);
         }
     };
-    render() {
+    override render() {
         const {
 
             ItemRenderer,

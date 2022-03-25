@@ -22,7 +22,7 @@ class ErrorTrackerIssueTimeline extends Component<ErrorTrackerIssueTimelineProps
             status.charAt(0).toUpperCase() + status.slice(1);
         return `${capitalizedText}d by`;
     };
-    render() {
+    override render() {
 
         const { errorEvent, errorTrackerIssue } = this.props;
         return (

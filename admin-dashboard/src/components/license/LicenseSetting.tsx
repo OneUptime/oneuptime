@@ -39,7 +39,10 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class LicenseSetting extends Component {
+export class LicenseSetting extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     submitForm = (values: $TSFixMe) => {
 
         const { confirmLicense } = this.props;
@@ -47,7 +50,7 @@ export class LicenseSetting extends Component {
         confirmLicense(values);
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

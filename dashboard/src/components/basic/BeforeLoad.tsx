@@ -30,7 +30,7 @@ class BeforeLoad extends React.Component<BeforeLoadProps> {
             }
         }
     }
-    render() {
+    override render() {
         if (this.isAuthenticated && this.redirect) {
             return (
                 <div

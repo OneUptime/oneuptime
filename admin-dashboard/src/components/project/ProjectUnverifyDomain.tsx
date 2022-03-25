@@ -13,8 +13,11 @@ import {
     resetUnverifyProjectDomain,
 } from '../../actions/project';
 
-class ProjectUnverifyDomain extends Component {
-    componentDidMount() {
+class ProjectUnverifyDomain extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
 
         this.props.resetUnverifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -59,7 +62,7 @@ class ProjectUnverifyDomain extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { requesting, unverifyError } = this.props;
         return (

@@ -5,8 +5,11 @@ import { connect } from 'react-redux';
 import Modal from '../components/Modal';
 import { closeModal } from '../actions/modal';
 
-export class Modals extends Component {
-    render() {
+export class Modals extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
 
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {
             const ModalComponent = Modal(item.content);

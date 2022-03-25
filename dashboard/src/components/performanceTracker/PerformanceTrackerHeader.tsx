@@ -65,7 +65,7 @@ class PerformanceTrackerHeader extends Component<PerformanceTrackerHeaderProps> 
         });
     };
 
-    render() {
+    override render() {
         const {
 
             performanceTracker,

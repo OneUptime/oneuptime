@@ -92,11 +92,11 @@ export class AddScheduleModal extends Component<AddScheduleModalProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -272,7 +272,7 @@ export class AddScheduleModal extends Component<AddScheduleModalProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

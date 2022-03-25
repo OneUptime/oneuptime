@@ -84,7 +84,7 @@ export class IncidentInvestigation extends Component<IncidentInvestigationProps>
 
         return promise;
     };
-    render() {
+    override render() {
         let count = 0;
         let skip = 0;
         let limit = 0;

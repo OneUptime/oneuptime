@@ -30,7 +30,7 @@ interface ErrorTrackingViewProps {
 }
 
 class ErrorTrackingView extends Component<ErrorTrackingViewProps> {
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
     componentDidUpdate(prevProps: $TSFixMe) {
@@ -121,7 +121,7 @@ class ErrorTrackingView extends Component<ErrorTrackingViewProps> {
             postObj
         );
     };
-    render() {
+    override render() {
         const {
 
             location: { pathname },

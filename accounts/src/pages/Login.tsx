@@ -38,7 +38,7 @@ class LoginPage extends React.Component<LoginPageProps> {
         this.props = props;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
 
@@ -60,7 +60,7 @@ class LoginPage extends React.Component<LoginPageProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { login, masterAdminExists, requestingMasterAdmin } = this.props;
 

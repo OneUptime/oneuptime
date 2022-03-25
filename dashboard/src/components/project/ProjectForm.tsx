@@ -78,11 +78,11 @@ interface _ProjectFormProps {
 }
 
 class _ProjectForm extends React.Component<_ProjectFormProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -163,7 +163,7 @@ class _ProjectForm extends React.Component<_ProjectFormProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,
@@ -423,7 +423,7 @@ const ProjectFormStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(ProjectForm)
 );
 
-class ProjectFormWithCheckout extends React.Component {
+class ProjectFormWithCheckout extends Component<ComponentProps> {
     constructor() {
 
         super();
@@ -447,7 +447,7 @@ class ProjectFormWithCheckout extends React.Component {
         });
     }
 
-    render() {
+    override render() {
 
         const { elementFontSize } = this.state;
         return (

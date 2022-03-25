@@ -29,7 +29,7 @@ class DomainSettings extends React.Component<DomainSettingsProps> {
         );
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -46,7 +46,7 @@ class DomainSettings extends React.Component<DomainSettingsProps> {
         // resetIdCounter();
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

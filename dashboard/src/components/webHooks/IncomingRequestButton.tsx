@@ -12,7 +12,7 @@ interface IncomingRequestButtonProps {
 }
 
 class IncomingRequestButton extends React.Component<IncomingRequestButtonProps> {
-    render() {
+    override render() {
 
         const { currentProject } = this.props;
 

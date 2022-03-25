@@ -11,7 +11,7 @@ import Table from './ssoDefaultRoles/Table';
 import { openModal } from 'common-ui/actions/modal';
 import { CreateDefaultRoleModal } from './ssoDefaultRoles/DefaultRoleModal';
 
-class Box extends React.Component {
+class Box extends Component<ComponentProps> {
     async previousClicked() {
 
         const { skip, limit } = this.props.ssoPaginate;
@@ -33,13 +33,13 @@ class Box extends React.Component {
             paginate('next');
         }
     }
-    async componentDidMount() {
+    async override componentDidMount() {
 
         this.props.fetchProjects(0, 0);
 
         await this.props.fetchSsoDefaultRoles(0, 10);
     }
-    render() {
+    override render() {
 
         const { ssoDefaultRoles, openModal, count } = this.props;
 

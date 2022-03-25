@@ -13,14 +13,17 @@ import {
 } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
 
-class DeleteDomain extends Component {
-    componentDidMount() {
+class DeleteDomain extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
 
         this.props.resetDeleteProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -60,7 +63,7 @@ class DeleteDomain extends Component {
             }
         });
     };
-    render() {
+    override render() {
 
         const { isRequesting, deleteError } = this.props;
         return (

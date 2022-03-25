@@ -12,7 +12,10 @@ import DataPathHoC from '../DataPathHoC';
 import DuplicateStatusPageForm from './DuplicateStatusPageForm';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class DuplicateStatusPageBox extends Component {
+export class DuplicateStatusPageBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -33,7 +36,7 @@ export class DuplicateStatusPageBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
         return (

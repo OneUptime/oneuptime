@@ -40,11 +40,11 @@ export class ResourceCategories extends Component<ResourceCategoriesProps> {
         page: 1,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -143,7 +143,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps> {
             });
     };
 
-    render() {
+    override render() {
         const footerBorderTopStyle = { margin: 0, padding: 0 };
         let canNext =
 

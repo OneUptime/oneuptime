@@ -93,7 +93,7 @@ class PerformanceChart extends Component<PerformanceChartProps> {
         }
         return '';
     }
-    render() {
+    override render() {
 
         const { data, name, symbol, requesting, type } = this.props;
         let processedData = [{ display: '', name: '', v: '' }];

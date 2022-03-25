@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 
-export class SwitchingModal extends React.Component {
+export class SwitchingModal extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }
@@ -13,13 +13,13 @@ export class SwitchingModal extends React.Component {
         return new Promise(resolve => setTimeout(resolve, ms));
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.delay(3000).then(o => o);
     }
 
-    render() {
+    override render() {
         return (
-            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
+            <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center" >
                 <div
                     className="ModalLayer-contents"
                     tabIndex={-1}

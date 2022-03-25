@@ -51,7 +51,7 @@ class Announcement extends Component<AnnouncementProps> {
         await getAnnouncements(projectId._id, _id, 0, this.limit);
     };
 
-    render() {
+    override render() {
 
         const { announcement, monitorState } = this.props;
         return (

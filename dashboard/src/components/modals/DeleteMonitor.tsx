@@ -13,11 +13,11 @@ interface DeleteMonitorProps {
 }
 
 class DeleteMonitor extends Component<DeleteMonitorProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class DeleteMonitor extends Component<DeleteMonitorProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         let deleting = false;

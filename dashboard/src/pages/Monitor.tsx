@@ -124,7 +124,7 @@ class MonitorDashboardView extends Component<MonitorDashboardViewProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.loadPage('Monitors');
 
@@ -238,7 +238,7 @@ class MonitorDashboardView extends Component<MonitorDashboardViewProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.destroy('NewMonitor');
         // socket.removeListener(`createMonitor-${this.props.currentProject._id}`);
@@ -298,7 +298,7 @@ class MonitorDashboardView extends Component<MonitorDashboardViewProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             componentId,

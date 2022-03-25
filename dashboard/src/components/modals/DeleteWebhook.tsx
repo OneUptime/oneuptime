@@ -11,11 +11,11 @@ interface DeleteWebhookProps {
 }
 
 class DeleteWebhook extends Component<DeleteWebhookProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -32,7 +32,7 @@ class DeleteWebhook extends Component<DeleteWebhookProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { data, closeThisDialog } = this.props;
 

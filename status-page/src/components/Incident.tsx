@@ -42,7 +42,7 @@ interface IncidentProps {
 
 class Incident extends Component<IncidentProps> {
     handleIncidentStatus: $TSFixMe;
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             match: { params },
@@ -174,7 +174,7 @@ class Incident extends Component<IncidentProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             count,

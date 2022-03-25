@@ -32,7 +32,7 @@ class Monitors extends Component<MonitorsProps> {
         this.handleNext = this.handleNext.bind(this);
         this.handlePrevious = this.handlePrevious.bind(this);
     }
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             getActiveMonitors,
@@ -124,7 +124,7 @@ class Monitors extends Component<MonitorsProps> {
         });
     }
 
-    render() {
+    override render() {
         let canNext =
 
             this.props.activeMonitors &&

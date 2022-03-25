@@ -397,7 +397,7 @@ class SubscriberAlertTableRowsClass extends React.Component<SubscriberAlertTable
             2} others`;
     };
 
-    render() {
+    override render() {
 
         const { alerts, monitors } = this.props;
         return alerts.length > 0

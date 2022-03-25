@@ -35,18 +35,21 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class FormModal extends Component {
+export class FormModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
             messageModalId: uuidv4(),
         };
     }
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -115,7 +118,7 @@ export class FormModal extends Component {
             }),
         });
 
-    render() {
+    override render() {
 
         const { handleSubmit, closeThisDialog, data } = this.props;
         return (

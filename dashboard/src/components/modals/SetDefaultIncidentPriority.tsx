@@ -18,11 +18,11 @@ interface SetDefaultIncidentPriorityProps {
 }
 
 class SetDefaultIncidentPriority extends Component<SetDefaultIncidentPriorityProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -53,7 +53,7 @@ class SetDefaultIncidentPriority extends Component<SetDefaultIncidentPriorityPro
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog, data } = this.props;
         return (

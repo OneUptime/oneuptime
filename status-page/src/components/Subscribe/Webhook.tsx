@@ -116,24 +116,26 @@ class Webhook extends Component<WebhookProps> {
 
         this.props.handleCloseButtonClick();
     };
-    render() {
+    override render() {
         return (
             <div>
 
-                {this.props.subscribed &&
+                {
+                    this.props.subscribed &&
 
-                    this.props.subscribed.success ? null : (
-                    <div className="directions">
-                        <Translate>
-                            Get webhook notifications when an incident is
-                        </Translate>{' '}
-                        <b>
-                            <Translate>created</Translate>
-                        </b>
-                        .
-                    </div>
-                )}
-                <form
+                        this.props.subscribed.success ? null : (
+                        <div className="directions">
+                            <Translate>
+                                Get webhook notifications when an incident is
+                            </Translate>{' '}
+                            <b>
+                                <Translate>created</Translate>
+                            </b>
+                            .
+                        </div>
+                    )
+                }
+                < form
                     id="subscribe-form-webhook"
                     onSubmit={
 
@@ -143,56 +145,58 @@ class Webhook extends Component<WebhookProps> {
                     }
                 >
 
-                    {this.props.subscribed && this.props.subscribed.success ? (
-                        <div style={{ textAlign: 'center', margin: '15px 0' }}>
-                            <span
-                                className="subscriber-success"
-                                id="monitor-subscribe-success-message"
-                            >
-                                <Translate>
-                                    You have subscribed to this status page
-                                    successfully
-                                </Translate>
-                            </span>
-                        </div>
-                    ) : (
-                        <>
-                            <input
-                                type="text"
-                                name="endpoint"
-                                onChange={this.handleChange}
-                                id="endpoint-webhooks"
-                                placeholder="http://www.yourdomain.com/endpoint/here"
-                                className="input-full"
-                            />
-                            <p
-                                className="small"
-                                style={{ margin: '-5px 0px 5px 4px' }}
-                            >
-                                <Translate>
-                                    The URL we should send the updates to.
-                                </Translate>
-                            </p>
-                            <input
-                                type="text"
-                                name="email"
-                                onChange={this.handleChange}
-                                id="email-webhooks"
-                                placeholder="Email Address"
-                                className="input-full"
-                            />
-                            <p
-                                className="small"
-                                style={{ margin: '-5px 0px 10px 4px' }}
-                            >
-                                <Translate>
-                                    We will send you email if your endpoint
-                                    fails.
-                                </Translate>
-                            </p>
-                        </>
-                    )}
-                    <input
+                    {
+                        this.props.subscribed && this.props.subscribed.success ? (
+                            <div style={{ textAlign: 'center', margin: '15px 0' }}>
+                                <span
+                                    className="subscriber-success"
+                                    id="monitor-subscribe-success-message"
+                                >
+                                    <Translate>
+                                        You have subscribed to this status page
+                                        successfully
+                                    </Translate>
+                                </span>
+                            </div>
+                        ) : (
+                            <>
+                                <input
+                                    type="text"
+                                    name="endpoint"
+                                    onChange={this.handleChange}
+                                    id="endpoint-webhooks"
+                                    placeholder="http://www.yourdomain.com/endpoint/here"
+                                    className="input-full"
+                                />
+                                <p
+                                    className="small"
+                                    style={{ margin: '-5px 0px 5px 4px' }}
+                                >
+                                    <Translate>
+                                        The URL we should send the updates to.
+                                    </Translate>
+                                </p>
+                                <input
+                                    type="text"
+                                    name="email"
+                                    onChange={this.handleChange}
+                                    id="email-webhooks"
+                                    placeholder="Email Address"
+                                    className="input-full"
+                                />
+                                <p
+                                    className="small"
+                                    style={{ margin: '-5px 0px 10px 4px' }}
+                                >
+                                    <Translate>
+                                        We will send you email if your endpoint
+                                        fails.
+                                    </Translate>
+                                </p>
+                            </>
+                        )
+                    }
+                    < input
                         type="submit"
                         value={
 
@@ -210,7 +214,7 @@ class Webhook extends Component<WebhookProps> {
                         }
                         id="subscribe-btn-webhook"
                     />
-                </form>
+                </form >
                 <ShouldRender
 
                     if={this.props.subscribed && this.props.subscribed.error}
@@ -227,7 +231,7 @@ class Webhook extends Component<WebhookProps> {
                         </span>
                     </div>
                 </ShouldRender>
-            </div>
+            </div >
         );
     }
 }

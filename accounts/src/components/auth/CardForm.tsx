@@ -179,7 +179,7 @@ class CardForm extends Component<CardFormProps> {
         }
     };
 
-    render() {
+    override render() {
 
         this.plan = PricingPlan.getPlanById(this.props.planId);
 
@@ -649,10 +649,13 @@ const CardFormWithCheckOut = injectStripe(
 );
 CardFormWithCheckOut.displayName = 'CardFormWithCheckOut';
 
-export default class CardFormHOC extends Component {
-    render() {
+export default class CardFormHOC extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')} >
                 <Elements>
                     <CardFormWithCheckOut />
                 </Elements>

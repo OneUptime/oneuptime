@@ -6,12 +6,15 @@ import ReactJson from 'react-json-view';
 
 import ClickOutside from 'react-click-outside';
 
-class AuditLogsJsonViewModal extends Component {
-    componentDidMount() {
+class AuditLogsJsonViewModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -25,7 +28,7 @@ class AuditLogsJsonViewModal extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

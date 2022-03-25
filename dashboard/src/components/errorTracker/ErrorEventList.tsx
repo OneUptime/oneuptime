@@ -1,10 +1,13 @@
 import React, { Component } from 'react';
 import Badge from '../common/Badge';
 
-class ErrorEventList extends Component {
-    render() {
+class ErrorEventList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <div className="Box-divider--border-top-1 Padding-vertical--20">
+            <div className="Box-divider--border-top-1 Padding-vertical--20" >
                 <div className="Flex-flex Flex-justifyContent--spaceBetween">
                     <p className="SubHeader">Events</p>
                 </div>

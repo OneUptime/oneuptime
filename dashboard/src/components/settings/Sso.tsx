@@ -28,7 +28,7 @@ export class Sso extends React.Component<SsoProps> {
         page: 1,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId } = this.props;
 
@@ -37,7 +37,7 @@ export class Sso extends React.Component<SsoProps> {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -135,7 +135,7 @@ export class Sso extends React.Component<SsoProps> {
         this.setState({ page: this.state.page + 1 });
     };
 
-    render() {
+    override render() {
 
         const { ssosObj } = this.props;
         const { count, skip, limit } = ssosObj;

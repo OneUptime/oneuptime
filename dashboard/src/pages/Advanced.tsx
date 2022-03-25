@@ -31,7 +31,7 @@ class Advanced extends Component<AdvancedProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

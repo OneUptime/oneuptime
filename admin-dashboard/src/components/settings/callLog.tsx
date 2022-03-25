@@ -10,9 +10,12 @@ import {
     callLogStatusChange,
 } from '../../actions/callLogs';
 
-class CallLog extends Component {
+class CallLog extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleKeyBoard: $TSFixMe;
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchCallLogStatus();
     }
@@ -35,7 +38,7 @@ class CallLog extends Component {
 
         this.props.callLogStatusChange({ status: values.callStatusToggler });
     };
-    render() {
+    override render() {
 
         const { changeCallLogStatus, handleSubmit } = this.props;
         return (

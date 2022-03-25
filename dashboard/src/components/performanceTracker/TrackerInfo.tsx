@@ -25,11 +25,11 @@ class TrackerInfo extends Component<TrackerInfoProps> {
         confirmBoxHidden: true,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -86,7 +86,7 @@ class TrackerInfo extends Component<TrackerInfoProps> {
         }
     };
 
-    render() {
+    override render() {
         const { hidden } = this.state;
 
         const { data, closeModal, trackerObj } = this.props;

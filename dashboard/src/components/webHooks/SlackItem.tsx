@@ -93,7 +93,7 @@ class SlackItem extends React.Component<SlackItemProps> {
         return temp;
     }
 
-    render() {
+    override render() {
 
         const { data, monitorId, webhooks, monitors } = this.props;
         const { webHookName } = data.data;

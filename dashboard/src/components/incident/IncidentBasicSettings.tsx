@@ -41,7 +41,7 @@ class IncidentBasicSettings extends React.Component<IncidentBasicSettingsProps> 
             incidentPriority === '' ? null : incidentPriority
         );
     };
-    render() {
+    override render() {
 
         const { handleSubmit, reset } = this.props;
         return (

@@ -1,6 +1,6 @@
 enum ExceptionCode {
-    GeneralException = "GeneralException",
-    APIException = "APIException"
+    GeneralException,
+    APIException,
 }
 
 export default ExceptionCode;

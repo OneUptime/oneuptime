@@ -10,9 +10,12 @@ import {
     auditLogStatusChange,
 } from '../../actions/auditLogs';
 
-class AuditLog extends Component {
+class AuditLog extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleKeyBoard: $TSFixMe;
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchAuditLogStatus();
     }
@@ -35,7 +38,7 @@ class AuditLog extends Component {
 
         this.props.auditLogStatusChange({ status: values.auditStatusToggler });
     };
-    render() {
+    override render() {
 
         const { changeAuditLogStatus, handleSubmit } = this.props;
         return (

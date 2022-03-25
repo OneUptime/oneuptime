@@ -8,11 +8,11 @@ interface NoMonitorSubscriberProps {
 }
 
 class NoMonitorSubscriber extends Component<NoMonitorSubscriberProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -25,7 +25,7 @@ class NoMonitorSubscriber extends Component<NoMonitorSubscriberProps> {
                 return false;
         }
     };
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         return (

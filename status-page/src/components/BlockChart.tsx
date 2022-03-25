@@ -85,7 +85,7 @@ class BlockChart extends Component<BlockChartProps> {
         );
     };
 
-    render() {
+    override render() {
         let bar = null;
         let title = null;
         let title1 = null;

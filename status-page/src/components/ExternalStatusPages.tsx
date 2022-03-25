@@ -13,7 +13,7 @@ interface ExternalStatusPagesProps {
 }
 
 class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
-    async componentDidMount() {
+    async override componentDidMount() {
 
         this.props.fetchExternalStatusPages(
 
@@ -23,7 +23,7 @@ class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
         );
     }
 
-    render() {
+    override render() {
 
         const { externalStatusPages, theme } = this.props;
         return (

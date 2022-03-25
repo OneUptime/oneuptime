@@ -6,8 +6,11 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
 
-export class ProjectList extends Component {
-    render() {
+export class ProjectList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         if (
 
             this.props.projects &&

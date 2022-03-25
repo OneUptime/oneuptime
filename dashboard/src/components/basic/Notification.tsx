@@ -9,22 +9,22 @@ interface NotificationProps {
 }
 
 class Notification extends Component<NotificationProps> {
-    render() {
+    override render() {
         return (
             <div
 
                 id={this.props.id}
                 className={`Box-root Flex-flex Flex-direction--row Flex-alignItems--center ${this.props.backgroundClass
 
-                        ? this.props.backgroundClass
-                        : 'Box-background--green'
+                    ? this.props.backgroundClass
+                    : 'Box-background--green'
                     } Text-color--white Border-radius--4 Text-fontWeight--bold Padding-horizontal--20 Padding-vertical--12 pointer Card-shadow--medium bs-mar-cursor`}
             >
                 <span
                     className={`db-SideNav-icon ${this.props.icon
 
-                            ? this.props.icon
-                            : 'db-SideNav-icon--tick'
+                        ? this.props.icon
+                        : 'db-SideNav-icon--tick'
                         } db-SideNav-icon--selected`}
                     style={{
                         filter: 'brightness(0) invert(1)',
@@ -34,7 +34,7 @@ class Notification extends Component<NotificationProps> {
                 ></span>
 
                 <span>{this.props.message}</span>
-            </div>
+            </div >
         );
     }
 }

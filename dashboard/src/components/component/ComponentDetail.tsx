@@ -101,7 +101,7 @@ export class ComponentDetail extends Component<ComponentDetailProps> {
 
         return promise;
     };
-    componentDidMount() {
+    override componentDidMount() {
 
         const { component } = this.props;
 
@@ -113,7 +113,7 @@ export class ComponentDetail extends Component<ComponentDetailProps> {
         );
     }
 
-    render() {
+    override render() {
 
         const { component, componentState, currentProject } = this.props;
         component.error = null;

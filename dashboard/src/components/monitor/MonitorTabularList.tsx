@@ -28,7 +28,7 @@ interface MonitorTabularListProps {
 }
 
 export class MonitorTabularList extends Component<MonitorTabularListProps> {
-    render() {
+    override render() {
         if (
 
             this.props.monitors &&

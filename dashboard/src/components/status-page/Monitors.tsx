@@ -63,7 +63,10 @@ const validate = (values: $TSFixMe) => {
     return errors;
 };
 
-export class Monitors extends Component {
+export class Monitors extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     submitForm = (values: $TSFixMe) => {
 
         const { status } = this.props.statusPage;
@@ -148,7 +151,7 @@ export class Monitors extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, subProjects } = this.props;
 

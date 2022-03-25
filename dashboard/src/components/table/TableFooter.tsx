@@ -23,7 +23,7 @@ export default class TableFooter extends Component<TableFooterProps> {
         super(props);
     }
 
-    render() {
+    override render() {
         const {
 
             onNextClicked,

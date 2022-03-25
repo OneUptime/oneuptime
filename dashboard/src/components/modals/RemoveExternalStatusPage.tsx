@@ -16,11 +16,11 @@ interface RemoveExternalStatusPageProps {
 }
 
 class RemoveExternalStatusPage extends Component<RemoveExternalStatusPageProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -37,7 +37,7 @@ class RemoveExternalStatusPage extends Component<RemoveExternalStatusPageProps> 
         }
     };
 
-    render() {
+    override render() {
         const {
 
             data,

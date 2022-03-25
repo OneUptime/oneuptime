@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import LoadingIndicator from './LoadingIndicator';
 
-class Dropdown extends React.Component {
+class Dropdown extends Component<ComponentProps> {
     wrapper: $TSFixMe;
     state = {
         hasFocus: false,
@@ -14,7 +14,7 @@ class Dropdown extends React.Component {
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.addEventListener('touchstart', this.handleDocumentClick);
         document.addEventListener('mousedown', this.handleDocumentClick);
     }
@@ -103,7 +103,7 @@ class Dropdown extends React.Component {
         );
     };
 
-    render() {
+    override render() {
         const { expanded, hasFocus } = this.state;
 
         const { children, isLoading, disabled } = this.props;

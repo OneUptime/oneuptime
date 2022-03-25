@@ -47,7 +47,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
         page: 1,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         resetIdCounter();
         window.addEventListener('keydown', this.handleKeyboard);
         this.ready();
@@ -62,7 +62,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -177,7 +177,7 @@ class IncidentSettings extends React.Component<IncidentSettingsProps> {
             tabIndex: index,
         });
     };
-    render() {
+    override render() {
         const {
 
             location: { pathname },

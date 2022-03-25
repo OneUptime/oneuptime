@@ -1,12 +1,15 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-class RoleDeleteModal extends Component {
-    componentDidMount() {
+class RoleDeleteModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -23,7 +26,7 @@ class RoleDeleteModal extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { confirmThisDialog, closeThisDialog } = this.props;
 

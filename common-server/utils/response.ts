@@ -4,7 +4,7 @@ import { GridFSBucket } from 'mongodb';
 import { OneUptimeRequest, OneUptimeResponse } from './express';
 import { JSONObject, JSONArray, JSONValue } from 'common/types/json';
 import { File } from 'common/types/file';
-import { Exception } from 'common/types/error';
+import Exception from 'common/types/exception';
 import { ListData } from 'common/types/list';
 import Database from './database';
 

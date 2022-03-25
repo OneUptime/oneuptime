@@ -38,11 +38,11 @@ interface CreateStatusPageCategoryProps {
 }
 
 export class CreateStatusPageCategory extends React.Component<CreateStatusPageCategoryProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -90,7 +90,7 @@ export class CreateStatusPageCategory extends React.Component<CreateStatusPageCa
         this.props.closeModal({});
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, creatingCategory, createError } = this.props;
         return (

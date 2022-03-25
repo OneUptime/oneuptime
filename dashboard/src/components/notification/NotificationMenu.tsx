@@ -93,7 +93,7 @@ class NotificationMenu extends Component<NotificationMenuProps> {
         });
     };
 
-    render() {
+    override render() {
         const userId = User.getUserId();
         const allRead =
 
@@ -395,10 +395,13 @@ const NotificationMenuStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(NotificationMenu)
 );
 
-export default class NotificationWithCheckout extends Component {
-    render() {
+export default class NotificationWithCheckout extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')}>
+            <StripeProvider apiKey={env('STRIPE_PUBLIC_KEY')} >
                 <Elements>
                     <NotificationMenuStripe />
                 </Elements>

@@ -37,7 +37,7 @@ export class IncidentDeleteBox extends Component<IncidentDeleteBoxProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { deleting } = this.props;
 

@@ -43,7 +43,7 @@ class GitCredential extends Component<GitCredentialProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, getGitCredentials } = this.props;
 
@@ -51,7 +51,7 @@ class GitCredential extends Component<GitCredentialProps> {
         getGitCredentials({ projectId });
     }
 
-    render() {
+    override render() {
         const {
 
             projectId,

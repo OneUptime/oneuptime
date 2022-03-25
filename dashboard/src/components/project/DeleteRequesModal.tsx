@@ -11,11 +11,11 @@ interface DeleteRequestModalProps {
 }
 
 class DeleteRequestModal extends Component<DeleteRequestModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -29,7 +29,7 @@ class DeleteRequestModal extends Component<DeleteRequestModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { closeNotice, requesting } = this.props;
 

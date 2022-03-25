@@ -14,7 +14,10 @@ import { openModal } from 'common-ui/actions/modal';
 import { API_URL } from '../../config';
 import TooltipMini from '../basic/TooltipMini';
 
-export class APISettings extends Component {
+export class APISettings extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -47,7 +50,7 @@ export class APISettings extends Component {
         }));
     };
 
-    render() {
+    override render() {
 
         const { hidden } = this.state;
 

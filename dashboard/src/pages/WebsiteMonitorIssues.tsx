@@ -82,7 +82,7 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
 
         this.props = props;
     }
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
     componentDidUpdate(prevProps: $TSFixMe) {
@@ -112,7 +112,7 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { monitorState } = this.props;
 

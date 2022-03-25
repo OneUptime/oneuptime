@@ -11,11 +11,11 @@ interface DeleteMsTeamsProps {
 }
 
 class DeleteMsTeams extends Component<DeleteMsTeamsProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -32,7 +32,7 @@ class DeleteMsTeams extends Component<DeleteMsTeamsProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { data, closeThisDialog } = this.props;
 

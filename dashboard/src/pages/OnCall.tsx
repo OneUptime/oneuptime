@@ -55,7 +55,7 @@ export class OnCall extends Component<OnCallProps> {
         fetchSubProjectSchedules(currentProjectId);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         if (this.props.currentProjectId) {
             this.ready();
@@ -76,7 +76,7 @@ export class OnCall extends Component<OnCallProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.paginate('reset');
     }
@@ -145,7 +145,7 @@ export class OnCall extends Component<OnCallProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

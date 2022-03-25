@@ -83,10 +83,10 @@ class ErrorTracking extends Component<ErrorTrackingProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         socket.removeListener(`createErrorTracker-${this.props.componentId}`);
     }
@@ -158,7 +158,7 @@ class ErrorTracking extends Component<ErrorTrackingProps> {
 
             showNewErrorTrackerForm: !prevState.showNewErrorTrackerForm,
         }));
-    render() {
+    override render() {
 
         if (this.props.currentProject) {
 

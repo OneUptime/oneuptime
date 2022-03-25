@@ -94,7 +94,10 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class ProfileSetting extends Component {
+export class ProfileSetting extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     timer: $TSFixMe;
     constructor() {
 
@@ -174,7 +177,7 @@ export class ProfileSetting extends Component {
         setInitPhoneVerification(true);
     };
 
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.userSettings();
         const profilePic =
@@ -428,7 +431,7 @@ export class ProfileSetting extends Component {
         this.props.setInitAlertEmail(emailValue);
     };
 
-    render() {
+    override render() {
         const {
 
             profileSettingState,

@@ -53,11 +53,11 @@ class EventBox extends Component<EventBoxProps> {
         this.limit = 10;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -110,7 +110,7 @@ class EventBox extends Component<EventBoxProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { createScheduledEventModalId } = this.state;
         const {

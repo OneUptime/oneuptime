@@ -10,7 +10,10 @@ import { blockProject } from '../../actions/project';
 import ProjectBlockModal from './ProjectBlockModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProjectBlockBox extends Component {
+export class ProjectBlockBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -44,7 +47,7 @@ export class ProjectBlockBox extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

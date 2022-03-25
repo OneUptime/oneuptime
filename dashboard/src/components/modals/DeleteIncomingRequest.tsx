@@ -19,11 +19,11 @@ interface DeleteIncomingRequestProps {
 }
 
 class DeleteIncomingRequest extends Component<DeleteIncomingRequestProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -66,7 +66,7 @@ class DeleteIncomingRequest extends Component<DeleteIncomingRequestProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, closeModal, deleteError, projectId } = this.props;
         return (

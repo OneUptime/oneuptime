@@ -31,7 +31,7 @@ interface ContainerSecurityFormProps {
 }
 
 class ContainerSecurityForm extends Component<ContainerSecurityFormProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         const { projectId, getDockerCredentials } = this.props;
         if (projectId) {
@@ -70,7 +70,7 @@ class ContainerSecurityForm extends Component<ContainerSecurityFormProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

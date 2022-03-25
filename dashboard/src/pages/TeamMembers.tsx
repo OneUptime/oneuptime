@@ -199,7 +199,7 @@ class TeamApp extends Component<TeamAppProps> {
         ];
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         if (this.props.activeProjectId) {
 
@@ -215,7 +215,7 @@ class TeamApp extends Component<TeamAppProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.paginate('reset');
     }
@@ -231,7 +231,7 @@ class TeamApp extends Component<TeamAppProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             team: { teamLoading, teamMembers, pages },

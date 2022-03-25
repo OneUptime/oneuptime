@@ -26,7 +26,7 @@ class Invoice extends Component<InvoiceProps> {
         this.props = props;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.resetAndFetchInvoices();
     }
 
@@ -58,7 +58,7 @@ class Invoice extends Component<InvoiceProps> {
         this.props.getInvoice(this.props.userId, startingAfter, endingBefore);
     };
 
-    render() {
+    override render() {
         return (
             <div
                 className="db-World-contentPane Box-root"
@@ -113,7 +113,7 @@ class Invoice extends Component<InvoiceProps> {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
         );
     }
 }

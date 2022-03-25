@@ -39,7 +39,7 @@ class ErrorTrackerHeader extends Component<ErrorTrackerHeaderProps> {
             showFilters: false,
         };
     }
-    render() {
+    override render() {
         const {
 
             errorTracker,

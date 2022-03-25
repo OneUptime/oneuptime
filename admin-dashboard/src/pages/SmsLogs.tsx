@@ -14,7 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
-class SmsLogs extends React.Component {
+class SmsLogs extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -76,7 +76,7 @@ class SmsLogs extends React.Component {
         this.setState({ page: 1 });
     };
 
-    render() {
+    override render() {
 
         const { smsLogStatus } = this.props;
         return (

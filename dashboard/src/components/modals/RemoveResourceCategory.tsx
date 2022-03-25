@@ -17,11 +17,11 @@ interface RemoveResourceCategoryProps {
 }
 
 class RemoveResourceCategory extends Component<RemoveResourceCategoryProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -49,7 +49,7 @@ class RemoveResourceCategory extends Component<RemoveResourceCategoryProps> {
             });
     };
 
-    render() {
+    override render() {
 
         const { deleteResourceCategoryObj, closeModal } = this.props;
 

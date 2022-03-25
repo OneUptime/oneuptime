@@ -102,7 +102,7 @@ class Incident extends React.Component<IncidentProps> {
     componentWillMount() {
         resetIdCounter();
     }
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
     componentDidUpdate(prevProps: $TSFixMe) {
@@ -432,7 +432,7 @@ class Incident extends React.Component<IncidentProps> {
         </div>
     );
 
-    render() {
+    override render() {
         let variable = null;
         const {
 

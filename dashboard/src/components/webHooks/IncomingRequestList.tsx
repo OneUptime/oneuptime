@@ -67,7 +67,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
         fetchDefaultTemplate({ projectId });
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -273,7 +273,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
             });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

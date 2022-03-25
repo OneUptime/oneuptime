@@ -27,7 +27,7 @@ export class VerifyAuthToken extends Component<VerifyAuthTokenProps> {
         this.props = props;
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
     }
@@ -39,7 +39,7 @@ export class VerifyAuthToken extends Component<VerifyAuthTokenProps> {
         this.props.verifyAuthToken({ ...values, email });
     };
 
-    render() {
+    override render() {
 
         if (!this.props.login.user.email)
 

@@ -36,7 +36,7 @@ class PaymentCard extends Component<PaymentCardProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { userId } = this.props;
 
@@ -45,7 +45,7 @@ class PaymentCard extends Component<PaymentCardProps> {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -68,7 +68,7 @@ class PaymentCard extends Component<PaymentCardProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { createCardModalId, confirmCardDeleteModalId } = this.state;
         const {

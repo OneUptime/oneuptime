@@ -39,11 +39,11 @@ class MSTeamsList extends React.Component<MSTeamsListProps> {
         }
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.paginate('reset');
     }
@@ -116,7 +116,7 @@ class MSTeamsList extends React.Component<MSTeamsListProps> {
         paginate('next');
     };
 
-    render() {
+    override render() {
 
         const { msTeams, isRequesting, monitorId } = this.props;
         const { count, skip, limit } = msTeams;

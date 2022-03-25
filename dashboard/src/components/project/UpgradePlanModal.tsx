@@ -28,11 +28,11 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps> {
         this.upgradePlan = this.upgradePlan.bind(this);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -80,7 +80,7 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

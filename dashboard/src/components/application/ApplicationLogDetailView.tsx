@@ -29,7 +29,7 @@ class ApplicationLogDetailView extends Component<ApplicationLogDetailViewProps> 
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             fetchLogs,
@@ -42,7 +42,7 @@ class ApplicationLogDetailView extends Component<ApplicationLogDetailViewProps> 
         } = this.props;
         fetchLogs(projectId, componentId, applicationLog._id, 0, 10);
     }
-    render() {
+    override render() {
         const {
 
             projectId,

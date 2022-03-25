@@ -14,7 +14,7 @@ interface RowDataProps {
 }
 
 export class RowData extends Component<RowDataProps> {
-    render() {
+    override render() {
 
         const { statusPage, project } = this.props;
         const userId = User.getUserId();

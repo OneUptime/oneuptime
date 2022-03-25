@@ -1,7 +1,10 @@
 import React, { Component, Fragment } from 'react';
 
-class NotFound extends Component {
-    render() {
+class NotFound extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
             <Fragment>
                 <div className="db-World-root">
@@ -30,7 +33,7 @@ class NotFound extends Component {
                         </div>
                     </div>
                 </div>
-            </Fragment>
+            </Fragment >
         );
     }
 }

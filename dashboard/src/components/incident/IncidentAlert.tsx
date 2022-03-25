@@ -20,7 +20,7 @@ interface IncidentAlertProps {
 }
 
 export class IncidentAlert extends Component<IncidentAlertProps> {
-    render() {
+    override render() {
         if (
 
             this.props.alerts &&

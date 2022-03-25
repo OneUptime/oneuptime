@@ -3,8 +3,11 @@ import { connect } from 'react-redux';
 
 import { reduxForm, Field } from 'redux-form';
 
-class Search extends Component {
-    render() {
+class Search extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
             <div style={{ width: 300 }}>
                 <div
@@ -28,7 +31,7 @@ class Search extends Component {
                         Search
                     </button>
                 </div>
-            </div>
+            </div >
         );
     }
 }

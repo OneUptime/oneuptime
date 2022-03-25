@@ -247,7 +247,7 @@ class ResourceTabularList extends Component<ResourceTabularListProps> {
         return <div>{indicator}</div>;
     }
 
-    render() {
+    override render() {
 
         const { componentResource, componentName } = this.props;
         const componentResources =

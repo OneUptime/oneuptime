@@ -36,8 +36,12 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-class SocketApp extends Component {
-    shouldComponentUpdate(nextProps: $TSFixMe) {
+export interface ComponentProps {}
+
+class SocketApp extends Component<ComponentProps> {
+    public static propTypes = {};
+
+    override shouldComponentUpdate(nextProps: $TSFixMe) {
         if (this.props.project !== nextProps.project) {
             if (this.props.project) {
                 socket.removeListener(
@@ -103,7 +107,7 @@ class SocketApp extends Component {
         }
     }
 
-    render() {
+    override render() {
         const thisObj = this;
 
         if (this.props.project) {

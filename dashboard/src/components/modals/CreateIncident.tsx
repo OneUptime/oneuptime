@@ -63,7 +63,7 @@ class CreateIncident extends Component<CreateIncidentProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             currentProject,
@@ -80,7 +80,7 @@ class CreateIncident extends Component<CreateIncidentProps> {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -440,7 +440,7 @@ class CreateIncident extends Component<CreateIncidentProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

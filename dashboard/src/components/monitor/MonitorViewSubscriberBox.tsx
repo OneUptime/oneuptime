@@ -74,7 +74,7 @@ export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBox
         );
     };
 
-    render() {
+    override render() {
 
         const { createSubscriberModalId, uploadSubscriberModalId } = this.state;
 

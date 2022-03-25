@@ -174,7 +174,7 @@ class Main extends Component<MainProps> {
         this.setState({ nowHandler });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         if (
             window.location.search.substring(1) &&
             window.location.search.substring(1) === 'embedded=true'
@@ -471,7 +471,7 @@ class Main extends Component<MainProps> {
         } else return error;
     };
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         if (this.state.nowHandler) {
 
@@ -484,7 +484,7 @@ class Main extends Component<MainProps> {
         });
     }
 
-    render() {
+    override render() {
         const {
             headerHTML,
             footerHTML,

@@ -13,7 +13,7 @@ export default class NoItemsMessage extends Component<NoItemsMessageProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { isLoading, itemsCount, noItemsMessage } = this.props;
 

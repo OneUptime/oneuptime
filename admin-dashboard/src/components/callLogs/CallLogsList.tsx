@@ -13,7 +13,10 @@ import CallLogsErrorViewModal from './CallLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { history } from '../../store';
 
-export class CallLogsList extends Component {
+export class CallLogsList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -40,7 +43,7 @@ export class CallLogsList extends Component {
         }
     };
 
-    render() {
+    override render() {
         if (
 
             this.props.callLogs &&

@@ -10,11 +10,11 @@ interface ResetStatusBubbleIdModalProps {
 }
 
 class ResetStatusBubbleIdModal extends Component<ResetStatusBubbleIdModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -31,7 +31,7 @@ class ResetStatusBubbleIdModal extends Component<ResetStatusBubbleIdModalProps> 
         }
     };
 
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
 

@@ -11,7 +11,7 @@ interface SsoLoginPageProps {
 }
 
 class SsoLoginPage extends React.Component<SsoLoginPageProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         const query = qs.parse(this.props.location.search);
         const user = {
@@ -62,7 +62,7 @@ class SsoLoginPage extends React.Component<SsoLoginPageProps> {
             window.location = DASHBOARD_URL;
         }
     }
-    render() {
+    override render() {
         return <div />;
     }
 }

@@ -56,11 +56,11 @@ class DeleteAccount extends Component<DeleteAccountProps> {
         toggle: false,
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -123,7 +123,7 @@ class DeleteAccount extends Component<DeleteAccountProps> {
         return promise;
     };
 
-    render() {
+    override render() {
 
         const deleting = this.props.deleteAccountSetting.requesting;
 

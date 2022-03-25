@@ -76,7 +76,7 @@ export class ChangePasswordSetting extends Component<ChangePasswordSettingProps>
         );
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

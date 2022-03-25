@@ -36,7 +36,7 @@ class EmailTemplates extends Component<EmailTemplatesProps> {
         this.props.getSmtpConfig(this.props.currentProject._id);
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -49,7 +49,7 @@ class EmailTemplates extends Component<EmailTemplatesProps> {
         }
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

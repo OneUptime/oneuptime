@@ -15,7 +15,10 @@ import ShouldRender from '../basic/ShouldRender';
 
 import { history } from '../../store';
 
-export class SmsLogsList extends Component {
+export class SmsLogsList extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -42,7 +45,7 @@ export class SmsLogsList extends Component {
         }
     };
 
-    render() {
+    override render() {
         if (
 
             this.props.smsLogs &&

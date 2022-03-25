@@ -72,12 +72,12 @@ class LogList extends Component<LogListProps> {
         });
     };
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         socket.removeListener(`createLog-${this.props.applicationLogId}`);
     }
 
-    render() {
+    override render() {
 
         if (this.props.applicationLogId) {
             // join application log room

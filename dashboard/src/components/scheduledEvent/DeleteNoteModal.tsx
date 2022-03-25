@@ -19,11 +19,11 @@ interface DeleteNoteModalProps {
 }
 
 class DeleteNoteModal extends Component<DeleteNoteModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -65,7 +65,7 @@ class DeleteNoteModal extends Component<DeleteNoteModalProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { deletingNote, closeThisDialog } = this.props;
 

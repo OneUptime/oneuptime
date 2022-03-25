@@ -49,7 +49,7 @@ interface EditMoreDomainModalProps {
 }
 
 class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             domain,
@@ -64,7 +64,7 @@ class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -194,7 +194,7 @@ class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
         this.props.removePrivateKeyFile();
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

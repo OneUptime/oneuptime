@@ -19,11 +19,11 @@ interface ConfirmResetBrandColorsProps {
 
 class ConfirmResetBrandColors extends Component<ConfirmResetBrandColorsProps> {
     deleteSubProject: $TSFixMe;
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -49,7 +49,7 @@ class ConfirmResetBrandColors extends Component<ConfirmResetBrandColorsProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { closeModal, data, closeThisDialog } = this.props;
         return (

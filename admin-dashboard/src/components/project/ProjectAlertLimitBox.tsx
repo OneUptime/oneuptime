@@ -6,7 +6,10 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { renewAlertLimit } from '../../actions/project';
 
-export class ProjectAlertLimitBox extends Component {
+export class ProjectAlertLimitBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -32,7 +35,7 @@ export class ProjectAlertLimitBox extends Component {
         renewAlertLimit(project._id, alertLimit);
     };
 
-    render() {
+    override render() {
 
         const { requesting } = this.props;
         return (

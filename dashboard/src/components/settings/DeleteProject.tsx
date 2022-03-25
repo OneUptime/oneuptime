@@ -7,13 +7,16 @@ import ShouldRender from '../basic/ShouldRender';
 import { showDeleteModal } from '../../actions/project';
 import { IS_SAAS_SERVICE } from '../../config';
 
-export class DeleteProjectBox extends Component {
+export class DeleteProjectBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleClick = () => {
 
         this.props.showDeleteModal();
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, currentProject } = this.props;
 

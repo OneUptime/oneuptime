@@ -19,7 +19,7 @@ export default function (ComposedComponent: $TSFixMe) {
             this.isAuthenticated = User.isLoggedIn();
         }
 
-        componentDidMount() {
+        override componentDidMount() {
             if (!this.isAuthenticated) {
                 history.push('/login', {
 
@@ -41,7 +41,7 @@ export default function (ComposedComponent: $TSFixMe) {
             router: PropTypes.object,
         };
 
-        render() {
+        override render() {
             return <ComposedComponent {...this.props} />;
         }
     }

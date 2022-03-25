@@ -63,7 +63,7 @@ class PastEvent extends Component<PastEventProps> {
         );
     };
 
-    render() {
+    override render() {
         let event = '';
         let contentBackground,
             primaryTextColor,

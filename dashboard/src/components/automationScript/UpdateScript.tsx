@@ -55,7 +55,7 @@ class UpdateScript extends Component<UpdateScriptProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const projectId = this.props.activeProject;
         if (projectId) {
@@ -444,7 +444,7 @@ class UpdateScript extends Component<UpdateScriptProps> {
         </>;
     };
 
-    render() {
+    override render() {
 
         const { addScriptsError, requesting } = this.props;
 

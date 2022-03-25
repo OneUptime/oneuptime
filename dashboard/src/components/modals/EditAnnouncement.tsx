@@ -338,7 +338,7 @@ class EditAnnouncement extends Component<EditAnnouncementProps> {
         </>;
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

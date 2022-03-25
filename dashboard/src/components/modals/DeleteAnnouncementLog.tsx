@@ -23,13 +23,13 @@ interface DeleteAnnouncementLogProps {
 }
 
 class DeleteAnnouncementLog extends Component<DeleteAnnouncementLogProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetDeleteAnnouncement();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -64,7 +64,7 @@ class DeleteAnnouncementLog extends Component<DeleteAnnouncementLogProps> {
             }
         });
     };
-    render() {
+    override render() {
 
         const { closeThisDialog, isRequesting, deleteError } = this.props;
         return (

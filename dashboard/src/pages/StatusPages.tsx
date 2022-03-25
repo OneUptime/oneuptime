@@ -22,7 +22,7 @@ interface StatusPagesProps {
 }
 
 class StatusPages extends Component<StatusPagesProps> {
-    render() {
+    override render() {
         const {
 
             projectId,

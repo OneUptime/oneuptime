@@ -20,9 +20,9 @@ interface CompanyFormProps {
 }
 
 class CompanyForm extends Component<CompanyFormProps> {
-    render() {
+    override render() {
         return (
-            <div id="main-body" className="box css">
+            <div id="main-body" className="box css" >
                 <div className="inner">
                     <div className="title extra">
                         <h2>

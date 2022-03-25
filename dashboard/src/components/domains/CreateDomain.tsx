@@ -36,13 +36,13 @@ interface CreateDomainProps {
 }
 
 class CreateDomain extends React.Component<CreateDomainProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetCreateProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -108,7 +108,7 @@ class CreateDomain extends React.Component<CreateDomainProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

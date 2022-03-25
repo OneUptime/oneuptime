@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { User, getQueryVar } from '../../config';
 
-class BeforeLoad extends React.Component {
+class BeforeLoad extends Component<ComponentProps> {
     isAuthenticated: $TSFixMe;
     redirect: $TSFixMe;
     constructor(props: $TSFixMe) {
@@ -26,7 +26,7 @@ class BeforeLoad extends React.Component {
             }
         }
     }
-    render() {
+    override render() {
         if (this.isAuthenticated && this.redirect) {
             return (
                 <div

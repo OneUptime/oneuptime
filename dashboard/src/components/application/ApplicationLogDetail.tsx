@@ -254,7 +254,7 @@ class ApplicationLogDetail extends Component<ApplicationLogDetailProps> {
             filter
         );
     };
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             fetchStats,
@@ -267,7 +267,7 @@ class ApplicationLogDetail extends Component<ApplicationLogDetailProps> {
         } = this.props;
         fetchStats(currentProject._id, componentId, applicationLog._id);
     }
-    render() {
+    override render() {
         const logOptions = [
             { value: '', label: 'All Logs' },
             { value: 'error', label: 'Error' },

@@ -1,10 +1,13 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-class AlertPanel extends Component {
-    render() {
+class AlertPanel extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override render() {
         return (
-            <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12" >
                 <div
 
                     className={`db-Trends Card-shadow--small ${this.props.className}`}

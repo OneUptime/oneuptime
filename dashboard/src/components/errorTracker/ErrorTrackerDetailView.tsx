@@ -131,7 +131,7 @@ class ErrorTrackerDetailView extends Component<ErrorTrackerDetailViewProps> {
             }),
         });
     };
-    render() {
+    override render() {
 
         const { selectedErrorEvents, ignoreModalId } = this.state;
         const {

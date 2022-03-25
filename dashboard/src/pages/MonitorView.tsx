@@ -95,7 +95,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
         resetIdCounter();
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { currentProject } = this.props;
 
@@ -321,7 +321,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
         return monitorSlas && monitorSlas.some((sla: $TSFixMe) => sla.isDefault);
     };
 
-    render() {
+    override render() {
         const {
 
             initialValues,

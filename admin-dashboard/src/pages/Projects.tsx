@@ -6,7 +6,7 @@ import ProjectList from '../components/project/ProjectList';
 import { fetchProjects, searchProjects } from '../actions/project';
 
 import * as _ from 'lodash';
-class Projects extends React.Component {
+class Projects extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -66,7 +66,7 @@ class Projects extends React.Component {
         this.setState({ page: 1 });
     };
 
-    render() {
+    override render() {
         return (
             <div
                 id="oneuptimeProject"

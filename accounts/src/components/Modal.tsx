@@ -45,7 +45,7 @@ const composableComponent = (ComposedComponent: $TSFixMe) => {
                 this.props.onClose(this.props.item);
             }
         };
-        render() {
+        override render() {
 
             const { zIndex } = this.props;
 

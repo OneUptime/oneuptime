@@ -28,14 +28,14 @@ class SearchBox extends Component<SearchBoxProps> {
         // send updated word to the listener
         this.onChange$.next(keyword);
     };
-    componentDidMount() {
+    override componentDidMount() {
         this.onChange$.pipe(debounceTime(700)).subscribe((updatedWord: $TSFixMe) => {
             // wait a while for the user to complete typing, then send the word to the calling component
 
             this.props.onChange(updatedWord);
         });
     }
-    render() {
+    override render() {
 
         const { placeholder, style } = this.props;
         return (

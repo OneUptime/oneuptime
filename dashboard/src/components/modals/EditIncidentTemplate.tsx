@@ -36,11 +36,11 @@ interface EditIncidentTemplateProps {
 }
 
 class EditIncidentTemplate extends React.Component<EditIncidentTemplateProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -117,7 +117,7 @@ class EditIncidentTemplate extends React.Component<EditIncidentTemplateProps> {
         this.props.change('description', val);
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

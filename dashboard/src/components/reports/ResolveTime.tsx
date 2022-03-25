@@ -34,7 +34,7 @@ class ResolveTime extends Component<ResolveTimeProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             getResolveTime,
@@ -81,7 +81,7 @@ class ResolveTime extends Component<ResolveTimeProps> {
         }
     }
 
-    render() {
+    override render() {
 
         const { resolveTime } = this.state;
 

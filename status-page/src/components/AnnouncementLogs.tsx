@@ -10,7 +10,10 @@ import ShouldRender from './ShouldRender';
 import { handleResources } from '../config';
 import Markdown from 'markdown-to-jsx';
 
-class AnnouncementLogs extends Component {
+class AnnouncementLogs extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     state = {
         limit: 5,
     };
@@ -30,7 +33,7 @@ class AnnouncementLogs extends Component {
         limit += Number(logs.limit);
         fetchAnnouncementLogs(projectId, statusPageId._id, 0, limit);
     };
-    render() {
+    override render() {
         const {
 
             theme,

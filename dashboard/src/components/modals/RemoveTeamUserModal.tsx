@@ -18,11 +18,11 @@ interface RemoveTeamUserModalProps {
 }
 
 class RemoveTeamUserModal extends Component<RemoveTeamUserModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -48,7 +48,7 @@ class RemoveTeamUserModal extends Component<RemoveTeamUserModalProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             teamUserDelete,

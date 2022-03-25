@@ -18,11 +18,11 @@ interface removeGroupProps {
 }
 
 class removeGroup extends Component<removeGroupProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -50,7 +50,7 @@ class removeGroup extends Component<removeGroupProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { groupDelete, closeModal, data, closeThisDialog } = this.props;
         return (

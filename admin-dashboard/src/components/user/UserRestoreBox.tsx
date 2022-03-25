@@ -7,7 +7,10 @@ import ShouldRender from '../basic/ShouldRender';
 import { restoreUser } from '../../actions/user';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserRestoreBox extends Component {
+export class UserRestoreBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -20,7 +23,7 @@ export class UserRestoreBox extends Component {
         return restoreUser(userId);
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

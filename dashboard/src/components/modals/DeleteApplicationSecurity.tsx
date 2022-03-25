@@ -23,11 +23,11 @@ interface DeleteApplicationSecurityProps {
 }
 
 class DeleteApplicationSecurity extends Component<DeleteApplicationSecurityProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -76,7 +76,7 @@ class DeleteApplicationSecurity extends Component<DeleteApplicationSecurityProps
         });
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

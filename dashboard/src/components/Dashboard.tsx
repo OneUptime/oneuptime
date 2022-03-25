@@ -50,7 +50,7 @@ export class DashboardApp extends Component<DashboardAppProps> {
         this.state = { progress: 10 };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { project, getProjects } = this.props;
 
@@ -102,7 +102,7 @@ export class DashboardApp extends Component<DashboardAppProps> {
             id: this.props.currentModal ? this.props.currentModal.id : '',
         });
 
-    render() {
+    override render() {
         const {
 
             location,

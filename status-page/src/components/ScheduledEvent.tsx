@@ -39,7 +39,7 @@ interface ScheduledEventProps {
 }
 
 class ScheduledEvent extends Component<ScheduledEventProps> {
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             match: { params },
@@ -211,7 +211,7 @@ class ScheduledEvent extends Component<ScheduledEventProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             fetchingNotes,

@@ -9,7 +9,10 @@ import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
 import { openModal } from 'common-ui/actions/modal';
 import MessageModal from './MessageModal';
 
-export class UserSetting extends Component {
+export class UserSetting extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -46,7 +49,7 @@ export class UserSetting extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         let { twoFactorAuthEnabled } = this.props.user;
         if (twoFactorAuthEnabled === undefined) {

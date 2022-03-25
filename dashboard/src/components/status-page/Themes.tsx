@@ -41,7 +41,7 @@ export class Themes extends Component<ThemesProps> {
         this.props.updateTheme(projectId, data);
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, statusPage } = this.props;
         const requesting = statusPage.theme.requesting;

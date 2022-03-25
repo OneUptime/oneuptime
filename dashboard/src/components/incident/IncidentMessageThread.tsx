@@ -37,7 +37,7 @@ interface IncidentMessageThreadProps {
 }
 
 export class IncidentMessageThread extends Component<IncidentMessageThreadProps> {
-    render() {
+    override render() {
         const {
 
             title,

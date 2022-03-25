@@ -28,11 +28,11 @@ class ViewErrorTrackerKey extends Component<ViewErrorTrackerKeyProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -67,7 +67,7 @@ class ViewErrorTrackerKey extends Component<ViewErrorTrackerKeyProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { hidden } = this.state;
 

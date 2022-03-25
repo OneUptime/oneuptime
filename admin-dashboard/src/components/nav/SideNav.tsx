@@ -11,7 +11,10 @@ import ClickOutside from 'react-click-outside';
 
 import { withRouter, Switch, Route } from 'react-router-dom';
 
-class SideNav extends Component {
+class SideNav extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
@@ -21,10 +24,10 @@ class SideNav extends Component {
         }
     };
 
-    render() {
+    override render() {
         return (
 
-            <ClickOutside onClickOutside={this.props.closeSideNav}>
+            <ClickOutside onClickOutside={this.props.closeSideNav} >
                 <div
                     onKeyDown={this.handleKeyBoard}
                     className={`db-World-sideNavContainer${this.props.sidenavopen ? ' open' : ''

@@ -37,7 +37,7 @@ class Table extends Component<TableProps> {
         super(props);
     }
 
-    render() {
+    override render() {
         const {
 
             id,

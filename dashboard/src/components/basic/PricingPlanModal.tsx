@@ -38,11 +38,11 @@ interface PricingPlanModalProps {
 }
 
 class PricingPlanModal extends Component<PricingPlanModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -104,7 +104,7 @@ class PricingPlanModal extends Component<PricingPlanModalProps> {
         });
     };
 
-    render() {
+    override render() {
         const {
 
             closeThisDialog,

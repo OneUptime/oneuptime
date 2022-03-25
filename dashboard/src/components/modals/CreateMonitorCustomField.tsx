@@ -38,11 +38,11 @@ interface CreateMonitorCustomFieldProps {
 }
 
 class CreateMonitorCustomField extends React.Component<CreateMonitorCustomFieldProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -99,7 +99,7 @@ class CreateMonitorCustomField extends React.Component<CreateMonitorCustomFieldP
         });
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

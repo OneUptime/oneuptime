@@ -19,7 +19,7 @@ interface PerformanceTrackerListProps {
 }
 
 class PerformanceTrackerList extends Component<PerformanceTrackerListProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         const { fetchLastMetrics, performanceTracker, projectId } = this.props;
 
@@ -44,7 +44,7 @@ class PerformanceTrackerList extends Component<PerformanceTrackerListProps> {
         );
     };
 
-    render() {
+    override render() {
 
         const { performanceTracker, lastMetricsObj } = this.props;
 

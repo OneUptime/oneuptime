@@ -45,13 +45,13 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
         selectedMonitors: [],
         selectData: [],
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -353,7 +353,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             handleSubmit,

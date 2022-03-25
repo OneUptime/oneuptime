@@ -28,11 +28,11 @@ class ViewApplicationLogKey extends Component<ViewApplicationLogKeyProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -67,7 +67,7 @@ class ViewApplicationLogKey extends Component<ViewApplicationLogKeyProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { hidden } = this.state;
 

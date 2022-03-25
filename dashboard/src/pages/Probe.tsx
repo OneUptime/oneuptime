@@ -29,7 +29,7 @@ class Probe extends React.Component<ProbeProps> {
         this.state = { page: 1 };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         this.ready();
     }
 
@@ -79,7 +79,7 @@ class Probe extends React.Component<ProbeProps> {
         this.setState({ page: this.state.page + 1 });
     };
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

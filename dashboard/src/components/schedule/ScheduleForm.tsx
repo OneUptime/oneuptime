@@ -37,11 +37,11 @@ export class ScheduleForm extends React.Component<ScheduleFormProps> {
         super(props);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -78,7 +78,7 @@ export class ScheduleForm extends React.Component<ScheduleFormProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
         return (

@@ -106,7 +106,7 @@ class ComponentDashboardView extends Component<ComponentDashboardViewProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.loadPage('Components');
 
@@ -127,7 +127,7 @@ class ComponentDashboardView extends Component<ComponentDashboardViewProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         this.props.destroy('NewComponent');
     }
@@ -179,7 +179,7 @@ class ComponentDashboardView extends Component<ComponentDashboardViewProps> {
         });
     };
 
-    render() {
+    override render() {
 
         if (this.props.currentProject) {
 

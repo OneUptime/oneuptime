@@ -6,7 +6,10 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { disableAdminMode } from '../../actions/user';
 
-export class UserAdminModeDisableBox extends Component {
+export class UserAdminModeDisableBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
     }
@@ -17,7 +20,7 @@ export class UserAdminModeDisableBox extends Component {
         disableAdminMode(userId);
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

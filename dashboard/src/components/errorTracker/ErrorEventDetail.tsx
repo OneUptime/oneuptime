@@ -135,7 +135,7 @@ class ErrorEventDetail extends Component<ErrorEventDetailProps> {
 
         return promise;
     };
-    render() {
+    override render() {
         const {
 
             errorEvent,

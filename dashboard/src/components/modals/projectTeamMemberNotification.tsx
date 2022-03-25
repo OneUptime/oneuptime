@@ -13,11 +13,11 @@ interface ProjectTeamMemberNotificationProps {
 }
 
 class ProjectTeamMemberNotification extends Component<ProjectTeamMemberNotificationProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -34,7 +34,7 @@ class ProjectTeamMemberNotification extends Component<ProjectTeamMemberNotificat
         }
     };
 
-    render() {
+    override render() {
 
         const { team, closeThisDialog } = this.props;
         return (

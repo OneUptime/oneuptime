@@ -35,7 +35,7 @@ class IncidentNoteTemplates extends Component<IncidentNoteTemplatesProps> {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
@@ -197,7 +197,7 @@ class IncidentNoteTemplates extends Component<IncidentNoteTemplatesProps> {
             });
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

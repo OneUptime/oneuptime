@@ -14,7 +14,10 @@ import ProjectVerifyDomain from './ProjectVerifyDomain';
 import ProjectUnverifyDomain from './ProjectUnverifyDomain';
 import ProjectResetDomain from './ProjectResetDomain';
 
-class ProjectDomain extends Component {
+class ProjectDomain extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     limit: $TSFixMe;
     constructor() {
 
@@ -25,7 +28,7 @@ class ProjectDomain extends Component {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const projectId = this.props.projectId;
         if (projectId) {
@@ -66,7 +69,7 @@ class ProjectDomain extends Component {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             projectDomain: { domains },

@@ -6,12 +6,15 @@ import ClickOutside from 'react-click-outside';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-class ExitProjectModal extends Component {
-    componentDidMount() {
+class ExitProjectModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -28,7 +31,7 @@ class ExitProjectModal extends Component {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

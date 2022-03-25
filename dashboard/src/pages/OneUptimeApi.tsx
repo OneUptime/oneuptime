@@ -19,7 +19,7 @@ interface OneUptimeApiProps {
 }
 
 class OneUptimeApi extends Component<OneUptimeApiProps> {
-    render() {
+    override render() {
         const {
 
             location: { pathname },

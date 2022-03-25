@@ -100,7 +100,7 @@ class Application extends Component<ApplicationProps> {
             });
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         const {
 
             projectId,
@@ -173,7 +173,7 @@ class Application extends Component<ApplicationProps> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         socket.removeListener(
 
             `createApplicationSecurity-${this.props.componentId}`
@@ -186,7 +186,7 @@ class Application extends Component<ApplicationProps> {
             showApplicationSecurityForm: !prevState.showApplicationSecurityForm,
         }));
 
-    render() {
+    override render() {
         const {
 
             projectId,

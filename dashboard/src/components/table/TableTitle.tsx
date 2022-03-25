@@ -10,7 +10,7 @@ export default class TableTitle extends Component<TableTitleProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { title } = this.props;
 

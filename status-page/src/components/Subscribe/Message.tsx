@@ -109,25 +109,27 @@ class Message extends Component<MessageProps> {
 
         this.props.handleCloseButtonClick();
     };
-    render() {
+    override render() {
         return (
             <div>
 
-                {this.props.subscribed &&
+                {
+                    this.props.subscribed &&
 
-                    this.props.subscribed.success ? null : (
-                    <div className="directions">
-                        <Translate>
-                            {' '}
-                            Get email notifications when an incident is
-                        </Translate>{' '}
-                        <b>
-                            <Translate>created</Translate>
-                        </b>
-                        .
-                    </div>
-                )}
-                <form
+                        this.props.subscribed.success ? null : (
+                        <div className="directions">
+                            <Translate>
+                                {' '}
+                                Get email notifications when an incident is
+                            </Translate>{' '}
+                            <b>
+                                <Translate>created</Translate>
+                            </b>
+                            .
+                        </div>
+                    )
+                }
+                < form
                     id="subscribe-form-email"
                     onSubmit={
 
@@ -137,34 +139,36 @@ class Message extends Component<MessageProps> {
                     }
                 >
 
-                    {this.props.subscribed && this.props.subscribed.success ? (
-                        <div
-                            style={{
-                                textAlign: 'center',
-                                margin: '15px 0',
-                                color: '#000',
-                            }}
-                        >
-                            <span
-                                className="subscriber-success"
-                                id="monitor-subscribe-success-message"
+                    {
+                        this.props.subscribed && this.props.subscribed.success ? (
+                            <div
+                                style={{
+                                    textAlign: 'center',
+                                    margin: '15px 0',
+                                    color: '#000',
+                                }}
                             >
-                                <Translate>
-                                    You have subscribed to this status page
-                                    successfully
-                                </Translate>
-                            </span>
-                        </div>
-                    ) : (
-                        <input
-                            name="email"
-                            onChange={this.handleChange}
-                            type="text"
-                            placeholder="Email Address"
-                            className="input-full"
-                        />
-                    )}
-                    <input
+                                <span
+                                    className="subscriber-success"
+                                    id="monitor-subscribe-success-message"
+                                >
+                                    <Translate>
+                                        You have subscribed to this status page
+                                        successfully
+                                    </Translate>
+                                </span>
+                            </div>
+                        ) : (
+                            <input
+                                name="email"
+                                onChange={this.handleChange}
+                                type="text"
+                                placeholder="Email Address"
+                                className="input-full"
+                            />
+                        )
+                    }
+                    < input
                         type="submit"
                         value={
 
@@ -181,8 +185,8 @@ class Message extends Component<MessageProps> {
                                 : 'subscribe-btn-full'
                         }
                         id="subscribe-btn-email"
-                    ></input>
-                </form>
+                    ></input >
+                </form >
                 <ShouldRender
 
                     if={this.props.subscribed && this.props.subscribed.error}
@@ -199,7 +203,7 @@ class Message extends Component<MessageProps> {
                         </span>
                     </div>
                 </ShouldRender>
-            </div>
+            </div >
         );
     }
 }

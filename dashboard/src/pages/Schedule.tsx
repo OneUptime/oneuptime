@@ -45,7 +45,7 @@ class Schedule extends Component<ScheduleProps> {
         this.state = { editSchedule: false, error: false };
     }
 
-    async componentDidMount() {
+    async override componentDidMount() {
         const {
 
             subProjectId,
@@ -118,7 +118,7 @@ class Schedule extends Component<ScheduleProps> {
         this.setState({ error: e });
     };
 
-    render() {
+    override render() {
 
         const { editSchedule, error } = this.state;
         const {

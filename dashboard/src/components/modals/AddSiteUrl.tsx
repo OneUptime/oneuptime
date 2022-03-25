@@ -29,11 +29,11 @@ export class AddSiteUrl extends React.Component<AddSiteUrlProps> {
         super(props);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -76,7 +76,7 @@ export class AddSiteUrl extends React.Component<AddSiteUrlProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit } = this.props;
 

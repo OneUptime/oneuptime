@@ -23,7 +23,10 @@ function debounce(this: $TSFixMe, fn: $TSFixMe, ms: $TSFixMe) {
     };
 }
 
-class MonitorInfo extends Component {
+class MonitorInfo extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     container: $TSFixMe;
     scrollContent: $TSFixMe;
     scrollWrapper: $TSFixMe;
@@ -39,7 +42,7 @@ class MonitorInfo extends Component {
         };
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { monitor } = this.props;
 
@@ -145,7 +148,7 @@ class MonitorInfo extends Component {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('resize', debounce(this.resizeHandler, 100));
         window.removeEventListener('resize', () => {
             this.setState({
@@ -207,7 +210,7 @@ class MonitorInfo extends Component {
         return result;
     };
 
-    render() {
+    override render() {
         const {
 
             monitorState,

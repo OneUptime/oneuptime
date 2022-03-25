@@ -47,13 +47,13 @@ class EditWebHook extends React.Component<EditWebHookProps> {
         selectedMonitors: [],
         selectData: [],
     };
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -356,7 +356,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, closeThisDialog, data } = this.props;
 

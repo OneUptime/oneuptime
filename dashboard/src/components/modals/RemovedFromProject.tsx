@@ -9,7 +9,7 @@ interface RemovedFromProjectProps {
 }
 
 class RemovedFromProject extends Component<RemovedFromProjectProps> {
-    render() {
+    override render() {
 
         const { closeThisDialog } = this.props;
         return (

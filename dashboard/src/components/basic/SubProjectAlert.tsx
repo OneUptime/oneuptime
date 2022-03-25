@@ -10,7 +10,7 @@ interface SubProjectAlertProps {
 }
 
 class SubProjectAlert extends Component<SubProjectAlertProps> {
-    render() {
+    override render() {
 
         const { currentProject, subProjects, activeSubProjectId } = this.props;
 

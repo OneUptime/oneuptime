@@ -39,7 +39,7 @@ class ApplicationLogHeader extends Component<ApplicationLogHeaderProps> {
             showFilters: false,
         };
     }
-    render() {
+    override render() {
         const {
 
             applicationLog,

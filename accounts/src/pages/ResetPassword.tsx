@@ -11,12 +11,12 @@ interface ResetPasswordPageProps {
 }
 
 class ResetPasswordPage extends React.Component<ResetPasswordPageProps> {
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
     }
 
-    render() {
+    override render() {
 
         const { masterAdminExists, requestingMasterAdmin } = this.props;
 

@@ -69,7 +69,7 @@ export class ProjectSwitcher extends Component<ProjectSwitcherProps> {
         hideProjectSwitcher();
     }
 
-    render() {
+    override render() {
         let projectOptions = null;
         let isHovering = false;
 

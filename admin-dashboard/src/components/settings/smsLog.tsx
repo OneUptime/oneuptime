@@ -7,9 +7,12 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { fetchSmsLogStatus, smsLogStatusChange } from '../../actions/smsLogs';
 
-class SmsLog extends Component {
+class SmsLog extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     handleKeyBoard: $TSFixMe;
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchSmsLogStatus();
     }
@@ -32,7 +35,7 @@ class SmsLog extends Component {
 
         this.props.smsLogStatusChange({ status: values.smsStatusToggler });
     };
-    render() {
+    override render() {
 
         const { changeSmsLogStatus, handleSubmit } = this.props;
         return (

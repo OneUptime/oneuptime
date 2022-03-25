@@ -9,12 +9,15 @@ import { closeModal } from 'common-ui/actions/modal';
 import { deleteCallLogs } from '../../actions/callLogs';
 import { FormLoader } from '../basic/Loader';
 
-class DeleteConfirmationModal extends Component {
-    componentDidMount() {
+class DeleteConfirmationModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -39,7 +42,7 @@ class DeleteConfirmationModal extends Component {
             }
         });
     };
-    render() {
+    override render() {
 
         const { closeThisDialog, deleteRequest, error } = this.props;
 

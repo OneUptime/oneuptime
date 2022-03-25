@@ -106,9 +106,9 @@ const fields = [
     },
 ];
 
-export class Component extends React.Component {
+export class Component extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
-    async componentDidMount() {
+    async override componentDidMount() {
 
         await this.props.fetchSettings(settingsType);
     }
@@ -118,7 +118,7 @@ export class Component extends React.Component {
         this.props.saveSettings(settingsType, values);
     };
 
-    render() {
+    override render() {
 
         const { settings, handleSubmit } = this.props;
         return (

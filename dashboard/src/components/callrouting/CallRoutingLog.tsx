@@ -37,7 +37,7 @@ interface CallRoutingLogProps {
 }
 
 class CallRoutingLog extends Component<CallRoutingLogProps> {
-    componentDidMount() { }
+    override componentDidMount() { }
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
 
@@ -59,7 +59,7 @@ class CallRoutingLog extends Component<CallRoutingLogProps> {
         );
     };
 
-    render() {
+    override render() {
         const {
 
             limit,

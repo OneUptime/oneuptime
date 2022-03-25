@@ -101,7 +101,7 @@ class AreaChart extends Component<AreaChartProps> {
         return new Date(a).toLocaleString();
     }
 
-    render() {
+    override render() {
 
         const { type, data, name, symbol, colors } = this.props;
         const { strokeChart, fillChart } = colors;

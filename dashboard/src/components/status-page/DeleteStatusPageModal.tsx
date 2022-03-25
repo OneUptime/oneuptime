@@ -14,11 +14,11 @@ interface DeleteStatusPageModalProps {
 }
 
 class DeleteStatusPageModal extends Component<DeleteStatusPageModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -35,7 +35,7 @@ class DeleteStatusPageModal extends Component<DeleteStatusPageModalProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             isRequesting,

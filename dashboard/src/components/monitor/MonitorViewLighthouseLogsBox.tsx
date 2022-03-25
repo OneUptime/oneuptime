@@ -107,7 +107,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
         this.props.fetchLighthouseLogs(currentProject._id, monitor._id, 0, 5);
     };
 
-    render() {
+    override render() {
 
         const { addSiteUrlModalId } = this.state;
 

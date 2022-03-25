@@ -24,7 +24,7 @@ interface SubscriberAlertProps {
 }
 
 export class SubscriberAlert extends Component<SubscriberAlertProps> {
-    render() {
+    override render() {
         if (
 
             this.props.alerts &&

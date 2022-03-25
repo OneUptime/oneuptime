@@ -12,7 +12,7 @@ export default class TableLoader extends Component<TableLoaderProps> {
         super(props);
     }
 
-    render() {
+    override render() {
 
         const { isLoading } = this.props;
 

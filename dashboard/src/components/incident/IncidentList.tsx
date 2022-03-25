@@ -48,7 +48,7 @@ export class IncidentList extends Component<IncidentListProps> {
             } and ${monitors.length - 2} others`;
     };
 
-    render() {
+    override render() {
         if (
 
             this.props.incidents &&

@@ -37,7 +37,7 @@ export class ResendTokenForm extends Component<ResendTokenFormProps> {
         this.props.resendToken(values);
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.style.overflow = 'auto';
 
@@ -54,7 +54,7 @@ export class ResendTokenForm extends Component<ResendTokenFormProps> {
 
         removeQuery();
     }
-    render() {
+    override render() {
 
         const { masterAdminExists, requestingMasterAdmin } = this.props;
         const { serverResponse } = this.state;

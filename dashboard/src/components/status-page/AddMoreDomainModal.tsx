@@ -44,11 +44,11 @@ interface AddMoreDomainModalProps {
 }
 
 class AddMoreDomainModal extends React.Component<AddMoreDomainModalProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -174,7 +174,7 @@ class AddMoreDomainModal extends React.Component<AddMoreDomainModalProps> {
         this.props.removePrivateKeyFile();
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

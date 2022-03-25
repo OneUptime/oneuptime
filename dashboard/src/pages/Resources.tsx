@@ -25,7 +25,7 @@ class Resources extends Component<ResourcesProps> {
         this.props = props;
     }
 
-    render() {
+    override render() {
         const {
 
             location: { pathname },

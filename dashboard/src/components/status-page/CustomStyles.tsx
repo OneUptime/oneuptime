@@ -28,7 +28,7 @@ export class CustomStyles extends Component<CustomStylesProps> {
     customCSS = null;
     customJS = null;
 
-    shouldComponentUpdate(nextProps: $TSFixMe, nextState: $TSFixMe) {
+    override shouldComponentUpdate(nextProps: $TSFixMe, nextState: $TSFixMe) {
         const { recent } = nextState.syntaxError;
         const { syntaxError } = this.state;
 
@@ -110,7 +110,7 @@ export class CustomStyles extends Component<CustomStylesProps> {
         onChange(value);
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, statusPage } = this.props;
         const { syntaxError } = this.state;

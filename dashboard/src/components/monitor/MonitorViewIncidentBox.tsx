@@ -117,7 +117,7 @@ export class MonitorViewIncidentBox extends Component<MonitorViewIncidentBoxProp
         }
     };
 
-    render() {
+    override render() {
         const {
 
             createIncidentModalId,

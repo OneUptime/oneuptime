@@ -12,7 +12,10 @@ import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal } from 'common-ui/actions/modal';
 
-export class DeleteScheduleBox extends Component {
+export class DeleteScheduleBox extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -52,7 +55,7 @@ export class DeleteScheduleBox extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { isRequesting } = this.props;
 

@@ -33,7 +33,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps> {
         this.RenderListItems = this.RenderListItems.bind(this);
     }
 
-    componentDidMount() {
+    override componentDidMount() {
 
         const { route } = this.props;
         const path = this.mainRoute();
@@ -48,7 +48,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps> {
         });
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
 
         const { route } = this.props;
         const path = this.mainRoute();
@@ -124,7 +124,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps> {
             .replace(/[^a-zA-Z0-9]+(.)/g, (m: $TSFixMe, chr: $TSFixMe) => chr.toUpperCase());
     };
 
-    render() {
+    override render() {
         const { RenderListItems } = this;
         const {
 

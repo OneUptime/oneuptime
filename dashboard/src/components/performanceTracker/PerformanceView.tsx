@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { getMonitorLogs } from '../../actions/monitor';
 //import MonitorLogsList from '../monitor/MonitorLogsList';
 import Select from '../../components/basic/Select';
-interface PerformanceViewProps {}
+interface PerformanceViewProps { }
 //import ShouldRender from '../../components/basic/ShouldRender';
 //import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 //import moment from 'moment';
@@ -120,7 +120,7 @@ export class PerformanceView extends Component<PerformanceViewProps> {
         );
     };*/
 
-    render() {
+    override render() {
         /* const probeOptions =
             this.props.probes && this.props.probes.length > 0
                 ? this.props.probes.map(p => {

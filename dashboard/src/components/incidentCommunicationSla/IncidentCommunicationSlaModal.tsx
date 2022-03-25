@@ -73,13 +73,13 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
         selectData: [],
     };
 
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
         this.formatData();
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -371,7 +371,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
         }
     };
 
-    render() {
+    override render() {
         const {
 
             requesting,

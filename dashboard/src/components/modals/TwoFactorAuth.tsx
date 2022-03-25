@@ -32,7 +32,7 @@ interface TwoFactorAuthModalProps {
 class TwoFactorAuthModal extends Component<TwoFactorAuthModalProps> {
     state = { next: false };
 
-    async componentDidMount() {
+    async override componentDidMount() {
         const {
 
             profileSettings: { data },
@@ -44,7 +44,7 @@ class TwoFactorAuthModal extends Component<TwoFactorAuthModalProps> {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -103,7 +103,7 @@ class TwoFactorAuthModal extends Component<TwoFactorAuthModalProps> {
         }
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, qrCode, twoFactorAuthSetting } = this.props;
         const { next } = this.state;

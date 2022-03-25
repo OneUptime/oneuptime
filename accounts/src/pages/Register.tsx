@@ -22,14 +22,14 @@ interface RegisterPageProps {
 
 class RegisterPage extends React.Component<RegisterPageProps> {
     planId: $TSFixMe;
-    componentWillUnmount() {
+    override componentWillUnmount() {
         document.body.id = '';
         document.body.className = '';
 
         this.props.signUpReset();
     }
 
-    componentDidMount() {
+    override componentDidMount() {
         document.body.id = 'login';
         document.body.className = 'register-page';
         document.body.style.overflow = 'auto';
@@ -56,7 +56,7 @@ class RegisterPage extends React.Component<RegisterPageProps> {
         }
     }
 
-    render() {
+    override render() {
 
         const { register } = this.props;
 

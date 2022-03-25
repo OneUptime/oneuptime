@@ -4,12 +4,15 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-class EmailLogsContentViewModal extends Component {
-    componentDidMount() {
+class EmailLogsContentViewModal extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -23,7 +26,7 @@ class EmailLogsContentViewModal extends Component {
         }
     };
 
-    render() {
+    override render() {
 
         const { isRequesting, error, closeThisDialog, content } = this.props;
 

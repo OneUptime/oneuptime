@@ -159,7 +159,7 @@ export class PrivateStatusPage extends Component<PrivateStatusPageProps> {
         </>;
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, formValues } = this.props;
 

@@ -13,14 +13,17 @@ import {
     resetVerifyProjectDomain,
 } from '../../actions/project';
 
-class ProjectVerifyDomain extends Component {
-    componentDidMount() {
+class ProjectVerifyDomain extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
+    override componentDidMount() {
 
         this.props.resetVerifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -63,7 +66,7 @@ class ProjectVerifyDomain extends Component {
         });
     };
 
-    render() {
+    override render() {
 
         const { requesting, verificationToken, verifyError } = this.props;
         return (

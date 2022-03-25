@@ -19,11 +19,11 @@ interface MessageBoxProps {
 }
 
 class MessageBox extends Component<MessageBoxProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -45,7 +45,7 @@ class MessageBox extends Component<MessageBoxProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { data } = this.props;
 

@@ -27,11 +27,11 @@ interface CreateFooterLinkProps {
 }
 
 class CreateFooterLink extends Component<CreateFooterLinkProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
@@ -69,7 +69,7 @@ class CreateFooterLink extends Component<CreateFooterLinkProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { handleSubmit, data } = this.props;
 

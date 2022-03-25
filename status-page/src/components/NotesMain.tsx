@@ -207,7 +207,7 @@ class NotesMain extends Component<NotesMainProps> {
         return timelineStatus;
     };
 
-    render() {
+    override render() {
         let note = '';
         let contentBackground,
             primaryTextColor,

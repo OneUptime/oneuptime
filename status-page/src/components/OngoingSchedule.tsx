@@ -13,10 +13,11 @@ interface OngoingScheduleProps {
 }
 
 class OngoingSchedule extends Component<OngoingScheduleProps> {
-    render() {
+    override render() {
         return <>
 
-            {this.props.ongoing &&
+            {
+                this.props.ongoing &&
 
                 this.props.ongoing.length > 0 &&
 
@@ -122,7 +123,8 @@ class OngoingSchedule extends Component<OngoingScheduleProps> {
                             </div>
                         </div>
                     )
-                )}
+                )
+            }
         </>;
     }
 }

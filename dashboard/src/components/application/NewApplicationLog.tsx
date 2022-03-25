@@ -39,11 +39,11 @@ interface NewApplicationLogProps {
 }
 
 class NewApplicationLog extends Component<NewApplicationLogProps> {
-    componentDidMount() {
+    override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     validate = (values: $TSFixMe) => {
@@ -135,7 +135,7 @@ class NewApplicationLog extends Component<NewApplicationLogProps> {
                 );
         }
     };
-    render() {
+    override render() {
         const {
 
             handleSubmit,

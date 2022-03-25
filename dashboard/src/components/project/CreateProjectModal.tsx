@@ -46,7 +46,7 @@ export class CreateProjectModal extends Component<CreateProjectModalProps> {
         });
     }
 
-    render() {
+    override render() {
 
         return this.props.visible ? (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">

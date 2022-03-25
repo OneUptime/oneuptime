@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import Dropdown from './DropDown';
 import SelectPanel from './SelectPanel';
 
-class MultiSelect extends Component {
+class MultiSelect extends Component<ComponentProps> {
+
+    public static propTypes = {};
+
     state = {};
 
     getSelectedText() {
@@ -53,7 +56,7 @@ class MultiSelect extends Component {
             onSelectedChanged(selected);
         }
     };
-    render() {
+    override render() {
         const {
 
             ItemRenderer,

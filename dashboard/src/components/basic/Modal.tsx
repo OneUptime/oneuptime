@@ -28,7 +28,7 @@ class Modal extends Component<ModalProps> {
         }
     };
 
-    render() {
+    override render() {
         const {
 
             title,

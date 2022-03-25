@@ -93,7 +93,7 @@ class MSTeamsItem extends React.Component<MSTeamsItemProps> {
         return temp;
     }
 
-    render() {
+    override render() {
 
         const { data, monitorId, webhooks, monitors } = this.props;
         const { webHookName } = data.data;

@@ -28,13 +28,13 @@ interface VerifyDomainProps {
 }
 
 class VerifyDomain extends Component<VerifyDomainProps> {
-    componentDidMount() {
+    override componentDidMount() {
 
         this.props.resetVerifyProjectDomain();
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         window.removeEventListener('keydown', this.handleKeyboard);
     }
 
@@ -85,7 +85,7 @@ class VerifyDomain extends Component<VerifyDomainProps> {
         });
     };
 
-    render() {
+    override render() {
 
         const { requesting, verificationToken, verifyError } = this.props;
         return (
