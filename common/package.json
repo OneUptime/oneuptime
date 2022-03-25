@@ -11,5 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^17.0.22"
+  },
+  "dependencies": {
+    "axios": "^0.26.1"
   }
 }
