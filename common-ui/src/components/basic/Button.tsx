@@ -28,14 +28,14 @@ export default class Button extends Component<ComponentProps> {
     override componentDidMount() {
 
         if (this.props.shortcutKey) {
-            window.addEventListener('keydown', this.handleKeyboard.bind(this));
+            window.addEventListener('keydown', (e) => this.handleKeyboard(e as KeyboardEventProp));
         }
     }
 
     override componentWillUnmount() {
 
         if (this.props.shortcutKey) {
-            window.removeEventListener('keydown', this.handleKeyboard.bind(this));
+            window.removeEventListener('keydown', (e) => this.handleKeyboard(e as KeyboardEventProp));
         }
     }
 
