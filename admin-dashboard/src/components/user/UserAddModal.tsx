@@ -14,6 +14,7 @@ import { addUser, resetAddUser } from '../../actions/user';
 
 class UserAddModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -408,7 +409,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ addUser, resetAddUser }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         addUserState: state.user.addUser,
         users: state.user.users,

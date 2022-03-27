@@ -30,7 +30,7 @@ interface AlertLogProps {
     activeProjectId?: string;
 }
 
-class AlertLog extends Component<AlertLogProps> {
+class AlertLog extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {};
@@ -224,7 +224,7 @@ class AlertLog extends Component<AlertLogProps> {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchAlert, fetchProjectAlert }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order

@@ -1,4 +1,4 @@
-const postApi = require('./api').postApi;
+import BackendAPI from './api';
 
 export default {
     headers: async (val: $TSFixMe, type: $TSFixMe) => {
@@ -28,6 +28,6 @@ export default {
     },
 
     ping: async function (monitorId: $TSFixMe, data: $TSFixMe) {
-        return await postApi(`lighthouse/ping/${monitorId}`, data);
+        return await BackendAPI.post(`lighthouse/ping/${monitorId}`, data);
     },
 };

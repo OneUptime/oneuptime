@@ -501,7 +501,7 @@ const EditIncidentNoteTemplateForm = reduxForm({
     enableReinitialize: true,
 })(EditIncidentNoteTemplate);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { data } = ownProps;
     const { template } = data;
     const initialValues = {

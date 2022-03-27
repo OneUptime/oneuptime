@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface ConsoleLogViewProps {
+export interface ComponentProps {
     consoleLogs?: string[];
     name?: string;
 }

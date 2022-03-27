@@ -13,17 +13,17 @@ import { ACCOUNTS_URL } from '../config';
 
 const errorStyle = { color: '#c23d4b' };
 
-interface VerifyBackupCodeProps {
+interface ComponentProps {
     handleSubmit: Function;
     verifyBackupCode?: Function;
     login?: object;
 }
 
-export class VerifyBackupCode extends Component<VerifyBackupCodeProps> {
-    constructor(props: $TSFixMe) {
+export class VerifyBackupCode extends Component<ComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
+    constructor(props: ComponentProps) {
         super(props);
-
-        this.props = props;
     }
 
     override componentDidMount() {
@@ -42,7 +42,7 @@ export class VerifyBackupCode extends Component<VerifyBackupCodeProps> {
 
         if (!this.props.login.user.email)
 
-            window.location = ACCOUNTS_URL + '/login';
+            window.location.href = ACCOUNTS_URL + '/login';
 
         const { backupCode } = this.props.login;
         let header;
@@ -159,7 +159,7 @@ const verifyBackupCodeForm = reduxForm({
     validate,
 })(VerifyBackupCode);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return { login: state.login };
 };
 

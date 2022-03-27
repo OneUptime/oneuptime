@@ -13,10 +13,10 @@ import {
     switchProject,
     hideDeleteModalSaasMode,
 } from '../../actions/project';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
-export class DeleteProjectModal extends Component<ComponentProps> {
-
+export class DeleteProjectModal extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -117,7 +117,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const { projects } = state.project.projects;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

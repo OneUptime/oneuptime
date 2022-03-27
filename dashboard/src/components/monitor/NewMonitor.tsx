@@ -57,7 +57,7 @@ import 'ace-builds/src-noconflict/theme-github';
 import { PricingPlan as PlanListing } from '../../config';
 import Tooltip from '../basic/Tooltip';
 import PricingPlan from '../basic/PricingPlan';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { fetchCommunicationSlas } from '../../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../../actions/monitorSla';
 import { UploadFile } from '../basic/UploadFile';
@@ -141,7 +141,7 @@ interface NewMonitorProps {
     toggleForm?: Function;
 }
 
-class NewMonitor extends Component<NewMonitorProps> {
+class NewMonitor extends Component<ComponentProps> {
     tabIndexRef: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -3299,7 +3299,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
     const mode = selector(state, 'mode_1000');

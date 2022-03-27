@@ -29,7 +29,7 @@ interface ErrorTrackingViewProps {
     trackerSkip?: number;
 }
 
-class ErrorTrackingView extends Component<ErrorTrackingViewProps> {
+class ErrorTrackingView extends Component<ComponentProps> {
     override componentDidMount() {
         this.ready();
     }
@@ -212,7 +212,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { errorTrackerSlug, componentSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(

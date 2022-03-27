@@ -32,7 +32,7 @@ interface PerformanceTrackerProps {
     numberOfPage?: number;
 }
 
-class PerformanceTracker extends Component<PerformanceTrackerProps> {
+class PerformanceTracker extends Component<ComponentProps> {
     state = {
         showNewPerformanceTrackerForm: false,
         page: 1,
@@ -450,7 +450,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const currentProject = state.project.currentProject;
     const { componentSlug, slug } = ownProps.match.params;
 

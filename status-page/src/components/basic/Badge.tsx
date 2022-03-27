@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface BadgeProps {
+export interface ComponentProps {
     children?: string | unknown[];
     color?: string;
     id?: string;
@@ -33,10 +33,10 @@ function Badge({
                     style={
                         fontColor
                             ? {
-                                  color: fontColor,
-                                  display: 'inline-block',
-                                  paddingTop: 2,
-                              }
+                                color: fontColor,
+                                display: 'inline-block',
+                                paddingTop: 2,
+                            }
                             : { display: 'inline-block', paddingTop: 2 }
                     }
                 >

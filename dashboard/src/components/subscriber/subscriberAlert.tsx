@@ -23,7 +23,9 @@ interface SubscriberAlertProps {
     page?: number;
 }
 
-export class SubscriberAlert extends Component<SubscriberAlertProps> {
+export class SubscriberAlert extends Component<SubscriberAlertProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         if (
 
@@ -289,7 +291,7 @@ SubscriberAlert.displayName = 'SubscriberAlert';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         alerts: state.alert.subscribersAlert.data,
         isRequesting: state.alert.subscribersAlert.requesting,

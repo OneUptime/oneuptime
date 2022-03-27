@@ -50,7 +50,7 @@ interface DeleteAccountProps {
     handleSubmit?: Function;
 }
 
-class DeleteAccount extends Component<DeleteAccountProps> {
+class DeleteAccount extends Component<ComponentProps> {
     state = {
         deleteMyAccount: false,
         toggle: false,
@@ -455,7 +455,7 @@ DeleteAccount.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deleteAccountSetting: state.profileSettings.deleteAccount,
         profileSettings: state.profileSettings.profileSetting,

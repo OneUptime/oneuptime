@@ -12,7 +12,7 @@ interface ConfirmErrorTrackerIssueActionProps {
     data?: object;
 }
 
-class ConfirmErrorTrackerIssueAction extends Component<ConfirmErrorTrackerIssueActionProps> {
+class ConfirmErrorTrackerIssueAction extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -141,7 +141,7 @@ ConfirmErrorTrackerIssueAction.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     return {
         errorTrackerStatus:
             state.errorTracker.errorTrackerStatus[ownProps.data.errorTrackerId],

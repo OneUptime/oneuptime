@@ -1,3 +1,3 @@
-import HTTPRepsonse from './response';
+import HTTPResponse from './response';
 
-export default class HTTPErrorResponse extends HTTPRepsonse {}
+export default class HTTPErrorResponse extends HTTPResponse {}

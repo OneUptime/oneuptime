@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class UserDeleteModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -139,7 +140,7 @@ class UserDeleteModal extends Component<ComponentProps> {
 
 UserDeleteModal.displayName = 'UserDeleteModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.user &&

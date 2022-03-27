@@ -17,11 +17,9 @@ interface ViewApplicationLogKeyProps {
     data?: object;
 }
 
-class ViewApplicationLogKey extends Component<ViewApplicationLogKeyProps> {
+class ViewApplicationLogKey extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             hidden: true,
             confirmBoxHidden: true,
@@ -393,7 +391,7 @@ ViewApplicationLogKey.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         applicationLogState: state.applicationLog,
         currentProject: state.project.currentProject,

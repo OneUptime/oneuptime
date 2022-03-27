@@ -1,5 +1,7 @@
 import * as types from '../constants/incident';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     incidents: {
         requesting: false,
@@ -82,7 +84,7 @@ const initialState = {
     activeIncident: null,
 };
 
-export default function incident(state = initialState, action: $TSFixMe) {
+export default function incident(state = initialState, action: Action) {
     let incident,
         incidents,
         unresolvedincidents,

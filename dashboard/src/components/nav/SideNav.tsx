@@ -42,7 +42,7 @@ interface SideNavProps {
     activeProject?: object;
 }
 
-class SideNav extends Component<SideNavProps> {
+class SideNav extends Component<ComponentProps> {
     showProfileMenu: $TSFixMe;
     state = { navLoading: false };
     override componentDidMount() {
@@ -446,7 +446,7 @@ class SideNav extends Component<SideNavProps> {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function (state: $TSFixMe) {
+const mapStateToProps = function (state: RootState) {
     const allIndividualComponents = state.component.componentList.components.reduce(
         (acc: $TSFixMe, curr: $TSFixMe) => acc.concat(curr.components || []),
         []

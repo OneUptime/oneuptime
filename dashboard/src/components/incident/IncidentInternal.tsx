@@ -23,11 +23,11 @@ interface IncidentInternalProps {
     fetchIncidentNoteTemplates?: Function;
 }
 
-export class IncidentInternal extends Component<IncidentInternalProps> {
+export class IncidentInternal extends Component<IncidentInternalProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             createMessageModalId: uuidv4(),
             editMessageModalId: uuidv4(),
@@ -199,7 +199,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const incidentMessages = state.incident.incidentMessages
         ? state.incident.incidentMessages[ownProps.incident.slug]
             ? state.incident.incidentMessages[ownProps.incident.slug][

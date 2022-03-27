@@ -32,7 +32,7 @@ interface ApplicationSecurityFormProps {
     formValues?: unknown;
 }
 
-class ApplicationSecurityForm extends Component<ApplicationSecurityFormProps> {
+class ApplicationSecurityForm extends Component<ComponentProps> {
     override componentDidMount() {
 
         const { projectId, getGitCredentials } = this.props;
@@ -534,7 +534,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.security.addApplication.requesting,
         addApplicationError: state.security.addApplication.error,

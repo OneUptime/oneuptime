@@ -16,7 +16,7 @@ interface RemoveIncidentPriorityProps {
     deleteIncidentPriority: object;
 }
 
-class RemoveIncidentPriority extends Component<RemoveIncidentPriorityProps> {
+class RemoveIncidentPriority extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -174,7 +174,7 @@ RemoveIncidentPriority.propTypes = {
     deleteIncidentPriority: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         deleteIncidentPriority: state.incidentPriorities.deleteIncidentPriority,

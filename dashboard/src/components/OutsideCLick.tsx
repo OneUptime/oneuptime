@@ -7,6 +7,7 @@ import React, { Component } from 'react';
 export default (ComposedComponent: $TSFixMe, extras: $TSFixMe) => {
     class OutsideCkick extends Component<ComponentProps> {
 
+        public static displayName = '';
         public static propTypes = {};
 
         wrapperRef: $TSFixMe;

@@ -25,11 +25,9 @@ interface PaymentCardProps {
     modalId?: string;
 }
 
-class PaymentCard extends Component<PaymentCardProps> {
+class PaymentCard extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             createCardModalId: uuidv4(),
             confirmCardDeleteModalId: uuidv4(),
@@ -585,7 +583,7 @@ PaymentCard.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         cards: state.card.fetchCards.cards,
         count: state.card.fetchCards.cards.length,

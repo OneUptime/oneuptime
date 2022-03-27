@@ -16,14 +16,12 @@ import { reduxForm, Field } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
 
-export class ProbeList extends Component<ComponentProps> {
-
+export class ProbeList extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = { deleteModalId: uuidv4(), selectedProbe: '' };
     }
 
@@ -486,7 +484,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal, updateProbe }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         probes: state.probe.probes,
         probeRequesting: state.probe.probes && state.probe.probes.requesting,

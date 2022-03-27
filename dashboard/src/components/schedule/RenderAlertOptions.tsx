@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface RenderAlertOptionsProps {
+export interface ComponentProps {
     call?: boolean;
     email?: boolean;
     sms?: boolean;

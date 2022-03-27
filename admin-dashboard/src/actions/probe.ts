@@ -1,4 +1,4 @@
-import { getApi, deleteApi, postApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
 import errors from '../errors';
@@ -41,7 +41,7 @@ export const getProbes = (skip = 0, limit = 10) => {
     return function (dispatch: Dispatch) {
         let promise = null;
 
-        promise = getApi(`probe/?skip=${skip}&limit=${limit}`);
+        promise = BackendAPI.get(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));
 
         promise.then(
@@ -102,7 +102,7 @@ export const deleteProbe =
         dispatch(deleteProbeRequest());
 
         try {
-            const response = await deleteApi(`probe/${probeId}`);
+            const response = await delete `probe/${probeId}`;
             dispatch(deleteProbeSuccess(probeId));
             return response;
         } catch (error) {
@@ -160,7 +160,10 @@ export const addProbe =
         dispatch(addProbeRequest());
 
         try {
-            const response = await postApi('probe/', { probeKey, probeName });
+            const response = await BackendAPI.post('probe/', {
+                probeKey,
+                probeName,
+            });
 
             const data = response.data;
             dispatch(addProbeSuccess(data));
@@ -218,7 +221,7 @@ export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch) => {
         data.append('probeImage', values.probeImage);
         data.append('id', values.id);
 
-        const response = await putApi('probe/update/image', data);
+        const response = await BackendAPI.put('probe/update/image', data);
 
         const resp = response.data;
         if (Object.keys(resp).length > 0) {

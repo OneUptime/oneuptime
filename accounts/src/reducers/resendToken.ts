@@ -5,13 +5,15 @@ import {
     RESENDTOKEN_RESET,
 } from '../constants/resendToken';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     requesting: false,
     error: null,
     success: false,
 };
 
-export default function register(state = initialState, action: $TSFixMe) {
+export default function register(state = initialState, action: Action) {
     switch (action.type) {
         case RESENDTOKEN_REQUEST:
             return Object.assign({}, state, {

@@ -22,11 +22,9 @@ interface SmsTemplatesProps {
     };
 }
 
-class SmsTemplates extends Component<SmsTemplatesProps> {
+class SmsTemplates extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     ready = () => {
@@ -97,7 +95,7 @@ SmsTemplates.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getSmsTemplates, getSmtpConfig }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

@@ -1,6 +1,12 @@
-import { getApi, getApiDocs, getApiHelm, getApiDashboard } from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
+import HelmAPI from 'common-ui/src/utils/api/helm';
+import APiDocsAPI from 'common-ui/src/utils/api/api-docs';
+import DashboardAPI from 'common-ui/src/utils/api/dashboard';
+
 import * as types from '../constants/version';
 import { Dispatch } from 'redux';
+import Route from 'common/types/api/route';
+
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_VERSION_REQUEST,
@@ -36,10 +42,10 @@ export const getVersion = () => {
         let docsPromise = null;
         let dashboardPromise = null;
 
-        backendPromise = getApi('version');
-        helmChartPromise = getApiHelm('version');
-        docsPromise = getApiDocs('version');
-        dashboardPromise = getApiDashboard('version');
+        backendPromise = BackendAPI.get(new Route('/version'));
+        helmChartPromise = HelmAPI.get(new Route('/version'));
+        docsPromise = APiDocsAPI.get(new Route('/version'));
+        dashboardPromise = DashboardAPI.get(new Route('/version'));
 
         promise = Promise.all([
             backendPromise,

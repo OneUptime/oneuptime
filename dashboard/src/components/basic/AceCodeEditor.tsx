@@ -8,7 +8,7 @@ import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-github';
 import PropTypes from 'prop-types';
 
-interface AceCodeEditorProps {
+export interface ComponentProps {
     value?: string;
     mode?: string;
     name?: string;
@@ -17,7 +17,7 @@ interface AceCodeEditorProps {
     theme?: string;
 }
 
-class AceCodeEditor extends Component<AceCodeEditorProps> {
+class AceCodeEditor extends Component<ComponentProps> {
     override render() {
 
         const { value, mode, name, height, markers, theme } = this.props;

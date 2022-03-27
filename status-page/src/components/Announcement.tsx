@@ -19,7 +19,7 @@ interface AnnouncementProps {
 }
 
 //import { translate } from '../config';
-class Announcement extends Component<AnnouncementProps> {
+class Announcement extends Component<ComponentProps> {
     announcement: $TSFixMe;
     counter: $TSFixMe;
     limit: $TSFixMe;
@@ -112,7 +112,7 @@ Announcement.propTypes = {
     //language: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         statusPage: state.status.statusPage,
         language: state.status.language,

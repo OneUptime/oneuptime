@@ -4,7 +4,7 @@ import ErrorService from './errorService';
 const incidentTimelineCollection = global.db.collection('incidenttimelines');
 import { ObjectId } from 'mongodb';
 
-import { postApi } from '../utils/api';
+import { post } from '../utils/api';
 import moment from 'moment';
 
 import { realtimeUrl } from '../utils/config';
@@ -76,7 +76,7 @@ export default {
                       incidentTimeline.projectId;
 
                 // realtime update
-                postApi(
+                post(
                     `${realtimeBaseUrl}/update-incident-timeline`,
                     {
                         incidentTimeline: _incidentTimeline,

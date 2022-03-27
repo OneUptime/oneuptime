@@ -19,7 +19,9 @@ interface CustomStylesProps {
     handleSubmit: Function;
 }
 
-export class CustomStyles extends Component<CustomStylesProps> {
+export class CustomStyles extends Component<CustomStylesProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         syntaxError: {},
     };
@@ -28,7 +30,7 @@ export class CustomStyles extends Component<CustomStylesProps> {
     customCSS = null;
     customJS = null;
 
-    override shouldComponentUpdate(nextProps: $TSFixMe, nextState: $TSFixMe) {
+    override shouldComponentUpdate(nextProps: ComponentProps, nextstate: RootState) {
         const { recent } = nextState.syntaxError;
         const { syntaxError } = this.state;
 

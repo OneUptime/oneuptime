@@ -7,11 +7,9 @@ interface ErrorEventStackTraceProps {
     errorEvent?: object;
 }
 
-class ErrorEventStackTrace extends Component<ErrorEventStackTraceProps> {
+class ErrorEventStackTrace extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             currentFrameIndex: 0,
         };

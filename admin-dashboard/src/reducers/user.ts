@@ -56,6 +56,8 @@ import {
     DISABLE_ADMIN_MODE_RESET,
 } from '../constants/user';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     users: {
         error: null,
@@ -134,7 +136,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function user(state = INITIAL_STATE, action: $TSFixMe) {
+export default function user(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         // fetch users list
         case FETCH_USERS_REQUEST:

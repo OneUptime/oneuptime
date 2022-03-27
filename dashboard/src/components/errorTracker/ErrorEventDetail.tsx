@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from 'common-ui/actions/modal';
 import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface ErrorEventDetailProps {
     errorEvent?: object;
@@ -42,11 +42,9 @@ interface ErrorEventDetailProps {
     currentProject?: object;
 }
 
-class ErrorEventDetail extends Component<ErrorEventDetailProps> {
+class ErrorEventDetail extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             deleteModalId: uuidv4(),
         };
@@ -230,7 +228,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const errorTrackerId = ownProps.errorTrackerId;
     const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers;
     const currentErrorTracker = errorTrackers.filter(

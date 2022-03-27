@@ -28,8 +28,8 @@ function Validate(values: $TSFixMe) {
     return errors;
 }
 
-export class Plans extends Component<ComponentProps> {
-
+export class Plans extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     getPlansFromToggle: $TSFixMe;
@@ -58,11 +58,11 @@ export class Plans extends Component<ComponentProps> {
         fetchTrial(currentProject._id);
     }
 
-    componentDidUpdate(prevProps: $TSFixMe, prevState: $TSFixMe) {
+    componentDidUpdate(prevProps: $TSFixMe, prevstate: RootState) {
         this.shouldTogglePlans(prevState);
     }
 
-    shouldTogglePlans = (prevState: $TSFixMe) => {
+    shouldTogglePlans = (prevstate: RootState) => {
 
         if (this.state.isAnnual !== prevState.isAnnual) {
 
@@ -301,7 +301,7 @@ const ChangePlan = new reduxForm({
     Validate,
 })(Plans);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';

@@ -23,6 +23,7 @@ function validate(values: $TSFixMe) {
 
 class ProjectUpgrade extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     enterprisePlan: $TSFixMe;
@@ -45,11 +46,11 @@ class ProjectUpgrade extends Component<ComponentProps> {
         };
     }
 
-    componentDidUpdate(prevProps: $TSFixMe, prevState: $TSFixMe) {
+    componentDidUpdate(prevProps: $TSFixMe, prevstate: RootState) {
         this.shouldTogglePlans(prevState);
     }
 
-    shouldTogglePlans = (prevState: $TSFixMe) => {
+    shouldTogglePlans = (prevstate: RootState) => {
 
         if (this.state.isAnnual !== prevState.isAnnual) {
 
@@ -383,7 +384,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ changePlan }, dispatch);
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const { requesting, error, project } =
         state.project && state.project.project;
     return {

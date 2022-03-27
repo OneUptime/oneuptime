@@ -25,7 +25,9 @@ interface StatusPageCategoryProps {
     statusPageCategories?: unknown[];
 }
 
-export class StatusPageCategory extends Component<StatusPageCategoryProps> {
+export class StatusPageCategory extends Component<StatusPageCategoryProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyboard: $TSFixMe;
     state = {
         page: 1,
@@ -475,7 +477,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     statusPageCategories:
         state.statusPageCategory.fetchStatusPageCategories.categories,
 

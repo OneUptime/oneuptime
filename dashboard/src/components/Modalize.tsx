@@ -47,7 +47,7 @@ export function Modalize({
     ) : null;
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     HEADER: state.modal.header,
     CONTENT: state.modal.content,
     FOOTER: state.modal.footer

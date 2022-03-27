@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../utils/backendApi';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resetPassword';
 import errors from '../errors';
@@ -35,7 +35,7 @@ export const resetResetPassword = () => {
 
 export const resetPassword = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/forgot-password', values);
+        const promise = BackendAPI.post('user/forgot-password', values);
         dispatch(resetPasswordRequest(promise));
 
         promise.then(

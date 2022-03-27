@@ -46,7 +46,7 @@ interface TableComponentProps {
     resetIncomingDate?: Function;
 }
 
-class TableComponent extends Component<TableComponentProps> {
+class TableComponent extends Component<ComponentProps> {
     currentDate: $TSFixMe;
     startDate: $TSFixMe;
     state = {
@@ -1088,7 +1088,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         incomingStartDate: state.performanceTrackerMetric.incomingStartDate,

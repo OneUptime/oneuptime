@@ -75,6 +75,8 @@ import {
     USER_SCHEDULE_RESET,
 } from '../constants/schedule';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     schedules: {
         requesting: false,
@@ -123,7 +125,7 @@ const initialState = {
     },
 };
 
-export default function schedule(state = initialState, action: $TSFixMe) {
+export default function schedule(state = initialState, action: Action) {
     let data, index, isExistingSchedule;
     switch (action.type) {
         case SCHEDULE_FETCH_SUCCESS:

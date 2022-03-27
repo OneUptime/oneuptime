@@ -1,7 +1,10 @@
 import React, { Component, Fragment } from 'react';
 
+export interface ComponentProps { }
+
 class NotFound extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

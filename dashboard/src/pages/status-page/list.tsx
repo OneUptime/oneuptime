@@ -102,7 +102,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         ...defaultMapStateToProps(state),
     };

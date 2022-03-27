@@ -3,7 +3,7 @@ import chromeLauncher from 'chrome-launcher';
 import ErrorService from './errorService';
 
 function launchChromeAndRunLighthouse(
-    url: string,
+    url: URL,
     options = { chromeFlags: ['--headless', '--disable-gpu', '--no-sandbox'] },
     config = null
 ) {

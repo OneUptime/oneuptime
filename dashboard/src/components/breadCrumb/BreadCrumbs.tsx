@@ -116,7 +116,7 @@ function BreadCrumbs({
 }
 
 BreadCrumbs.displayName = 'BreadCrumbs';
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const currentProjectId =
         state.project.currentProject && state.project.currentProject._id;
     return {

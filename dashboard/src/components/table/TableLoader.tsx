@@ -3,11 +3,13 @@ import React, { Component } from 'react';
 import { ListLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 
-interface TableLoaderProps {
+export interface ComponentProps {
     isLoading?: boolean;
 }
 
-export default class TableLoader extends Component<TableLoaderProps> {
+export default class TableLoader extends Component<TableLoaderProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

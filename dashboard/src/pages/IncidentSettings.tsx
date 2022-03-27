@@ -488,7 +488,7 @@ IncidentSettings.propTypes = {
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
 };
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         incidentPriorities:

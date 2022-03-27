@@ -7,14 +7,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { unblockUser } from '../../actions/user';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserUnblockBox extends Component<ComponentProps> {
-
+export class UserUnblockBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     handleClick = () => {
@@ -73,7 +71,7 @@ UserUnblockBox.displayName = 'UserUnblockBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const user = state.user.user.user || {};
     const userId = user._id;
     return {

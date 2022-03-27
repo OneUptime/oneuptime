@@ -1,6 +1,6 @@
 import { JSONValue } from '../json';
 
-export default class HTTPRepsonse {
+export default class HTTPResponse {
     private _statusCode: number = -1;
     public get statusCode(): number {
         return this._statusCode;

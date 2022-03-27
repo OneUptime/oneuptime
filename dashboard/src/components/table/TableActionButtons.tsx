@@ -2,12 +2,14 @@ import React, { Component } from 'react';
 import Button from '../basic/Button';
 import PropTypes from 'prop-types';
 
-interface TableActionButtonsProps {
+export interface ComponentProps {
     item: object;
     actionButtons?: unknown[];
 }
 
-export default class TableActionButtons extends Component<TableActionButtonsProps> {
+export default class TableActionButtons extends Component<TableActionButtonsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

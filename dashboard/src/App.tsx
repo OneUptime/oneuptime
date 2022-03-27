@@ -39,7 +39,7 @@ if (userData !== undefined) {
     // store original destination url
     const redirectTo = window.location.href;
 
-    window.location = ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
+    window.location.href = ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
     store.dispatch(loadPage('Home'));
 }
 
@@ -160,7 +160,7 @@ const App = (props: AppProps) => {
 
 App.displayName = 'App';
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const currentProject = state.project.currentProject;
     const subProjects = state.subProject.subProjects.subProjects;
     const activeSubProjectId = state.subProject.activeSubProject;

@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/scheduledEvent';
 
@@ -8,7 +8,7 @@ export const fetchscheduledEvent =
         try {
             dispatch(fetchscheduledEventRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `scheduledEvent/${projectId}/${scheduledEventId}`
             );
 
@@ -62,11 +62,11 @@ export const fetchscheduledEvents =
         try {
             let response = {};
             if (!skip && !limit) {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
                 );
             } else {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `scheduledEvent/${projectId}?skip=${skip}&limit=${limit}`
                 );
             }
@@ -130,7 +130,7 @@ export const fetchSubProjectScheduledEvents =
     (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchSubProjectScheduledEventsRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `scheduledEvent/${projectId}/scheduledEvents/all`
             );
 
@@ -167,7 +167,7 @@ export const fetchOngoingScheduledEvents =
         try {
             dispatch(fetchOngoingScheduledEventsRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `scheduledEvent/${projectId}/ongoingEvent`
             );
 
@@ -207,7 +207,7 @@ export const fetchSubProjectOngoingScheduledEvents =
     (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchSubProjectOngoingScheduledEventsRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `scheduledEvent/${projectId}/ongoingEvent/all`
             );
 
@@ -232,7 +232,7 @@ export const createScheduledEvent =
         try {
             dispatch(createScheduledEventRequest());
 
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `scheduledEvent/${projectId}`,
                 values
             );
@@ -277,9 +277,8 @@ export const deleteScheduledEvent =
         try {
             dispatch(deleteScheduledEventRequest());
 
-            const response = await deleteApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}`
-            );
+            const response =
+                await delete `scheduledEvent/${projectId}/${scheduledEventId}`;
 
             dispatch(deleteScheduledEventSuccess(response.data));
         } catch (error) {
@@ -328,7 +327,7 @@ export const cancelScheduledEvent =
         try {
             dispatch(cancelScheduledEventRequest());
 
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `scheduledEvent/${projectId}/${scheduledEventId}/cancel`
             );
 
@@ -374,7 +373,7 @@ export function updateScheduledEvent(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
             values
         );
@@ -454,11 +453,11 @@ export const fetchScheduledEventNotesInternal =
 
             let response = {};
             if (skip >= 0 && limit >= 0) {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`
                 );
             } else {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `scheduledEvent/${projectId}/${scheduledEventId}/notes?`
                 );
             }
@@ -505,7 +504,7 @@ export const createScheduledEventNote =
         try {
             dispatch(createScheduledEventNoteRequest());
 
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes`,
                 data
             );
@@ -548,7 +547,7 @@ export const updateScheduledEventNoteInternal =
     async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInternalRequest());
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
                 data
             );
@@ -596,7 +595,7 @@ export const updateScheduledEventNoteInvestigation =
         try {
             dispatch(updateScheduledEventNoteInvestigationRequest());
 
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`,
                 data
             );
@@ -641,9 +640,8 @@ export const deleteScheduledEventNote =
         try {
             dispatch(deleteScheduledEventNoteRequest());
 
-            const response = await deleteApi(
-                `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`
-            );
+            const response =
+                await delete `scheduledEvent/${projectId}/${scheduledEventId}/notes/${scheduledEventNoteId}`;
 
             dispatch(deleteScheduledEventNoteSuccess(response.data));
         } catch (error) {
@@ -679,7 +677,7 @@ export const resolveScheduledEvent =
         try {
             dispatch(resolveScheduledEventRequest());
 
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `scheduledEvent/${projectId}/resolve/${scheduledEventId}`
             );
 
@@ -731,7 +729,9 @@ export const fetchScheduledEventFailure = (error: $TSFixMe) => {
 
 export const fetchScheduledEvent = (projectId: $TSFixMe, slug: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`scheduledEvent/${projectId}/slug/${slug}`);
+        const promise = BackendAPI.get(
+            `scheduledEvent/${projectId}/slug/${slug}`
+        );
         dispatch(fetchScheduledEventRequest());
 
         promise.then(

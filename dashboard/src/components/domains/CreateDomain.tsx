@@ -302,7 +302,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId: state.modal.modals[0].id,
         requesting: state.project.createDomain.requesting,

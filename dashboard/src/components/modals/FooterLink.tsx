@@ -26,7 +26,7 @@ interface CreateFooterLinkProps {
     closeModal: Function;
 }
 
-class CreateFooterLink extends Component<CreateFooterLinkProps> {
+class CreateFooterLink extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -281,7 +281,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const status = state.statusPage.status || [];
     const links: $TSFixMe = [];
 

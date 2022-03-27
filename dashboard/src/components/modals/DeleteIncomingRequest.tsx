@@ -18,7 +18,7 @@ interface DeleteIncomingRequestProps {
     requestId?: string;
 }
 
-class DeleteIncomingRequest extends Component<DeleteIncomingRequestProps> {
+class DeleteIncomingRequest extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -184,7 +184,7 @@ DeleteIncomingRequest.propTypes = {
     requestId: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.incomingRequest.deleteIncomingRequest.requesting,
         deleteError: state.incomingRequest.deleteIncomingRequest.error,

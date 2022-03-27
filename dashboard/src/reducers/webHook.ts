@@ -20,6 +20,8 @@ import {
     PAGINATE_RESET,
 } from '../constants/webHook';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     webHook: {
         error: null,
@@ -50,7 +52,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     let webHooks, index, count;
     switch (action.type) {
         case GET_WEB_HOOK_FAILED:

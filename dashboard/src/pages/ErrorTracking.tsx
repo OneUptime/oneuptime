@@ -31,7 +31,7 @@ interface ErrorTrackingProps {
     activeProjectId?: string;
 }
 
-class ErrorTracking extends Component<ErrorTrackingProps> {
+class ErrorTracking extends Component<ComponentProps> {
     state = {
         showNewErrorTrackerForm: false,
         page: 1,
@@ -334,7 +334,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

@@ -20,7 +20,9 @@ interface MonitorViewDisableBoxProps {
     tabSelected: Function;
 }
 
-export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps> {
+export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { disableModalId: uuidv4() };
@@ -145,7 +147,7 @@ MonitorViewDisableBox.displayName = 'MonitorViewDisableBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, disableMonitor }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

@@ -5,7 +5,7 @@ import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import PropTypes from 'prop-types';
 
-interface ScheduleInputProps {
+export interface ComponentProps {
     schedules: {
         _id: string,
         name: string
@@ -40,8 +40,8 @@ const ScheduleInput = ({
                 return (
                     <div
                         key={`${fieldName}.${schedules[index]
-                                ? schedules[index]._id.toString()
-                                : index
+                            ? schedules[index]._id.toString()
+                            : index
                             }`}
                         className="Box-root Margin-vertical--8"
                     >
@@ -54,19 +54,19 @@ const ScheduleInput = ({
                                     component="input"
                                     type="checkbox"
                                     name={`${fieldName}.${schedules[index]
-                                            ? schedules[index]._id.toString()
-                                            : index
+                                        ? schedules[index]._id.toString()
+                                        : index
                                         }`}
                                     defaultChecked={true}
                                     data-testId={`${fieldName}.${schedules[index]
-                                            ? schedules[index]._id.toString()
-                                            : index
+                                        ? schedules[index]._id.toString()
+                                        : index
                                         }`}
                                     data-test="RetrySettings-failedPaymentsCheckbox"
                                     className="Checkbox-source"
                                     id={`${fieldName}.${schedules[index]
-                                            ? schedules[index]._id.toString()
-                                            : index
+                                        ? schedules[index]._id.toString()
+                                        : index
                                         }`}
                                     disabled={
                                         !IsAdminSubProject(currentProject) &&

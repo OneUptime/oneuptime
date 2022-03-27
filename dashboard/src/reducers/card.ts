@@ -1,5 +1,7 @@
 import * as types from '../constants/card';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     addCard: {
         requesting: false,
@@ -28,7 +30,7 @@ const initialState = {
     },
 };
 
-export default function card(state = initialState, action: $TSFixMe) {
+export default function card(state = initialState, action: Action) {
     switch (action.type) {
         case types.ADD_CARD_REQUEST:
             return Object.assign({}, state, {

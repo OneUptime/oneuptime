@@ -3,7 +3,7 @@ import React from 'react';
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 
-interface UptimeLegendProps {
+export interface ComponentProps {
     background?: object;
     secondaryTextColor?: object;
     downtimeColor?: object;

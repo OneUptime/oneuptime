@@ -1,5 +1,7 @@
 import * as types from '../constants/report';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     activeMembers: {
         requesting: false,
@@ -29,7 +31,7 @@ const initialState = {
     },
 };
 
-export default function incidents(state = initialState, action: $TSFixMe) {
+export default function incidents(state = initialState, action: Action) {
     switch (action.type) {
         case types.GET_ACTIVE_MEMBERS_REQUEST:
             return Object.assign({}, state, {

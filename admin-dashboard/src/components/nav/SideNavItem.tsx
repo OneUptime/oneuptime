@@ -8,8 +8,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 
-export class SidebarNavItem extends Component<ComponentProps> {
-
+export class SidebarNavItem extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {

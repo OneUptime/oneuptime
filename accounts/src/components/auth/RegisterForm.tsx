@@ -28,11 +28,11 @@ interface RegisterFormProps {
     location: object;
 }
 
-export class RegisterForm extends Component<RegisterFormProps> {
+export class RegisterForm extends Component<RegisterFormProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     userFormSubmitted = (values: $TSFixMe) => {
@@ -119,7 +119,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         register: state.register,
     };

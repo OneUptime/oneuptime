@@ -57,7 +57,7 @@ interface ComponentDashboardViewProps {
     activeProjectId?: string;
 }
 
-class ComponentDashboardView extends Component<ComponentDashboardViewProps> {
+class ComponentDashboardView extends Component<ComponentProps> {
     state = {
         showNewComponentForm: false,
         page: {},
@@ -513,7 +513,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     // removal of unused props
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;

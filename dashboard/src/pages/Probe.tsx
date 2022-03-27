@@ -24,8 +24,6 @@ interface ProbeProps {
 class Probe extends React.Component<ProbeProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = { page: 1 };
     }
 
@@ -175,7 +173,7 @@ class Probe extends React.Component<ProbeProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

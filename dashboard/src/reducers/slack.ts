@@ -9,6 +9,8 @@ import {
     DELETE_SLACK_LINK_SUCCESS,
 } from '../constants/slack';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     teams: {
         error: null,
@@ -29,7 +31,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     let teams, index, count;
     switch (action.type) {
         case GET_SLACK_TEAM_FAILED:

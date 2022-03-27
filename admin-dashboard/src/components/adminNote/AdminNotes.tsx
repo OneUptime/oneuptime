@@ -35,8 +35,8 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class AdminNotes extends Component<ComponentProps> {
-
+export class AdminNotes extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     submitForm = async (values: $TSFixMe) => {

@@ -1,11 +1,13 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface TableTitleProps {
+export interface ComponentProps {
     title: string;
 }
 
-export default class TableTitle extends Component<TableTitleProps> {
+export default class TableTitle extends Component<TableTitleProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

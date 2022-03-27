@@ -35,6 +35,7 @@ function validate(value: $TSFixMe) {
 
 class ProjectBalance extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     state = {

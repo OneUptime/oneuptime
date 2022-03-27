@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface IssueIndicatorProps {
+export interface ComponentProps {
     status: string;
 }
 
@@ -29,24 +29,23 @@ const IssueIndicator = ({
     }
     resourceName
         ? (content = (
-              <div className="Flex-flex">
-                  <div
-                      className={`db-Badge Box-background--${statusColor}`}
-                  ></div>
-                  <span
-                      id={`resource_status_${resourceName}`}
-                      className={`Text-color--${statusColor}`}
-                  >
-                      {' '}
-                      {` ${count} ${status} ${
-                          count ? (count > 1 ? 'issues' : 'issue') : ''
-                      }`}{' '}
-                  </span>
-              </div>
-          ))
+            <div className="Flex-flex">
+                <div
+                    className={`db-Badge Box-background--${statusColor}`}
+                ></div>
+                <span
+                    id={`resource_status_${resourceName}`}
+                    className={`Text-color--${statusColor}`}
+                >
+                    {' '}
+                    {` ${count} ${status} ${count ? (count > 1 ? 'issues' : 'issue') : ''
+                        }`}{' '}
+                </span>
+            </div>
+        ))
         : (content = (
-              <div className={`db-Badge Box-background--${statusColor}`}></div>
-          ));
+            <div className={`db-Badge Box-background--${statusColor}`}></div>
+        ));
 
     return content;
 };

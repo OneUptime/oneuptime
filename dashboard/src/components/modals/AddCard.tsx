@@ -19,7 +19,7 @@ import {
     addCardRequest,
 } from '../../actions/card';
 import { connect } from 'react-redux';
-import { postApi, deleteApi, getApi } from '../../api';
+import { post, delete, get } from '../../api';
 import { env, User } from '../../config';
 
 const createOptions = (fontSize: $TSFixMe, padding: $TSFixMe) => {
@@ -124,7 +124,7 @@ class _CardForm extends React.Component<_CardFormProps> {
                     if (token) {
                         tok = token;
 
-                        return postApi(
+                        return post(
                             `stripe/${userId}/creditCard/${token.id}/pi`
                         );
                     } else {
@@ -147,12 +147,12 @@ class _CardForm extends React.Component<_CardFormProps> {
                         */
 
                         cardId = tok.card && tok.card.id;
-                        return getApi(`stripe/${userId}/creditCard/${cardId}`);
+                        return get(`stripe/${userId}/creditCard/${cardId}`);
                     } else {
 
                         cardId = tok.card && tok.card.id;
 
-                        deleteApi(`stripe/${userId}/creditCard/${cardId}`);
+                        delete (`stripe/${userId}/creditCard/${cardId}`);
                         throw new Error(result.error.message);
                     }
                 })
@@ -310,7 +310,7 @@ _CardForm.propTypes = {
     elementFontSize: PropTypes.number,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         CreateCardModalId: state.modal.modals[0].id,
         error: state.card.addCard.error,

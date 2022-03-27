@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incident';
 import errors from '../errors';
@@ -44,11 +44,11 @@ export function getProjectIncidents(
     return function (dispatch: Dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `incident/${projectId}/incident?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`incident/${projectId}/incident`);
+            promise = BackendAPI.get(`incident/${projectId}/incident`);
         }
         dispatch(projectIncidentsRequest(promise));
 
@@ -88,11 +88,13 @@ export function getProjectComponentIncidents(
     return function (dispatch: Dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `incident/${projectId}/incidents/${componentId}?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`incident/${projectId}/incidents/${componentId}`);
+            promise = BackendAPI.get(
+                `incident/${projectId}/incidents/${componentId}`
+            );
         }
         dispatch(projectIncidentsRequest(promise));
 
@@ -155,7 +157,7 @@ export const resetIncidents = () => {
 // Gets project Incidents
 export const getIncidents = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`incident/${projectId}`);
+        const promise = BackendAPI.get(`incident/${projectId}`);
         dispatch(incidentsRequest(promise));
 
         promise.then(
@@ -184,7 +186,7 @@ export function getComponentIncidents(
     componentId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `incident/${projectId}/${componentId}/incidents`
         );
         dispatch(incidentsRequest(promise));
@@ -256,15 +258,18 @@ export function createNewIncident(
     customFields: $TSFixMe
 ) {
     return async function (dispatch: Dispatch) {
-        const promise = postApi(`incident/${projectId}/create-incident`, {
-            monitors,
-            projectId,
-            incidentType,
-            title,
-            description,
-            incidentPriority,
-            customFields,
-        });
+        const promise = BackendAPI.post(
+            `incident/${projectId}/create-incident`,
+            {
+                monitors,
+                projectId,
+                incidentType,
+                title,
+                description,
+                incidentPriority,
+                customFields,
+            }
+        );
 
         dispatch(createIncidentRequest(projectId));
 
@@ -364,7 +369,9 @@ export const getIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
     //This fucntion will switch to incidentSlug of the params beig passed.
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(`incident/${projectId}/incident/${incidentSlug}`);
+        promise = BackendAPI.get(
+            `incident/${projectId}/incident/${incidentSlug}`
+        );
         dispatch(incidentRequest(promise));
 
         promise.then(
@@ -404,7 +411,7 @@ export function getIncidentTimeline(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `incident/${projectId}/timeline/${incidentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(incidentTimelineRequest(promise));
@@ -476,7 +483,7 @@ export function acknowledgeIncident(
 
         dispatch(setActiveIncident(incidentId));
 
-        promise = postApi(
+        promise = BackendAPI.post(
             `incident/${projectId}/acknowledge/${incidentId}`,
             data
         );
@@ -584,7 +591,10 @@ export function resolveIncident(
 
         dispatch(setActiveIncident(incidentId));
 
-        promise = postApi(`incident/${projectId}/resolve/${incidentId}`, data);
+        promise = BackendAPI.post(
+            `incident/${projectId}/resolve/${incidentId}`,
+            data
+        );
         if (multiple) {
             dispatch(
                 resolveIncidentRequest({
@@ -695,7 +705,7 @@ export const closeIncidentSuccess = (incident: $TSFixMe) => {
 export const closeIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
     //This function will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `incident/${projectId}/close/${incidentId}`,
             {}
         );
@@ -760,7 +770,7 @@ export const fetchUnresolvedIncidents = (
     return function (dispatch: Dispatch) {
         let promise = null;
 
-        promise = getApi(
+        promise = BackendAPI.get(
             `incident/${projectId}/unresolvedincidents?isHome=${isHome}`
         );
 
@@ -829,7 +839,7 @@ export function setInvestigationNote(
     return function (dispatch: Dispatch) {
         let promise = null;
 
-        promise = postApi(
+        promise = BackendAPI.post(
             `incident/${projectId}/incident/${incidentId}/message`,
             body
         );
@@ -888,7 +898,7 @@ export function setInternalNote(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = postApi(
+        promise = BackendAPI.post(
             `incident/${projectId}/incident/${incidentId}/message`,
             body
         );
@@ -966,7 +976,7 @@ export const deleteIncidentReset = (error: $TSFixMe) => {
 //Delete an incident
 export const deleteIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`incident/${projectId}/${incidentId}`);
+        const promise = delete `incident/${projectId}/${incidentId}`;
         dispatch(deleteIncidentRequest(incidentId));
 
         promise.then(
@@ -1012,7 +1022,7 @@ function hideIncidentFailure(error: $TSFixMe) {
 export const hideIncident = (data: $TSFixMe) => {
     const { hideIncident, incidentId, projectId } = data;
     return function (dispatch: Dispatch) {
-        const promise = putApi(`incident/${projectId}/${incidentId}`, {
+        const promise = BackendAPI.put(`incident/${projectId}/${incidentId}`, {
             hideIncident,
         });
         promise.then(
@@ -1050,7 +1060,7 @@ export function fetchIncidentMessages(
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `incident/${projectId}/incident/${incidentSlug}/message?type=${type}&limit=${limit}&skip=${skip}`
         );
         dispatch(
@@ -1141,9 +1151,8 @@ export function deleteIncidentMessage(
     incidentMessageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`
-        );
+        const promise =
+            delete `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`;
         dispatch(deleteIncidentMessageRequest(incidentMessageId));
 
         promise.then(
@@ -1224,7 +1233,7 @@ export function updateIncident(
     incidentPriority: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `incident/${projectId}/incident/${incidentId}/details`,
             {
                 incidentType,

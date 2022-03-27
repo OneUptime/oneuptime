@@ -882,7 +882,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         fetchNumber: state.callRouting.fetchNumber,
         saveNumber: state.callRouting.saveNumber,

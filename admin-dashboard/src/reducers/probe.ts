@@ -1,5 +1,7 @@
 import * as types from '../constants/probe';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     probes: {
         requesting: false,
@@ -27,7 +29,7 @@ const initialState = {
     },
 };
 
-export default function probes(state = initialState, action: $TSFixMe) {
+export default function probes(state = initialState, action: Action) {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {

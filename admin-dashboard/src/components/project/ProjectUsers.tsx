@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
 import moment from 'moment';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from 'common-ui/actions/modal';
@@ -25,6 +25,7 @@ import DropDownMenu from '../basic/DropDownMenu';
 
 class ProjectUser extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -572,7 +573,7 @@ ProjectUser.propTypes = {
     page: PropTypes.number,
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         updateUsers: state.project.updateUser,
         deleteError: state.project.teamDelete,

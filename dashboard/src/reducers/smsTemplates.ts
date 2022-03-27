@@ -1,5 +1,7 @@
 import * as types from '../constants/smstemplates';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     smsTemplates: {
         requesting: false,
@@ -33,7 +35,7 @@ const initialState = {
     showSmsSmtpConfiguration: false,
 };
 
-export default function incident(state = initialState, action: $TSFixMe) {
+export default function incident(state = initialState, action: Action) {
     switch (action.type) {
         case types.SMS_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {

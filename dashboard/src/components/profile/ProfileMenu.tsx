@@ -29,7 +29,9 @@ interface ProfileMenuProps {
     history?: object;
 }
 
-export class ProfileMenu extends Component<ProfileMenuProps> {
+export class ProfileMenu extends Component<ProfileMenuProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { aboutId: uuidv4() };
@@ -302,7 +304,7 @@ export class ProfileMenu extends Component<ProfileMenuProps> {
 
 ProfileMenu.displayName = 'ProfileMenu';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         profileSettings:
             state.profileSettings && state.profileSettings.profileSetting,

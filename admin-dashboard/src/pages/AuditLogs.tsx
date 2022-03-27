@@ -215,7 +215,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const auditLogs = state.auditLogs.auditLogs;
     const searchAuditLogs = state.auditLogs.searchAuditLogs;
     const requesting =

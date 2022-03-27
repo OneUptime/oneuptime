@@ -17,7 +17,9 @@ interface GroupTableProps {
     deleteDisable?: boolean;
 }
 
-export class GroupTable extends Component<GroupTableProps> {
+export class GroupTable extends Component<GroupTableProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { groupModalId: uuidv4() };
@@ -141,7 +143,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         disabled: state.groups.updateGroup.requesting,

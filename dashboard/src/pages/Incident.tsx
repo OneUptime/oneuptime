@@ -90,8 +90,6 @@ interface IncidentProps {
 class Incident extends React.Component<IncidentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             tabIndex: 0,
             alertLogPage: 1,
@@ -885,7 +883,7 @@ class Incident extends React.Component<IncidentProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const {
         componentSlug,
         incidentSlug,

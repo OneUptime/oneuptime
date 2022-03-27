@@ -5,13 +5,15 @@ import TableTitle from './TableTitle';
 import Button from '../basic/Button';
 import PropTypes from 'prop-types';
 
-interface TableHeaderProps {
+export interface ComponentProps {
     title: string;
     description?: string;
     headerButtons?: unknown[];
 }
 
-export default class TableHeader extends Component<TableHeaderProps> {
+export default class TableHeader extends Component<TableHeaderProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

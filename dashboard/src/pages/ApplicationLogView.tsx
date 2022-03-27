@@ -44,7 +44,7 @@ interface ApplicationLogViewProps {
     logLimit?: number;
 }
 
-class ApplicationLogView extends Component<ApplicationLogViewProps> {
+class ApplicationLogView extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -381,7 +381,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { componentSlug, applicationLogSlug } = props.match.params;
     const applicationLog = state.applicationLog.applicationLogsList.applicationLogs.filter(
         (applicationLog: $TSFixMe) => applicationLog.slug === applicationLogSlug

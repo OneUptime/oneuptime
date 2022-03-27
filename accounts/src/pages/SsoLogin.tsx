@@ -6,11 +6,15 @@ import store from '../store';
 import Cookies from 'universal-cookie';
 import { DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config';
 
-interface SsoLoginPageProps {
+interface ComponentProps {
     location: object;
 }
 
-class SsoLoginPage extends React.Component<SsoLoginPageProps> {
+class SsoLoginPage extends React.Component<ComponentProps> {
+    constructor(props: ComponentProps) {
+        super(props);
+    }
+
     override componentDidMount() {
 
         const query = qs.parse(this.props.location.search);
@@ -32,7 +36,7 @@ class SsoLoginPage extends React.Component<SsoLoginPageProps> {
         if (statusPageLogin) {
             const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 
-            return (window.location = newURL);
+            return (window.location.href = newURL);
         }
 
         //share localStorage with dashboard app
@@ -53,13 +57,13 @@ class SsoLoginPage extends React.Component<SsoLoginPageProps> {
 
         if (user.redirect) {
 
-            return (window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
+            return (window.location.href = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
         } else if (user.role === 'master-admin') {
 
-            window.location = ADMIN_DASHBOARD_URL;
+            window.location.href = ADMIN_DASHBOARD_URL;
         } else {
 
-            window.location = DASHBOARD_URL;
+            window.location.href = DASHBOARD_URL;
         }
     }
     override render() {

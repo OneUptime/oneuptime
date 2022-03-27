@@ -1,4 +1,4 @@
-import { deleteApi, getApi, postApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/slackWebhooks';
 
@@ -31,10 +31,8 @@ export const resetDeleteSlack = () => {
 // Calls the API to link webhook team to project
 export const deleteSlack = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `webhook/${projectId}/delete/${msTeamsId}`,
-            null
-        );
+        const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
+        null);
 
         dispatch(deleteSlackRequest());
 
@@ -95,7 +93,7 @@ export const getSlack = (
 ) => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
                 limit || 10
             }&type=slack`
@@ -133,7 +131,7 @@ export function getSlackMonitor(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
                 limit || 10
             }&type=slack`
@@ -192,7 +190,7 @@ export const resetCreateSlack = () => {
 // Calls the API to add webhook to project
 export const createSlack = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`webhook/${projectId}/create`, data);
+        const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
         dispatch(createSlackRequest());
         return promise.then(
@@ -251,7 +249,10 @@ export function updateSlack(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
+        const promise = BackendAPI.put(
+            `webhook/${projectId}/${webhookId}`,
+            data
+        );
 
         dispatch(updateSlackRequest());
 

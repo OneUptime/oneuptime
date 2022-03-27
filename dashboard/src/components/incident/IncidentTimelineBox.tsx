@@ -14,7 +14,9 @@ interface IncidentTimelineBoxProps {
     previous?: Function;
 }
 
-export class IncidentTimelineBox extends Component<IncidentTimelineBoxProps> {
+export class IncidentTimelineBox extends Component<IncidentTimelineBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     componentDidUpdate(prevProps: $TSFixMe) {
         if (
 
@@ -84,7 +86,7 @@ IncidentTimelineBox.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getIncidentTimeline }, dispatch);
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
         incidentTimeline: state.incident.incident,

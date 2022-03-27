@@ -1,7 +1,5 @@
 import { createStore, applyMiddleware, compose } from 'redux';
-
 import { createLogger } from 'redux-logger';
-
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
 import { createBrowserHistory, createMemoryHistory } from 'history';
@@ -18,6 +16,7 @@ const url = '/';
 export const history = isServer
     ? createMemoryHistory({ initialEntries: [url] })
     : createBrowserHistory();
+
 const initialState = {};
 const enhancers = [];
 const logger = createLogger();
@@ -37,4 +36,8 @@ if (process.env['NODE_ENV'] === 'development') {
 
 const composedEnhancers = compose(applyMiddleware(...middleware), ...enhancers);
 
-export default createStore(rootReducer, initialState, composedEnhancers);
+const store = createStore(rootReducer, initialState, composedEnhancers);
+
+export type RootState = ReturnType<typeof store.getState>;
+
+export default store;

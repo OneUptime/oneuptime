@@ -21,7 +21,7 @@ interface StatusPagesProps {
     activeProjectId?: string;
 }
 
-class StatusPages extends Component<StatusPagesProps> {
+class StatusPages extends Component<ComponentProps> {
     override render() {
         const {
 
@@ -65,7 +65,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     // try to get custom project tutorial by project ID

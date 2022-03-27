@@ -5,7 +5,7 @@ import logger from 'common-server/utils/logger';
 
 const stripe = Stripe(payment.paymentPrivateKey);
 
-import { deleteApi } from '../util/api';
+import BackendAPI from '../util/api';
 
 const projectCollection = 'projects';
 
@@ -28,7 +28,7 @@ async function run() {
                 // we won't do that here, because alot of things should happen under the hood
                 // ensure to add cluster key to the request for validation
                 try {
-                    await deleteApi(
+                    await BackendAPI.delete(
                         `project/${project._id}/initScript/deleteProject`
                     );
                 } catch (error) {

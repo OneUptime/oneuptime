@@ -45,7 +45,9 @@ interface StatusPageLayoutProps {
     openModal?: Function;
 }
 
-export class StatusPageLayout extends Component<StatusPageLayoutProps> {
+export class StatusPageLayout extends Component<StatusPageLayoutProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         visible: [
             { name: 'Header', key: 'header' },

@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { loadPage } from '../../actions/page';
 import { navKeyBind, cleanBind } from '../../utils/keybinding';
 import { animateSidebar } from '../../actions/animateSidebar';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { toggleProjectSettingsMore } from '../../actions/page';
 import { User, PricingPlan } from '../../config';
 
@@ -27,7 +27,9 @@ interface SidebarNavItemProps {
     activeSubProjectId?: string;
 }
 
-export class SidebarNavItem extends Component<SidebarNavItemProps> {
+export class SidebarNavItem extends Component<SidebarNavItemProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.RenderListItems = this.RenderListItems.bind(this);
@@ -638,7 +640,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps> {
 
 SidebarNavItem.displayName = 'SidebarNavItem';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     component: state.component,
     currentProject: state.project.currentProject,
 

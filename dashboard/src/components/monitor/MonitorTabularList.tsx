@@ -4,7 +4,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import {
     filterProbeData,
     getMonitorStatus,
@@ -27,7 +27,9 @@ interface MonitorTabularListProps {
     endDate?: object;
 }
 
-export class MonitorTabularList extends Component<MonitorTabularListProps> {
+export class MonitorTabularList extends Component<MonitorTabularListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         if (
 
@@ -531,7 +533,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

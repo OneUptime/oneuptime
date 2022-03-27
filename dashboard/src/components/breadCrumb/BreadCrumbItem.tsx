@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BreadcrumbsItem } from 'react-breadcrumbs-dynamic';
 
 import { PropTypes } from 'prop-types';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import pageTitles from '../../utils/pageTitles';
 
 interface BreadCrumbItemProps {

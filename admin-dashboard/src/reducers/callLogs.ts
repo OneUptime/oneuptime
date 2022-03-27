@@ -18,6 +18,8 @@ import {
     CHANGE_CALLLOG_STATUS_SUCCESS,
 } from '../constants/callLogs';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     callLogs: {
         error: null,
@@ -48,7 +50,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: $TSFixMe) {
+export default function project(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         // Fetch callLogs list
         case FETCH_CALLLOGS_REQUEST:

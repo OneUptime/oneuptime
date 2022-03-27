@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface SsoDeleteModalProps {
+export interface ComponentProps {
     confirmThisDialog: Function;
     closeThisDialog?: Function;
 }
 
-class SsoDeleteModal extends Component<SsoDeleteModalProps> {
+class SsoDeleteModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }

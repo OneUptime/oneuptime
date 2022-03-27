@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
 import errors from '../errors';
@@ -21,7 +21,7 @@ export const createStatusPageCategoryFailure = (error: $TSFixMe) => ({
 export const createStatusPageCategory =
     ({ projectId, statusPageId, statusPageCategoryName }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `statusPageCategory/${projectId}/${statusPageId}`,
             {
                 statusPageCategoryName,
@@ -68,7 +68,7 @@ export const updateStatusPageCategoryFailure = (error: $TSFixMe) => ({
 export const updateStatusPageCategory =
     ({ projectId, statusPageCategoryId, statusPageCategoryName }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `statusPageCategory/${projectId}/${statusPageCategoryId}`,
             {
                 statusPageCategoryName,
@@ -121,7 +121,7 @@ export const fetchStatusPageCategories =
         if (!limit) {
             limit = 0;
         }
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchStatusPageCategoriesRequest());
@@ -171,7 +171,7 @@ export const fetchAllStatusPageCategories =
         if (!limit) {
             limit = 0;
         }
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAllStatusPageCategoriesRequest());
@@ -215,9 +215,8 @@ export const deleteStatusPageCategoryFailure = (error: $TSFixMe) => ({
 export const deleteStatusPageCategory =
     ({ projectId, statusPageCategoryId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const promise = deleteApi(
-            `statusPageCategory/${projectId}/${statusPageCategoryId}`
-        );
+        const promise =
+            delete `statusPageCategory/${projectId}/${statusPageCategoryId}`;
         dispatch(updateStatusPageCategoryRequest());
 
         promise.then(

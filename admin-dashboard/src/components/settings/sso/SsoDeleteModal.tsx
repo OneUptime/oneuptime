@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 class SsoDeleteModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {

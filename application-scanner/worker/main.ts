@@ -1,11 +1,11 @@
-const getApi = require('../utils/api').getApi;
+import BackendAPI from '../utils/api';
 import ErrorService from '../utils/errorService';
 import ApplicationSecurity from './applicationSecurity';
 
 export default {
     runApplicationScan: async function () {
         try {
-            const securities = await getApi(
+            const securities = await BackendAPI.get(
                 'application/applicationSecurities'
             );
             if (securities && securities.length > 0) {
@@ -18,7 +18,7 @@ export default {
 
             return;
         } catch (error) {
-            ErrorService.log('runApplicationScan.getApi', error);
+            ErrorService.log('runApplicationScan.get', error);
         }
     },
 };

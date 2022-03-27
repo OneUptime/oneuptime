@@ -9,6 +9,8 @@ import {
     CLOSE_TUTORIAL_RESET,
 } from '../constants/tutorial';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     error: null,
     requesting: false,
@@ -33,7 +35,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case FETCH_TUTORIAL_REQUEST:
             return Object.assign({}, state, {

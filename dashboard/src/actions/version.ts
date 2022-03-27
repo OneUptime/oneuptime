@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/version';
 
@@ -32,7 +32,7 @@ export const resetGetVersion = () => {
 export const getVersion = () => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi('version');
+        promise = BackendAPI.get('version');
 
         dispatch(getVersionRequest(promise));
 

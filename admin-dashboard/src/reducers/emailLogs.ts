@@ -18,6 +18,8 @@ import {
     CHANGE_EMAILLOG_STATUS_SUCCESS,
 } from '../constants/emailLogs';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     emailLogs: {
         error: null,
@@ -48,7 +50,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: $TSFixMe) {
+export default function project(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         // Fetch emailLogs list
         case FETCH_EMAILLOGS_REQUEST:

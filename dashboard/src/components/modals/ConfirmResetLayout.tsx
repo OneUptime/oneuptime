@@ -16,7 +16,7 @@ interface ConfirmResetLayoutProps {
     resetLayoutToDefault?: Function;
 }
 
-class ConfirmResetLayout extends Component<ConfirmResetLayoutProps> {
+class ConfirmResetLayout extends Component<ComponentProps> {
     state = {
         requesting: false,
     };
@@ -149,7 +149,7 @@ class ConfirmResetLayout extends Component<ConfirmResetLayoutProps> {
 
 ConfirmResetLayout.displayName = 'ConfirmResetLayout';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         statusPage: state.statusPage,
     };

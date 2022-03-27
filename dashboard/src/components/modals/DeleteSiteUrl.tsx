@@ -11,7 +11,9 @@ interface DeleteSiteUrlProps {
     requesting?: boolean;
 }
 
-export class DeleteSiteUrl extends Component<DeleteSiteUrlProps> {
+export class DeleteSiteUrl extends Component<DeleteSiteUrlProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -112,7 +114,7 @@ export class DeleteSiteUrl extends Component<DeleteSiteUrlProps> {
 
 DeleteSiteUrl.displayName = 'DeleteSiteUrl';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         requesting: state.monitor.editMonitor.requesting,
     };

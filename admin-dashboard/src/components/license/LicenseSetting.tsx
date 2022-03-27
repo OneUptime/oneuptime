@@ -39,8 +39,8 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class LicenseSetting extends Component<ComponentProps> {
-
+export class LicenseSetting extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     submitForm = (values: $TSFixMe) => {
@@ -189,7 +189,7 @@ const LicenseSettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(LicenseSetting);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const initValues = state.license.license
         ? Object.assign({}, state.license.license.data)
         : {};

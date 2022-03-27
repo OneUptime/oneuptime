@@ -13,7 +13,7 @@ interface UnVerifiedEmailBoxProps {
     sendEmailVerificationLink: Function;
 }
 
-class UnVerifiedEmailBox extends Component<UnVerifiedEmailBoxProps> {
+class UnVerifiedEmailBox extends Component<ComponentProps> {
     handleSendEmailVerification = () => {
 
         const { email } = this.props.initialValues;
@@ -100,7 +100,7 @@ class UnVerifiedEmailBox extends Component<UnVerifiedEmailBoxProps> {
     }
 }
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         initialValues: state.profileSettings.profileSetting
             ? state.profileSettings.profileSetting.data

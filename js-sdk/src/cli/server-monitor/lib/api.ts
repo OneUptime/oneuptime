@@ -31,7 +31,7 @@ const {
 const ping = (
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    apiUrl: string,
+    apiUrl: URL,
     apiKey: $TSFixMe,
     interval = '* * * * *',
     simulate: $TSFixMe,
@@ -181,7 +181,7 @@ const ping = (
 
 export default function (
     config: $TSFixMe,
-    apiUrl: string,
+    apiUrl: URL,
     apiKey: $TSFixMe,
     monitorId: $TSFixMe
 ) {

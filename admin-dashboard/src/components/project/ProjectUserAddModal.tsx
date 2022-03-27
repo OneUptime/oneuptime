@@ -35,8 +35,8 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class FormModal extends Component<ComponentProps> {
-
+export class FormModal extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -519,7 +519,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         createUser: state.project.createUser,
     };

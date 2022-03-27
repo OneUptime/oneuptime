@@ -15,6 +15,7 @@ import * as _ from 'lodash';
 
 class Users extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
@@ -419,7 +420,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const requesting =
         state.user.users.requesting || state.user.searchUsers.requesting
             ? true

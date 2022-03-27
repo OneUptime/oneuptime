@@ -20,7 +20,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 //Client side validation
 function validate(values: $TSFixMe) {
@@ -50,7 +50,9 @@ interface BrandingProps {
     faviconurl?: string;
 }
 
-export class Branding extends Component<BrandingProps> {
+export class Branding extends Component<BrandingProps>{
+    public static displayName = '';
+    public static propTypes = {};
     changelogo = (e: $TSFixMe) => {
         e.preventDefault();
 
@@ -318,7 +320,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         statusPage: state.statusPage,
         logourl: state.statusPage.logocache.data,

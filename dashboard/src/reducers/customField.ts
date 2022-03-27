@@ -1,5 +1,7 @@
 import * as types from '../constants/customField';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     customField: {
         requesting: false,
@@ -19,7 +21,7 @@ const initialState = {
     page: 1,
 };
 
-export default function customField(state = initialState, action: $TSFixMe) {
+export default function customField(state = initialState, action: Action) {
     switch (action.type) {
         case types.CREATE_CUSTOM_FIELD_REQUEST:
             return {

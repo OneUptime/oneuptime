@@ -37,12 +37,11 @@ import { fetchUnresolvedIncidents } from '../actions/incident';
 
 class Home extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             tabIndex: 0,
         };
@@ -745,7 +744,7 @@ Home.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     let monitors: $TSFixMe = [],

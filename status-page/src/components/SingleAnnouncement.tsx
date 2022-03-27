@@ -18,7 +18,7 @@ interface SingleAnnouncementProps {
     monitorState?: unknown[];
 }
 
-class SingleAnnouncement extends Component<SingleAnnouncementProps> {
+class SingleAnnouncement extends Component<ComponentProps> {
     async override componentDidMount() {
         const {
 
@@ -177,7 +177,7 @@ SingleAnnouncement.propTypes = {
     monitorState: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         statusPage: state.status.statusPage,
         announcement: state.status.announcements.singleAnnouncement,

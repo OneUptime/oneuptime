@@ -30,7 +30,7 @@ const Services = {
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe,
         chargeAttemptCount: $TSFixMe,
-        invoiceUrl: string
+        invoiceUrl: URL
     ) {
         const [user, project] = await Promise.all([
             UserService.findOneBy({

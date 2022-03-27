@@ -1,11 +1,13 @@
-const getApi = require('../utils/api').getApi;
+import BackendAPI from '../utils/api';
 import ErrorService from '../utils/errorService';
 import ContainerSecurity from './containerSecurity';
 
 export default {
     runContainerScan: async function () {
         try {
-            const securities = await getApi('container/containerSecurities');
+            const securities = await BackendAPI.get(
+                'container/containerSecurities'
+            );
             if (securities && securities.length > 0) {
                 await Promise.all(
                     securities.map((security: $TSFixMe) => {
@@ -16,7 +18,7 @@ export default {
 
             return;
         } catch (error) {
-            ErrorService.log('runContainerScan.getApi', error);
+            ErrorService.log('runContainerScan.get', error);
         }
     },
 };

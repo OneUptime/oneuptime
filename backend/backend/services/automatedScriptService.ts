@@ -1,7 +1,7 @@
 import ScriptModel from '../models/automatedScripts';
 import ScriptModelLog from '../models/automationScriptsLog';
 
-import { postApi } from '../utils/api';
+import BackendAPI from '../utils/api';
 import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
 import handleSelect from '../utils/select';
@@ -258,7 +258,7 @@ export default {
             });
         let data = null;
         if (scriptType === 'JavaScript') {
-            const result = await postApi(`${scriptBaseUrl}/script/js`, {
+            const result = await BackendAPI.post(`${scriptBaseUrl}/script/js`, {
                 script,
             });
             data = {
@@ -272,9 +272,12 @@ export default {
                 consoleLogs: result.consoleLogs,
             };
         } else if (scriptType === 'Bash') {
-            const result = await postApi(`${scriptBaseUrl}/script/bash`, {
-                script,
-            });
+            const result = await BackendAPI.post(
+                `${scriptBaseUrl}/script/bash`,
+                {
+                    script,
+                }
+            );
             data = {
                 success: result.success,
                 errors: result.errors,

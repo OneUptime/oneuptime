@@ -16,7 +16,9 @@ interface ButtonProps {
     visibleForAll?: boolean;
 }
 
-export default class Button extends Component<ButtonProps> {
+export default class Button extends Component<ButtonProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

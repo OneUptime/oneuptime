@@ -16,7 +16,9 @@ import {
     resetErrorMessage,
 } from '../../actions/group';
 
-export class GroupForm extends Component<ComponentProps> {
+export class GroupForm extends Component<ComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         teamMemberIds: [],
         teams: [],
@@ -505,7 +507,7 @@ const CreateGroupForm = reduxForm({
     enableReinitialize: true,
 })(GroupForm);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const initval = props.data.editGroup
         ? { groupName: props.data.groupName }
         : {};

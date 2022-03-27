@@ -101,7 +101,7 @@ RenderMembers.propTypes = {
     form: PropTypes.oneOfType([PropTypes.array, PropTypes.object]).isRequired,
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
 

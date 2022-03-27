@@ -24,7 +24,7 @@ const incomingRequestSchema = new Schema(
         updateInternalNote: { type: Boolean, default: false },
         noteContent: String,
         incidentState: String,
-        url: String,
+        url: URL,
         enabled: { type: Boolean, default: true },
         deleted: { type: Boolean, default: false },
         deletedAt: Date,

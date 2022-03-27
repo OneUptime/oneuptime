@@ -26,7 +26,7 @@ interface ResolveTimeProps {
     resolveTimeReports?: object;
 }
 
-class ResolveTime extends Component<ResolveTimeProps> {
+class ResolveTime extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -51,7 +51,7 @@ class ResolveTime extends Component<ResolveTimeProps> {
         getResolveTime(currentProject, filter, startDate, endDate);
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps: $TSFixMe, prevState: $TSFixMe) {
+    UNSAFE_componentWillReceiveProps(nextProps: ComponentProps, prevstate: RootState) {
         const {
             getResolveTime,
             currentProject,
@@ -176,7 +176,7 @@ const actionCreators = {
     getResolveTimeSuccess,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     resolveTimeReports: state.report.averageTime
 });
 

@@ -1,4 +1,4 @@
-import { getApi, postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/settings';
 import errors from '../errors';
@@ -59,7 +59,7 @@ export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(testSmtpRequest());
 
     try {
-        const response = await postApi('emailSmtp/test', payload);
+        const response = await BackendAPI.post('emailSmtp/test', payload);
         dispatch(testSmtpSuccess(response));
         return response;
     } catch (error) {
@@ -81,7 +81,7 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(testTwilioRequest());
 
     try {
-        const response = await postApi('twilio/sms/test', payload);
+        const response = await BackendAPI.post('twilio/sms/test', payload);
         dispatch(testTwilioSuccess(response));
         return response;
     } catch (error) {
@@ -102,7 +102,7 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
 export const fetchSettings = (type: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(requestingSettings());
     try {
-        const response = await getApi(`globalConfig/${type}`);
+        const response = await BackendAPI.get(`globalConfig/${type}`);
 
         const data = response.data || { value: {} };
         if (type === 'smtp') {
@@ -138,7 +138,7 @@ export const saveSettings =
     (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(requestingSettings());
         try {
-            const response = await postApi(`globalConfig`, {
+            const response = await BackendAPI.post(`globalConfig`, {
                 name: type,
                 value: settings,
             });

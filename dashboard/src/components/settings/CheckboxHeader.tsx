@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface CheckboxHeaderProps {
+export interface ComponentProps {
     text: string;
 }
 

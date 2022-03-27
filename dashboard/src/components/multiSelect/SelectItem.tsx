@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface DefaultRendererProps {
+export interface ComponentProps {
     checked: boolean;
     option?: Record<string, unknown>;
     disabled?: boolean;

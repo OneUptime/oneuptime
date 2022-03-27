@@ -11,7 +11,9 @@ interface TransactionMetricsTableProps {
     type?: any;
 }
 
-export class TransactionMetricsTable extends Component<TransactionMetricsTableProps> {
+export class TransactionMetricsTable extends Component<TransactionMetricsTableProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyBoard: $TSFixMe;
     override render() {
 
@@ -49,7 +51,7 @@ TransactionMetricsTable.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
     };

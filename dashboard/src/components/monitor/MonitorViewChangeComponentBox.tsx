@@ -23,7 +23,7 @@ interface MonitorViewChangeComponentBoxProps {
     component?: object;
 }
 
-class MonitorViewChangeComponentBox extends Component<MonitorViewChangeComponentBoxProps> {
+class MonitorViewChangeComponentBox extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -139,7 +139,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     let component;
     state.component.componentList.components.forEach((item: $TSFixMe) => {

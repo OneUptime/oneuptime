@@ -30,7 +30,7 @@ interface GitSshModalProps {
     updatingCredential?: boolean;
 }
 
-class GitSshModal extends Component<GitSshModalProps> {
+class GitSshModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -421,7 +421,7 @@ GitSshModal.propTypes = {
     updatingCredential: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialId } = propArr[0];
     const gitSsh = credentialId

@@ -16,7 +16,9 @@ interface MonitorTitleProps {
     requesting?: boolean;
 }
 
-export class MonitorTitle extends Component<MonitorTitleProps> {
+export class MonitorTitle extends Component<MonitorTitleProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -268,7 +270,7 @@ MonitorTitle.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,

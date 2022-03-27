@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentPriorities';
 import errors from '../errors';
@@ -29,7 +29,7 @@ export function fetchIncidentPriorities(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
                 limit || 10
             }`
@@ -60,7 +60,10 @@ export function fetchIncidentPriorities(
 
 export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`incidentPriorities/${projectId}`, data);
+        const promise = BackendAPI.post(
+            `incidentPriorities/${projectId}`,
+            data
+        );
         dispatch(createIncidentPriorityRequest());
         promise.then(
             function (incidentPriority) {
@@ -106,7 +109,7 @@ function createIncidentPriorityFailure(data: $TSFixMe) {
 
 export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`incidentPriorities/${projectId}`, data);
+        const promise = BackendAPI.put(`incidentPriorities/${projectId}`, data);
         dispatch(updateIncidentPriorityRequest());
         promise.then(
             function (incidentPriority) {
@@ -152,7 +155,7 @@ function updateIncidentPriorityFailure(data: $TSFixMe) {
 
 export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`incidentPriorities/${projectId}`, data);
+        const promise = delete (`incidentPriorities/${projectId}`, data);
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
             function (incidentPriority) {

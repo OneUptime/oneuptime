@@ -1,11 +1,13 @@
 import { OPEN_MODAL, CLOSE_MODAL } from '../constants/modal';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     modals: [],
     feedbackModalVisble: false,
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case OPEN_MODAL:
             return Object.assign({}, state, {

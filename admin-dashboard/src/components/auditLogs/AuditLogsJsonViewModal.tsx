@@ -8,6 +8,7 @@ import ClickOutside from 'react-click-outside';
 
 class AuditLogsJsonViewModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -167,7 +168,7 @@ class AuditLogsJsonViewModal extends Component<ComponentProps> {
 
 AuditLogsJsonViewModal.displayName = 'AuditLogsJsonViewModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.auditLogs &&

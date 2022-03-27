@@ -13,7 +13,7 @@ interface ViewScriptLogsProps {
     title?: string;
 }
 
-class ViewScriptLogs extends Component<ViewScriptLogsProps> {
+class ViewScriptLogs extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -5,8 +5,8 @@ import { connect } from 'react-redux';
 import Modal from '../components/Modal';
 import { closeModal } from '../actions/modal';
 
-export class Modals extends Component<ComponentProps> {
-
+export class Modals extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

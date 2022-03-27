@@ -1,4 +1,4 @@
-import { getApi, putApi, deleteApi, postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
@@ -50,7 +50,10 @@ export const uploadCertFile = (projectId: $TSFixMe, file: $TSFixMe) => {
         if (file) {
             data.append('cert', file);
 
-            const promise = postApi(`status-page/${projectId}/certFile`, data);
+            const promise = BackendAPI.post(
+                `status-page/${projectId}/certFile`,
+                data
+            );
             dispatch(uploadCertFileRequest());
             promise.then(
                 function (response) {
@@ -111,7 +114,7 @@ export const uploadPrivateKey = (projectId: $TSFixMe, file: $TSFixMe) => {
         if (file) {
             data.append('privateKey', file);
 
-            const promise = postApi(
+            const promise = BackendAPI.post(
                 `status-page/${projectId}/privateKeyFile`,
                 data
             );
@@ -170,7 +173,7 @@ export const updateStatusPageSetting = (
     data: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageSettingRequest());
         promise.then(
             function (response) {
@@ -226,7 +229,7 @@ export function updateStatusPageMonitors(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageMonitorsRequest());
 
         promise.then(
@@ -280,7 +283,7 @@ export const updatePrivateStatusPage = (
     values: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updatePrivateStatusPageRequest());
 
         promise.then(
@@ -333,7 +336,7 @@ export function updateStatusPageLanguage(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLanguageRequest());
 
         promise.then(
@@ -386,7 +389,7 @@ export const updateSubscriberOption = (
     values: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateSubscriberOptionRequest());
 
         promise.then(
@@ -510,7 +513,7 @@ export function updateStatusPageBranding(
 
         if (values._id) data.append('_id', values._id);
 
-        const promise = putApi(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageBrandingRequest());
 
         promise.then(
@@ -539,7 +542,7 @@ export function updateStatusPageBranding(
 // Calls the API to update the theme
 export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}/theme`, data);
+        const promise = BackendAPI.put(`status-page/${projectId}/theme`, data);
         dispatch(updateStatusPageThemeRequest());
 
         promise.then(
@@ -569,7 +572,7 @@ export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
 // Calls the API to update status page name.
 export const updateStatusPageName = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageNameRequest());
 
         promise.then(
@@ -623,7 +626,7 @@ export const updateStatusPageLinks = (
     values: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLinksRequest());
 
         promise.then(
@@ -677,7 +680,7 @@ export function updateStatusPageCustomHTML(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageCustomHTMLRequest());
 
         promise.then(
@@ -739,7 +742,7 @@ export function fetchProjectStatusPage(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/statuspage?skip=${skip}&limit=${limit}`
         );
         if (!refresh) dispatch(fetchProjectStatusPageRequest());
@@ -802,7 +805,7 @@ export function fetchSubProjectStatusPages(
     refresh: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`status-page/${projectId}/status-pages`);
+        const promise = BackendAPI.get(`status-page/${projectId}/status-pages`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
 
         promise.then(
@@ -865,7 +868,7 @@ export function fetchIncidentStatusPages(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `incident/${projectId}/${incidentSlug}/statuspages?skip=${skip}&limit=${limit}`
         );
 
@@ -918,7 +921,7 @@ export function resetStatusBubbleId(
     statusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `status-page/${projectId}/${statusPageId}/resetBubbleId`,
             {}
         );
@@ -979,10 +982,8 @@ export function deleteStatusPage(
     statusPageSlug: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `status-page/${projectId}/${statusPageSlug}`,
-            null
-        );
+        const promise = delete (`status-page/${projectId}/${statusPageSlug}`,
+        null);
         dispatch(deleteStatusPageRequest());
         promise.then(
             function (response) {
@@ -1030,7 +1031,7 @@ export const duplicateStatusPageError = (error: $TSFixMe) => {
 
 export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`status-page/${statusPageSlug}`, data);
+        const promise = BackendAPI.get(`status-page/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
             function (response) {
@@ -1068,7 +1069,7 @@ export function createDuplicateStatusPage(
         const url = subProjectId
             ? `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
             : `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage`;
-        const promise = postApi(url, data);
+        const promise = BackendAPI.post(url, data);
         promise.then(
             function (response) {
                 return response;
@@ -1093,7 +1094,7 @@ export function createDuplicateStatusPage(
 
 export const fetchStatusPage = (statusPageSlug: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`status-page/${statusPageSlug}`);
+        const promise = BackendAPI.get(`status-page/${statusPageSlug}`);
         promise.then(
             function (response) {
                 const statusPageData = response.data;
@@ -1154,7 +1155,7 @@ export function updateStatusPageEmbeddedCss(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
             function (response) {
@@ -1210,7 +1211,7 @@ export function resetBrandingColors(
     statusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `status-page/${projectId}/${statusPageId}/resetColors`
         );
         dispatch(resetBrandingColorsRequest());
@@ -1266,7 +1267,7 @@ export function resetStatusPageEmbeddedCss(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
             function (response) {
@@ -1316,7 +1317,7 @@ export const updateStatusPageLayoutError = (error: $TSFixMe) => {
 
 export const updateStatusPageLayout = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
             function (response) {
@@ -1372,7 +1373,7 @@ export function fetchStatusPageSubscribers(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchSubscriberRequest());
@@ -1424,7 +1425,7 @@ export function createExternalStatusPage(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `status-page/${projectId}/createExternalstatus-page/${statusPageId}`,
             data
         );
@@ -1481,7 +1482,7 @@ export function updateExternalStatusPage(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `status-page/${projectId}/updateExternalstatus-page/${externalStatusPageId}`,
             data
         );
@@ -1537,7 +1538,7 @@ export function fetchExternalStatusPages(
     statusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
         dispatch(fetchExternalStatusPagesRequest());
@@ -1592,7 +1593,7 @@ export function deleteExternalStatusPage(
     externalStatusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `status-page/${projectId}/deleteExternalstatus-page/${externalStatusPageId}`
         );
         dispatch(deleteExternalStatusPageRequest());
@@ -1648,7 +1649,7 @@ export function createAnnouncement(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `status-page/${projectId}/announcement/${statusPageId}`,
             data
         );
@@ -1686,7 +1687,7 @@ export function updateAnnouncement(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `status-page/${projectId}/announcement/${statusPageId}/${announcementId}`,
             data
         );
@@ -1744,7 +1745,7 @@ export function fetchAnnouncements(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAnnouncementRequest());
@@ -1797,7 +1798,7 @@ export function fetchAnnouncementLogs(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAnnouncementLogsRequest());
@@ -1843,7 +1844,7 @@ export function fetchSingleAnnouncement(
     announcementSlug: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         promise.then(
@@ -1919,9 +1920,8 @@ export function deleteAnnouncement(
     announcementId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `status-page/${projectId}/announcement/${announcementId}/delete`
-        );
+        const promise =
+            delete `status-page/${projectId}/announcement/${announcementId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
             function (response) {
@@ -1950,9 +1950,8 @@ export function deleteAnnouncementLog(
     announcementLogId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `status-page/${projectId}/announcementLog/${announcementLogId}/delete`
-        );
+        const promise =
+            delete `status-page/${projectId}/announcementLog/${announcementLogId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
             function (response) {
@@ -1987,7 +1986,7 @@ export const deleteProjectStatusPages = (projectId: $TSFixMe) => {
 
 // Logo
 
-export const createLogoCache = (imageUrl: string) => {
+export const createLogoCache = (imageUrl: URL) => {
     return {
         type: types.LOGO_CACHE_INSERT,
         payload: imageUrl,
@@ -1995,7 +1994,7 @@ export const createLogoCache = (imageUrl: string) => {
 };
 
 // Banner
-export const createBannerCache = (imageUrl: string) => {
+export const createBannerCache = (imageUrl: URL) => {
     return {
         type: types.BANNER_CACHE_INSERT,
         payload: imageUrl,
@@ -2015,7 +2014,7 @@ export const setStatusPageColors = (color: $TSFixMe) => {
     };
 };
 
-export const createFaviconCache = (imageUrl: string) => {
+export const createFaviconCache = (imageUrl: URL) => {
     return {
         type: types.FAVICON_CACHE_INSERT,
         payload: imageUrl,

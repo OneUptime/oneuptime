@@ -17,7 +17,7 @@ interface ComponentIssueProps {
     trackerLimit?: number;
 }
 
-class ComponentIssue extends Component<ComponentIssueProps> {
+class ComponentIssue extends Component<ComponentProps> {
     override componentDidMount() {
         const {
 
@@ -79,7 +79,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const componentIssueList =
         state.component.componentIssueList[ownProps.component._id];
     const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers.filter(

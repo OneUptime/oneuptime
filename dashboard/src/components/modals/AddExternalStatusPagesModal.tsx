@@ -22,7 +22,7 @@ interface AddExternalStatusPagesModalProps {
     closeModal: Function;
 }
 
-class AddExternalStatusPagesModal extends Component<AddExternalStatusPagesModalProps> {
+class AddExternalStatusPagesModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -276,7 +276,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         statusPage: state.statusPage,
         currentProject: state.project.currentProject,

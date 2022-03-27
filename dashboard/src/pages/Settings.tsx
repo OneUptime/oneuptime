@@ -18,7 +18,7 @@ interface SettingsProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Settings extends Component<SettingsProps> {
+class Settings extends Component<ComponentProps> {
     override render() {
         const {
 
@@ -79,7 +79,7 @@ Settings.propTypes = {
 
 Settings.displayName = 'Settings';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

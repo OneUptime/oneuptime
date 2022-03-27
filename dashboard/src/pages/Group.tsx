@@ -23,7 +23,7 @@ interface GroupsProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Groups extends Component<GroupsProps> {
+class Groups extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.getGroups();
@@ -146,7 +146,7 @@ Groups.propTypes = {
 
 Groups.displayName = 'Groups';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         team: state.team,
         currentProject: state.project.currentProject,

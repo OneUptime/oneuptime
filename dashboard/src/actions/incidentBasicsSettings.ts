@@ -1,4 +1,4 @@
-import { getApi, putApi, postApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentBasicSettings';
 import errors from '../errors';
@@ -19,7 +19,7 @@ const fetchBasicIncidentSettingsVariablesFailure = (payload: $TSFixMe) => ({
 
 export const fetchBasicIncidentSettingsVariables = () => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`incidentSettings/variables`);
+        const promise = BackendAPI.get(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
             function (incidentBasicSettings) {
@@ -76,7 +76,7 @@ export const fetchIncidentTemplates =
     (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
 
-        const promise = getApi(url);
+        const promise = BackendAPI.get(url);
         dispatch(fetchIncidentTemplatesRequest());
         promise.then(
             function (incidentBasicSettings) {
@@ -122,7 +122,7 @@ export const createIncidentTemplate =
     (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}`;
 
-        const promise = postApi(url, data);
+        const promise = BackendAPI.post(url, data);
         dispatch(createIncidentTemplateRequest());
         promise.then(
             function (incidentBasicSettings) {
@@ -168,7 +168,7 @@ export const updateIncidentTemplate =
     (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/${templateId}`;
 
-        const promise = putApi(url, data);
+        const promise = BackendAPI.put(url, data);
         dispatch(updateIncidentTemplateRequest());
         promise.then(
             function (incidentBasicSettings) {
@@ -214,7 +214,7 @@ export const deleteIncidentTemplate =
     (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/${templateId}`;
 
-        const promise = deleteApi(url);
+        const promise = BackendAPI.delete(url);
         dispatch(deleteIncidentTemplateRequest());
         promise.then(
             function (incidentBasicSettings) {
@@ -260,7 +260,7 @@ export const setDefaultTemplate =
     (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/${templateId}/setDefault`;
 
-        const promise = putApi(url, {});
+        const promise = BackendAPI.put(url, {});
         dispatch(setDefaultTemplateRequest());
         promise.then(
             function (incidentBasicSettings) {
@@ -310,7 +310,7 @@ export const fetchDefaultTemplate =
     (dispatch: Dispatch) => {
         const url = `incidentSettings/${projectId}/default`;
 
-        const promise = getApi(url);
+        const promise = BackendAPI.get(url);
         dispatch(fetchDefaultTemplateRequest());
         promise.then(
             function (incidentBasicSettings) {

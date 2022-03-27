@@ -8,7 +8,7 @@ interface RemovedFromSubProjectProps {
     closeThisDialog: Function;
 }
 
-class RemovedFromSubProject extends Component<RemovedFromSubProjectProps> {
+class RemovedFromSubProject extends Component<ComponentProps> {
     override render() {
 
         const { closeThisDialog } = this.props;

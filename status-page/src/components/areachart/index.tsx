@@ -56,7 +56,7 @@ interface AreaChartProps {
     colors?: object;
 }
 
-class AreaChart extends Component<AreaChartProps> {
+class AreaChart extends Component<ComponentProps> {
     parseValue(data: $TSFixMe, name: $TSFixMe, display: $TSFixMe, symbol: $TSFixMe) {
         switch (name) {
             case 'load':

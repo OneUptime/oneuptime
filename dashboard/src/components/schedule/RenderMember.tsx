@@ -343,7 +343,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ change }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
     const formValues = state.form.OnCallAlertBox?.values;

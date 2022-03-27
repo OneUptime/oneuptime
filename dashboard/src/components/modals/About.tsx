@@ -9,7 +9,7 @@ interface AboutProps {
     versions?: object;
 }
 
-class About extends Component<AboutProps> {
+class About extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -235,7 +235,7 @@ class About extends Component<AboutProps> {
 
 About.displayName = 'AboutModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         versions: state.version.versions,
     };

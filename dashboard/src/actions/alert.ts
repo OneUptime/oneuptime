@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/alert';
 import errors from '../errors';
@@ -34,7 +34,7 @@ export const alertSuccess = (alert: $TSFixMe) => {
 
 export const fetchAlert = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`alert/${projectId}`);
+        const promise = BackendAPI.get(`alert/${projectId}`);
 
         dispatch(alertRequest());
 
@@ -96,7 +96,7 @@ export function fetchProjectAlert(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
         );
 
@@ -164,7 +164,7 @@ export function fetchIncidentAlert(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
 
@@ -237,11 +237,11 @@ export function fetchSubscriberAlert(
         limit = limit < 0 ? 0 : limit;
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `subscriberAlert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `subscriberAlert/${projectId}/incident/${incidentSlug}`
             );
         }
@@ -300,11 +300,11 @@ export function fetchAlertCharges(
     let promise;
     return function (dispatch: Dispatch) {
         if (skip >= 0 && limit > 0) {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`alert/${projectId}/alert/charges`);
+            promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
         }
 
         dispatch(fetchAlertChargesRequest(promise));
@@ -354,7 +354,7 @@ export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe) => {
 
 export const downloadAlertCharges = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`alert/${projectId}/alert/charges`);
+        const promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
 
         dispatch(downloadAlertChargesRequest(promise));
 

@@ -8,6 +8,8 @@ import {
     NOTIFICATION_READ_SUCCESS,
 } from '../constants/notification';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     notifications: {
         error: null,
@@ -19,7 +21,7 @@ const initialState = {
     notificationsPosition: 0,
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case OPEN_NOTIFICATION_MENU:
             return Object.assign({}, state, {

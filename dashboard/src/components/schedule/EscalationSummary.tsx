@@ -12,7 +12,9 @@ interface EscalationSummaryProps {
     groups?: unknown[];
 }
 
-export class EscalationSummary extends Component<EscalationSummaryProps> {
+export class EscalationSummary extends Component<EscalationSummaryProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {};

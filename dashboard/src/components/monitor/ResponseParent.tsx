@@ -19,7 +19,9 @@ interface ResponseParentProps {
     criterionType?: string;
 }
 
-export class ResponseParent extends Component<ResponseParentProps> {
+export class ResponseParent extends Component<ResponseParentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);

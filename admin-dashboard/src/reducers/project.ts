@@ -81,6 +81,8 @@ import {
     RESET_DELETE_PROJECT_DOMAIN,
 } from '../constants/project';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     projects: {
         error: null,
@@ -206,7 +208,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: $TSFixMe) {
+export default function project(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         // fetch projects list
         case FETCH_PROJECTS_REQUEST:

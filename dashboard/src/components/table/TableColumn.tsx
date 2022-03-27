@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import RenderBasedOnRole from '../basic/RenderBasedOnRole';
 import PropTypes from 'prop-types';
 
-interface TableColumnProps {
+export interface ComponentProps {
     title: string;
     onClick?: Function;
     visibleForOwner?: boolean;
@@ -12,7 +12,9 @@ interface TableColumnProps {
     visibleForAll?: boolean;
 }
 
-export default class TableColumn extends Component<TableColumnProps> {
+export default class TableColumn extends Component<TableColumnProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

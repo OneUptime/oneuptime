@@ -42,7 +42,7 @@ interface CollapsibleProps {
     openIconClass?: string;
 }
 
-class Collapsible extends Component<CollapsibleProps> {
+class Collapsible extends Component<ComponentProps> {
     innerRef: $TSFixMe;
     timeout: $TSFixMe;
     constructor(props: $TSFixMe) {
@@ -74,7 +74,7 @@ class Collapsible extends Component<CollapsibleProps> {
         }
     }
 
-    componentDidUpdate(prevProps: $TSFixMe, prevState: $TSFixMe) {
+    componentDidUpdate(prevProps: $TSFixMe, prevstate: RootState) {
 
         if (this.state.shouldOpenOnNextCycle) {
             this.continueOpenCollapsible();

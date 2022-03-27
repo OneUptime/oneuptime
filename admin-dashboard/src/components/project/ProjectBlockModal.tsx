@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class ProjectBlockModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -139,7 +140,7 @@ class ProjectBlockModal extends Component<ComponentProps> {
 
 ProjectBlockModal.displayName = 'ProjectBlockModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.project &&

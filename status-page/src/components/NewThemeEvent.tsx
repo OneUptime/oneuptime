@@ -98,7 +98,7 @@ interface NewThemeEventProps {
     history?: object;
 }
 
-class NewThemeEvent extends Component<NewThemeEventProps> {
+class NewThemeEvent extends Component<ComponentProps> {
     override render() {
         const checkDuplicateDates = (items: $TSFixMe) => {
             const track = {};
@@ -448,7 +448,7 @@ NewThemeEvent.propTypes = {
     history: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { type } = ownProps;
     const futureEvents = state.status.futureEvents.events;
     const pastEvents = state.status.pastEvents.events;

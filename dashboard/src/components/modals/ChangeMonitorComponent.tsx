@@ -12,7 +12,7 @@ import { FormLoader } from '../basic/Loader';
 import { changeMonitorComponent } from '../../actions/monitor';
 import ComponentSelector from '../basic/ComponentSelector';
 import { ValidateField } from '../../config';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import MessageBox from '../modals/MessageBox';
 import DataPathHoC from '../DataPathHoC';
@@ -373,7 +373,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         components: state.component.componentList.components,
         requesting: state.monitor.changeMonitorComponent.requesting,

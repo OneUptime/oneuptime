@@ -13,7 +13,7 @@ export default {
                 monitors.map((monitor: $TSFixMe) => scriptMonitors.run(monitor))
             );
         } catch (error) {
-            errorService.log('getApi', error);
+            errorService.log('get', error);
         }
     },
 };

@@ -17,7 +17,7 @@ interface RemoveTeamUserModalProps {
     teamUserDelete?: any;
 }
 
-class RemoveTeamUserModal extends Component<RemoveTeamUserModalProps> {
+class RemoveTeamUserModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -150,7 +150,7 @@ class RemoveTeamUserModal extends Component<RemoveTeamUserModalProps> {
 
 RemoveTeamUserModal.displayName = 'RemoveTeamUserModal';
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const userId =
         props.data && props.data.values && props.data.values.userId
             ? props.data.values.userId

@@ -17,7 +17,7 @@ interface VerifyDomainModalProps {
     resetDomain?: Function;
 }
 
-class VerifyDomainModal extends Component<VerifyDomainModalProps> {
+class VerifyDomainModal extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.resetDomain();
@@ -306,7 +306,7 @@ class VerifyDomainModal extends Component<VerifyDomainModalProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     domainField: state.statusPage.verifyDomain,
     requesting: state.statusPage.requesting
 });

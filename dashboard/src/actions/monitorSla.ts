@@ -1,5 +1,5 @@
 import * as types from '../constants/monitorSla';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 export const createMonitorSlaRequest = () => ({
@@ -21,7 +21,10 @@ export const createMonitorSla =
         try {
             dispatch(createMonitorSlaRequest());
 
-            const response = await postApi(`monitorSla/${projectId}`, data);
+            const response = await BackendAPI.post(
+                `monitorSla/${projectId}`,
+                data
+            );
 
             dispatch(createMonitorSlaSuccess(response.data));
         } catch (error) {
@@ -63,7 +66,7 @@ export const updateMonitorSla =
             dispatch(updateMonitorSlaRequest());
 
             data.handleDefault = handleDefault;
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `monitorSla/${projectId}/${monitorSlaId}`,
                 data
             );
@@ -102,7 +105,7 @@ export const fetchMonitorSlas =
         try {
             dispatch(fetchMonitorSlasRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `monitorSla/${projectId}?skip=${skip}&limit=${limit}`
             );
 
@@ -140,9 +143,8 @@ export const deleteMonitorSla =
         try {
             dispatch(deleteMonitorSlaRequest());
 
-            const response = await deleteApi(
-                `monitorSla/${projectId}/${monitorSlaId}`
-            );
+            const response =
+                await delete `monitorSla/${projectId}/${monitorSlaId}`;
 
             dispatch(deleteMonitorSlaSuccess(response.data));
         } catch (error) {
@@ -183,7 +185,7 @@ export const fetchDefaultMonitorSla =
         try {
             dispatch(fetchDefaultMonitorSlaRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `monitorSla/${projectId}/defaultMonitorSla`
             );
 

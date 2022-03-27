@@ -9,7 +9,7 @@ interface ResetCssModalProps {
     confirmThisDialog: Function;
 }
 
-class ResetCssModal extends Component<ResetCssModalProps> {
+class ResetCssModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

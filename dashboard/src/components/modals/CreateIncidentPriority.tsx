@@ -23,7 +23,7 @@ interface ColorPickerProps {
     handleClose: Function;
 }
 
-class ColorPicker extends Component<ColorPickerProps> {
+class ColorPicker extends Component<ComponentProps> {
     handleChange(e: $TSFixMe) {
 
         this.props.input.onChange(e.rgb);
@@ -78,7 +78,7 @@ interface CreateIncidentPriorityProps {
     createIncidentPriority: Function;
 }
 
-class CreateIncidentPriority extends Component<CreateIncidentPriorityProps> {
+class CreateIncidentPriority extends Component<ComponentProps> {
     constructor() {
 
         super();
@@ -307,7 +307,7 @@ const CreateIncidentPriorityForm = reduxForm({
     initialValues: { color: { r: 255, g: 0, b: 0, a: 1 } },
 })(CreateIncidentPriority);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         newIncidentPriority: state.incidentPriorities.newIncidentPriority,

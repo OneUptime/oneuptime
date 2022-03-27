@@ -3,7 +3,7 @@ import React from 'react';
 import ReactSelect from 'react-select';
 import PropTypes from 'prop-types';
 
-interface SelectProps {
+export interface ComponentProps {
     style?: object;
 }
 

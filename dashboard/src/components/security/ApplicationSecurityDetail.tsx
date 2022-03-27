@@ -55,7 +55,7 @@ interface ApplicationSecurityDetailProps {
     fetchCredentialError?: Function;
 }
 
-class ApplicationSecurityDetail extends Component<ApplicationSecurityDetailProps> {
+class ApplicationSecurityDetail extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -453,7 +453,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug, applicationSecuritySlug } = ownProps.match.params;
     const components: $TSFixMe = [];
     // filter to get the actual component

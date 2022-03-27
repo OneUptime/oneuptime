@@ -19,7 +19,9 @@ interface IncidentAlertProps {
     error?: string;
 }
 
-export class IncidentAlert extends Component<IncidentAlertProps> {
+export class IncidentAlert extends Component<IncidentAlertProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         if (
 
@@ -271,7 +273,7 @@ IncidentAlert.displayName = 'IncidentAlert';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         alerts: state.alert.incidentalerts.data,
         isRequesting: state.alert.incidentalerts.requesting,

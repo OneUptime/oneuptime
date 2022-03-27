@@ -12,8 +12,8 @@ import { deleteStatusPage } from '../../actions/statusPage';
 import DeleteStatusPageModal from './DeleteStatusPageModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class DeleteStatusPageBox extends Component<ComponentProps> {
-
+export class DeleteStatusPageBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -115,7 +115,7 @@ DeleteStatusPageBox.displayName = 'DeleteStatusPageBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { statusPageSlug } = props.match.params;
 
     return {

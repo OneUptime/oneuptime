@@ -1,5 +1,7 @@
 import * as types from '../constants/monitorSla';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     monitorSla: {
         requesting: false,
@@ -26,7 +28,7 @@ const initialState = {
     page: 1,
 };
 
-export default function monitorSla(state = initialState, action: $TSFixMe) {
+export default function monitorSla(state = initialState, action: Action) {
     switch (action.type) {
         case types.CREATE_MONITOR_SLA_REQUEST:
             return {

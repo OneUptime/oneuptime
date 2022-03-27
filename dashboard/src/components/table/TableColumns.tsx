@@ -2,11 +2,13 @@ import React, { Component } from 'react';
 import TableColumn from './TableColumn';
 import PropTypes from 'prop-types';
 
-interface TableColumnsProps {
+export interface ComponentProps {
     columns: unknown[];
 }
 
-export default class TableColumns extends Component<TableColumnsProps> {
+export default class TableColumns extends Component<TableColumnsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

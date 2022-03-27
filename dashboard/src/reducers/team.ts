@@ -23,6 +23,8 @@ import {
     TEAM_DELETE_RESET,
 } from '../constants/team';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     teamLoading: {
         error: null,
@@ -62,7 +64,7 @@ const initialState = {
     pages: {},
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case TEAM_LOADING_REQUEST:
             return {

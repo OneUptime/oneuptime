@@ -272,7 +272,7 @@ class SlackList extends React.Component<SlackListProps> {
 
 SlackList.displayName = 'SlackList';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     slacks: state.slackWebhooks.slacks,
     isRequesting: state.slackWebhooks.slacks.requesting,
     currentProject: state.project.currentProject,

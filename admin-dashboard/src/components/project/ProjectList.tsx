@@ -4,10 +4,10 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
-export class ProjectList extends Component<ComponentProps> {
-
+export class ProjectList extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {
@@ -514,7 +514,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         users: state.user.users.users,
     };

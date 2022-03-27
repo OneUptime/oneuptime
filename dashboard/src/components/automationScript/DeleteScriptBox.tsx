@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAutomatedScript from '../modals/DeleteAutomatedScript';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface DeleteScriptBoxProps {
     deleteAutomatedScript: Function;
@@ -85,7 +85,7 @@ DeleteScriptBox.propTypes = {
     automatedSlug: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         scripts: state.automatedScripts.scripts,
     };

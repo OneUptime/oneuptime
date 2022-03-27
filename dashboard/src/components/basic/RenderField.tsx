@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface RenderFieldProps {
+export interface ComponentProps {
     initialValue?: string | boolean;
     input: object;
     placeholder?: string;

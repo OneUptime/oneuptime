@@ -10,7 +10,7 @@ interface DeleteSlackTeamProps {
     data?: object;
 }
 
-class DeleteSlackTeam extends Component<DeleteSlackTeamProps> {
+class DeleteSlackTeam extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

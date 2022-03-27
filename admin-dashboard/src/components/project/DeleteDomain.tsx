@@ -15,6 +15,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class DeleteDomain extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -187,7 +188,7 @@ DeleteDomain.propTypes = {
     isRequesting: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.project.deleteDomain.requesting,
         deleteError: state.project.deleteDomain.error,

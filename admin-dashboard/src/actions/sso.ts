@@ -1,6 +1,6 @@
 import * as types from '../constants/sso';
 import errors from '../errors';
-import { getApi, deleteApi, postApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 export const fetchSsosRequest = () => {
@@ -29,7 +29,9 @@ export const fetchSsos =
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsosRequest());
         try {
-            const response = await getApi(`sso/?skip=${skip}&limit=${limit}`);
+            const response = await BackendAPI.get(
+                `sso/?skip=${skip}&limit=${limit}`
+            );
 
             dispatch(fetchSsosSuccess(response.data));
         } catch (error) {
@@ -71,7 +73,7 @@ export const fetchSsoError = (payload: $TSFixMe) => {
 export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(fetchSsoRequest());
     try {
-        const response = await getApi(`sso/${ssoId}`);
+        const response = await BackendAPI.get(`sso/${ssoId}`);
 
         dispatch(fetchSsoSuccess(response.data));
     } catch (error) {
@@ -112,7 +114,7 @@ export const deleteSsoError = (payload: $TSFixMe) => {
 export const deleteSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(deleteSsoRequest());
     try {
-        await deleteApi(`sso/${ssoId}`);
+        await delete `sso/${ssoId}`;
         dispatch(deleteSsoSuccess());
     } catch (error) {
         let errorMsg;
@@ -154,7 +156,7 @@ export const addSso =
     async (dispatch: Dispatch) => {
         dispatch(addSsoRequest());
         try {
-            await postApi(`sso/`, data);
+            await BackendAPI.post(`sso/`, data);
             dispatch(addSsoSuccess());
         } catch (error) {
             let errorMsg;
@@ -196,7 +198,7 @@ export const updateSso =
     async (dispatch: Dispatch) => {
         dispatch(updateSsoRequest());
         try {
-            await putApi(`sso/${id}`, data);
+            await BackendAPI.put(`sso/${id}`, data);
             dispatch(updateSsoSuccess());
         } catch (error) {
             let errorMsg;

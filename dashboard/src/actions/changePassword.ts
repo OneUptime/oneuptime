@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/changePassword';
 import errors from '../errors';
@@ -33,7 +33,7 @@ export const resetChangePassword = () => {
 // Calls the API to register a user.
 export const changePassword = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/reset-password', values);
+        const promise = BackendAPI.post('user/reset-password', values);
         dispatch(changePasswordRequest(promise));
 
         promise.then(

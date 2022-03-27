@@ -362,7 +362,7 @@ const IncidentBasicSettingsForm = reduxForm({
     enableReinitialize: true,
 })(IncidentBasicSettings);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         initialValues: state.incidentBasicSettings.incidentBasicSettings,

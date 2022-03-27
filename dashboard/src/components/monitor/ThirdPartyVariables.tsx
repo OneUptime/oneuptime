@@ -24,7 +24,7 @@ interface ThirdPartyVariablesProps {
     customFields?: unknown[];
 }
 
-class ThirdPartyVariables extends Component<ThirdPartyVariablesProps> {
+class ThirdPartyVariables extends Component<ComponentProps> {
     override componentDidMount() {
         const {
 
@@ -309,7 +309,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { monitor } = ownProps;
     const initialValues = {};
     if (monitor && monitor.customFields && monitor.customFields.length > 0) {

@@ -19,7 +19,9 @@ interface ThemesProps {
     };
 }
 
-export class Themes extends Component<ThemesProps> {
+export class Themes extends Component<ThemesProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -242,7 +244,7 @@ Themes.propTypes = {
     initialValues: PropTypes.shape({ theme: PropTypes.string }),
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { theme } = ownProps.data;
     return {
         statusPage: state.statusPage,

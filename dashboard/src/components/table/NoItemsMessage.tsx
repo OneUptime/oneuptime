@@ -8,7 +8,9 @@ interface NoItemsMessageProps {
     noItemsMessage?: string;
 }
 
-export default class NoItemsMessage extends Component<NoItemsMessageProps> {
+export default class NoItemsMessage extends Component<NoItemsMessageProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

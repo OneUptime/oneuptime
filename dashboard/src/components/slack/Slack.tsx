@@ -81,7 +81,7 @@ Slack.propTypes = {
     projectId: PropTypes.string.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     projectId: state.project.currentProject && state.project.currentProject._id
 });
 

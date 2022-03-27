@@ -9,7 +9,7 @@ interface ConfirmNumberDeleteModalProps {
     closeThisDialog: Function;
 }
 
-class ConfirmNumberDeleteModal extends Component<ConfirmNumberDeleteModalProps> {
+class ConfirmNumberDeleteModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

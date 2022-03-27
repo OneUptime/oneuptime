@@ -247,7 +247,7 @@ const SmtpTestModal = ({
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     testing: state.settings.testing,
     testError: state.settings.error,
     smtp: state.form['smtp-test-form']

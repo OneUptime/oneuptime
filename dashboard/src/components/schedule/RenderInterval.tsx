@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface RenderIntervalProps {
+export interface ComponentProps {
     input?: {
         onChange: Function,
         value?: number

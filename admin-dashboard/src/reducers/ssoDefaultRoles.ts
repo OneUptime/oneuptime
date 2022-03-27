@@ -18,6 +18,8 @@ import {
     PREV_PAGE,
 } from '../constants/ssoDefaultRoles';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     ssoDefaultRoles: {
         requesting: false,
@@ -52,10 +54,7 @@ const INITIAL_STATE = {
     page: 1,
 };
 
-export default function ssoDefaultRoles(
-    state = INITIAL_STATE,
-    action: $TSFixMe
-) {
+export default function ssoDefaultRoles(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case FETCH_SSO_DEFAULT_ROLES_REQUEST:
             return Object.assign({}, state, {

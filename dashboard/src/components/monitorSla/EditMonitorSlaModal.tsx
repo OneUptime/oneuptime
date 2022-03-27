@@ -804,7 +804,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const monitorSlaToBeUpdated = state.modal.modals[0].sla;
     const projectId = state.modal.modals[0].projectId;
 

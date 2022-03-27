@@ -1,3 +1,5 @@
+import Action from 'common-ui/src/types/action';
+
 import CreateActionBase from './create';
 import UpdateActionBase from './update';
 import DeleteActionBase from './delete';
@@ -5,11 +7,11 @@ import ListActionBase from './list';
 import GetActionBase from './get';
 
 export default class Actions {
-    createAction: $TSFixMe;
-    deleteAction: $TSFixMe;
-    getAction: $TSFixMe;
-    listAction: $TSFixMe;
-    updateAction: $TSFixMe;
+    createaction: Action;
+    deleteaction: Action;
+    getaction: Action;
+    listaction: Action;
+    updateaction: Action;
     constructor({
         createActionProps,
         updateActionProps,

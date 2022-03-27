@@ -1,5 +1,5 @@
 import logger from 'common-server/utils/logger';
-const getApi = require('../utils/api').getApi;
+import ProbeAPI from '../utils/api';
 import ApiMonitors from './apiMonitors';
 import UrlMonitors from './urlMonitors';
 import IPMonitors from './ipMonitors';
@@ -20,7 +20,7 @@ const _this = {
         try {
             logger.info(`Getting a list of ${limit} monitors`);
 
-            let monitors = await getApi('probe/monitors', limit);
+            let monitors = await ProbeAPI.get('probe/monitors', limit);
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
             logger.info(
@@ -96,7 +96,7 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log('getApi', error);
+            ErrorService.log('get', error);
         }
     },
 };

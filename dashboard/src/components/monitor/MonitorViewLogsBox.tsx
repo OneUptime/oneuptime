@@ -25,12 +25,12 @@ interface MonitorViewLogsBoxProps {
     projectId?: string;
 }
 
-export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps> {
+export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             probeValue: { value: '', label: 'All Probes' },
             startDate: startDate,
@@ -324,7 +324,7 @@ MonitorViewLogsBox.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const monitorId = props.monitorId ? props.monitorId : null;
     return {
         monitorLogs: monitorId ? state.monitor.monitorLogs[monitorId] : {},

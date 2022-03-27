@@ -378,7 +378,7 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
         sp.create_login_request_url(
             idp,
             {},
-            function (error: $TSFixMe, login_url: string) {
+            function (error: $TSFixMe, login_url: URL) {
                 if (error != null) return sendErrorResponse(req, res, error);
                 return sendItemResponse(req, res, { url: login_url });
             }
@@ -896,13 +896,10 @@ router.post(
             // Call the UserService.
             const user = await UserService.forgotPassword(data.email);
 
-            const forgotPasswordURL = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
+            const tokenVerifyUrl = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
             try {
                 // Call the MailService.
-                MailService.sendForgotPasswordMail(
-                    forgotPasswordURL,
-                    user.email
-                );
+                MailService.sendForgotPasswordMail(tokenVerifyUrl, user.email);
             } catch (error) {
                 ErrorService.log('mailService.sendForgetPasswordMail', error);
             }

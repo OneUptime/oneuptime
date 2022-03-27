@@ -34,7 +34,7 @@ interface EditNoteModalProps {
     updateInvestigationError?: string;
 }
 
-class EditNoteModal extends Component<EditNoteModalProps> {
+class EditNoteModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -431,7 +431,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const currentProject = state.project.currentProject;
     const note = state.modal.modals[0].note;
 

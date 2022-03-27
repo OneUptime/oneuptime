@@ -13,6 +13,7 @@ import { withRouter, Switch, Route } from 'react-router-dom';
 
 class SideNav extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard = (e: $TSFixMe) => {
@@ -117,7 +118,7 @@ class SideNav extends Component<ComponentProps> {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function (state: $TSFixMe) {
+const mapStateToProps = function (state: RootState) {
     return {
         sidenavopen: state.page.sidenavopen,
     };

@@ -384,7 +384,7 @@ AutomatedTabularList.propTypes = {
     showProjectName: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         scriptsObj: state.automatedScripts.fetchScripts,
     };

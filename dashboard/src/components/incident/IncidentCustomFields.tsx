@@ -28,7 +28,7 @@ interface IncidentCustomFieldsProps {
     page?: number;
 }
 
-class IncidentCustomFields extends Component<IncidentCustomFieldsProps> {
+class IncidentCustomFields extends Component<ComponentProps> {
     override componentDidMount() {
 
         const { fetchCustomFields, currentProject, limit } = this.props;
@@ -420,7 +420,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         customFields: state.customField.customFields.fields,

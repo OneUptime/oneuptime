@@ -10,7 +10,7 @@ interface DeleteMsTeamsProps {
     data?: object;
 }
 
-class DeleteMsTeams extends Component<DeleteMsTeamsProps> {
+class DeleteMsTeams extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

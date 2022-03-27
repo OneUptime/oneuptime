@@ -2,18 +2,102 @@ import axios, { AxiosError } from 'axios';
 import URL from '../types/api/url';
 import { JSONValue } from '../types/json';
 import Headers from '../types/api/headers';
-import HTTPRepsonse from '../types/api/response';
+import HTTPResponse from '../types/api/response';
 import HTTPErrorResponse from '../types/api/errorResponse';
 import HTTPMethod from '../types/api/method';
 import APIException from '../types/exception/apiException';
+import Protocol from '../types/api/protocol';
+import Hostname from '../types/api/hostname';
+import Route from '../types/api/route';
 
 export default class API {
-    static getHeaders(headers?: Headers): Headers {
-        let defaultHeaders: Headers = {
+    private _protocol: Protocol = Protocol.HTTPS;
+    public get protocol(): Protocol {
+        return this._protocol;
+    }
+    public set protocol(v: Protocol) {
+        this._protocol = v;
+    }
+
+    private _hostname: Hostname = new Hostname('localhost');
+    public get hostname(): Hostname {
+        return this._hostname;
+    }
+    public set hostname(v: Hostname) {
+        this._hostname = v;
+    }
+
+    constructor(protocol: Protocol, hostname: Hostname) {
+        this.protocol = protocol;
+        this.hostname = hostname;
+    }
+
+    public async get(
+        path: Route,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPResponse> {
+        return await API.get(
+            new URL(this.protocol, this.hostname, path),
+            data,
+            headers
+        );
+    }
+
+    public async delete(
+        path: Route,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPResponse> {
+        return await API.delete(
+            new URL(this.protocol, this.hostname, path),
+            data,
+            headers
+        );
+    }
+
+    public async put(
+        path: Route,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPResponse> {
+        return await API.put(
+            new URL(this.protocol, this.hostname, path),
+            data,
+            headers
+        );
+    }
+
+    public async post(
+        path: Route,
+        data?: JSONValue,
+        headers?: Headers
+    ): Promise<HTTPResponse> {
+        return await API.post(
+            new URL(this.protocol, this.hostname, path),
+            data,
+            headers
+        );
+    }
+
+    private static handleError(
+        error: HTTPErrorResponse | APIException
+    ): HTTPErrorResponse | APIException {
+        return error;
+    }
+
+    public static getDefaultHeaders(): Headers {
+        const defaultHeaders: Headers = {
             'Access-Control-Allow-Origin': '*',
             Accept: 'application/json',
             'Content-Type': 'application/json;charset=UTF-8',
         };
+
+        return defaultHeaders;
+    }
+
+    public static getHeaders(headers?: Headers): Headers {
+        let defaultHeaders: Headers = this.getDefaultHeaders();
 
         if (headers) {
             defaultHeaders = {
@@ -29,7 +113,7 @@ export default class API {
         url: URL,
         data?: JSONValue,
         headers?: Headers
-    ): Promise<HTTPRepsonse> {
+    ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.GET, url, data, headers);
     }
 
@@ -37,7 +121,7 @@ export default class API {
         url: URL,
         data?: JSONValue,
         headers?: Headers
-    ): Promise<HTTPRepsonse> {
+    ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.DELETE, url, data, headers);
     }
 
@@ -45,7 +129,7 @@ export default class API {
         url: URL,
         data?: JSONValue,
         headers?: Headers
-    ): Promise<HTTPRepsonse> {
+    ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.PUT, url, data, headers);
     }
 
@@ -53,7 +137,7 @@ export default class API {
         url: URL,
         data?: JSONValue,
         headers?: Headers
-    ): Promise<HTTPRepsonse> {
+    ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.POST, url, data, headers);
     }
 
@@ -62,7 +146,7 @@ export default class API {
         url: URL,
         data?: JSONValue,
         headers?: Headers
-    ): Promise<HTTPRepsonse> {
+    ): Promise<HTTPResponse> {
         const apiHeaders: Headers = this.getHeaders(headers);
 
         try {
@@ -73,16 +157,20 @@ export default class API {
                 data,
             });
 
-            const response = new HTTPRepsonse(result.status, result.data);
+            const response = new HTTPResponse(result.status, result.data);
             return response;
         } catch (e) {
             const error = e as Error | AxiosError;
+            let errorResponse: HTTPErrorResponse | APIException;
             if (axios.isAxiosError(error)) {
                 // do whatever you want with native error
-                throw this.getErrorResponse(error);
+                errorResponse = this.getErrorResponse(error);
             } else {
-                throw new APIException(error.message);
+                errorResponse = new APIException(error.message);
             }
+
+            this.handleError(errorResponse);
+            throw errorResponse;
         }
     }
 

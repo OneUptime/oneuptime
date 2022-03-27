@@ -8,7 +8,7 @@ import InviteTeamMemberModal from '../modals/inviteTeamMember.js';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 
-interface TeamMemberProjectBoxProps {
+export interface ComponentProps {
     openModal: Function;
     paginate: Function;
     teamMembers: object;

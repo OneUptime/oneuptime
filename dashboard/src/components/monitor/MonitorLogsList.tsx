@@ -29,7 +29,9 @@ interface MonitorLogsListProps {
     page?: number;
 }
 
-export class MonitorLogsList extends Component<MonitorLogsListProps> {
+export class MonitorLogsList extends Component<MonitorLogsListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -1313,7 +1315,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const monitorId = props.monitorId ? props.monitorId : null;
     const monitorLogs = monitorId ? state.monitor.monitorLogs[monitorId] : {};
 

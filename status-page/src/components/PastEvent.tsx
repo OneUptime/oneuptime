@@ -30,7 +30,7 @@ interface PastEventProps {
     showEventCard?: Function;
 }
 
-class PastEvent extends Component<PastEventProps> {
+class PastEvent extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -387,7 +387,7 @@ class PastEvent extends Component<PastEventProps> {
 
 PastEvent.displayName = 'PastEvent';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let skip =
         state.status.pastEvents && state.status.pastEvents.skip
             ? state.status.pastEvents.skip

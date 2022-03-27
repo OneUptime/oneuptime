@@ -22,7 +22,7 @@ interface ConfirmChangeRoleProps {
     };
 }
 
-class ConfirmChangeRole extends Component<ConfirmChangeRoleProps> {
+class ConfirmChangeRole extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

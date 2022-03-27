@@ -54,7 +54,9 @@ interface FormModalProps {
     subProjects: unknown[];
 }
 
-export class FormModal extends Component<FormModalProps> {
+export class FormModal extends Component<FormModalProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -627,7 +629,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         team: state.team,
         currentProject: state.project.currentProject,

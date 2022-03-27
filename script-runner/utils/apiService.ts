@@ -1,10 +1,10 @@
-import { getApi, postApi } from './api';
+import BackendAPI from './api';
 
 export default {
     ping: async function (monitorId: $TSFixMe, data: $TSFixMe) {
-        return await postApi(`script-runner/ping/${monitorId}`, data);
+        return await BackendAPI.post(`script-runner/ping/${monitorId}`, data);
     },
     getScriptMonitors: async () => {
-        return await getApi('script-runner/monitors');
+        return await BackendAPI.get('script-runner/monitors');
     },
 };

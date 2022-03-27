@@ -16,6 +16,8 @@ import {
     DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
 } from '../constants/statusPageCategory';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     fetchStatusPageCategories: {
         categories: [],
@@ -57,7 +59,7 @@ const INITIAL_STATE = {
 
 export default function resourceCategory(
     state = INITIAL_STATE,
-    action: $TSFixMe
+    action: Action
 ) {
     switch (action.type) {
         case CREATE_STATUS_PAGE_CATEGORY_REQUEST:

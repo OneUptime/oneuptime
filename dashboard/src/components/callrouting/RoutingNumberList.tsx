@@ -35,7 +35,9 @@ interface RoutingNumberListProps {
     getCallRoutingNumbers?: Function;
 }
 
-export class RoutingNumberList extends Component<RoutingNumberListProps> {
+export class RoutingNumberList extends Component<RoutingNumberListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     removeNumber = async (callRoutingId: $TSFixMe) => {
 
         const { currentProject, removeNumbers } = this.props;
@@ -509,7 +511,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const teamMembersAndSchedules = state.callRouting.teamMembersAndSchedules;
     const teamMembers = teamMembersAndSchedules.teamMembers;
     const schedules = teamMembersAndSchedules.schedules;

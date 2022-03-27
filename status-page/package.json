@@ -5,7 +5,8 @@
     "type": "module",
     "dependencies": {
         "common-server": "file:../common-server",
-"common": "file:../common",
+        "common": "file:../common",
+        "common-ui": "file:../common-ui",
         "axios": "^0.26.1",
         "chai": "^4.3.6",
         "chai-http": "^4.3.0",

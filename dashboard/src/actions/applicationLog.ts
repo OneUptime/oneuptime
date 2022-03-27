@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/applicationLog';
 import errors from '../errors';
@@ -11,7 +11,7 @@ export function createApplicationLog(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/create`,
             values
         );
@@ -75,7 +75,7 @@ export function fetchApplicationLogs(
     paginated = false
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `application-log/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchApplicationLogsRequest(paginated));
@@ -138,12 +138,11 @@ export function deleteApplicationLog(
     applicationLogId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `application-log/${projectId}/${componentId}/${applicationLogId}`,
+        const promise =
+            delete (`application-log/${projectId}/${componentId}/${applicationLogId}`,
             {
                 applicationLogId,
-            }
-        );
+            });
         dispatch(deleteApplicationLogRequest(applicationLogId));
 
         promise.then(
@@ -216,7 +215,7 @@ export function fetchLogs(
     filter: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/logs`,
             {
                 skip,
@@ -298,7 +297,7 @@ export function resetApplicationLogKey(
     applicationLogId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
         );
         dispatch(resetApplicationLogKeyRequest());
@@ -365,7 +364,7 @@ export function editApplicationLog(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `application-log/${projectId}/${componentId}/${applicationLogId}`,
             values
         );
@@ -421,7 +420,7 @@ export function fetchStats(
     applicationLogId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,
             {}
         );
@@ -500,7 +499,7 @@ export function searchLog(
     payload: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
             payload
         );

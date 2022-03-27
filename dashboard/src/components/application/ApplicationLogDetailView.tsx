@@ -19,11 +19,9 @@ interface ApplicationLogDetailViewProps {
     logs?: object;
 }
 
-class ApplicationLogDetailView extends Component<ApplicationLogDetailViewProps> {
+class ApplicationLogDetailView extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             display: null,
         };
@@ -149,7 +147,7 @@ ApplicationLogDetailView.propTypes = {
     logs: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {

@@ -20,6 +20,7 @@ import ProjectDomain from '../components/project/ProjectDomain';
 
 class Project extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
@@ -284,7 +285,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const project = state.project.project.project || {};
     const projectUsers = state.project.projectTeam;
     const { slug } = props.match.params;

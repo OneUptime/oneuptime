@@ -10,7 +10,7 @@ interface DeleteWebhookProps {
     data?: object;
 }
 
-class DeleteWebhook extends Component<DeleteWebhookProps> {
+class DeleteWebhook extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

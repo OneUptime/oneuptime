@@ -6,14 +6,12 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { renewAlertLimit } from '../../actions/project';
 
-export class ProjectAlertLimitBox extends Component<ComponentProps> {
-
+export class ProjectAlertLimitBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             alertLimit:
                 props.project && props.project.alertLimit
@@ -111,7 +109,7 @@ ProjectAlertLimitBox.displayName = 'ProjectAlertLimitBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renewAlertLimit }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

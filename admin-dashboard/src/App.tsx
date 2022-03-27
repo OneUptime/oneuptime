@@ -21,7 +21,7 @@ if (userData !== undefined) {
     User.setName(userData.name);
 } else {
 
-    window.location = ACCOUNTS_URL;
+    window.location.href = ACCOUNTS_URL;
 }
 
 const App = () => {
@@ -55,7 +55,7 @@ const App = () => {
 
 App.displayName = 'App';
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return state.login;
 }
 

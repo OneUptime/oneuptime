@@ -18,7 +18,7 @@ interface EditIncidentProps {
     incidentPriorities: unknown[];
 }
 
-class EditIncident extends Component<EditIncidentProps> {
+class EditIncident extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -281,7 +281,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const incident = ownProps.data.incident;
     const initialValues = {
         title: incident.title,

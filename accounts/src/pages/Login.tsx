@@ -188,7 +188,7 @@ class LoginPage extends React.Component<LoginPageProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         login: state.login,
         masterAdminExists: state.login.masterAdmin.exists,

@@ -90,7 +90,7 @@ const ComponentSelector = ({
 
 ComponentSelector.displayName = 'ComponentSelector';
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
     };

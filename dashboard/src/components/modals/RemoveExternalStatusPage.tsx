@@ -15,7 +15,7 @@ interface RemoveExternalStatusPageProps {
     requesting?: boolean;
 }
 
-class RemoveExternalStatusPage extends Component<RemoveExternalStatusPageProps> {
+class RemoveExternalStatusPage extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -134,7 +134,7 @@ RemoveExternalStatusPage.propTypes = {
     data: PropTypes.object,
     requesting: PropTypes.bool,
 };
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         requesting: state.statusPage.externalStatusPages.requesting,
     };

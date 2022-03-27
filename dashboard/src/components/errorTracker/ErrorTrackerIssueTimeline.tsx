@@ -4,18 +4,16 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface ErrorTrackerIssueTimelineProps {
     errorEvent?: object;
     errorTrackerIssue?: object;
 }
 
-class ErrorTrackerIssueTimeline extends Component<ErrorTrackerIssueTimelineProps> {
+class ErrorTrackerIssueTimeline extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
     generateText = (status: $TSFixMe) => {
         const capitalizedText =

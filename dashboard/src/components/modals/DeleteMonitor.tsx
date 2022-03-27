@@ -12,7 +12,7 @@ interface DeleteMonitorProps {
     data?: object;
 }
 
-class DeleteMonitor extends Component<DeleteMonitorProps> {
+class DeleteMonitor extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -130,7 +130,7 @@ DeleteMonitor.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         monitorState: state.monitor,
     };

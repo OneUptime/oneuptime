@@ -106,7 +106,9 @@ const fields = [
     },
 ];
 
-export class Component extends Component<ComponentProps> {
+export class Component extends Component<ComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyBoard: $TSFixMe;
     async override componentDidMount() {
 
@@ -254,7 +256,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],

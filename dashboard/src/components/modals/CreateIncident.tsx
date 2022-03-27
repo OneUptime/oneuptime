@@ -13,7 +13,7 @@ import {
 } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
@@ -49,7 +49,7 @@ interface CreateIncidentProps {
     incidentTemplateObj?: object;
 }
 
-class CreateIncident extends Component<CreateIncidentProps> {
+class CreateIncident extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -1073,7 +1073,7 @@ const CreateIncidentForm = reduxForm({
 
 const selector = formValueSelector(formName);
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const { data } = props;
     const { subProjectId, componentId, componentSlug, currentProjectId } = data;
     const { projects } = state.project.projects;

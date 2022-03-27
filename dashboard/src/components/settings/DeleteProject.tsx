@@ -7,8 +7,8 @@ import ShouldRender from '../basic/ShouldRender';
 import { showDeleteModal } from '../../actions/project';
 import { IS_SAAS_SERVICE } from '../../config';
 
-export class DeleteProjectBox extends Component<ComponentProps> {
-
+export class DeleteProjectBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     handleClick = () => {
@@ -79,7 +79,7 @@ DeleteProjectBox.propTypes = {
     showDeleteModal: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 

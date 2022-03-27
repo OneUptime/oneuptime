@@ -1118,7 +1118,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const scheduleWarning: $TSFixMe = [];
     const { monitorSlug, componentSlug } = props.match.params;
     const schedules = state.schedule.schedules;

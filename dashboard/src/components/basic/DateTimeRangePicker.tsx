@@ -102,7 +102,7 @@ DateTimeRangePicker.propTypes = {
     style: PropTypes.object,
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const { currentDateRange } = ownProps;
     return {
         initialValues: currentDateRange,

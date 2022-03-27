@@ -17,7 +17,7 @@ interface ConfirmResetBrandColorsProps {
     resetBrandingColors?: Function;
 }
 
-class ConfirmResetBrandColors extends Component<ConfirmResetBrandColorsProps> {
+class ConfirmResetBrandColors extends Component<ComponentProps> {
     deleteSubProject: $TSFixMe;
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -155,7 +155,7 @@ class ConfirmResetBrandColors extends Component<ConfirmResetBrandColorsProps> {
 
 ConfirmResetBrandColors.displayName = 'ConfirmResetBrandColorsFormModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         statusPage: state.statusPage,
     };

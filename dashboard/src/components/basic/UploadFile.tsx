@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface UploadFileProps {
+export interface ComponentProps {
     input: object;
     meta: object;
     fileInputKey?: string | Date;

@@ -15,6 +15,7 @@ import {
 
 class ProjectVerifyDomain extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -287,7 +288,7 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     requesting: state.project.verifyDomain.requesting,
     verifyError: state.project.verifyDomain.error,
     domainId: state.modal.modals[0].id,

@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const dockerCredentialSchema = Schema(
     {
-        dockerRegistryUrl: String,
+        dockerRegistryurl: URL,
         dockerUsername: String,
         dockerPassword: String,
         iv: Schema.Types.Buffer,

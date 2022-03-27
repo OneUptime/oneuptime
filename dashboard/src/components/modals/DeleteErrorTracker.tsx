@@ -12,7 +12,7 @@ interface DeleteErrorTrackerProps {
     data?: object;
 }
 
-class DeleteErrorTracker extends Component<DeleteErrorTrackerProps> {
+class DeleteErrorTracker extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -130,7 +130,7 @@ DeleteErrorTracker.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         errorTrackerState: state.errorTracker,
     };

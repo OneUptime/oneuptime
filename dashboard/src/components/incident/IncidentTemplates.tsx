@@ -32,7 +32,7 @@ interface IncidentTemplatesProps {
     setDefaultTemplateError?: string;
 }
 
-class IncidentTemplates extends Component<IncidentTemplatesProps> {
+class IncidentTemplates extends Component<ComponentProps> {
     limit: $TSFixMe;
     constructor() {
 
@@ -568,7 +568,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         fetchingTemplates:
             state.incidentBasicSettings.incidentTemplates.requesting,

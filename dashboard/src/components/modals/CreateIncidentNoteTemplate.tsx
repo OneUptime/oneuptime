@@ -509,7 +509,7 @@ const CreateIncidentNoteTemplateForm = reduxForm({
     enableReinitialize: true,
 })(CreateIncidentNoteTemplate);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         creatingNoteTemplate:

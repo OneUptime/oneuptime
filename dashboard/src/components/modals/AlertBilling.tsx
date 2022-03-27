@@ -21,7 +21,7 @@ interface AlertBillingProps {
     };
 }
 
-class AlertBilling extends Component<AlertBillingProps> {
+class AlertBilling extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -149,7 +149,7 @@ AlertBilling.propTypes = {
     }),
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         messageBoxId: state.modal.modals[0].id,
         title: state.modal.modals[0].title,

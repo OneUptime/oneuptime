@@ -11,6 +11,7 @@ import { getProbes } from '../../actions/probe';
 
 class TopContent extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -141,7 +142,7 @@ class TopContent extends Component<ComponentProps> {
 
 TopContent.displayName = 'TopContent';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         notifications: state.notifications.notifications,
     };

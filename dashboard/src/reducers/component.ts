@@ -39,6 +39,8 @@ import {
     FETCH_PAGINATED_COMPONENTS_SUCCESS,
 } from '../constants/component';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     componentList: {
         components: [],
@@ -81,7 +83,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function component(state = INITIAL_STATE, action: $TSFixMe) {
+export default function component(state = INITIAL_STATE, action: Action) {
     let components,
         isExistingComponent,
         failureComponentResourceList,

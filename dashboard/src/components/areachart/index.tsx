@@ -63,7 +63,7 @@ interface AreaChartProps {
     initMonitorScanning?: boolean;
 }
 
-class AreaChart extends Component<AreaChartProps> {
+class AreaChart extends Component<ComponentProps> {
     parseValue(data: $TSFixMe, name: $TSFixMe, display: $TSFixMe, symbol: $TSFixMe) {
         switch (name) {
             case 'load':
@@ -304,7 +304,7 @@ AreaChart.propTypes = {
     initMonitorScanning: PropTypes.bool,
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         requesting: state.monitor.fetchMonitorLogsRequest,
     };

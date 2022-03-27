@@ -20,6 +20,7 @@ import { User as LsUser } from '../config';
 
 class User extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
@@ -195,7 +196,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const user = state.user.user.user || {};
     const history = state.user.loginHistory.history;
 

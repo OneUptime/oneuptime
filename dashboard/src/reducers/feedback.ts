@@ -7,6 +7,8 @@ import {
     CREATE_FEEDBACK_RESET,
 } from '../constants/feedback';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     feedback: {
         error: null,
@@ -16,7 +18,7 @@ const initialState = {
     feedbackModalVisble: false,
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case OPEN_FEEDBACK_MODAL:
             return Object.assign({}, state, {

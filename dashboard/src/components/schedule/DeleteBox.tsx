@@ -12,8 +12,8 @@ import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
 import { openModal } from 'common-ui/actions/modal';
 
-export class DeleteScheduleBox extends Component<ComponentProps> {
-
+export class DeleteScheduleBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -113,7 +113,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(

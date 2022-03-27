@@ -1,5 +1,7 @@
 import * as types from '../constants/incidentCommunicationSla';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     incidentCommunicationSla: {
         requesting: false,
@@ -27,7 +29,7 @@ const initialState = {
 
 export default function incidentCommunicationSla(
     state = initialState,
-    action: $TSFixMe
+    action: Action
 ) {
     switch (action.type) {
         case types.CREATE_COMMUNICATION_SLA_REQUEST:

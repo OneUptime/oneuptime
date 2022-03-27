@@ -5,7 +5,7 @@ const sslSchema = new Schema(
     {
         token: String,
         keyAuthorization: String,
-        challengeUrl: String,
+        challengeurl: URL,
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
     },

@@ -7,14 +7,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { unblockProject } from '../../actions/project';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProjectUnblockBox extends Component<ComponentProps> {
-
+export class ProjectUnblockBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     handleClick = () => {
@@ -74,7 +72,7 @@ ProjectUnblockBox.displayName = 'ProjectUnblockBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ unblockProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

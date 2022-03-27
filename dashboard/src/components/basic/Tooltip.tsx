@@ -12,7 +12,7 @@ interface TooltipProps {
     children?: object | unknown[];
 }
 
-class Tooltip extends Component<TooltipProps> {
+class Tooltip extends Component<ComponentProps> {
     handleClick = () => {
 
         this.props.openModal({

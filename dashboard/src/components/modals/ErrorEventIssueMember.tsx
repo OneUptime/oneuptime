@@ -12,7 +12,7 @@ interface ErrorEventIssueMemberProps {
     errorTrackerIssueMembers?: object;
 }
 
-class ErrorEventIssueMember extends Component<ErrorEventIssueMemberProps> {
+class ErrorEventIssueMember extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -301,7 +301,7 @@ class ErrorEventIssueMember extends Component<ErrorEventIssueMemberProps> {
         );
     }
 }
-const mapStateToProp = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProp = (state: RootState, ownProps: $TSFixMe) => {
     const errorTrackerIssueMembers =
         state.errorTracker.errorTrackerIssueMembers[
         ownProps.data.errorTrackerIssue._id

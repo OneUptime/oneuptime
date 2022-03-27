@@ -7,7 +7,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import { bindActionCreators, Dispatch } from 'redux';
 import {
@@ -38,7 +38,7 @@ interface NewApplicationLogProps {
     showCancelBtn?: boolean;
 }
 
-class NewApplicationLog extends Component<NewApplicationLogProps> {
+class NewApplicationLog extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -404,7 +404,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const requesting = state.applicationLog.newApplicationLog.requesting;

@@ -29,7 +29,7 @@ interface TwoFactorAuthModalProps {
     verifyTwoFactorAuthToken?: Function;
 }
 
-class TwoFactorAuthModal extends Component<TwoFactorAuthModalProps> {
+class TwoFactorAuthModal extends Component<ComponentProps> {
     state = { next: false };
 
     async override componentDidMount() {
@@ -418,7 +418,7 @@ TwoFactorAuthModal.propTypes = {
     verifyTwoFactorAuthToken: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         profileSettings: state.profileSettings.profileSetting,
         qrCode: state.profileSettings.qrCode,

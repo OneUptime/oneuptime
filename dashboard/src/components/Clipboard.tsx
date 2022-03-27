@@ -2,7 +2,7 @@ import React from 'react';
 import Clipboard from 'clipboard';
 import PropTypes from 'prop-types';
 
-interface ClipboardWrapProps {
+export interface ComponentProps {
     value?: string;
 }
 

@@ -19,7 +19,7 @@ interface ProbeDetailProps {
     };
 }
 
-class ProbeDetail extends Component<ProbeDetailProps> {
+class ProbeDetail extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

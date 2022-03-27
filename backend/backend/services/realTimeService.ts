@@ -15,7 +15,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-created-incident`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-created-incident`, {
                 projectId,
                 incident,
             });
@@ -52,7 +52,7 @@ export default {
                 incidentSlug: slug,
             };
 
-            postApi(`${realtimeBaseUrl}/send-incident-timeline`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-incident-timeline`, {
                 projectId,
                 data,
             });
@@ -77,11 +77,14 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            await postApi(`${realtimeBaseUrl}/send-sla-countdown`, {
-                projectId,
-                incident,
-                countDown,
-            });
+            await BackendAPI.BackendAPI.post(
+                `${realtimeBaseUrl}/send-sla-countdown`,
+                {
+                    projectId,
+                    incident,
+                    countDown,
+                }
+            );
         } catch (error) {
             ErrorService.log('realTimeService.sendSlaCountDown', error);
         }
@@ -103,7 +106,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/delete-incident`, {
+            BackendAPI.post(`${realtimeBaseUrl}/delete-incident`, {
                 projectId,
                 incident,
             });
@@ -134,7 +137,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/add-incident-note`, {
+            BackendAPI.post(`${realtimeBaseUrl}/add-incident-note`, {
                 projectId,
                 incidentNote,
             });
@@ -165,7 +168,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/update-incident-note`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-incident-note`, {
                 projectId,
                 incidentNote,
             });
@@ -194,7 +197,7 @@ export default {
                     : project._id
                 : incidentTimeline.projectId._id || incidentTimeline.projectId;
 
-            postApi(`${realtimeBaseUrl}/update-incident-timeline`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-incident-timeline`, {
                 incidentTimeline,
                 projectId,
             });
@@ -219,7 +222,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/update-incident`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-incident`, {
                 incident,
                 projectId,
             });
@@ -250,7 +253,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/delete-incident-note`, {
+            BackendAPI.post(`${realtimeBaseUrl}/delete-incident-note`, {
                 incidentNote,
                 projectId,
             });
@@ -271,7 +274,7 @@ export default {
                     : project._id
                 : event.projectId._id || event.projectId;
 
-            postApi(`${realtimeBaseUrl}/add-scheduled-event`, {
+            BackendAPI.post(`${realtimeBaseUrl}/add-scheduled-event`, {
                 event,
                 projectId,
             });
@@ -292,7 +295,7 @@ export default {
                     : project._id
                 : event.projectId._id || event.projectId;
 
-            postApi(`${realtimeBaseUrl}/delete-scheduled-event`, {
+            BackendAPI.post(`${realtimeBaseUrl}/delete-scheduled-event`, {
                 event,
                 projectId,
             });
@@ -313,7 +316,7 @@ export default {
                     : project._id
                 : event.projectId._id || event.projectId;
 
-            postApi(`${realtimeBaseUrl}/update-scheduled-event`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-scheduled-event`, {
                 event,
                 projectId,
             });
@@ -334,7 +337,7 @@ export default {
                     : project._id
                 : event.projectId._id || event.projectId;
 
-            postApi(`${realtimeBaseUrl}/resolve-scheduled-event`, {
+            BackendAPI.post(`${realtimeBaseUrl}/resolve-scheduled-event`, {
                 event,
                 projectId,
             });
@@ -353,10 +356,13 @@ export default {
                     ? note.scheduledEventId
                     : note.scheduledEventId._id;
 
-            postApi(`${realtimeBaseUrl}/add-scheduled-event-internal-note`, {
-                note,
-                scheduledEventId,
-            });
+            BackendAPI.post(
+                `${realtimeBaseUrl}/add-scheduled-event-internal-note`,
+                {
+                    note,
+                    scheduledEventId,
+                }
+            );
         } catch (error) {
             ErrorService.log(
                 'realTimeService.addScheduledEventInternalNote',
@@ -389,9 +395,13 @@ export default {
                     ? note.scheduledEventId
                     : note.scheduledEventId._id;
 
-            postApi(
+            BackendAPI.post(
                 `${realtimeBaseUrl}/add-scheduled-event-investigation-note`,
-                { note, scheduledEventId, projectId }
+                {
+                    note,
+                    scheduledEventId,
+                    projectId,
+                }
             );
         } catch (error) {
             ErrorService.log(
@@ -411,10 +421,13 @@ export default {
                     ? note.scheduledEventId
                     : note.scheduledEventId._id;
 
-            postApi(`${realtimeBaseUrl}/delete-scheduled-event-internal-note`, {
-                note,
-                scheduledEventId,
-            });
+            BackendAPI.post(
+                `${realtimeBaseUrl}/delete-scheduled-event-internal-note`,
+                {
+                    note,
+                    scheduledEventId,
+                }
+            );
         } catch (error) {
             ErrorService.log(
                 'realTimeService.deleteScheduledEventInternalNote',
@@ -447,7 +460,7 @@ export default {
                     ? note.scheduledEventId
                     : note.scheduledEventId._id;
 
-            postApi(
+            BackendAPI.post(
                 `${realtimeBaseUrl}/delete-scheduled-event-investigation-note`,
                 { note, scheduledEventId, projectId }
             );
@@ -469,10 +482,13 @@ export default {
                     ? note.scheduledEventId
                     : note.scheduledEventId._id;
 
-            postApi(`${realtimeBaseUrl}/update-scheduled-event-internal-note`, {
-                note,
-                scheduledEventId,
-            });
+            BackendAPI.post(
+                `${realtimeBaseUrl}/update-scheduled-event-internal-note`,
+                {
+                    note,
+                    scheduledEventId,
+                }
+            );
         } catch (error) {
             ErrorService.log(
                 'realTimeService.updateScheduledEventInternalNote',
@@ -505,7 +521,7 @@ export default {
                     ? note.scheduledEventId
                     : note.scheduledEventId._id;
 
-            postApi(
+            BackendAPI.post(
                 `${realtimeBaseUrl}/update-scheduled-event-investigation-note`,
                 { note, scheduledEventId, projectId }
             );
@@ -533,7 +549,7 @@ export default {
                     : project._id
                 : component.projectId._id || component.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-component-created`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-component-created`, {
                 component,
                 projectId,
             });
@@ -558,7 +574,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-monitor-created`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-monitor-created`, {
                 monitor,
                 projectId,
             });
@@ -583,7 +599,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-monitor-delete`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-monitor-delete`, {
                 monitor,
                 projectId,
             });
@@ -608,7 +624,7 @@ export default {
                     : project._id
                 : component.projectId._id || component.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-component-delete`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-component-delete`, {
                 component,
                 projectId,
             });
@@ -633,7 +649,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-monitor-delete`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-monitor-delete`, {
                 monitor,
                 projectId,
             });
@@ -658,7 +674,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/incident-resolved`, {
+            BackendAPI.post(`${realtimeBaseUrl}/incident-resolved`, {
                 incident,
                 projectId,
             });
@@ -683,7 +699,7 @@ export default {
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
-            postApi(`${realtimeBaseUrl}/incident-acknowledged`, {
+            BackendAPI.post(`${realtimeBaseUrl}/incident-acknowledged`, {
                 incident,
                 projectId,
             });
@@ -706,7 +722,7 @@ export default {
                     : project._id
                 : statusPage.projectId._id || statusPage.projectId;
 
-            postApi(`${realtimeBaseUrl}/status-page-edit`, {
+            BackendAPI.post(`${realtimeBaseUrl}/status-page-edit`, {
                 statusPage,
                 projectId,
             });
@@ -731,7 +747,7 @@ export default {
                     : project._id
                 : component.projectId._id || component.projectId;
 
-            postApi(`${realtimeBaseUrl}/component-edit`, {
+            BackendAPI.post(`${realtimeBaseUrl}/component-edit`, {
                 component,
                 projectId,
             });
@@ -756,7 +772,7 @@ export default {
                     : project._id
                 : monitor.projectId._id || monitor.projectId;
 
-            postApi(`${realtimeBaseUrl}/monitor-edit`, {
+            BackendAPI.post(`${realtimeBaseUrl}/monitor-edit`, {
                 monitor,
                 projectId,
             });
@@ -785,7 +801,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/update-monitor-log`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-monitor-log`, {
                 data,
                 logData,
                 projectId,
@@ -813,7 +829,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/update-lighthouse-log`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-lighthouse-log`, {
                 projectId,
                 monitorId: data.monitorId,
                 data,
@@ -840,7 +856,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/update-all-lighthouse-log`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-all-lighthouse-log`, {
                 projectId,
                 monitorId: data.monitorId,
                 data,
@@ -867,7 +883,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/update-monitor-status`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-monitor-status`, {
                 projectId,
                 monitorId: data.monitorId,
                 data,
@@ -903,7 +919,10 @@ export default {
                     : project._id
                 : monitor.projectId;
 
-            postApi(`${realtimeBaseUrl}/update-probe`, { data, projectId });
+            BackendAPI.post(`${realtimeBaseUrl}/update-probe`, {
+                data,
+                projectId,
+            });
         } catch (error) {
             ErrorService.log('realTimeService.updateProbe', error);
         }
@@ -925,7 +944,7 @@ export default {
                     : project._id
                 : data.projectId._id || data.projectId;
 
-            postApi(`${realtimeBaseUrl}/send-notification`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-notification`, {
                 data,
                 projectId,
             });
@@ -951,7 +970,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/update-team-member-role`, {
+            BackendAPI.post(`${realtimeBaseUrl}/update-team-member-role`, {
                 projectId,
                 data,
             });
@@ -977,7 +996,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/create-team-member`, {
+            BackendAPI.post(`${realtimeBaseUrl}/create-team-member`, {
                 projectId,
                 data,
             });
@@ -1003,7 +1022,7 @@ export default {
                     : project._id
                 : projectId;
 
-            postApi(`${realtimeBaseUrl}/delete-team-member`, {
+            BackendAPI.post(`${realtimeBaseUrl}/delete-team-member`, {
                 projectId,
                 data,
             });
@@ -1020,7 +1039,7 @@ export default {
             const componentId =
                 applicationLog.componentId._id || applicationLog.componentId;
 
-            postApi(`${realtimeBaseUrl}/send-application-log-created`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-application-log-created`, {
                 applicationLog,
                 componentId,
             });
@@ -1040,7 +1059,7 @@ export default {
             const componentId =
                 applicationLog.componentId._id || applicationLog.componentId;
 
-            postApi(`${realtimeBaseUrl}/send-application-log-delete`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-application-log-delete`, {
                 applicationLog,
                 componentId,
             });
@@ -1056,7 +1075,7 @@ export default {
             const applicationLogId =
                 contentLog.applicationLogId._id || contentLog.applicationLogId;
 
-            postApi(`${realtimeBaseUrl}/send-log-created`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-log-created`, {
                 contentLog,
                 applicationLogId,
             });
@@ -1073,7 +1092,7 @@ export default {
             const componentId =
                 applicationLog.componentId._id || applicationLog.componentId;
 
-            postApi(`${realtimeBaseUrl}/application-log-key-reset`, {
+            BackendAPI.post(`${realtimeBaseUrl}/application-log-key-reset`, {
                 applicationLog,
                 componentId,
             });
@@ -1090,10 +1109,13 @@ export default {
                 containerSecurity.componentId._id ||
                 containerSecurity.componentId;
 
-            postApi(`${realtimeBaseUrl}/send-container-security-created`, {
-                containerSecurity,
-                componentId,
-            });
+            BackendAPI.post(
+                `${realtimeBaseUrl}/send-container-security-created`,
+                {
+                    containerSecurity,
+                    componentId,
+                }
+            );
         } catch (error) {
             ErrorService.log(
                 'realTimeService.sendContainerSecurityCreated',
@@ -1110,10 +1132,13 @@ export default {
                 applicationSecurity.componentId._id ||
                 applicationSecurity.componentId;
 
-            postApi(`${realtimeBaseUrl}/send-application-security-created`, {
-                applicationSecurity,
-                componentId,
-            });
+            BackendAPI.post(
+                `${realtimeBaseUrl}/send-application-security-created`,
+                {
+                    applicationSecurity,
+                    componentId,
+                }
+            );
         } catch (error) {
             ErrorService.log(
                 'realTimeService.sendApplicationSecurityCreated',
@@ -1129,7 +1154,7 @@ export default {
             const componentId =
                 errorTracker.componentId._id || errorTracker.componentId;
 
-            postApi(`${realtimeBaseUrl}/send-error-tracker-created`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-error-tracker-created`, {
                 errorTracker,
                 componentId,
             });
@@ -1146,7 +1171,7 @@ export default {
             const componentId =
                 errorTracker.componentId._id || errorTracker.componentId;
 
-            postApi(`${realtimeBaseUrl}/send-error-tracker-delete`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-error-tracker-delete`, {
                 errorTracker,
                 componentId,
             });
@@ -1163,7 +1188,7 @@ export default {
             const componentId =
                 errorTracker.componentId._id || errorTracker.componentId;
 
-            postApi(`${realtimeBaseUrl}/error-tracker-key-reset`, {
+            BackendAPI.post(`${realtimeBaseUrl}/error-tracker-key-reset`, {
                 errorTracker,
                 componentId,
             });
@@ -1180,7 +1205,7 @@ export default {
                 data.errorEvent.errorTrackerId._id ||
                 data.errorEvent.errorTrackerId;
 
-            postApi(`${realtimeBaseUrl}/send-error-event-created`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-error-event-created`, {
                 data,
                 errorTrackerId,
             });
@@ -1196,7 +1221,7 @@ export default {
             const errorTrackerId =
                 issue.errorTrackerId._id || issue.errorTrackerId;
 
-            postApi(`${realtimeBaseUrl}/send-issue-status-change`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-issue-status-change`, {
                 issue,
                 type,
                 errorTrackerId,
@@ -1214,10 +1239,13 @@ export default {
             const errorTrackerId =
                 issue.errorTrackerId._id || issue.errorTrackerId;
 
-            postApi(`${realtimeBaseUrl}/send-error-tracker-issue-delete`, {
-                issue,
-                errorTrackerId,
-            });
+            BackendAPI.post(
+                `${realtimeBaseUrl}/send-error-tracker-issue-delete`,
+                {
+                    issue,
+                    errorTrackerId,
+                }
+            );
         } catch (error) {
             ErrorService.log(
                 'realTimeService.sendErrorTrackerIssueDelete',
@@ -1231,7 +1259,10 @@ export default {
                 return;
             }
 
-            postApi(`${realtimeBaseUrl}/send-time-metrics`, { appId, data });
+            BackendAPI.post(`${realtimeBaseUrl}/send-time-metrics`, {
+                appId,
+                data,
+            });
         } catch (error) {
             ErrorService.log('realTimeService.sendTimeMetrics', error);
         }
@@ -1242,7 +1273,7 @@ export default {
                 return;
             }
 
-            postApi(`${realtimeBaseUrl}/send-throughput-metrics`, {
+            BackendAPI.post(`${realtimeBaseUrl}/send-throughput-metrics`, {
                 appId,
                 data,
             });
@@ -1256,7 +1287,10 @@ export default {
                 return;
             }
 
-            postApi(`${realtimeBaseUrl}/send-error-metrics`, { appId, data });
+            BackendAPI.post(`${realtimeBaseUrl}/send-error-metrics`, {
+                appId,
+                data,
+            });
         } catch (error) {
             ErrorService.log('realTimeService.sendErrorMetrics', error);
         }
@@ -1267,7 +1301,7 @@ export default {
                 return;
             }
 
-            postApi(`${realtimeBaseUrl}/handle-scanning`, {
+            BackendAPI.post(`${realtimeBaseUrl}/handle-scanning`, {
                 security,
             });
         } catch (error) {
@@ -1280,7 +1314,7 @@ export default {
                 return;
             }
 
-            postApi(`${realtimeBaseUrl}/handle-log`, {
+            BackendAPI.post(`${realtimeBaseUrl}/handle-log`, {
                 securityId,
                 securityLog,
             });
@@ -1307,7 +1341,7 @@ export default {
                     : project._id
                 : projectId._id || projectId;
 
-            postApi(`${realtimeBaseUrl}/status-page-update-tweets`, {
+            BackendAPI.post(`${realtimeBaseUrl}/status-page-update-tweets`, {
                 tweets,
                 statusPageId,
                 _projectId,
@@ -1323,7 +1357,7 @@ import ProjectService from './projectService';
 import MonitorService from './monitorService';
 import IncidentService from './incidentService';
 
-import { postApi } from '../utils/api';
+import BackendAPI from '../utils/api';
 
 import { REALTIME_URL } from '../config/realtime';
 const realtimeBaseUrl = `${REALTIME_URL}/realtime`;

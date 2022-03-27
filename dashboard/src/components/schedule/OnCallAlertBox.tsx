@@ -138,7 +138,9 @@ interface OnCallAlertBoxProps {
     getProjectGroups?: Function;
 }
 
-export class OnCallAlertBox extends Component<OnCallAlertBoxProps> {
+export class OnCallAlertBox extends Component<OnCallAlertBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override componentDidMount() {
         const {
 
@@ -369,7 +371,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     /* state.schedule.escalations && state.schedule.escalations.length ?
      state.schedule.escalations.map((value)=>{
          return {escalation: [value]};

@@ -7,7 +7,7 @@ import { name, version } from '../package.json';
 
 class ErrorTracker {
     MAX_ITEMS_ALLOWED_IN_STACK: $TSFixMe;
-    apiUrl: string;
+    apiUrl: URL;
     configKeys: $TSFixMe;
     errorTrackerId: $TSFixMe;
     errorTrackerKey: $TSFixMe;
@@ -22,7 +22,7 @@ class ErrorTracker {
     utilObj: $TSFixMe;
     // constructor to set up global listeners
     constructor(
-        apiUrl: string,
+        apiUrl: URL,
         errorTrackerId: $TSFixMe,
         errorTrackerKey: $TSFixMe,
         options = {}
@@ -63,7 +63,7 @@ class ErrorTracker {
     _setErrorTrackerKey(errorTrackerKey: $TSFixMe) {
         this.errorTrackerKey = errorTrackerKey;
     }
-    _setApiUrl(apiUrl: string) {
+    _setApiUrl(apiUrl: URL) {
         this.apiUrl = `${apiUrl}/error-tracker/${this.errorTrackerId}/track`;
     }
     _setUpOptions(options: $TSFixMe) {

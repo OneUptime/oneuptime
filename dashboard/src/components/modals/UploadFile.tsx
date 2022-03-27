@@ -40,7 +40,7 @@ interface UploadFileProps {
     handleSubmit?: Function;
 }
 
-class UploadFile extends Component<UploadFileProps> {
+class UploadFile extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -307,7 +307,7 @@ const UploadFileForm = reduxForm({
     form: 'UploadFile',
 })(UploadFile);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         uploadSubscriberModalId: state.modal.modals[0].id,
         csvDownload: state.subscriber.csvDownload,

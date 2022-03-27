@@ -20,7 +20,9 @@ interface IncidentDeleteBoxProps {
     componentSlug?: string;
 }
 
-export class IncidentDeleteBox extends Component<IncidentDeleteBoxProps> {
+export class IncidentDeleteBox extends Component<IncidentDeleteBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     deleteIncident: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

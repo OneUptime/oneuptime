@@ -23,7 +23,7 @@ interface IncidentNoteTemplatesProps {
     fetchIncidentNoteTemplates?: Function;
 }
 
-class IncidentNoteTemplates extends Component<IncidentNoteTemplatesProps> {
+class IncidentNoteTemplates extends Component<ComponentProps> {
     limit: $TSFixMe;
     constructor() {
 
@@ -446,7 +446,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         fetchingTemplates: state.incidentNoteTemplate.noteTemplates.requesting,
         skip: state.incidentNoteTemplate.noteTemplates.skip,

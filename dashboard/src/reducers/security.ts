@@ -1,5 +1,7 @@
 import * as types from '../constants/security';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     addContainer: { requesting: false, success: false, error: null },
     getContainer: { requesting: false, success: false, error: null },
@@ -41,7 +43,7 @@ const initialState = {
     activeApplicationSecurity: '',
 };
 
-export default function security(state = initialState, action: $TSFixMe) {
+export default function security(state = initialState, action: Action) {
     switch (action.type) {
         case types.ADD_CONTAINER_SECURITY_REQUEST:
             return {

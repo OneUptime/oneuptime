@@ -24,7 +24,7 @@ interface AutomationScriptProps {
     subProjects?: unknown[];
 }
 
-class AutomationScript extends Component<AutomationScriptProps> {
+class AutomationScript extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -160,7 +160,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
     // sort subprojects names for display in alphabetical order
     const subProjectNames =

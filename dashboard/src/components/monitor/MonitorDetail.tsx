@@ -21,7 +21,7 @@ import ShouldRender from '../basic/ShouldRender';
 import DisabledMessage from '../modals/DisabledMessage';
 import DataPathHoC from '../DataPathHoC';
 import Badge from '../common/Badge';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import { Link } from 'react-router-dom';
 import MonitorChart from './MonitorChart';
@@ -53,11 +53,11 @@ interface MonitorDetailProps {
     shouldRenderProjectType?: boolean;
 }
 
-export class MonitorDetail extends Component<MonitorDetailProps> {
+export class MonitorDetail extends Component<MonitorDetailProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             createIncidentModalId: uuidv4(),
             startDate: moment().subtract(30, 'd'),
@@ -867,7 +867,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         monitorState: state.monitor,
         componentSlug:

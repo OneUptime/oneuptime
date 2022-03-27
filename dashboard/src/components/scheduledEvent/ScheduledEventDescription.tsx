@@ -36,7 +36,7 @@ function ScheduledEventDescription({
     slug,
     projectId
 }: ScheduledEventDescriptionProps) {
-    const handleMonitorListing = (event: $TSFixMe, monitorState: $TSFixMe) => {
+    const handleMonitorListing = (event: $TSFixMe, monitorstate: RootState) => {
         const affectedMonitors: $TSFixMe = [];
         const eventMonitors: $TSFixMe = [];
         // populate the ids of the event monitors in an array
@@ -421,7 +421,7 @@ ScheduledEventDescription.defaultProps = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, resolveScheduledEvent }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         resolving: state.scheduledEvent.resolveScheduledEvent.requesting,
         slug: state.project.currentProject && state.project.currentProject.slug,

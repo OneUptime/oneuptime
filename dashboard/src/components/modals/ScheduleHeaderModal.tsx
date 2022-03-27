@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import ClickOutside from 'react-click-outside';
 import { addScheduleEvent } from '../../actions/scheduledEvent';
@@ -15,7 +15,7 @@ interface ScheduleHeaderModalProps {
     addScheduleEvent?: Function;
 }
 
-class ScheduleHeaderModal extends Component<ScheduleHeaderModalProps> {
+class ScheduleHeaderModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

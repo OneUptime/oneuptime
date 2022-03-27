@@ -1,5 +1,7 @@
 import * as types from '../constants/subscriber';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     subscribers: {
         requesting: false,
@@ -38,7 +40,7 @@ const initialState = {
     },
 };
 
-export default function subscriber(state = initialState, action: $TSFixMe) {
+export default function subscriber(state = initialState, action: Action) {
     switch (action.type) {
         case types.CREATE_SUBSCRIBER_RESET:
             return Object.assign({}, state, {

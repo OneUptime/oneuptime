@@ -6,132 +6,6 @@ import validUrl from 'valid-url';
 import valid from 'card-validator';
 
 import FileSaver from 'file-saver';
-// import { emaildomains } from './constants/emaildomains';
-
-let apiUrl = window.location.origin + '/api';
-let dashboardUrl = window.location.origin + '/dashboard';
-let adminDashboardUrl = window.location.origin + '/admin';
-let accountsUrl = window.location.origin + '/accounts';
-
-if (
-    window &&
-    window.location &&
-    window.location.host &&
-    (window.location.host.includes('localhost:') ||
-        window.location.host.includes('0.0.0.0:') ||
-        window.location.host.includes('127.0.0.1:'))
-) {
-    const address = window.location.host.includes('localhost:')
-        ? 'localhost'
-        : window.location.host.includes('0.0.0.0:')
-            ? '0.0.0.0'
-            : '127.0.0.1';
-    apiUrl = window.location.protocol + `//${address}:3002/api`;
-    dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
-    adminDashboardUrl = window.location.protocol + `//${address}:3100/admin`;
-    accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
-}
-
-export const env = (value: $TSFixMe) => {
-
-    const { _env } = window;
-    return (
-        (_env && _env[`REACT_APP_${value}`]) ||
-        process.env[`REACT_APP_${value}`]
-    );
-}
-
-export const API_URL = apiUrl;
-
-export const DASHBOARD_URL = dashboardUrl;
-
-export const ADMIN_DASHBOARD_URL = adminDashboardUrl;
-
-export const ACCOUNTS_URL = accountsUrl;
-
-export const IS_SAAS_SERVICE = !!env('IS_SAAS_SERVICE');
-
-export const DISABLE_SIGNUP = env('DISABLE_SIGNUP') === 'true';
-
-export const VERSION = process.env.VERSION || env('VERSION');
-
-export const User = {
-    getAccessToken() {
-        return localStorage.getItem('access_token');
-    },
-
-    setAccessToken(token: $TSFixMe) {
-        localStorage.setItem('access_token', token);
-    },
-
-    isCardRegistered() {
-        return localStorage.getItem('cardRegistered');
-    },
-
-    setCardRegistered(value: $TSFixMe) {
-        localStorage.setItem('cardRegistered', value);
-    },
-
-    setUserId(id: $TSFixMe) {
-        localStorage.setItem('id', id);
-    },
-
-    getUserId() {
-        return localStorage.getItem('id');
-    },
-
-    getName() {
-        return localStorage.getItem('name');
-    },
-
-    setName(name: $TSFixMe) {
-        localStorage.setItem('name', name);
-    },
-
-    getEmail() {
-        return localStorage.getItem('email');
-    },
-
-    setEmail(email: $TSFixMe) {
-        localStorage.setItem('email', email);
-    },
-
-    initialUrl() {
-        return sessionStorage.getItem('initialUrl');
-    },
-
-    setInitialUrl(url: string) {
-        sessionStorage.setItem('initialUrl', url);
-    },
-
-    setProject(project: $TSFixMe) {
-        localStorage.setItem('project', project);
-    },
-
-    getProject() {
-        return localStorage.getItem('project');
-    },
-
-    clear() {
-        localStorage.clear();
-    },
-
-    removeUserId() {
-        localStorage.removeItem('id');
-    },
-
-    removeAccessToken() {
-        localStorage.removeItem('token');
-    },
-
-    removeInitialUrl() {
-        return sessionStorage.removeItem('initialUrl');
-    },
-
-    isLoggedIn() {
-        return localStorage.getItem('access_token') ? true : false;
-    },
-};
 
 //Data validation Util goes in here.
 export const Validate = {
@@ -139,7 +13,7 @@ export const Validate = {
         return domain.search(/\./) >= 0;
     },
 
-    url(url: string) {
+    url(url: URL) {
         return validUrl.isUri(url);
     },
 
@@ -235,110 +109,7 @@ export const Validate = {
     },
 };
 
-export const PricingPlan = {
-    getPlans() {
-        if (
-            env('STRIPE_PUBLIC_KEY') &&
-            env('STRIPE_PUBLIC_KEY').startsWith('pk_test')
-        ) {
-            return [
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoWIYiX2L8hwzx',
-                    type: 'month',
-                    amount: 25,
-                    details: '$25 / Month / User',
-                },
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoWIqpBpStiqQp',
-                    type: 'annual',
-                    amount: 264,
-                    details: '$22/mo per user paid annually. ',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoWKgxRnPPBJWy',
-                    type: 'month',
-                    amount: 59,
-                    details: '$59 / Month / User',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoWKiTdQ6NiQFw',
-                    type: 'annual',
-                    amount: 588,
-                    details: '$49/mo per user paid annually. ',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9Iox3l2YqLTDR',
-                    type: 'month',
-                    amount: 99,
-                    details: '$120 / Month / User',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9IlBKhsFz4hV2',
-                    type: 'annual',
-                    amount: 1188,
-                    details: '$99/mo per user paid annually. ',
-                },
-            ];
-        } else {
-            return [
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoVgVbvNdbWwlm',
-                    type: 'month',
-                    amount: 25,
-                    details: '$25 / Month / User',
-                },
-                {
-                    category: 'Startup',
-                    planId: 'plan_GoVgJu5PKMLRJU',
-                    type: 'annual',
-                    amount: 264,
-                    details: '$22/mo per user paid annually. ',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoVi9EIa6MU0fG',
-                    type: 'month',
-                    amount: 59,
-                    details: '$59 / Month / User',
-                },
-                {
-                    category: 'Growth',
-                    planId: 'plan_GoViZshjqzZ0vv',
-                    type: 'annual',
-                    amount: 588,
-                    details: '$49/mo per user paid annually. ',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9Ii6Qj3HLdtty',
-                    type: 'month',
-                    amount: 99,
-                    details: '$120 / Month / User',
-                },
-                {
-                    category: 'Scale',
-                    planId: 'plan_H9IjvX2Flsvlcg',
-                    type: 'annual',
-                    amount: 1188,
-                    details: '$99/mo per user paid annually. ',
-                },
-            ];
-        }
-    },
 
-    getPlanById(id: $TSFixMe) {
-        const plans = this.getPlans();
-        if (id) return plans.find(plan => plan.planId === id);
-        else return plans[0];
-    },
-};
 
 export const tutorials = {
     getMonitorTutorials() {
@@ -412,7 +183,7 @@ export const tutorials = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: string) => {
+export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),

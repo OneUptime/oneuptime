@@ -11,7 +11,7 @@ interface OnCallScheduleModalProps {
     data?: object;
 }
 
-class OnCallScheduleModal extends Component<OnCallScheduleModalProps> {
+class OnCallScheduleModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

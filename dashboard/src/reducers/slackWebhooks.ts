@@ -20,6 +20,8 @@ import {
     PAGINATE_RESET,
 } from '../constants/slackWebhooks';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     slacks: {
         error: null,
@@ -50,7 +52,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     let slacks, index, count;
     switch (action.type) {
         case GET_SLACK_WEBHOOK_FAILED:

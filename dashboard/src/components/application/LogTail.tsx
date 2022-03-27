@@ -17,7 +17,7 @@ interface LogTailProps {
     getLogSuccess?: Function;
 }
 
-class LogTail extends Component<LogTailProps> {
+class LogTail extends Component<ComponentProps> {
     override componentWillUnmount() {
 
         socket.removeListener(`createLog-${this.props.applicationLogId}`);
@@ -122,7 +122,7 @@ class LogTail extends Component<LogTailProps> {
 
 LogTail.displayName = 'LogTail';
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {

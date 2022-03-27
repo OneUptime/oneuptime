@@ -5,6 +5,7 @@ import { reduxForm, Field } from 'redux-form';
 
 class Search extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

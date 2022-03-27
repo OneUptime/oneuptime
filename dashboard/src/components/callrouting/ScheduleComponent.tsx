@@ -59,7 +59,9 @@ interface ScheduleComponentProps {
     };
 }
 
-export class ScheduleComponent extends Component<ScheduleComponentProps> {
+export class ScheduleComponent extends Component<ScheduleComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         const {
 
@@ -746,7 +748,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
         uploadIntroAudioState: state.callRouting.uploadIntroAudioState,

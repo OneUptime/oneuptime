@@ -7,7 +7,9 @@ interface TableItemColumnDataProps {
     item: object;
 }
 
-export default class TableItemColumnData extends Component<TableItemColumnDataProps> {
+export default class TableItemColumnData extends Component<TableItemColumnDataProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

@@ -492,7 +492,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         ssosObj: state.sso.fetchSsos,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

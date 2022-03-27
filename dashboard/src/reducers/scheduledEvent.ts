@@ -56,6 +56,8 @@ import {
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     scheduledEventList: {
         scheduledEvents: [],
@@ -163,10 +165,7 @@ const INITIAL_STATE = {
     pages: {},
 };
 
-export default function scheduledEvent(
-    state = INITIAL_STATE,
-    action: $TSFixMe
-) {
+export default function scheduledEvent(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case CREATE_SCHEDULED_EVENT_SUCCESS: {
             let existingPayload = false;

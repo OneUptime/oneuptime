@@ -2,7 +2,7 @@ import React from 'react';
 import { tutorials } from '../../config';
 import PropTypes from 'prop-types';
 
-interface TutorialProps {
+export interface ComponentProps {
     deprecated?: boolean;
     type?: string;
 }

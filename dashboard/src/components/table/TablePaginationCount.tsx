@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface TablePaginationCountProps {
+export interface ComponentProps {
     isLoading: boolean;
     totalItemsCount?: number;
     friendlyName?: string;
@@ -10,7 +10,9 @@ interface TablePaginationCountProps {
     noOfItemsInPage?: number;
 }
 
-export default class TablePaginationCount extends Component<TablePaginationCountProps> {
+export default class TablePaginationCount extends Component<TablePaginationCountProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

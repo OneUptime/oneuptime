@@ -220,7 +220,7 @@ function makeAllowedGroups(groups = [], projectGroups = []) {
     return filteredGroups;
 }
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
     const subProjectTeams = state.team.subProjectTeamMembers;

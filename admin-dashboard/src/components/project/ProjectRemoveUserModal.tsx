@@ -11,6 +11,7 @@ import { FormLoader } from '../basic/Loader';
 
 class ProjectRemoveUserModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -145,7 +146,7 @@ class ProjectRemoveUserModal extends Component<ComponentProps> {
 
 ProjectRemoveUserModal.displayName = 'ProjectRemoveUserModal';
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const userId =
         props.data && props.data.values && props.data.values.userId
             ? props.data.values.userId

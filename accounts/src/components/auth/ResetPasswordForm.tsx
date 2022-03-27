@@ -26,7 +26,9 @@ interface ResetPasswordFormProps {
     resetPassword: Function;
 }
 
-export class ResetPasswordForm extends Component<ResetPasswordFormProps> {
+export class ResetPasswordForm extends Component<ResetPasswordFormProps>{
+    public static displayName = '';
+    public static propTypes = {};
     submitForm = (values: $TSFixMe) => {
 
         this.props.resetPassword(values);
@@ -166,7 +168,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         resetPasswordState: state.resetPassword,
     };

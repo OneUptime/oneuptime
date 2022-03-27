@@ -13,7 +13,7 @@ interface DeleteStatusPageModalProps {
     error?: string;
 }
 
-class DeleteStatusPageModal extends Component<DeleteStatusPageModalProps> {
+class DeleteStatusPageModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -143,7 +143,7 @@ class DeleteStatusPageModal extends Component<DeleteStatusPageModalProps> {
 
 DeleteStatusPageModal.displayName = 'DeleteStatusPageModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.statusPage &&

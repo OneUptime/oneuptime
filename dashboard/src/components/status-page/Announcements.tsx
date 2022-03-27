@@ -26,7 +26,7 @@ interface AnnouncementsProps {
     announceError?: boolean;
 }
 
-class Announcements extends Component<AnnouncementsProps> {
+class Announcements extends Component<ComponentProps> {
     deleteAnnouncement: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -556,7 +556,7 @@ Announcements.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         announcements: state.statusPage.announcements.announcementsList,
         requesting: state.statusPage.announcements.requesting,

@@ -23,11 +23,9 @@ interface IntegrationsProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Integrations extends Component<IntegrationsProps> {
+class Integrations extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             tabIndex: 0,
         };
@@ -141,7 +139,7 @@ Integrations.propTypes = {
 
 Integrations.displayName = 'Integrations';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

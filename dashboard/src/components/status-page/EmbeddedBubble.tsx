@@ -64,7 +64,7 @@ const css = (colors: $TSFixMe) => `<style>
       }
     </style>`;
 
-const createScript = (url: string, css: $TSFixMe) => {
+const createScript = (url: URL, css: $TSFixMe) => {
     return `<div class='bubble-box'>
     <div id="oneuptime-status-bubble"></div>
     <div id='oneuptime-bubble-text'></div>
@@ -139,11 +139,11 @@ interface EmbeddedBubbleProps {
     updateStatusPageEmbeddedCss?: Function;
 }
 
-export class EmbeddedBubble extends Component<EmbeddedBubbleProps> {
+export class EmbeddedBubble extends Component<EmbeddedBubbleProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             showMoreOptions: false,
             copied: false,
@@ -630,7 +630,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const customCodeValue = selector(state, 'embeddedcode');
     const {
         statusBubbleId,

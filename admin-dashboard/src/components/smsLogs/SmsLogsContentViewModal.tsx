@@ -6,6 +6,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 class SmsLogsContentViewModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -124,7 +125,7 @@ class SmsLogsContentViewModal extends Component<ComponentProps> {
 
 SmsLogsContentViewModal.displayName = 'SmsLogsContentViewModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.smsLogs &&

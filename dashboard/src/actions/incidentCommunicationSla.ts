@@ -1,5 +1,5 @@
 import * as types from '../constants/incidentCommunicationSla';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 export const createCommunicationSlaRequest = () => ({
@@ -21,7 +21,10 @@ export const createCommunicationSla =
         try {
             dispatch(createCommunicationSlaRequest());
 
-            const response = await postApi(`incidentSla/${projectId}`, data);
+            const response = await BackendAPI.post(
+                `incidentSla/${projectId}`,
+                data
+            );
 
             dispatch(createCommunicationSlaSuccess(response.data));
         } catch (error) {
@@ -63,7 +66,7 @@ export const updateCommunicationSla =
             dispatch(updateCommunicationSlaRequest());
 
             data.handleDefault = handleDefault;
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `incidentSla/${projectId}/${incidentSlaId}`,
                 data
             );
@@ -104,9 +107,9 @@ export const fetchCommunicationSlas =
 
             let response;
             if (skip === 0 && limit === 0) {
-                response = await getApi(`incidentSla/${projectId}`);
+                response = await BackendAPI.get(`incidentSla/${projectId}`);
             } else {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `incidentSla/${projectId}?skip=${skip}&limit=${limit}`
                 );
             }
@@ -145,9 +148,8 @@ export const deleteCommunicationSla =
         try {
             dispatch(deleteCommunicationSlaRequest());
 
-            const response = await deleteApi(
-                `incidentSla/${projectId}/${incidentSlaId}`
-            );
+            const response =
+                await delete `incidentSla/${projectId}/${incidentSlaId}`;
 
             dispatch(deleteCommunicationSlaSuccess(response.data));
         } catch (error) {
@@ -188,7 +190,7 @@ export const fetchDefaultCommunicationSla =
         try {
             dispatch(fetchDefaultCommunicationSlaRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `incidentSla/${projectId}/defaultCommunicationSla`
             );
 

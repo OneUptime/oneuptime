@@ -30,7 +30,7 @@ interface StatusPageSubscriberProps {
     monitors?: unknown[];
 }
 
-class StatusPageSubscriber extends Component<StatusPageSubscriberProps> {
+class StatusPageSubscriber extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -660,7 +660,7 @@ class StatusPageSubscriber extends Component<StatusPageSubscriberProps> {
 
 StatusPageSubscriber.displayName = 'StatusPageSubscriber';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     subscribers: state.statusPage.subscribers,
     monitors: state.statusPage.status.monitors
 });

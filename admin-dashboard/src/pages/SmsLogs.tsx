@@ -207,7 +207,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const smsLogs = state.smsLogs.smsLogs;
     const searchSmsLogs = state.smsLogs.searchSmsLogs;
     const requesting =

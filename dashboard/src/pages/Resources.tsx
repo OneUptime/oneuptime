@@ -18,11 +18,9 @@ interface ResourcesProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Resources extends Component<ResourcesProps> {
+class Resources extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override render() {
@@ -85,7 +83,7 @@ Resources.propTypes = {
 
 Resources.displayName = 'Resources';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

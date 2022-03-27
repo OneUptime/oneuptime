@@ -17,7 +17,7 @@ interface removeGroupProps {
     groupDelete?: object;
 }
 
-class removeGroup extends Component<removeGroupProps> {
+class removeGroup extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -135,7 +135,7 @@ class removeGroup extends Component<removeGroupProps> {
 
 removeGroup.displayName = 'removeGroup';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         groupDelete: state.groups.deleteGroup,

@@ -27,7 +27,7 @@ interface VerifyDomainProps {
     currentProject?: object;
 }
 
-class VerifyDomain extends Component<VerifyDomainProps> {
+class VerifyDomain extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.resetVerifyProjectDomain();
@@ -303,7 +303,7 @@ class VerifyDomain extends Component<VerifyDomainProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     requesting: state.project.verifyDomain.requesting,
     verifyError: state.project.verifyDomain.error,
     verificationToken: state.modal.modals[0].verificationToken,

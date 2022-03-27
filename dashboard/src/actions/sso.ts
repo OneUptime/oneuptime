@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/sso';
 import errors from '../errors';
@@ -16,7 +16,7 @@ export const createSsoFailure = (error: $TSFixMe) => ({
 });
 export const createSso = ({ data }: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`sso`, data);
+        const promise = BackendAPI.post(`sso`, data);
         dispatch(createSsoRequest());
 
         promise.then(
@@ -57,7 +57,7 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `sso/${projectId}/ssos?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchSsosRequest());
@@ -97,7 +97,7 @@ export const fetchSsoFailure = (error: $TSFixMe) => ({
 });
 export const fetchSso = (ssoId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`sso/${ssoId}`);
+        const promise = BackendAPI.get(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
 
         promise.then(
@@ -135,7 +135,7 @@ export const updateSsoFailure = (error: $TSFixMe) => ({
 });
 export const updateSso = ({ id, data }: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`sso/${id}`, data);
+        const promise = BackendAPI.put(`sso/${id}`, data);
         dispatch(updateSsoRequest());
 
         promise.then(
@@ -173,7 +173,7 @@ export const deleteSsoFailure = (error: $TSFixMe) => ({
 });
 export const deleteSso = (ssoId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`sso/${ssoId}`);
+        const promise = delete `sso/${ssoId}`;
         dispatch(deleteSsoRequest());
 
         promise.then(

@@ -21,6 +21,8 @@ import {
 } from '../constants/register.js';
 
 // The register state reducer.
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     addCard: {
         requesting: false,
@@ -45,7 +47,7 @@ const initialState = {
     email: null,
 };
 
-export default function register(state = initialState, action: $TSFixMe) {
+export default function register(state = initialState, action: Action) {
     let incCount, decCount, stage;
     switch (action.type) {
         case SIGNUP_REQUEST:

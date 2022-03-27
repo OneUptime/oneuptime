@@ -12,7 +12,7 @@ interface DisableMonitorProps {
     data?: object;
 }
 
-class DisableMonitor extends Component<DisableMonitorProps> {
+class DisableMonitor extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -140,7 +140,7 @@ DisableMonitor.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         monitorState: state.monitor,
     };

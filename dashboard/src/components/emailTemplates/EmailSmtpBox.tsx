@@ -95,7 +95,9 @@ interface EmailSmtpBoxProps {
     change?: Function;
 }
 
-export class EmailSmtpBox extends Component<EmailSmtpBoxProps> {
+export class EmailSmtpBox extends Component<EmailSmtpBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.changeValue = this.changeValue.bind(this);
@@ -713,7 +715,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const smtpConfigurations =
         state.emailTemplates && state.emailTemplates.emailSmtpConfiguration;
     const showEmailSmtpConfiguration =

@@ -25,7 +25,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import { User } from '../../config';
 import { ValidateField } from '../../config';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 const selector = formValueSelector('NewComponent');
 
@@ -47,7 +47,7 @@ interface NewComponentProps {
     activeSubProjectId?: string;
 }
 
-class NewComponent extends Component<NewComponentProps> {
+class NewComponent extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -411,7 +411,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name_1000');
     const activeSubProjectId = state.subProject.activeSubProject;
 

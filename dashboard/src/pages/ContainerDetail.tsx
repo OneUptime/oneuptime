@@ -5,6 +5,7 @@ import ContainerSecurityDetail from '../components/security/ContainerSecurityDet
 
 class ContainerDetail extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

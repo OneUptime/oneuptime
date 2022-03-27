@@ -9,6 +9,8 @@ import {
     CONFIRM_LICENSE_RESET,
 } from '../constants/license';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     license: {
         error: null,
@@ -23,7 +25,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case FETCH_LICENSE_REQUEST:
             return Object.assign({}, state, {

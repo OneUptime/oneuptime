@@ -11,7 +11,7 @@ import {
     getActiveMembersRequest,
     getActiveMembersSuccess,
 } from '../../actions/reports';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface MembersListProps {
     getActiveMembers?: Function;
@@ -21,7 +21,7 @@ interface MembersListProps {
     currentProject?: object | string;
 }
 
-class MembersList extends Component<MembersListProps> {
+class MembersList extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -56,7 +56,7 @@ class MembersList extends Component<MembersListProps> {
         );
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps: $TSFixMe, prevState: $TSFixMe) {
+    UNSAFE_componentWillReceiveProps(nextProps: ComponentProps, prevstate: RootState) {
         const {
             getActiveMembers,
             currentProject,
@@ -477,7 +477,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         activeMembers: state.report.activeMembers,
     };

@@ -7,7 +7,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { deleteContainerSecurity } from '../../actions/security';
 
 interface DeleteContainerSecurityProps {
@@ -21,7 +21,7 @@ interface DeleteContainerSecurityProps {
     propArr?: unknown[];
 }
 
-class DeleteContainerSecurity extends Component<DeleteContainerSecurityProps> {
+class DeleteContainerSecurity extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -202,7 +202,7 @@ DeleteContainerSecurity.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.security.deleteContainer.requesting,
         deleteContainerError: state.security.deleteContainer.error,

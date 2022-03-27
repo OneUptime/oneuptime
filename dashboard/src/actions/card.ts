@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/card';
 
@@ -25,7 +25,7 @@ export const addCardSuccess = (card: $TSFixMe) => {
 
 export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`stripe/${userId}/creditCard/${token}`);
+        const promise = BackendAPI.post(`stripe/${userId}/creditCard/${token}`);
 
         dispatch(addCardRequest(promise));
 
@@ -73,7 +73,7 @@ export const fetchCardsSuccess = (cards: $TSFixMe) => {
 
 export const fetchCards = (userId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`stripe/${userId}/creditCard`);
+        const promise = BackendAPI.get(`stripe/${userId}/creditCard`);
 
         dispatch(fetchCardsRequest(promise));
 
@@ -122,7 +122,7 @@ export const deleteCardSuccess = (card: $TSFixMe) => {
 
 export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`stripe/${userId}/creditCard/${cardId}`);
+        const promise = delete `stripe/${userId}/creditCard/${cardId}`;
 
         dispatch(deleteCardRequest(promise));
 
@@ -174,7 +174,7 @@ export const setDefaultCardSuccess = (card: $TSFixMe) => {
 
 export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`stripe/${userId}/creditCard/${cardId}`);
+        const promise = BackendAPI.put(`stripe/${userId}/creditCard/${cardId}`);
 
         dispatch(setDefaultCardRequest(promise, cardId));
 

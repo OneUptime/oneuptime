@@ -29,7 +29,7 @@ interface AddNoteModalProps {
     change?: Function;
 }
 
-class AddNoteModal extends Component<AddNoteModalProps> {
+class AddNoteModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -394,7 +394,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const currentProject = state.project.currentProject;
     const event_state =
         state.form.AddNote &&

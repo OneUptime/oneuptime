@@ -1,0 +1,43 @@
+import { BACKEND_HOSTNAME, API_PROTOCOL } from '../config';
+import User from '../user';
+import history from '../history';
+import Headers from 'common/types/api/headers';
+import API from 'common/utils/api';
+import APIException from 'common/types/exception/apiException';
+import HTTPErrorResponse from 'common/types/api/errorResponse';
+import Cookies from 'universal-cookie';
+
+class BackendAPI extends API {
+    constructor() {
+        super(API_PROTOCOL, BACKEND_HOSTNAME);
+    }
+
+    private static override getHeaders(): Headers {
+        let defaultHeaders: Headers = this.getDefaultHeaders();
+
+        const headers: Headers = {};
+        if (User.isLoggedIn())
+            headers['Authorization'] = 'Basic ' + User.getAccessToken();
+
+        defaultHeaders = {
+            ...defaultHeaders,
+            ...headers,
+        };
+
+        return defaultHeaders;
+    }
+
+    private static override handleError(
+        error: HTTPErrorResponse | APIException
+    ) {
+        if (error instanceof HTTPErrorResponse && error.statusCode === 401) {
+            const cookies = new Cookies();
+            cookies.remove('admin-data', { path: '/' });
+            cookies.remove('data', { path: '/' });
+            User.clear();
+            history.push('/login');
+        }
+    }
+}
+
+export default new BackendAPI();

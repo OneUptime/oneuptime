@@ -51,7 +51,7 @@ interface NotesMainProps {
     history?: object;
 }
 
-class NotesMain extends Component<NotesMainProps> {
+class NotesMain extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -890,7 +890,7 @@ class NotesMain extends Component<NotesMainProps> {
 
 NotesMain.displayName = 'NotesMain';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let skip =
         state.status.notes && state.status.notes.skip
             ? state.status.notes.skip

@@ -7,6 +7,7 @@ import moment from 'moment';
 
 class NotificationMenu extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {
@@ -162,7 +163,7 @@ class NotificationMenu extends Component<ComponentProps> {
 
 NotificationMenu.displayName = 'NotificationMenu';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         notifications: state.notifications.notifications,
         position: state.notifications.notificationsPosition,

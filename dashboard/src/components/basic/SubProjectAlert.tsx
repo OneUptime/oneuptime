@@ -9,7 +9,7 @@ interface SubProjectAlertProps {
     subProjects?: unknown[];
 }
 
-class SubProjectAlert extends Component<SubProjectAlertProps> {
+class SubProjectAlert extends Component<ComponentProps> {
     override render() {
 
         const { currentProject, subProjects, activeSubProjectId } = this.props;
@@ -67,7 +67,7 @@ SubProjectAlert.propTypes = {
     subProjects: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order

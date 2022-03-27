@@ -19,7 +19,7 @@ interface AdvancedProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Advanced extends Component<AdvancedProps> {
+class Advanced extends Component<ComponentProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
@@ -93,7 +93,7 @@ Advanced.propTypes = {
 
 Advanced.displayName = 'Advanced';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

@@ -10,7 +10,7 @@ import { closeModal } from 'common-ui/actions/modal';
 import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
 import Badge from '../common/Badge';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import ResourceTabularList from './ResourceTabularList';
 import { animateSidebar } from '../../actions/animateSidebar';
 
@@ -28,11 +28,11 @@ interface ComponentDetailProps {
     animateSidebar?: Function;
 }
 
-export class ComponentDetail extends Component<ComponentDetailProps> {
+export class ComponentDetail extends Component<ComponentDetailProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     prevClicked = () => {
@@ -275,7 +275,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const componentMonitors = (
         state.monitor.monitorsList.monitors.find(
             (o: $TSFixMe) => o._id === props.projectId

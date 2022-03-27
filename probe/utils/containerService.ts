@@ -1,7 +1,7 @@
-import { postApi } from './api';
+import BackendAPI from './api';
 
 export default {
     scan: async function (security: $TSFixMe) {
-        return await postApi(`probe/scan/docker`, { security });
+        return await BackendAPI.post(`probe/scan/docker`, { security });
     },
 };

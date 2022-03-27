@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 import { IS_SAAS_SERVICE } from '../../config';
 import booleanParser from '../../utils/booleanParser';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
@@ -18,7 +18,7 @@ interface AlertDisabledWarningProps {
 
 // import 'assets/warning.css';
 
-class AlertDisabledWarning extends Component<AlertDisabledWarningProps> {
+class AlertDisabledWarning extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -108,7 +108,7 @@ AlertDisabledWarning.propTypes = {
     page: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const areAlertsEnabledInCustomTwilioSettings =
         state.smsTemplates &&
         state.smsTemplates.smsSmtpConfiguration &&

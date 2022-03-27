@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 function HTD1() {
     return (
@@ -365,14 +365,14 @@ function TD7({
                                     >
                                         <div
                                             className={`Badge ${text === 'Success'
-                                                    ? 'Badge--color--green'
-                                                    : 'Badge--color--red'
+                                                ? 'Badge--color--green'
+                                                : 'Badge--color--red'
                                                 } Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2`}
                                         >
                                             <span
                                                 className={`Badge-text ${text === 'Success'
-                                                        ? 'Text-color--green'
-                                                        : 'Text-color--red'
+                                                    ? 'Text-color--green'
+                                                    : 'Text-color--red'
                                                     } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                                             >
                                                 <span>{text}</span>

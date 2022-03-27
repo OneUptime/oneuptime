@@ -1,11 +1,11 @@
-const getApi = require('../utils/api').getApi;
+import BackendAPI from '../utils/api';
 import UrlMonitors from './urlMonitors';
 import ErrorService from '../utils/errorService';
 
 export default {
     runJob: async function () {
         try {
-            let monitors = await getApi('lighthouse/monitors');
+            let monitors = await BackendAPI.get('lighthouse/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
                 monitors.map((monitor: $TSFixMe) => {
@@ -15,7 +15,7 @@ export default {
                             return UrlMonitors.ping(monitor);
                         } else {
                             ErrorService.log(
-                                'getApi',
+                                'get',
                                 'Please Make Sure Probe Server is Online.'
                             );
                         }
@@ -24,7 +24,7 @@ export default {
                 })
             );
         } catch (error) {
-            ErrorService.log('getApi', error);
+            ErrorService.log('get', error);
         }
     },
 };

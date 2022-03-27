@@ -32,7 +32,7 @@ interface TableProps {
     onClickTableRow?: Function;
 }
 
-class Table extends Component<TableProps> {
+class Table extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
     }

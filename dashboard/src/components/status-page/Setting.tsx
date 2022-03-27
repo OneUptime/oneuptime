@@ -25,8 +25,8 @@ function validate(_values: $TSFixMe) {
     return error;
 }
 
-export class Setting extends Component<ComponentProps> {
-
+export class Setting extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     state = {
@@ -712,7 +712,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const domainsContainer =
         state.statusPage &&
             state.statusPage.status &&

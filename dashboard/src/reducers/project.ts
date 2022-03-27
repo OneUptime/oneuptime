@@ -1,5 +1,7 @@
 import * as types from '../constants/project';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     projects: {
         requesting: false,
@@ -126,7 +128,7 @@ const initialState = {
     },
 };
 
-export default function project(state = initialState, action: $TSFixMe) {
+export default function project(state = initialState, action: Action) {
     let projects, newProjects;
     switch (action.type) {
         case types.CHANGE_DELETE_MODAL:

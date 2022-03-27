@@ -14,6 +14,7 @@ import { addProbe, resetAddProbe } from '../../actions/probe';
 
 class ProbeAddModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -242,7 +243,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ addProbe, resetAddProbe }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         addProbeState: state.probe.addProbe,
         probes: state.probe.probes,

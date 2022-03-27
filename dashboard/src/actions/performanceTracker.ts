@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
@@ -44,7 +44,7 @@ export const createPerformanceTracker =
     ({ projectId, componentId, values }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(createPerformanceTrackerRequest());
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `performanceTracker/${projectId}/${componentId}/create`,
             values
         );
@@ -92,7 +92,7 @@ export const fetchPerformanceTracker =
     ({ projectId, performanceTrackerId, slug }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchPerformanceTrackerRequest());
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceTracker/${projectId}/tracker/${performanceTrackerId}?slug=${slug}`
         );
 
@@ -146,7 +146,7 @@ export const fetchPerformanceTrackers =
     }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchPerformanceTrackersRequest(fetchingPage));
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceTracker/${projectId}/${componentId}?skip=${skip}&limit=${limit}`
         );
 
@@ -193,7 +193,7 @@ export const updatePerformanceTracker =
     ({ projectId, componentId, performanceTrackerId, values }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(updatePerformanceTrackerRequest());
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `performanceTracker/${projectId}/${componentId}/update-tracker/${performanceTrackerId}`,
             values
         );
@@ -242,9 +242,8 @@ export const deletePerformanceTracker =
     (dispatch: Dispatch) => {
         dispatch(deletePerformanceTrackerRequest());
 
-        const promise = deleteApi(
-            `performanceTracker/${projectId}/tracker/${performanceTrackerId}`
-        );
+        const promise =
+            delete `performanceTracker/${projectId}/tracker/${performanceTrackerId}`;
 
         promise.then(
             function (response) {
@@ -289,7 +288,7 @@ export const resetPerformanceTrackerKey =
     ({ projectId, performanceTrackerId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(resetPerformanceTrackerKeyRequest());
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `performanceTracker/${projectId}/reset-key/${performanceTrackerId}`,
             {}
         );
@@ -333,7 +332,7 @@ export const removeQuickStart =
     ({ projectId, performanceTrackerId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(removeQuickStartRequest());
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `performanceTracker/${projectId}/remove-quickstart/${performanceTrackerId}`,
             {}
         );
@@ -381,7 +380,7 @@ export const fetchLastMetrics =
         startDate = encode(startDate);
         endDate = encode(endDate);
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceTracker/${projectId}/last-metrics/${performanceTrackerId}?startDate=${startDate}&endDate=${endDate}`
         );
 

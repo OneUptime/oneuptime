@@ -29,7 +29,7 @@ interface MonitorsProps {
     handleCloseButtonClick?: Function;
 }
 
-class Monitors extends Component<MonitorsProps> {
+class Monitors extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -338,7 +338,7 @@ class Monitors extends Component<MonitorsProps> {
 
 Monitors.displayName = 'Monitors';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     statuspage: state.status.statusPage,
     subscribed: state.subscribe.subscribed,

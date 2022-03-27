@@ -30,7 +30,7 @@ interface ContainerSecurityFormProps {
     showCancelBtn?: boolean;
 }
 
-class ContainerSecurityForm extends Component<ContainerSecurityFormProps> {
+class ContainerSecurityForm extends Component<ComponentProps> {
     override componentDidMount() {
 
         const { projectId, getDockerCredentials } = this.props;
@@ -397,7 +397,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         addingContainer: state.security.addContainer.requesting,
         addContainerError: state.security.addContainer.error,

@@ -9,11 +9,11 @@ export default class Action {
         this._type = v;
     }
 
-    private _paylaod: JSONValue = {};
-    public get paylaod(): JSONValue {
-        return this._paylaod;
+    private _payload: JSONValue = {};
+    public get payload(): JSONValue {
+        return this._payload;
     }
-    public set paylaod(v: JSONValue) {
-        this._paylaod = v;
+    public set payload(v: JSONValue) {
+        this._payload = v;
     }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface EmptyCategoryProps {
+export interface ComponentProps {
     tabSelected?: Function;
 }
 

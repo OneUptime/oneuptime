@@ -30,7 +30,7 @@ interface ComponentSettingsAdvancedProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class ComponentSettingsAdvanced extends Component<ComponentSettingsAdvancedProps> {
+class ComponentSettingsAdvanced extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -193,7 +193,7 @@ ComponentSettingsAdvanced.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         component:
             state.component && state.component.currentComponent.component,

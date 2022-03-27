@@ -103,7 +103,7 @@ interface CreateSubscriberProps {
     mergeMonitors?: unknown[];
 }
 
-class CreateSubscriber extends Component<CreateSubscriberProps> {
+class CreateSubscriber extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
 
@@ -575,7 +575,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const projectId = ownProps.data.subProjectId;
     const allMonitors = state.monitor.monitorsList.monitors
         .filter((monitor: $TSFixMe) => String(monitor._id) === String(projectId))

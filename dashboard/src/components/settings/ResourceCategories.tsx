@@ -32,7 +32,9 @@ interface ResourceCategoriesProps {
     modalList?: unknown[];
 }
 
-export class ResourceCategories extends Component<ResourceCategoriesProps> {
+export class ResourceCategories extends Component<ResourceCategoriesProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         CreateResourceCategoryModalId: uuidv4(),
         EditResourceCategoryModalId: uuidv4(),
@@ -476,7 +478,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,
 
     resourceCategories:

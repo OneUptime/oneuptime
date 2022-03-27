@@ -6,7 +6,7 @@ const applicationSecuritySchema = new Schema(
     {
         name: String,
         slug: { type: String, index: true },
-        gitRepositoryUrl: String,
+        gitRepositoryurl: URL,
         gitCredential: {
             type: Schema.Types.ObjectId,
             ref: 'GitCredential',

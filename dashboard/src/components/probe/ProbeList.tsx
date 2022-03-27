@@ -27,7 +27,9 @@ interface ProbeListProps {
     page?: number;
 }
 
-export class ProbeList extends Component<ProbeListProps> {
+export class ProbeList extends Component<ProbeListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { ProbeDetailModalId: uuidv4() };
@@ -448,7 +450,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
     };

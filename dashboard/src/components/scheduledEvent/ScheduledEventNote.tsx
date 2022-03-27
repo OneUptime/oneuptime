@@ -13,7 +13,7 @@ import DeleteNoteModal from './DeleteNoteModal';
 import AddNoteModal from './AddNoteModal';
 import EditNoteModal from './EditNoteModal';
 import { User } from '../../config';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import {
     fetchScheduledEventNotesInternal,
     nextPage,
@@ -36,7 +36,9 @@ interface ScheduledEventNoteProps {
     pages?: object;
 }
 
-export class ScheduledEventNote extends Component<ScheduledEventNoteProps> {
+export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
+    public static displayName = '';
+    public static propTypes = {};
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -785,7 +787,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     },
     dispatch
 );
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         pages: state.scheduledEvent.pages,
     };

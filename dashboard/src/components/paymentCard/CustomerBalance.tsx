@@ -42,8 +42,8 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-export class CustomerBalance extends Component<ComponentProps> {
-
+export class CustomerBalance extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     state = {
@@ -410,7 +410,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     project:
         state.project.currentProject !== null && state.project.currentProject,
 
@@ -427,8 +427,8 @@ const CustomerBalanceFormStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(CustomerBalanceForm)
 );
 
-export default class CustomerBalanceWithCheckout extends Component<ComponentProps> {
-
+export default class CustomerBalanceWithCheckout extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

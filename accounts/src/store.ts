@@ -1,14 +1,10 @@
 import { createStore, applyMiddleware, compose } from 'redux';
-
 import { createLogger } from 'redux-logger';
-
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';
 
 import queryString from 'query-string';
 
-import { createBrowserHistory, createMemoryHistory } from 'history';
-// import createHistory from 'history/createBrowserHistory';
 import rootReducer from './reducers';
 
 // A nice helper to tell us if we're on the server
@@ -17,11 +13,6 @@ export const isServer = !(
     window.document &&
     window.document.createElement
 );
-// export const history = createHistory();
-const url = '/';
-export const history = isServer
-    ? createMemoryHistory({ initialEntries: [url] })
-    : createBrowserHistory();
 
 export const removeQuery = (removeField: string) => {
     const location = Object.assign({}, history.location);
@@ -34,6 +25,7 @@ export const removeQuery = (removeField: string) => {
     location.search = queryString.stringify(query);
     history.push(location);
 };
+
 const initialState = {};
 const enhancers = [];
 const logger = createLogger();
@@ -53,4 +45,8 @@ if (process.env['NODE_ENV'] === 'development') {
 
 const composedEnhancers = compose(applyMiddleware(...middleware), ...enhancers);
 
-export default createStore(rootReducer, initialState, composedEnhancers);
+const store = createStore(rootReducer, initialState, composedEnhancers);
+
+export type RootState = ReturnType<typeof store.getState>;
+
+export default store;

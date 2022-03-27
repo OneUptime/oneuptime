@@ -283,7 +283,7 @@ const DuplicateStatusPageForm = reduxForm({
     validate,
 })(StatusPageForm);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         duplicateModalId: state.modal.modals[0].id,

@@ -17,7 +17,7 @@ interface IncomingRequestEnabledToggleProps {
     propArr?: unknown[];
 }
 
-class IncomingRequestEnabledToggle extends Component<IncomingRequestEnabledToggleProps> {
+class IncomingRequestEnabledToggle extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -160,7 +160,7 @@ IncomingRequestEnabledToggle.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.incomingRequest.updateIncomingRequest.requesting,
         projectId: state.modal.modals[0].projectId,

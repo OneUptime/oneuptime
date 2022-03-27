@@ -70,7 +70,9 @@ interface SmsSmtpBoxProps {
     smsSmtpDelete?: object;
 }
 
-export class SmsSmtpBox extends Component<SmsSmtpBoxProps> {
+export class SmsSmtpBox extends Component<SmsSmtpBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor() {
 
         super();
@@ -526,7 +528,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const smtpConfigurations =
         state.smsTemplates && state.smsTemplates.smsSmtpConfiguration;
     const showSmsSmtpConfiguration =

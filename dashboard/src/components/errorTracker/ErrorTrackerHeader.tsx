@@ -30,11 +30,9 @@ interface ErrorTrackerHeaderProps {
     showComponentWithIssue?: boolean;
 }
 
-class ErrorTrackerHeader extends Component<ErrorTrackerHeaderProps> {
+class ErrorTrackerHeader extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             showFilters: false,
         };
@@ -302,7 +300,7 @@ class ErrorTrackerHeader extends Component<ErrorTrackerHeaderProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const currentDateRange = state.errorTracker.errorTrackerIssues[
         ownProps.errorTracker._id
     ]

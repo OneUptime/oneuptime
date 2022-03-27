@@ -45,15 +45,15 @@ interface ChangePasswordSettingProps {
     openModal: Function;
 }
 
-export class ChangePasswordSetting extends Component<ChangePasswordSettingProps> {
+export class ChangePasswordSetting extends Component<ChangePasswordSettingProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         MessageBoxId: uuidv4(),
     };
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     submitForm = (values: $TSFixMe) => {
@@ -269,7 +269,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         profileSettings: state.profileSettings,
     };

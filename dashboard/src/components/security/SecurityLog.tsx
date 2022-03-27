@@ -507,7 +507,7 @@ SecurityLog.propTypes = {
     containerSecurityLog: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         levelToFilter:
             state.form.Filter &&

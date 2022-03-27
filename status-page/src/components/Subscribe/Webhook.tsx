@@ -26,7 +26,7 @@ interface WebhookProps {
     handleCloseButtonClick?: Function;
 }
 
-class Webhook extends Component<WebhookProps> {
+class Webhook extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {};
@@ -239,7 +239,7 @@ class Webhook extends Component<WebhookProps> {
 
 Webhook.displayName = 'Webhook';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
     statuspage: state.status.statusPage

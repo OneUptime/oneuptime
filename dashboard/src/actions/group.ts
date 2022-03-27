@@ -1,5 +1,5 @@
 import * as types from '../constants/group';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import { User } from '../config.js';
 
@@ -23,7 +23,7 @@ export const createGroup =
         dispatch(addGroupRequest());
 
         try {
-            const response = await postApi(`group/${projectId}`, data);
+            const response = await BackendAPI.post(`group/${projectId}`, data);
 
             dispatch(addGroupSuccess(response.data));
             dispatch(getGroups());
@@ -64,7 +64,7 @@ export const updateGroup =
         dispatch(updateGroupRequest(groupId));
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `group/${projectId}/${groupId}`,
                 data
             );
@@ -104,7 +104,7 @@ export const getGroups = () => async (dispatch: Dispatch) => {
     dispatch(getGroupsRequest());
     const projectId = User.getCurrentProjectId();
     try {
-        const response = await getApi(`group/${projectId}/groups`);
+        const response = await BackendAPI.get(`group/${projectId}/groups`);
 
         dispatch(getGroupsSuccess(response.data));
     } catch (error) {
@@ -140,7 +140,7 @@ export const getProjectGroups =
     async (dispatch: Dispatch) => {
         dispatch(getProjectGroupsRequest());
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `group/${projectId}?skip=${skip}&limit=${limit}`
             );
 
@@ -178,7 +178,7 @@ export const deleteGroup =
         dispatch(deleteGroupRequest());
 
         try {
-            const response = await deleteApi(`group/${projectId}/${groupId}`);
+            const response = await delete `group/${projectId}/${groupId}`;
 
             dispatch(deleteGroupSuccess(response.data));
             dispatch(getGroups());

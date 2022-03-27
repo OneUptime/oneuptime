@@ -18,7 +18,7 @@ interface MessageBoxProps {
     };
 }
 
-class MessageBox extends Component<MessageBoxProps> {
+class MessageBox extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -129,7 +129,7 @@ MessageBox.propTypes = {
     }),
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         messageBoxId: state.modal.modals[0].id,
         title: state.modal.modals[0].title,

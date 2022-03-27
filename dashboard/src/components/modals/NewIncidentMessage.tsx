@@ -40,7 +40,7 @@ interface NewIncidentMessageProps {
     fetchIncidentMessages?: Function;
 }
 
-class NewIncidentMessage extends Component<NewIncidentMessageProps> {
+class NewIncidentMessage extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -659,7 +659,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const incidentMessageState =
         ownProps.data.type === 'investigation'
             ? state.incident.investigationNotes

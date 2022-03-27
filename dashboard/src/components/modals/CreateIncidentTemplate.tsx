@@ -556,7 +556,7 @@ const CreateIncidentTemplateForm = reduxForm({
     enableReinitialize: true,
 })(CreateIncidentTemplate);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         revealVariables: state.incidentBasicSettings.revealVariables,

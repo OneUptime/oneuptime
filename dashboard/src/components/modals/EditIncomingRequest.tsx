@@ -56,7 +56,7 @@ interface EditIncomingRequestProps {
     monitorsList?: unknown[];
 }
 
-class EditIncomingRequest extends Component<EditIncomingRequestProps> {
+class EditIncomingRequest extends Component<ComponentProps> {
     state = {
         monitorError: null,
         selectedProjects: [],
@@ -3282,7 +3282,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const incomingRequestToBeUpdated = state.modal.modals[0].incomingRequest;
     const projectId = state.modal.modals[0].projectId;
     const incidentPriorities =

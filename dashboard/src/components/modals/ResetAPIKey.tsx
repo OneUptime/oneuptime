@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class ResetAPIKey extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -121,7 +122,7 @@ ResetAPIKey.displayName = 'ResetAPIKeyModal';
 
 const mapDispatchToProps = null;
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     isRequesting: state.project.resetToken.requesting
 });
 

@@ -11,7 +11,7 @@ const _this = {
             clusterKey,
         };
     },
-    postApi: (url: string, data: $TSFixMe, withBaseUrl = false) => {
+    post: (url: URL, data: $TSFixMe, withBaseUrl = false) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {

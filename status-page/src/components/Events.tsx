@@ -18,7 +18,7 @@ interface EventsProps {
     history?: object;
 }
 
-class Events extends Component<EventsProps> {
+class Events extends Component<ComponentProps> {
     handleNavigation = (statusPageSlug: $TSFixMe, eventSlug: $TSFixMe) => {
 
         const { history } = this.props;

@@ -220,7 +220,7 @@ QuickStart.propTypes = {
     library: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const initialValues = {
         library: 'js',
     };

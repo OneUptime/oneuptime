@@ -12,7 +12,7 @@ interface DeleteIncidentMessageProps {
     data?: object;
 }
 
-class DeleteIncidentMessage extends Component<DeleteIncidentMessageProps> {
+class DeleteIncidentMessage extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -130,7 +130,7 @@ DeleteIncidentMessage.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         incidentMessageState: state.incidentMessage,
     };

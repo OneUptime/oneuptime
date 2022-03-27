@@ -25,11 +25,9 @@ interface GitCredentialProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class GitCredential extends Component<GitCredentialProps> {
+class GitCredential extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     componentDidUpdate(prevProps: $TSFixMe) {
@@ -145,7 +143,7 @@ GitCredential.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

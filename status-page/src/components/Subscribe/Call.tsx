@@ -26,7 +26,7 @@ interface CallProps {
     handleCloseButtonClick?: Function;
 }
 
-class Call extends Component<CallProps> {
+class Call extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { country: 'us' };
@@ -476,7 +476,7 @@ class Call extends Component<CallProps> {
 
 Call.displayName = 'Call';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
     statuspage: state.status.statusPage

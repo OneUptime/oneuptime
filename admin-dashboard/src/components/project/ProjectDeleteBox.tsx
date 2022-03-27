@@ -10,14 +10,12 @@ import { deleteProject } from '../../actions/project';
 import ProjectDeleteModal from './ProjectDeleteModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProjectDeleteBox extends Component<ComponentProps> {
-
+export class ProjectDeleteBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = { deleteModalId: uuidv4() };
     }
 
@@ -100,7 +98,7 @@ ProjectDeleteBox.displayName = 'ProjectDeleteBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

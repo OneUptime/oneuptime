@@ -1,4 +1,4 @@
-import { getApi, postApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/callLogs';
 import errors from '../errors';
@@ -32,7 +32,7 @@ export const fetchCallLogs =
         dispatch(fetchCallLogsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `call-logs?skip=${skip}&limit=${limit}`
             );
 
@@ -88,7 +88,7 @@ export const searchCallLogs =
         dispatch(searchCallLogsRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `call-logs/search?skip=${skip}&limit=${limit}`,
                 values
             );
@@ -138,7 +138,7 @@ export const deleteCallLogs = () => async (dispatch: Dispatch) => {
     dispatch(deleteCallLogsRequest());
 
     try {
-        const response = await deleteApi(`call-logs`);
+        const response = await delete `call-logs`;
 
         const message = response.data.message;
 
@@ -193,7 +193,9 @@ export const fetchCallLogStatus = () => async (dispatch: Dispatch) => {
     dispatch(fetchCallLogStatusRequest());
 
     try {
-        const response = await getApi('globalConfig/callLogMonitoringStatus');
+        const response = await BackendAPI.get(
+            'globalConfig/callLogMonitoringStatus'
+        );
 
         dispatch(fetchCallLogStatusSuccess(response.data));
         return response;
@@ -249,7 +251,7 @@ export const callLogStatusChange =
         dispatch(changeCallLogStatusRequest());
 
         try {
-            const response = await postApi('globalConfig/', [
+            const response = await BackendAPI.post('globalConfig/', [
                 { name: 'callLogMonitoringStatus', value: values.status },
             ]);
 

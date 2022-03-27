@@ -1,4 +1,4 @@
-const postApi = require('./api').postApi;
+import ProbeAPI from './api';
 
 export default {
     headers: async (val: $TSFixMe, type: $TSFixMe) => {
@@ -33,28 +33,28 @@ export default {
         responseStatus: $TSFixMe,
         status: $TSFixMe
     ) {
-        return await postApi(`probe/setTime/${monitorId}`, {
+        return await ProbeAPI.post(`probe/setTime/${monitorId}`, {
             responseTime,
             responseStatus,
             status,
         });
     },
     getMonitorTime: async function (monitorId: $TSFixMe, date: $TSFixMe) {
-        return await postApi(`probe/getTime/${monitorId}`, { date });
+        return await ProbeAPI.post(`probe/getTime/${monitorId}`, { date });
     },
     ping: async function (monitorId: $TSFixMe, data: $TSFixMe) {
-        return await postApi(`probe/ping/${monitorId}`, data);
+        return await ProbeAPI.post(`probe/ping/${monitorId}`, data);
     },
     setScanStatus: async function (monitorIds: $TSFixMe, status: $TSFixMe) {
-        return await postApi('probe/set-scan-status', {
+        return await ProbeAPI.post('probe/set-scan-status', {
             scanning: status,
             monitorIds,
         });
     },
     addProbeScan: async function (monitorIds: $TSFixMe) {
-        return await postApi('probe/add-probe-scan', { monitorIds });
+        return await ProbeAPI.post('probe/add-probe-scan', { monitorIds });
     },
     removeProbeScan: async function (monitorIds: $TSFixMe) {
-        return await postApi('probe/remove-probe-scan', { monitorIds });
+        return await ProbeAPI.post('probe/remove-probe-scan', { monitorIds });
     },
 };

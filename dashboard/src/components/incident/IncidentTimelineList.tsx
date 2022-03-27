@@ -6,7 +6,7 @@ import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import momentTz from 'moment-timezone';
 import { currentTimeZone } from '../basic/TimezoneArray';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface IncidentTimelineListProps {
     incident?: object;
@@ -470,7 +470,7 @@ IncidentTimelineList.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         count: state.incident.incident.count,
         skip: state.incident.incident.skip,

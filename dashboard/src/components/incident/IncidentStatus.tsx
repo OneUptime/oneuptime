@@ -25,7 +25,7 @@ import { User } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from 'common-ui/actions/modal';
 //import EditIncident from '../modals/EditIncident';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import MessageBox from '../modals/MessageBox';
 import { markAsRead } from '../../actions/notification';
 import ViewJsonLogs from '../modals/ViewJsonLogs';
@@ -69,7 +69,9 @@ interface IncidentStatusProps {
     activeIncident?: string;
 }
 
-export class IncidentStatus extends Component<IncidentStatusProps> {
+export class IncidentStatus extends Component<IncidentStatusProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -2838,7 +2840,7 @@ const EditIncidentStatusForm = reduxForm({
     enableReinitialize: true,
 })(IncidentStatus);
 const selector = formValueSelector('IncidentStatusForm');
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { incidentId } = ownProps.match.params;
     const incident = ownProps.incident;
     const initialValues = {

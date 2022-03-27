@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/subscriber';
 import errors from '../errors';
@@ -40,7 +40,7 @@ export function createSubscriber(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `subscriber/${projectId}/subscribe/${monitorId}`,
             data
         );
@@ -108,7 +108,7 @@ export function exportCSV(
     csv: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
         );
 
@@ -174,10 +174,7 @@ export const deleteSubscriber = (
     subscriberId: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `subscriber/${projectId}/${subscriberId}`,
-            {}
-        );
+        const promise = delete (`subscriber/${projectId}/${subscriberId}`, {});
 
         dispatch(deleteSubscriberRequest(promise));
 
@@ -258,7 +255,7 @@ export function importSubscribersFromCsvFile(
     monitorId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `subscriber/${projectId}/${monitorId}/csv`,
             data
         );

@@ -32,7 +32,7 @@ interface NotificationMenuProps {
     position?: number;
 }
 
-class NotificationMenu extends Component<NotificationMenuProps> {
+class NotificationMenu extends Component<ComponentProps> {
     state = {
         MessageBoxId: uuidv4(),
     };
@@ -355,7 +355,7 @@ class NotificationMenu extends Component<NotificationMenuProps> {
 
 NotificationMenu.displayName = 'NotificationMenu';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         notifications: state.notifications.notifications,
         notificationsVisible: state.notifications.notificationsVisible,
@@ -395,8 +395,8 @@ const NotificationMenuStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(NotificationMenu)
 );
 
-export default class NotificationWithCheckout extends Component<ComponentProps> {
-
+export default class NotificationWithCheckout extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

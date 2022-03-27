@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/license';
 import errors from '../errors';
@@ -38,7 +38,7 @@ export const fetchLicense = () => async (dispatch: Dispatch) => {
     dispatch(resetConfirmLicense());
 
     try {
-        const response = await postApi('globalConfig/configs', [
+        const response = await BackendAPI.post('globalConfig/configs', [
             'licenseKey',
             'licenseEmail',
             'licenseToken',
@@ -99,11 +99,15 @@ export const confirmLicense =
         dispatch(confirmLicenseRequest());
 
         try {
-            const response = await postApi('license/validate/', values, true);
+            const response = await BackendAPI.post(
+                'license/validate/',
+                values,
+                true
+            );
 
             let data = response.data;
             if (data.token) {
-                const response = await postApi('globalConfig/', [
+                const response = await BackendAPI.post('globalConfig/', [
                     { name: 'licenseKey', value: values.license },
                     { name: 'licenseEmail', value: values.email },
                     { name: 'licenseToken', value: data.token },

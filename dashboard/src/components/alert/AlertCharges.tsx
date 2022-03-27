@@ -18,13 +18,11 @@ interface AlertChargeProps {
     alertCharges?: object | unknown[];
 }
 
-class AlertCharge extends Component<AlertChargeProps> {
+class AlertCharge extends Component<ComponentProps> {
     csvLink = React.createRef();
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     fetchData = () => {
@@ -157,7 +155,7 @@ class AlertCharge extends Component<AlertChargeProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const downloadedAlertCharges =
         state.alert.downloadedAlertCharges &&
         state.alert.downloadedAlertCharges.data;

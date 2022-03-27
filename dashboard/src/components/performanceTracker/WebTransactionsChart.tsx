@@ -11,7 +11,9 @@ interface WebTransactionsChartProps {
     type?: any;
 }
 
-export class WebTransactionsChart extends Component<WebTransactionsChartProps> {
+export class WebTransactionsChart extends Component<WebTransactionsChartProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyBoard: $TSFixMe;
     override render() {
 
@@ -49,7 +51,7 @@ WebTransactionsChart.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
     };

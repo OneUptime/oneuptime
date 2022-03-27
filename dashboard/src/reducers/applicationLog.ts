@@ -32,6 +32,8 @@ import {
 } from '../constants/applicationLog';
 import moment from 'moment';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     newApplicationLog: {
         applicationLog: null,
@@ -57,10 +59,7 @@ const INITIAL_STATE = {
     },
     stats: {},
 };
-export default function applicationLog(
-    state = INITIAL_STATE,
-    action: $TSFixMe
-) {
+export default function applicationLog(state = INITIAL_STATE, action: Action) {
     let applicationLogs,
         failureLogs,
         requestLogs,

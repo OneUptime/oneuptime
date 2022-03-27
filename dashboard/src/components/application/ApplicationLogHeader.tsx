@@ -30,11 +30,9 @@ interface ApplicationLogHeaderProps {
     setShow?: Function;
 }
 
-class ApplicationLogHeader extends Component<ApplicationLogHeaderProps> {
+class ApplicationLogHeader extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             showFilters: false,
         };
@@ -296,7 +294,7 @@ class ApplicationLogHeader extends Component<ApplicationLogHeaderProps> {
 
 ApplicationLogHeader.displayName = 'ApplicationLogHeader';
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const applicationLogId = ownProps.applicationLog._id;
     const currentDateRange = state.applicationLog.logs[applicationLogId]
         ? state.applicationLog.logs[applicationLogId].dateRange

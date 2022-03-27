@@ -13,7 +13,7 @@ interface ModalProps {
     isLoading?: boolean;
 }
 
-class Modal extends Component<ModalProps> {
+class Modal extends Component<ComponentProps> {
     handleKeyBoard = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape': {

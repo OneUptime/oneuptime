@@ -43,7 +43,7 @@ interface UpdateScriptProps {
     activeProject?: string;
 }
 
-class UpdateScript extends Component<UpdateScriptProps> {
+class UpdateScript extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -839,7 +839,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const schedules: $TSFixMe = [];
     state.schedule.subProjectSchedules.forEach((elem: $TSFixMe) => {
         elem.schedules.forEach((schedule: $TSFixMe) => {

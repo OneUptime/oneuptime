@@ -21,7 +21,7 @@ interface ConfirmationDialogProps {
     closeModal?: Function;
 }
 
-class ConfirmationDialog extends Component<ConfirmationDialogProps> {
+class ConfirmationDialog extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

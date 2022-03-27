@@ -53,7 +53,9 @@ interface ChartComponentProps {
 
 //import ShouldRender from '../../components/basic/ShouldRender';
 
-export class ChartComponent extends Component<ChartComponentProps> {
+export class ChartComponent extends Component<ChartComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     currentDate: $TSFixMe;
     startDate: $TSFixMe;
     override componentDidMount() {
@@ -494,7 +496,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
         timeStartDate: state.performanceTrackerMetric.timeStartDate,

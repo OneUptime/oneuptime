@@ -1,4 +1,4 @@
-import { deleteApi, getApi, postApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/webHook';
 
@@ -31,10 +31,8 @@ export const resetDeleteWebHook = () => {
 // Calls the API to link webhook team to project
 export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `webhook/${projectId}/delete/${webhookId}`,
-            null
-        );
+        const promise = delete (`webhook/${projectId}/delete/${webhookId}`,
+        null);
 
         dispatch(deleteWebHookRequest());
 
@@ -95,7 +93,7 @@ export function getWebHook(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10}`
         );
         dispatch(getWebHookRequest(promise));
@@ -131,7 +129,7 @@ export function getWebHookMonitor(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
                 limit || 10
             }`
@@ -190,7 +188,7 @@ export const resetCreateWebHook = () => {
 // Calls the API to add webhook to project
 export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`webhook/${projectId}/create`, data);
+        const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
         dispatch(createWebHookRequest());
 
@@ -250,7 +248,10 @@ export function updateWebHook(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`webhook/${projectId}/${webhookId}`, data);
+        const promise = BackendAPI.put(
+            `webhook/${projectId}/${webhookId}`,
+            data
+        );
 
         dispatch(updateWebHookRequest());
 

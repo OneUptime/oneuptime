@@ -38,7 +38,7 @@ interface ScheduledEventProps {
     status?: object;
 }
 
-class ScheduledEvent extends Component<ScheduledEventProps> {
+class ScheduledEvent extends Component<ComponentProps> {
     override componentDidMount() {
         const {
 
@@ -86,7 +86,7 @@ class ScheduledEvent extends Component<ScheduledEventProps> {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
 
-                    window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+                    window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
             }
         });
@@ -984,7 +984,7 @@ ScheduledEvent.propTypes = {
     status: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         fetchingNotes: state.status.eventNoteList.requesting,
         statusData: state.status.statusPage,

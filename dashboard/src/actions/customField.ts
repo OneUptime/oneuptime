@@ -1,5 +1,5 @@
 import * as types from '../constants/customField';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 export const createCustomFieldRequest = () => ({
@@ -21,7 +21,10 @@ export const createCustomField =
         try {
             dispatch(createCustomFieldRequest());
 
-            const response = await postApi(`customField/${projectId}`, data);
+            const response = await BackendAPI.post(
+                `customField/${projectId}`,
+                data
+            );
 
             dispatch(createCustomFieldSuccess(response.data));
         } catch (error) {
@@ -57,7 +60,7 @@ export const updateCustomField =
         try {
             dispatch(updateCustomFieldRequest());
 
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `customField/${projectId}/${customFieldId}`,
                 data
             );
@@ -98,9 +101,9 @@ export const fetchCustomFields =
 
             let response;
             if (skip === 0 && limit === 0) {
-                response = await getApi(`customField/${projectId}`);
+                response = await BackendAPI.get(`customField/${projectId}`);
             } else {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `customField/${projectId}?skip=${skip}&limit=${limit}`
                 );
             }
@@ -139,9 +142,8 @@ export const deleteCustomField =
         try {
             dispatch(deleteCustomFieldRequest());
 
-            const response = await deleteApi(
-                `customField/${projectId}/${customFieldId}`
-            );
+            const response =
+                await delete `customField/${projectId}/${customFieldId}`;
 
             dispatch(deleteCustomFieldSuccess(response.data));
         } catch (error) {

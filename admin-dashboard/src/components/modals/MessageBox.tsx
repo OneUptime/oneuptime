@@ -8,6 +8,7 @@ import { closeModal } from 'common-ui/actions/modal';
 
 class MessageBox extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -120,7 +121,7 @@ MessageBox.propTypes = {
     }),
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         messageBoxId: state.modal.modals[0].id,
         title: state.modal.modals[0].title,

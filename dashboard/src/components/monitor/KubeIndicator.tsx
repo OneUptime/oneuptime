@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface KubeIndicatorProps {
+export interface ComponentProps {
     status?: string;
 }
 
@@ -25,28 +25,28 @@ function KubeIndicator({
 
     resourceName
         ? (content = (
-              <div className="Flex-flex">
-                  <div
-                      className={`db-Badge Box-background--${statusColor}`}
-                      style={{ width: 10, height: 10, borderRadius: 'unset' }}
-                  ></div>
+            <div className="Flex-flex">
+                <div
+                    className={`db-Badge Box-background--${statusColor}`}
+                    style={{ width: 10, height: 10, borderRadius: 'unset' }}
+                ></div>
 
-                  <span
-                      id={`resource_status_${resourceName}`}
-                      className={`Text-color--${statusColor}`}
-                  >
-                      {' '}
-                      {` ${status}`}{' '}
-                  </span>
-              </div>
-          ))
+                <span
+                    id={`resource_status_${resourceName}`}
+                    className={`Text-color--${statusColor}`}
+                >
+                    {' '}
+                    {` ${status}`}{' '}
+                </span>
+            </div>
+        ))
         : (content = (
-              <div
-                  className={`db-Badge Box-background--${statusColor}`}
-                  style={{ width: 10, height: 10, borderRadius: 'unset' }}
-                  id={`${index}-${status.toLowerCase()}`}
-              ></div>
-          ));
+            <div
+                className={`db-Badge Box-background--${statusColor}`}
+                style={{ width: 10, height: 10, borderRadius: 'unset' }}
+                id={`${index}-${status.toLowerCase()}`}
+            ></div>
+        ));
 
     return content;
 }

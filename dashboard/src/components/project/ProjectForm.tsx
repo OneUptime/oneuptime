@@ -383,7 +383,7 @@ const ProjectForm = new reduxForm({
     validate,
 })(_ProjectForm);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let planId;
     if (
         env('STRIPE_PUBLIC_KEY') &&

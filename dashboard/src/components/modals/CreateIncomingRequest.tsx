@@ -57,7 +57,7 @@ interface CreateIncomingRequestProps {
     monitorsList?: unknown[];
 }
 
-class CreateIncomingRequest extends Component<CreateIncomingRequestProps> {
+class CreateIncomingRequest extends Component<ComponentProps> {
     state = {
         monitorError: null,
         filterShowing: false,
@@ -3192,7 +3192,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitor: $TSFixMe) => {
         monitors = [...monitors, ...monitor.monitors];

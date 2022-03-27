@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { deleteIncident } from '../../actions/incident';
 
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface DeleteIncidentProps {
     data: object;
@@ -18,7 +18,7 @@ interface DeleteIncidentProps {
     deleting?: boolean;
 }
 
-class DeleteIncident extends Component<DeleteIncidentProps> {
+class DeleteIncident extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -157,7 +157,7 @@ DeleteIncident.propTypes = {
     deleting: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting

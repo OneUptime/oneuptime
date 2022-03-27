@@ -18,6 +18,8 @@ import {
     CHANGE_SMSLOG_STATUS_SUCCESS,
 } from '../constants/smsLogs';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     smsLogs: {
         error: null,
@@ -48,7 +50,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: $TSFixMe) {
+export default function project(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         // Fetch smsLogs list
         case FETCH_SMSLOGS_REQUEST:

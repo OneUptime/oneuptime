@@ -205,7 +205,7 @@ MonitorList.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ updateprobebysocket }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
 
     return {

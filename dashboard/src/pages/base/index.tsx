@@ -5,11 +5,11 @@ import PropTypes from 'prop-types';
 import ShouldRender from '../../components/basic/ShouldRender';
 import TutorialBox from '../../components/tutorial/TutorialBox';
 import BreadCrumbItem from '../../components/breadCrumb/BreadCrumbItem';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
-interface PageProps {}
+interface PageProps { }
 
-class Page extends Component<PageProps> {
+class Page extends Component<ComponentProps> {
     constructor({
         pageName,
         friendlyPageName,
@@ -85,7 +85,7 @@ export const defaultMapDispatchToProps = () => {
     return {};
 };
 
-export const defaultMapStateToProps = (state: $TSFixMe) => {
+export const defaultMapStateToProps = (state: RootState) => {
     return {
         projectId: state.project?.currentProject?._id,
         subProjectId: state.subProject?.activeSubProject?._id,

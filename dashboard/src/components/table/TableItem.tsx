@@ -3,14 +3,16 @@ import TableActionButton from './TableActionButtons';
 import TableItemColumnData from './TableItemColumnData';
 import PropTypes from 'prop-types';
 
-interface TableItemProps {
+export interface ComponentProps {
     item: object;
     onClick?: Function;
     columns?: unknown[];
     actionButtons?: unknown[];
 }
 
-export default class TableItem extends Component<TableItemProps> {
+export default class TableItem extends Component<TableItemProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

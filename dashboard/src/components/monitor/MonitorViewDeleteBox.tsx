@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 import DeleteMonitor from '../modals/DeleteMonitor';
 import { deleteMonitor } from '../../actions/monitor';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 
 interface MonitorViewDeleteBoxProps {
@@ -22,7 +22,9 @@ interface MonitorViewDeleteBoxProps {
     deleteMonitor: Function;
 }
 
-export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps> {
+export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -138,7 +140,7 @@ MonitorViewDeleteBox.displayName = 'MonitorViewDeleteBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

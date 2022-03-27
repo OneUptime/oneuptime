@@ -5,7 +5,7 @@ import { ValidateField } from '../../config';
 import { Field, reduxForm, formValueSelector } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 
@@ -35,7 +35,7 @@ interface NewErrorTrackerProps {
     toggleForm?: Function;
 }
 
-class NewErrorTracker extends Component<NewErrorTrackerProps> {
+class NewErrorTracker extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -392,7 +392,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const requesting = ownProps.edit

@@ -11,7 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal } from 'common-ui/actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import DataPathHoC from '../DataPathHoC';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { capitalize } from '../../config';
 import { ListLoader } from '../basic/Loader';
 
@@ -43,7 +43,7 @@ interface EventBoxProps {
     currentSubProject?: object;
 }
 
-class EventBox extends Component<EventBoxProps> {
+class EventBox extends Component<ComponentProps> {
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -725,7 +725,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const monitorData = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.projectId)
     );

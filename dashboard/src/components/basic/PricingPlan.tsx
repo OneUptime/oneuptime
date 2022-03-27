@@ -107,7 +107,7 @@ PricingPlanComponent.propTypes = {
     disabled: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const currentPlanId =
         state.project &&
             state.project.currentProject &&

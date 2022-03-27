@@ -133,7 +133,7 @@ DeleteAutomatedScript.propTypes = {
     deleteScript: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deleteScript: state.automatedScripts.deleteScript,
     };

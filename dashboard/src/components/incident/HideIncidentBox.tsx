@@ -12,7 +12,7 @@ interface HideIncidentBoxProps {
     currentProject?: object;
 }
 
-class HideIncidentBox extends Component<HideIncidentBoxProps> {
+class HideIncidentBox extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -103,7 +103,7 @@ class HideIncidentBox extends Component<HideIncidentBoxProps> {
 
 HideIncidentBox.displayName = 'HideIncidentBox';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         hideIncidentError: state.incident.hideIncident,
     };

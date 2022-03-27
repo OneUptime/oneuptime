@@ -9,7 +9,7 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import { closeModal } from 'common-ui/actions/modal';
@@ -28,7 +28,7 @@ interface EditContainerSecurityProps {
     projectSlug?: string;
 }
 
-class EditContainerSecurity extends Component<EditContainerSecurityProps> {
+class EditContainerSecurity extends Component<ComponentProps> {
     componentDidUpdate(prevProps: $TSFixMe) {
 
         const { propArr, isRequesting, closeModal, editError } = this.props;
@@ -414,7 +414,7 @@ EditContainerSecurity.propTypes = {
     projectSlug: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.security.editContainerSecurity.requesting,
         editError: state.security.editContainerSecurity.error,

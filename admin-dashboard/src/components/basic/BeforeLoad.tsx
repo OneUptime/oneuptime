@@ -18,7 +18,7 @@ class BeforeLoad extends Component<ComponentProps> {
                 sessionStorage.removeItem('initialUrl');
                 const accessToken = User.getAccessToken();
 
-                window.location = `${redirectTo}?accessToken=${accessToken}&counter=${parseInt(
+                window.location.href = `${redirectTo}?accessToken=${accessToken}&counter=${parseInt(
 
                     counter,
                     10

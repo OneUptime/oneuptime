@@ -1,4 +1,4 @@
-import { getApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/tutorial';
 
@@ -59,7 +59,7 @@ export const resetCloseTutorial = () => {
 export const fetchTutorial = () => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi('tutorial');
+        promise = BackendAPI.get('tutorial');
 
         dispatch(fetchTutorialRequest(promise));
 
@@ -89,7 +89,7 @@ export const fetchTutorial = () => {
 export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = putApi('tutorial', { type, projectId });
+        promise = BackendAPI.put('tutorial', { type, projectId });
 
         dispatch(closeTutorialRequest(promise));
 

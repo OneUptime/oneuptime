@@ -81,7 +81,9 @@ interface BrandingProps {
     bannerurl?: string;
 }
 
-export class Branding extends Component<BrandingProps> {
+export class Branding extends Component<BrandingProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         displayColorPicker: false,
         currentColorPicker: '',
@@ -954,7 +956,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         statusPage: state.statusPage,
         logourl: state.statusPage.logocache.data,

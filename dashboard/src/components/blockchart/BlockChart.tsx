@@ -6,7 +6,7 @@ interface BlockChartProps {
     time: object | boolean;
 }
 
-class BlockChart extends Component<BlockChartProps> {
+class BlockChart extends Component<ComponentProps> {
     override render() {
         let bar = null;
         let title = null;

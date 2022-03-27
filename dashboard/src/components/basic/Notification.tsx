@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface NotificationProps {
+export interface ComponentProps {
     message: object;
     id?: string;
     backgroundClass?: string;
     icon?: string;
 }
 
-class Notification extends Component<NotificationProps> {
+class Notification extends Component<ComponentProps> {
     override render() {
         return (
             <div

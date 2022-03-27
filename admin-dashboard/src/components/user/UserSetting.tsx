@@ -9,14 +9,12 @@ import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
 import { openModal } from 'common-ui/actions/modal';
 import MessageModal from './MessageModal';
 
-export class UserSetting extends Component<ComponentProps> {
-
+export class UserSetting extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             messageModalId: uuidv4(),
         };
@@ -377,7 +375,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const user = state.user.user.user || {};
     return {
         userSettings: state.user.userSetting,

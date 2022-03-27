@@ -178,7 +178,7 @@ function MonitorInputs({
 
 MonitorInputs.displayName = 'MonitorInputs';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
     };

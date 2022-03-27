@@ -83,7 +83,7 @@ MessageModal.propTypes = {
     email: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         testError: state.settings.error,
     };

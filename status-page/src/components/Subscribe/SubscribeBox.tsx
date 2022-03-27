@@ -24,7 +24,7 @@ interface SubscribeBoxProps {
     handleCloseButtonClick?: Function;
 }
 
-class SubscribeBox extends Component<SubscribeBoxProps> {
+class SubscribeBox extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.subscribebutton = this.subscribebutton.bind(this);
@@ -303,7 +303,7 @@ class SubscribeBox extends Component<SubscribeBoxProps> {
 
 SubscribeBox.displayName = 'SubscribeBox';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
     openSelectedBox: state.subscribe.openSelectedBox,

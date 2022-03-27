@@ -25,7 +25,7 @@ const userSchema = new Schema(
 
         twoFactorAuthEnabled: { type: Boolean, default: false },
         twoFactorSecretCode: String,
-        otpauth_url: String,
+        otpauth_url: URL,
         backupCodes: Array,
 
         jwtRefreshToken: String,

@@ -36,6 +36,7 @@ const getListStyle = (isDraggingOver: $TSFixMe) => ({
 
 class MonitorsWithCategory extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     renderAddMonitorButton = (subProject: $TSFixMe) => {
@@ -321,7 +322,7 @@ const MonitorsWithCategoryForm = reduxForm({
     enableReinitialize: true,
 })(MonitorsWithCategory);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const selector = formValueSelector(ownProps.category.name);
     const monitorsInForm =
         selector(state, 'monitors') && selector(state, 'monitors').length;

@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/schedule';
 import errors from '../errors';
@@ -40,7 +40,7 @@ export function fetchSchedules(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
         );
         promise.then(
@@ -100,7 +100,7 @@ export const subProjectScheduleSuccess = (schedule: $TSFixMe) => {
 export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(`schedule/${projectId}/schedules`);
+        promise = BackendAPI.get(`schedule/${projectId}/schedules`);
 
         dispatch(subProjectScheduleRequest());
         promise.then(
@@ -162,7 +162,7 @@ export function fetchProjectSchedule(
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = getApi(
+        promise = BackendAPI.get(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
         );
         promise.then(
@@ -216,7 +216,7 @@ export const createScheduleSuccess = (schedule: $TSFixMe) => {
 
 export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`schedule/${projectId}`, values);
+        const promise = BackendAPI.post(`schedule/${projectId}`, values);
 
         dispatch(createScheduleRequest());
 
@@ -277,7 +277,7 @@ export function renameSchedule(
     scheduleName: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`schedule/${projectId}/${scheduleId}`, {
+        const promise = BackendAPI.put(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
         });
 
@@ -348,7 +348,7 @@ export const deleteScheduleError = (error: $TSFixMe) => {
 
 export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`schedule/${projectId}/${scheduleId}`);
+        const promise = delete `schedule/${projectId}/${scheduleId}`;
 
         dispatch(deleteScheduleRequest());
 
@@ -422,7 +422,10 @@ export function addMonitors(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`schedule/${projectId}/${scheduleId}`, data);
+        const promise = BackendAPI.put(
+            `schedule/${projectId}/${scheduleId}`,
+            data
+        );
 
         dispatch(addMonitorRequest());
 
@@ -488,7 +491,7 @@ export function addUsers(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addUsers`,
             data
         );
@@ -559,7 +562,7 @@ export function addEscalation(
     data = data.OnCallAlertBox;
 
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addescalation`,
             data
         );
@@ -591,7 +594,7 @@ export function addEscalation(
 
 export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `schedule/${projectId}/${scheduleId}/getescalation`
         );
 
@@ -676,7 +679,7 @@ export const userScheduleError = (error: $TSFixMe) => {
 
 export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `schedule/${projectId}/${userId}/getescalations`
         );
 

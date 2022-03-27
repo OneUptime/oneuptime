@@ -179,7 +179,7 @@ interface TeamAppProps {
     activeProjectId?: string;
 }
 
-class TeamApp extends Component<TeamAppProps> {
+class TeamApp extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { inviteModalId: uuidv4() };
@@ -321,7 +321,7 @@ TeamApp.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order

@@ -22,7 +22,9 @@ interface UpgradePlanModalProps {
     initialValues?: object;
 }
 
-export class UpgradePlanModal extends Component<UpgradePlanModalProps> {
+export class UpgradePlanModal extends Component<UpgradePlanModalProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.upgradePlan = this.upgradePlan.bind(this);
@@ -105,7 +107,7 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps> {
 }
 // }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';

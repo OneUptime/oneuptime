@@ -381,7 +381,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         requesting: state.customField.customField.requesting,
         createFieldError: state.customField.customField.error,

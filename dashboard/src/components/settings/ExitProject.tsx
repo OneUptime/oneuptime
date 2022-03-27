@@ -11,10 +11,10 @@ import ShouldRender from '../basic/ShouldRender';
 import ExitProjectModal from './ExitProjectModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
-export class ExitProjectBox extends Component<ComponentProps> {
-
+export class ExitProjectBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     handleClick = () => {
@@ -109,7 +109,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = User.getUserId();
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

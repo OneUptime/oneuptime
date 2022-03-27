@@ -79,7 +79,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchUserProjects }, dispatch);
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

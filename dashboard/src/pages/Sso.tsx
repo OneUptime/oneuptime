@@ -19,7 +19,7 @@ interface SsoPageProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class SsoPage extends Component<SsoPageProps> {
+class SsoPage extends Component<ComponentProps> {
     override componentDidMount() {
 
         const currentProject = JSON.parse(User.getProject());
@@ -78,7 +78,7 @@ SsoPage.propTypes = {
 
 SsoPage.displayName = 'SsoPage';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

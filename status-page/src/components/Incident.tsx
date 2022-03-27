@@ -40,7 +40,7 @@ interface IncidentProps {
     status?: object;
 }
 
-class Incident extends Component<IncidentProps> {
+class Incident extends Component<ComponentProps> {
     handleIncidentStatus: $TSFixMe;
     override componentDidMount() {
         const {
@@ -91,7 +91,7 @@ class Incident extends Component<IncidentProps> {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
 
-                    window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+                    window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
             }
         });
@@ -890,7 +890,7 @@ Incident.propTypes = {
     status: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         statusData: state.status.statusPage,
         login: state.login,

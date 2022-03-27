@@ -25,7 +25,7 @@ interface DeletePerformanceMetricProps {
     fetchOutgoingMetrics?: Function;
 }
 
-class DeletePerformanceMetric extends Component<DeletePerformanceMetricProps> {
+class DeletePerformanceMetric extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -309,7 +309,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         performanceTracker:
             state.performanceTracker.fetchPerformanceTracker &&

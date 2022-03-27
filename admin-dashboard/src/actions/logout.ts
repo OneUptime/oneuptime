@@ -33,6 +33,6 @@ export const logoutUser = () => {
         localStorage.clear();
         dispatch(receiveLogout());
 
-        window.location = ACCOUNTS_URL;
+        window.location.href = ACCOUNTS_URL;
     };
 };

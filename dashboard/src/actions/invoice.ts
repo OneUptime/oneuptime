@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/invoice';
 
@@ -55,17 +55,17 @@ export function getInvoice(
         const reqForPrev = Boolean(endingBefore) && Boolean(startingAfter);
 
         if (reqFornext) {
-            promise = postApi(
+            promise = BackendAPI.post(
                 `invoice/${projectId}?startingAfter=${startingAfter}`,
                 null
             );
         } else if (reqForPrev) {
-            promise = postApi(
+            promise = BackendAPI.post(
                 `invoice/${projectId}?endingBefore=${endingBefore}`,
                 null
             );
         } else {
-            promise = postApi(`invoice/${projectId}`, null);
+            promise = BackendAPI.post(`invoice/${projectId}`, null);
         }
 
         dispatch(getInvoiceRequest(promise));

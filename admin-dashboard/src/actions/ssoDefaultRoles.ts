@@ -1,6 +1,6 @@
 import * as types from '../constants/ssoDefaultRoles';
 import errors from '../errors';
-import { getApi, deleteApi, postApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 export const fetchSsoDefaultRolesRequest = () => {
@@ -29,7 +29,7 @@ export const fetchSsoDefaultRoles =
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsoDefaultRolesRequest());
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `ssoDefaultRoles/?skip=${skip}&limit=${limit}`
             );
 
@@ -74,7 +74,7 @@ export const fetchSsoDefaultRole =
     (ssoDefaultRoleId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(fetchSsoDefaultRoleRequest());
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `ssoDefaultRoles/${ssoDefaultRoleId}`
             );
 
@@ -119,7 +119,7 @@ export const deleteSsoDefaultRole =
     (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteSsoDefaultRoleRequest());
         try {
-            const response = await deleteApi(`ssoDefaultRoles/${ssoId}`);
+            const response = await delete `ssoDefaultRoles/${ssoId}`;
 
             dispatch(deleteSsoDefaultRoleSuccess(response.data));
 
@@ -164,7 +164,7 @@ export const addSsoDefaultRole =
     async (dispatch: Dispatch) => {
         dispatch(addSsoDefaultRoleRequest());
         try {
-            await postApi(`ssoDefaultRoles/`, data);
+            await BackendAPI.post(`ssoDefaultRoles/`, data);
             dispatch(addSsoDefaultRoleSuccess());
             return true;
         } catch (error) {
@@ -208,7 +208,7 @@ export const updateSsoDefaultRole =
     async (dispatch: Dispatch) => {
         dispatch(updateSsoDefaultRoleRequest());
         try {
-            await putApi(`ssoDefaultRoles/${id}`, data);
+            await BackendAPI.put(`ssoDefaultRoles/${id}`, data);
             dispatch(updateSsoDefaultRoleSuccess());
             return true;
         } catch (error) {

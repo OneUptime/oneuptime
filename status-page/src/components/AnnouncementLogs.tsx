@@ -12,6 +12,7 @@ import Markdown from 'markdown-to-jsx';
 
 class AnnouncementLogs extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     state = {
@@ -425,7 +426,7 @@ AnnouncementLogs.propTypes = {
     monitorState: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     logs: state.status.announcementLogs.logsList,
     requesting: state.status.announcementLogs.requesting,
     error: state.status.announcementLogs.error

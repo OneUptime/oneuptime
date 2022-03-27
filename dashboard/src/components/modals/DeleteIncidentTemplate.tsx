@@ -26,7 +26,7 @@ interface DeleteIncidentTemplateProps {
     limit?: number;
 }
 
-class DeleteIncidentTemplate extends Component<DeleteIncidentTemplateProps> {
+class DeleteIncidentTemplate extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -196,7 +196,7 @@ DeleteIncidentTemplate.propTypes = {
     limit: PropTypes.number,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId: state.modal.modals[0].projectId,
         templateId: state.modal.modals[0].templateId,

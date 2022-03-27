@@ -7,14 +7,12 @@ import ShouldRender from '../basic/ShouldRender';
 import { restoreUser } from '../../actions/user';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserRestoreBox extends Component<ComponentProps> {
-
+export class UserRestoreBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     handleClick = () => {
@@ -73,7 +71,7 @@ UserRestoreBox.displayName = 'UserRestoreBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const user = state.user.user.user || {};
     const userId = user._id;
 

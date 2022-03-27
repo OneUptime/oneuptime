@@ -22,7 +22,7 @@ interface BlockChartProps {
     theme?: string;
 }
 
-class BlockChart extends Component<BlockChartProps> {
+class BlockChart extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -278,7 +278,7 @@ class BlockChart extends Component<BlockChartProps> {
 
 BlockChart.displayName = 'BlockChart';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     statusData: state.status.statusPage
 });
 

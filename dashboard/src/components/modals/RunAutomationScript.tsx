@@ -11,7 +11,7 @@ import {
     fetchAutomatedScript,
     fetchSingleAutomatedScript,
 } from '../../actions/automatedScript';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface RunAutomationScriptProps {
     closeThisDialog?: Function;
@@ -23,7 +23,7 @@ interface RunAutomationScriptProps {
     fetchSingleAutomatedScript?: Function;
 }
 
-class RunAutomationScript extends Component<RunAutomationScriptProps> {
+class RunAutomationScript extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -191,7 +191,7 @@ RunAutomationScript.propTypes = {
     fetchSingleAutomatedScript: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         scriptRun: state.automatedScripts.runScript,
     };

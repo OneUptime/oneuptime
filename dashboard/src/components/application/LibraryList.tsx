@@ -253,7 +253,7 @@ LibraryList.propTypes = {
     setShow: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const initialValues = {
         library: 'js',
     };

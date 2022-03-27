@@ -3,11 +3,13 @@ import {
     CLOSE_ONCALLSCHEDULE_MODAL,
 } from '../constants/OnCallSchedule';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     onCallScheduleModalVisble: false,
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case OPEN_ONCALLSCHEDULE_MODAL:
             return Object.assign({}, state, {

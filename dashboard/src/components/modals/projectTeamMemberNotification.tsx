@@ -12,7 +12,7 @@ interface ProjectTeamMemberNotificationProps {
     team: object;
 }
 
-class ProjectTeamMemberNotification extends Component<ProjectTeamMemberNotificationProps> {
+class ProjectTeamMemberNotification extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -125,7 +125,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         team: state.team,
     };

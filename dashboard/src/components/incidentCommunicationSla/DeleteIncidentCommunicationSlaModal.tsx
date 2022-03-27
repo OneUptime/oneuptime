@@ -7,7 +7,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
-// import { history } from '../../store';
+// import { history, RootState} from '../../store';
 import { deleteCommunicationSla } from '../../actions/incidentCommunicationSla';
 
 interface DeleteIncidentCommunicationSlaModalProps {
@@ -20,7 +20,7 @@ interface DeleteIncidentCommunicationSlaModalProps {
     data?: object;
 }
 
-class DeleteIncidentCommunicationSlaModal extends Component<DeleteIncidentCommunicationSlaModalProps> {
+class DeleteIncidentCommunicationSlaModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -178,7 +178,7 @@ DeleteIncidentCommunicationSlaModal.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.incidentSla.incidentCommunicationSlas.requesting,
         deleteError: state.incidentSla.incidentCommunicationSlas.error,

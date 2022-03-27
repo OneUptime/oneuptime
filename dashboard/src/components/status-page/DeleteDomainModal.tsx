@@ -11,7 +11,7 @@ interface DeleteDomainModalProps {
     deleteDomain?: object;
 }
 
-class DeleteDomainModal extends Component<DeleteDomainModalProps> {
+class DeleteDomainModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -126,7 +126,7 @@ class DeleteDomainModal extends Component<DeleteDomainModalProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     deleteDomain: state.statusPage.deleteDomain
 });
 

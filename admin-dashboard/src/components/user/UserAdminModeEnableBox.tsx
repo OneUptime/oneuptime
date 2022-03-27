@@ -10,8 +10,8 @@ import { enableAdminMode } from '../../actions/user';
 import UserAdminModeEnableModal from './UserAdminModeEnableModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserAdminModeEnableBox extends Component<ComponentProps> {
-
+export class UserAdminModeEnableBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -103,7 +103,7 @@ UserAdminModeEnableBox.displayName = 'UserAdminModeEnableBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ enableAdminMode, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

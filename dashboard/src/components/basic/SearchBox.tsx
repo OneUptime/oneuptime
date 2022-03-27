@@ -9,7 +9,7 @@ interface SearchBoxProps {
     style?: object;
 }
 
-class SearchBox extends Component<SearchBoxProps> {
+class SearchBox extends Component<ComponentProps> {
     onChange$: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

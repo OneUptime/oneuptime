@@ -11,7 +11,7 @@ import DataPathHoC from '../DataPathHoC';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 
-interface ScheduleEventDeleteBoxProps {
+export interface ComponentProps {
     projectId: string;
     scheduledEventId: string;
     deleting?: boolean;
@@ -19,7 +19,7 @@ interface ScheduleEventDeleteBoxProps {
     scheduledEvent: object;
 }
 
-class ScheduleEventDeleteBox extends Component<ScheduleEventDeleteBoxProps> {
+class ScheduleEventDeleteBox extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -185,7 +185,7 @@ class ScheduleEventDeleteBox extends Component<ScheduleEventDeleteBoxProps> {
 }
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deleting: state.scheduledEvent.deletedScheduledEvent.requesting,
     };

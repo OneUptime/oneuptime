@@ -20,7 +20,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 import DateTimeSelector from '../basic/DateTimeSelector';
 import { ValidateField } from '../../config';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 function validate(values: $TSFixMe) {
     const errors = {};
@@ -1278,7 +1278,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const selector = formValueSelector('newUpdateSchedule');
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const scheduledEventToBeUpdated = state.modal.modals[0].event;
     const monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitorObj: $TSFixMe) => {

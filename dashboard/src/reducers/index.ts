@@ -1,8 +1,9 @@
 import { combineReducers } from 'redux';
 import component from './component';
 import monitor from './monitor';
-
+import Action from 'common-ui/src/types/action';
 import { routerReducer } from 'react-router-redux';
+import { RootState } from '../store';
 
 import { reducer as formReducer } from 'redux-form';
 import alert from './alert';
@@ -117,7 +118,7 @@ const appReducer = combineReducers({
 
 // Global Actions.
 
-export default (state: $TSFixMe, action: $TSFixMe) => {
+export default (state: RootState, action: Action) => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }

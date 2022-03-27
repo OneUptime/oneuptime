@@ -12,6 +12,7 @@ import {
 
 class EmailLog extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
@@ -165,7 +166,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const emailLogStatus = state.emailLogs.emailLogStatus;
     const changeEmailLogStatus = state.emailLogs.changeEmailLogStatus;
     return {

@@ -71,7 +71,7 @@ interface MonitorDashboardViewProps {
 
 // import { socket } from '../components/basic/Socket';
 
-class MonitorDashboardView extends Component<MonitorDashboardViewProps> {
+class MonitorDashboardView extends Component<ComponentProps> {
     state = {
         showNewMonitorForm: false,
         page: 1,
@@ -753,7 +753,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

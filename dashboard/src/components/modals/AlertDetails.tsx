@@ -10,7 +10,7 @@ interface AlertDetailsModalProps {
     data: object;
 }
 
-class AlertDetailsModal extends Component<AlertDetailsModalProps> {
+class AlertDetailsModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

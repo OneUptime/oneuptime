@@ -4,7 +4,7 @@ import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';
 import MonitorService from './monitorService';
 
-import { postApi } from '../utils/api';
+import { post } from '../utils/api';
 import moment from 'moment';
 
 import { realtimeUrl } from '../utils/config';
@@ -87,7 +87,7 @@ export default {
                     : monitor.projectId._id || monitor.projectId;
 
                 // realtime update
-                postApi(
+                post(
                     `${realtimeBaseUrl}/update-lighthouse-log`,
                     {
                         data,

@@ -12,7 +12,7 @@ interface ConfirmBalanceTopUpProps {
     isRequesting?: boolean;
 }
 
-class ConfirmBalanceTopUp extends Component<ConfirmBalanceTopUpProps> {
+class ConfirmBalanceTopUp extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -124,7 +124,7 @@ class ConfirmBalanceTopUp extends Component<ConfirmBalanceTopUpProps> {
 
 
 ConfirmBalanceTopUp.displayName = 'ConfirmBalanceTopUpFormModal';
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     isRequesting: state.project.addBalance.requesting
 });
 

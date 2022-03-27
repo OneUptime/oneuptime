@@ -105,7 +105,7 @@ Box.propTypes = {
     page: PropTypes.number,
     ssoPaginate: PropTypes.object,
 };
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.ssoDefaultRoles,
     count: state.ssoDefaultRoles.ssoDefaultRoles.count,
     ssoPaginate: state.ssoDefaultRoles.ssoDefaultRoles,

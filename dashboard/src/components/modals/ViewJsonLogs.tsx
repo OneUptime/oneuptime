@@ -13,7 +13,7 @@ interface ViewJsonLogsProps {
     title?: string;
 }
 
-class ViewJsonLogs extends Component<ViewJsonLogsProps> {
+class ViewJsonLogs extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

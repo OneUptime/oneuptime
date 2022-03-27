@@ -26,7 +26,7 @@ interface MonitorCustomFieldsProps {
     fetchCustomFields: Function;
 }
 
-class MonitorCustomFields extends Component<MonitorCustomFieldsProps> {
+class MonitorCustomFields extends Component<ComponentProps> {
     limit: $TSFixMe;
     constructor() {
 
@@ -425,7 +425,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         customFields: state.monitorCustomField.monitorCustomFields.fields,

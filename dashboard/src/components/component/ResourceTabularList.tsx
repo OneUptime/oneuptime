@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { ListLoader } from '../basic/Loader';
 import {
     fetchComponentResources,
@@ -24,11 +24,9 @@ interface ResourceTabularListProps {
     componentName?: string;
 }
 
-class ResourceTabularList extends Component<ResourceTabularListProps> {
+class ResourceTabularList extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
     generateUrlLink(componentResource: $TSFixMe) {
 
@@ -523,7 +521,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     let componentResource,
         monitors: $TSFixMe = [];
     if (state.component.componentResourceList) {

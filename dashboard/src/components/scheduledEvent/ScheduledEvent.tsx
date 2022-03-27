@@ -28,7 +28,7 @@ interface ScheduledEventBoxProps {
     prevPage?: Function;
 }
 
-class ScheduledEventBox extends Component<ScheduledEventBoxProps> {
+class ScheduledEventBox extends Component<ComponentProps> {
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -183,7 +183,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.map((data: $TSFixMe) => {
         data.monitors.map((monitor: $TSFixMe) => {

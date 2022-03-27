@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface StatusIndicatorProps {
+export interface ComponentProps {
     status?: string;
 }
 
@@ -32,26 +32,26 @@ function StatusIndicator({
 
     resourceName
         ? (content = (
-              <div className="Flex-flex">
-                  <div
-                      className={`db-Badge Box-background--${statusColor}`}
-                  ></div>
+            <div className="Flex-flex">
+                <div
+                    className={`db-Badge Box-background--${statusColor}`}
+                ></div>
 
-                  <span
-                      id={`resource_status_${resourceName}`}
-                      className={`Text-color--${statusColor}`}
-                  >
-                      {' '}
-                      {` ${status}`}{' '}
-                  </span>
-              </div>
-          ))
+                <span
+                    id={`resource_status_${resourceName}`}
+                    className={`Text-color--${statusColor}`}
+                >
+                    {' '}
+                    {` ${status}`}{' '}
+                </span>
+            </div>
+        ))
         : (content = (
-              <div
-                  className={`db-Badge Box-background--${statusColor}`}
-                  id={`${monitorName}-${status.toLowerCase()}`}
-              ></div>
-          ));
+            <div
+                className={`db-Badge Box-background--${statusColor}`}
+                id={`${monitorName}-${status.toLowerCase()}`}
+            ></div>
+        ));
 
     return content;
 }

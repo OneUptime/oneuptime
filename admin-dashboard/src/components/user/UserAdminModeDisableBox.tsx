@@ -6,8 +6,8 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { disableAdminMode } from '../../actions/user';
 
-export class UserAdminModeDisableBox extends Component<ComponentProps> {
-
+export class UserAdminModeDisableBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -71,7 +71,7 @@ UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ disableAdminMode }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

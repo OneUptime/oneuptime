@@ -29,7 +29,7 @@ interface GitCredentialModalProps {
     updatingCredential?: boolean;
 }
 
-class GitCredentialModal extends Component<GitCredentialModalProps> {
+class GitCredentialModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -449,7 +449,7 @@ GitCredentialModal.propTypes = {
     updatingCredential: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialId } = propArr[0];
     const gitCredential = credentialId

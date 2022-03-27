@@ -16,7 +16,7 @@ interface RemoveResourceCategoryProps {
     data?: object;
 }
 
-class RemoveResourceCategory extends Component<RemoveResourceCategoryProps> {
+class RemoveResourceCategory extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -140,7 +140,7 @@ RemoveResourceCategory.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deleteResourceCategoryObj:
             state.resourceCategories.deletedResourceCategory,

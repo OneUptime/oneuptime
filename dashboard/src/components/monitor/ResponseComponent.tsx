@@ -63,7 +63,9 @@ interface ResponseComponentProps {
     scriptsObj?: unknown[];
 }
 
-export class ResponseComponent extends Component<ResponseComponentProps> {
+export class ResponseComponent extends Component<ResponseComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -757,7 +759,7 @@ ResponseComponent.propTypes = {
     scriptsObj: PropTypes.array,
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     return {
         incidentCreatedAlertEnabledForCriterion: newSelector(
             state,

@@ -3,7 +3,7 @@ import * as moment from 'moment';
 import Badge from '../common/Badge';
 import PropTypes from 'prop-types';
 import formatNumber from '../../utils/formatNumber';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader2 } from '../basic/Loader';

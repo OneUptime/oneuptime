@@ -25,11 +25,11 @@ interface MonitorViewLighthouseLogsBoxProps {
     closeModal?: Function;
 }
 
-export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthouseLogsBoxProps> {
+export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthouseLogsBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             addSiteUrlModalId: uuidv4(),
             siteValue: { value: '', label: 'All Site URLs' },
@@ -124,7 +124,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
 
                 this.props.monitor.siteUrls.length > 0
 
-                ? this.props.monitor.siteUrls.map((url: string) => {
+                ? this.props.monitor.siteUrls.map((url: URL) => {
                     return { value: url, label: url };
                 })
                 : [];
@@ -351,7 +351,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
         requesting: state.monitor.editMonitor.requesting,

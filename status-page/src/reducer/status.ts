@@ -92,6 +92,8 @@ import {
 } from '../constants/status';
 import moment from 'moment';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     error: null,
     statusPage: {},
@@ -239,7 +241,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: $TSFixMe) => {
+export default (state = INITIAL_STATE, action: Action) => {
     let monitorTimeRequest: $TSFixMe;
     let monitorTimeSuccess: $TSFixMe;
     switch (action.type) {

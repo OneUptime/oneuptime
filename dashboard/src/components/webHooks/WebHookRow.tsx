@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface WebHookTableHeaderProps {
+export interface ComponentProps {
     text?: string;
     style?: object;
     name?: string;

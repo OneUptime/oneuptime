@@ -186,7 +186,9 @@ const smtpOptions = [
     },
 ];
 
-export class Component extends Component<ComponentProps> {
+export class Component extends Component<ComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -547,7 +549,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         settings: state.settings,
         initialValues: state.settings[settingsType],

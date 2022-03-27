@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/feedback';
 import errors from '../errors';
@@ -49,7 +49,10 @@ export function createFeedback(
     page: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`feedback/${projectId}`, { feedback, page });
+        const promise = BackendAPI.post(`feedback/${projectId}`, {
+            feedback,
+            page,
+        });
 
         dispatch(createFeedbackRequest());
 

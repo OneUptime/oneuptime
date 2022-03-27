@@ -2,7 +2,7 @@ const monitorStatusCollection = global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
 import ErrorService from '../services/errorService';
 
-import { postApi } from '../utils/api';
+import { post } from '../utils/api';
 import MonitorService from './monitorService';
 import moment from 'moment';
 import ProjectService from './projectService';
@@ -183,7 +183,7 @@ export default {
                     : monitor.projectId._id || monitor.projectId;
 
                 // realtime update
-                postApi(
+                post(
                     `${realtimeBaseUrl}/update-monitor-status`,
                     {
                         data,

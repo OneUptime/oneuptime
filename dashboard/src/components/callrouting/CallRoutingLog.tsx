@@ -36,7 +36,7 @@ interface CallRoutingLogProps {
     skip?: number;
 }
 
-class CallRoutingLog extends Component<CallRoutingLogProps> {
+class CallRoutingLog extends Component<ComponentProps> {
     override componentDidMount() { }
 
     prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
@@ -389,7 +389,7 @@ CallRoutingLog.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getCallRoutingLogs }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         logs: state.callRouting.callRoutingLogs.logs,

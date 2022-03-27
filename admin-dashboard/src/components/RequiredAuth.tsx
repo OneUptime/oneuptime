@@ -7,6 +7,7 @@ import { history } from '../store';
 export default function (ComposedComponent: $TSFixMe) {
     class Authentication extends Component<ComponentProps> {
 
+        public static displayName = '';
         public static propTypes = {};
 
         isAuthenticated: $TSFixMe;

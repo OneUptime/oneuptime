@@ -12,6 +12,7 @@ import {
 
 class CallLog extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
@@ -165,7 +166,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const callLogStatus = state.callLogs.callLogStatus;
     const changeCallLogStatus = state.callLogs.changeCallLogStatus;
     return {

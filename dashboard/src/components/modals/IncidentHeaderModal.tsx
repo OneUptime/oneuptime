@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import ClickOutside from 'react-click-outside';
 import { addIncident } from '../../actions/incident';
@@ -18,7 +18,7 @@ interface IncidentHeaderModalProps {
     addIncident?: Function;
 }
 
-class IncidentHeaderModal extends Component<IncidentHeaderModalProps> {
+class IncidentHeaderModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

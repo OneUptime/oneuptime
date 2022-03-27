@@ -7,7 +7,7 @@ interface NoMonitorSubscriberProps {
     closeThisDialog: Function;
 }
 
-class NoMonitorSubscriber extends Component<NoMonitorSubscriberProps> {
+class NoMonitorSubscriber extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

@@ -38,7 +38,7 @@ interface AdvancedIncidentNotificationProps {
     setWebhookNotificationSettings?: Function;
 }
 
-class AdvancedIncidentNotification extends Component<AdvancedIncidentNotificationProps> {
+class AdvancedIncidentNotification extends Component<ComponentProps> {
     state = {
         showMoreOptions: false,
     };
@@ -418,7 +418,7 @@ const IncidentNotificationForm = reduxForm({
     validate,
 })(AdvancedIncidentNotification);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { type } = ownProps;
 
     let initialValues = {};

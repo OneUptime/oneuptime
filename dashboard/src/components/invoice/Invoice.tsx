@@ -19,11 +19,9 @@ interface InvoiceProps {
     getInvoiceReset: Function;
 }
 
-class Invoice extends Component<InvoiceProps> {
+class Invoice extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override componentDidMount() {
@@ -118,7 +116,7 @@ class Invoice extends Component<InvoiceProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = User.getUserId();
     const invoices = state.invoice.invoices;
     const isRequesting = state.invoice.requesting;

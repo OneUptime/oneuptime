@@ -11,10 +11,10 @@ import { openModal, closeModal } from 'common-ui/actions/modal';
 import CallLogsContentViewModal from './CallLogsContentViewModal';
 import CallLogsErrorViewModal from './CallLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
-export class CallLogsList extends Component<ComponentProps> {
-
+export class CallLogsList extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -550,7 +550,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         users: state.user.users.users,
         deleteRequest: state.callLogs.callLogs.deleteRequest,

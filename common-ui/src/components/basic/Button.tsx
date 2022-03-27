@@ -17,8 +17,8 @@ export interface ComponentProps {
     shortcutKey?: ShortcutKey;
 }
 
-export default class Button extends Component<ComponentProps> {
-
+export default class Button extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: ComponentProps) {

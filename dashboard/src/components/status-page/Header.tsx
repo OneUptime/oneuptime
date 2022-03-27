@@ -8,7 +8,9 @@ interface StatusHeaderProps {
     statusPage: object;
 }
 
-export class StatusHeader extends Component<StatusHeaderProps> {
+export class StatusHeader extends Component<StatusHeaderProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
 
         const { statusPage } = this.props;
@@ -76,7 +78,7 @@ StatusHeader.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const { statusPage } = state;
     return { statusPage };
 };

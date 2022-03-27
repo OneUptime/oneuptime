@@ -8,6 +8,7 @@ import RemovedFromProjectModal from '../modals/RemovedFromProject';
 import { User, REALTIME_URL } from '../../config';
 
 import { v4 as uuidv4 } from 'uuid';
+import { RootState } from '../../store';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 import {
     incidentresolvedbysocket,
@@ -49,13 +50,13 @@ export const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-interface SocketAppProps {
+interface ComponentProps {
     project?: object;
     activeProjectId?: string;
 }
 
-class SocketApp extends Component<SocketAppProps> {
-    override shouldComponentUpdate(nextProps: $TSFixMe) {
+class SocketApp extends Component<ComponentProps> {
+    override shouldComponentUpdate(nextProps: ComponentProps) {
         if (
             this.props.project !== nextProps.project ||
             this.props.activeProjectId !== nextProps.activeProjectId
@@ -609,7 +610,7 @@ SocketApp.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     project: state.project.currentProject,
     subProjects: state.subProject.subProjects.subProjects,
     probes: state.probe.probes.data,

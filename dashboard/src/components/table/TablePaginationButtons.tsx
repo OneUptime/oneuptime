@@ -15,7 +15,9 @@ interface TablePaginationButtonsProps {
     noOfItemsInPage?: number;
 }
 
-export default class TablePaginationButtons extends Component<TablePaginationButtonsProps> {
+export default class TablePaginationButtons extends Component<TablePaginationButtonsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

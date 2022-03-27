@@ -1,5 +1,5 @@
 import * as types from '../constants/credential';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 // Add Git Credential
@@ -23,7 +23,7 @@ export const addGitCredential =
         dispatch(addGitCredentialRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `credential/${projectId}/gitCredential`,
                 data
             );
@@ -63,7 +63,7 @@ export const updateGitCredential =
         dispatch(updateGitCredentialRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `credential/${projectId}/gitCredential/${credentialId}`,
                 data
             );
@@ -103,7 +103,7 @@ export const getGitCredentials =
         dispatch(getGitCredentialsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `credential/${projectId}/gitCredential`
             );
 
@@ -142,9 +142,8 @@ export const deleteGitCredential =
         dispatch(deleteGitCredentialRequest());
 
         try {
-            const response = await deleteApi(
-                `credential/${projectId}/gitCredential/${credentialId}`
-            );
+            const response =
+                await delete `credential/${projectId}/gitCredential/${credentialId}`;
 
             dispatch(deleteGitCredentialSuccess(response.data));
         } catch (error) {
@@ -182,7 +181,7 @@ export const getGitSecurities =
         dispatch(getGitSecuritiesRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/application/${credentialId}`
             );
 
@@ -222,7 +221,7 @@ export const addDockerCredential =
         dispatch(addDockerCredentialRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `credential/${projectId}/dockerCredential`,
                 data
             );
@@ -262,7 +261,7 @@ export const updateDockerCredential =
         dispatch(updateDockerCredentialRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `credential/${projectId}/dockerCredential/${credentialId}`,
                 data
             );
@@ -302,7 +301,7 @@ export const getDockerCredentials =
         dispatch(getDockerCredentialsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `credential/${projectId}/dockerCredential`
             );
 
@@ -341,9 +340,8 @@ export const deleteDockerCredential =
         dispatch(deleteDockerCredentialRequest());
 
         try {
-            const response = await deleteApi(
-                `credential/${projectId}/dockerCredential/${credentialId}`
-            );
+            const response =
+                await delete `credential/${projectId}/dockerCredential/${credentialId}`;
 
             dispatch(deleteDockerCredentialSuccess(response.data));
         } catch (error) {
@@ -381,7 +379,7 @@ export const getDockerSecurities =
         dispatch(getDockerSecuritiesRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/container/${credentialId}`
             );
 

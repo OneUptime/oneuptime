@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { exportCSV } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import UploadFileForm from '../modals/UploadFile';
 
 interface MonitorViewSubscriberBoxProps {
@@ -29,7 +29,9 @@ interface MonitorViewSubscriberBoxProps {
     exportCSV: Function;
 }
 
-export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBoxProps> {
+export class MonitorViewSubscriberBox extends Component<MonitorViewSubscriberBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -265,7 +267,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const monitor = state.monitor.monitorsList.monitors
         .map((monitor: $TSFixMe) => monitor.monitors.find((monitor: $TSFixMe) => monitor._id === props.monitorId)
         )

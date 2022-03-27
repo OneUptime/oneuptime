@@ -94,8 +94,8 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-export class ProfileSetting extends Component<ComponentProps> {
-
+export class ProfileSetting extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     timer: $TSFixMe;
@@ -1658,7 +1658,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     let resendTimer = state.profileSettings.resendTimer;
     if (!Validate.number(resendTimer)) {
         resendTimer = parseInt(resendTimer, 10);

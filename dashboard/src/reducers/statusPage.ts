@@ -148,6 +148,8 @@ import {
     UPDATE_DOMAIN_FAILURE,
 } from '../constants/domain';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     addMoreDomain: false,
     setting: {
@@ -342,7 +344,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function statusPage(state = INITIAL_STATE, action: $TSFixMe) {
+export default function statusPage(state = INITIAL_STATE, action: Action) {
     let status, statusPage, isExistingStatusPage;
     switch (action.type) {
         //create statuspage

@@ -7,7 +7,7 @@ interface DisabledMessageProps {
     closeThisDialog: Function;
 }
 
-class DisabledMessage extends Component<DisabledMessageProps> {
+class DisabledMessage extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

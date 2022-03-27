@@ -25,6 +25,7 @@ function debounce(this: $TSFixMe, fn: $TSFixMe, ms: $TSFixMe) {
 
 class MonitorInfo extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     container: $TSFixMe;
@@ -702,7 +703,7 @@ class MonitorInfo extends Component<ComponentProps> {
 
 MonitorInfo.displayName = 'UptimeGraphs';
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const ongoing =
         state.status &&
         state.status.ongoing &&

@@ -10,7 +10,7 @@ import { ListLoader } from '../basic/Loader';
 import DataPathHoC from '../DataPathHoC';
 import Markdown from 'markdown-to-jsx';
 import DeleteIncidentMessage from '../modals/DeleteIncidentMessage';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { API_URL } from '../../config';
 
 interface IncidentMessageThreadProps {
@@ -36,7 +36,9 @@ interface IncidentMessageThreadProps {
     page?: number;
 }
 
-export class IncidentMessageThread extends Component<IncidentMessageThreadProps> {
+export class IncidentMessageThread extends Component<IncidentMessageThreadProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         const {
 

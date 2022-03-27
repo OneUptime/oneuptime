@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 class ErrorBoundary extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {

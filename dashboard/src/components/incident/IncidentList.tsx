@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { markAsRead } from '../../actions/notification';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { API_URL } from '../../config';
@@ -29,7 +29,9 @@ interface IncidentListProps {
     componentSlug?: string;
 }
 
-export class IncidentList extends Component<IncidentListProps> {
+export class IncidentList extends Component<IncidentListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleMonitorList = (monitors: $TSFixMe) => {
         if (monitors.length === 0) {
             return 'No monitor in this incident';
@@ -1246,7 +1248,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const { componentSlug } = ownProps.match.params;
     return {
         monitorState: state.monitor,

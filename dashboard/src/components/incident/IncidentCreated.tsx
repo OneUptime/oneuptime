@@ -6,7 +6,7 @@ import { PropTypes } from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { markAsRead, closeNotification } from '../../actions/notification';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import { Fade } from 'react-awesome-reveal';
 
@@ -17,7 +17,7 @@ interface IncidentCreatedProps {
     slug?: object;
 }
 
-class IncidentCreated extends Component<IncidentCreatedProps> {
+class IncidentCreated extends Component<ComponentProps> {
     markAsRead = (notification: $TSFixMe) => {
         const {
             projectId,

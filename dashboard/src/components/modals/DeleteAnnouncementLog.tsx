@@ -22,7 +22,7 @@ interface DeleteAnnouncementLogProps {
     resetDeleteAnnouncement?: Function;
 }
 
-class DeleteAnnouncementLog extends Component<DeleteAnnouncementLogProps> {
+class DeleteAnnouncementLog extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.resetDeleteAnnouncement();
@@ -182,7 +182,7 @@ DeleteAnnouncementLog.propTypes = {
     resetDeleteAnnouncement: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     modalId: state.modal.modals[0].id,
     isRequesting: state.statusPage.updateAnnouncement.requesting,
     deleteError: state.statusPage.updateAnnouncement.error

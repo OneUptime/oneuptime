@@ -195,7 +195,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     webhooks: state.webHooks,
     team: state.team,
     currentProject: state.project.currentProject

@@ -1,35 +1,47 @@
+import Protocol from './protocol';
+import Route from './route';
+import Hostname from './hostname';
+
 export default class URL {
-    private _path: string = '';
-    public get path(): string {
-        return this._path;
+    private _route: Route = new Route();
+    public get route(): Route {
+        return this._route;
     }
-    public set path(v: string) {
-        this._path = v;
-    }
-
-    private _baseUrl: string = '';
-    public get baseUrl(): string {
-        return this._baseUrl;
-    }
-    public set baseUrl(v: string) {
-        this._baseUrl = v;
+    public set route(v: Route) {
+        this._route = v;
     }
 
-    constructor(baseUrl?: string, path?: string) {
-        if (baseUrl) {
-            this.baseUrl = baseUrl;
-        }
+    private _hostname: Hostname = new Hostname();
+    public get hostname(): Hostname {
+        return this._hostname;
+    }
+    public set hostname(v: Hostname) {
+        this._hostname = v;
+    }
 
-        if (path) {
-            this.path = path;
+    private _protocol: Protocol = Protocol.HTTPS;
+    public get protocol(): Protocol {
+        return this._protocol;
+    }
+    public set protocol(v: Protocol) {
+        this._protocol = v;
+    }
+
+    constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
+        this.hostname = hostname;
+
+        this.protocol = protocol;
+
+        if (route) {
+            this.route = route;
         }
     }
 
     isHttps(): boolean {
-        return this.baseUrl.startsWith('https://');
+        return this.protocol === Protocol.HTTPS;
     }
 
     toString(): string {
-        return `${this.baseUrl}${this.path}`;
+        return `${this.protocol}${this.hostname}${this.route}`;
     }
 }

@@ -18,7 +18,7 @@ interface LanguageBoxProps {
     translateLanguage?: Function;
 }
 
-class LanguageBox extends Component<LanguageBoxProps> {
+class LanguageBox extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.translateButton = this.translateButton.bind(this);
@@ -159,7 +159,7 @@ class LanguageBox extends Component<LanguageBoxProps> {
 
 LanguageBox.displayName = 'LanguageBox';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
     statusPage: state.status.statusPage

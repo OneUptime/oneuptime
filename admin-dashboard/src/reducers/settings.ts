@@ -10,6 +10,8 @@ import {
     TEST_TWILIO_FAILURE,
 } from '../constants/settings';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     requesting: false,
     testing: false,
@@ -21,10 +23,7 @@ const INITIAL_STATE = {
     testSuccess: false,
 };
 
-export default function profileSettings(
-    state = INITIAL_STATE,
-    action: $TSFixMe
-) {
+export default function profileSettings(state = INITIAL_STATE, action: Action) {
     const settings = {};
     switch (action.type) {
         case REQUESTING_SETTINGS:

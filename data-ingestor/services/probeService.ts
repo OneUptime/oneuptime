@@ -338,7 +338,7 @@ export default {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    const response = await postApi(
+                    const response = await BackendAPI.post(
                         'api/incident/data-ingestor/create-incident',
                         {
                             projectId: monitor.projectId,
@@ -420,7 +420,7 @@ export default {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    const response = await postApi(
+                    const response = await BackendAPI.post(
                         'api/incident/data-ingestor/create-incident',
                         {
                             projectId: monitor.projectId,
@@ -502,7 +502,7 @@ export default {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    const response = await postApi(
+                    const response = await BackendAPI.post(
                         'api/incident/data-ingestor/create-incident',
                         {
                             projectId: monitor.projectId,
@@ -672,7 +672,7 @@ export default {
                 ) {
                     if (autoAcknowledge) {
                         if (!incident.acknowledged) {
-                            await postApi(
+                            await BackendAPI.post(
                                 'api/incident/data-ingestor/acknowledge-incident',
                                 {
                                     incidentId: incident._id.toString(),
@@ -684,7 +684,7 @@ export default {
                     }
 
                     if (autoResolve) {
-                        await postApi(
+                        await BackendAPI.post(
                             'api/incident/data-ingestor/resolve-incident',
                             {
                                 incidentId: incident._id.toString(),
@@ -721,7 +721,7 @@ export default {
             });
 
             // realtime update for probe
-            postApi(
+            BackendAPI.post(
                 `${realtimeBaseUrl}/update-probe`,
                 { data: probe },
                 true
@@ -6306,7 +6306,7 @@ const probeCollection = global.db.collection('probes');
 
 import { v1 as uuidv1 } from 'uuid';
 
-import { postApi } from '../utils/api';
+import BackendAPI from '../utils/api';
 
 import { realtimeUrl } from '../utils/config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

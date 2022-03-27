@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class UserBlockModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -139,7 +140,7 @@ class UserBlockModal extends Component<ComponentProps> {
 
 UserBlockModal.displayName = 'UserBlockModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.user &&

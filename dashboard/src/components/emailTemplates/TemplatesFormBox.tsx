@@ -47,7 +47,9 @@ interface TemplatesFormBoxProps {
     resetTemplate: Function;
 }
 
-export class TemplatesFormBox extends Component<TemplatesFormBoxProps> {
+export class TemplatesFormBox extends Component<TemplatesFormBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         const {
 
@@ -381,7 +383,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const template = state.emailTemplates.showingTemplate;
     const val = {
         subject: template.subject,

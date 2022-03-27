@@ -15,6 +15,7 @@ import {
 
 class ProjectUnverifyDomain extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -196,7 +197,7 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
 
 ProjectUnverifyDomain.displayName = 'ProjectUnverifyDomain';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     requesting: state.project.unverifyDomain.requesting,
     unverifyError: state.project.unverifyDomain.error,
     domainId: state.modal.modals[0].id,

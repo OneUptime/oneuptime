@@ -56,11 +56,11 @@ interface SmsTemplatesFormBoxProps {
     closeModal?: Function;
 }
 
-export class SmsTemplatesFormBox extends Component<SmsTemplatesFormBoxProps> {
+export class SmsTemplatesFormBox extends Component<SmsTemplatesFormBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             openSmsTemplateResetModalId: uuidv4(),
         };
@@ -414,7 +414,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const template = state.smsTemplates.showingTemplate;
     const val = {
         body: template.body,

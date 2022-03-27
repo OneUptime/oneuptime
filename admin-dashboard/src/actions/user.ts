@@ -1,4 +1,4 @@
-import { getApi, putApi, deleteApi, postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/user';
 import errors from '../errors';
@@ -31,7 +31,7 @@ export const fetchUsers =
         dispatch(fetchUsersRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `user/users?skip=${skip}&limit=${limit}`
             );
 
@@ -80,7 +80,7 @@ export const fetchUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(fetchUserRequest());
 
     try {
-        const response = await getApi(`user/users/${userId}`);
+        const response = await BackendAPI.get(`user/users/${userId}`);
 
         const data = response.data;
 
@@ -135,9 +135,11 @@ export const addUser = (user: $TSFixMe) => async (dispatch: Dispatch) => {
     try {
         dispatch(addUserRequest());
 
-        const response = await postApi(`user/signup`, user);
+        const response = await BackendAPI.post(`user/signup`, user);
 
-        const userResponse = await getApi(`user/users/${response.data.id}`);
+        const userResponse = await BackendAPI.get(
+            `user/users/${response.data.id}`
+        );
 
         dispatch(addUserSuccess(userResponse.data));
         return 'ok';
@@ -198,7 +200,10 @@ export const updateUserSetting =
         dispatch(updateUserSettingRequest());
 
         try {
-            const response = await putApi(`user/profile/${values._id}`, data);
+            const response = await BackendAPI.put(
+                `user/profile/${values._id}`,
+                data
+            );
 
             const user = response.data;
 
@@ -264,7 +269,7 @@ export const deleteUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(deleteUserRequest());
 
     try {
-        const response = await deleteApi(`user/${userId}`);
+        const response = await delete `user/${userId}`;
 
         const data = response.data;
 
@@ -318,7 +323,7 @@ export const restoreUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(restoreUserRequest());
 
     try {
-        const response = await putApi(`user/${userId}/restoreUser`);
+        const response = await BackendAPI.put(`user/${userId}/restoreUser`);
 
         const data = response.data;
 
@@ -372,7 +377,7 @@ export const blockUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(blockUserRequest());
 
     try {
-        const response = await putApi(`user/${userId}/blockUser`);
+        const response = await BackendAPI.put(`user/${userId}/blockUser`);
 
         const data = response.data;
 
@@ -427,7 +432,7 @@ export const enableAdminMode =
         dispatch(enableAdminModeRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `user/${userId}/switchToAdminMode`,
                 values
             );
@@ -485,7 +490,9 @@ export const disableAdminMode =
         dispatch(disableAdminModeRequest());
 
         try {
-            const response = await postApi(`user/${userId}/exitAdminMode`);
+            const response = await BackendAPI.post(
+                `user/${userId}/exitAdminMode`
+            );
 
             const data = response.data;
 
@@ -539,7 +546,7 @@ export const unblockUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(unblockUserRequest());
 
     try {
-        const response = await putApi(`user/${userId}/unblockUser`);
+        const response = await BackendAPI.put(`user/${userId}/unblockUser`);
 
         const data = response.data;
 
@@ -594,7 +601,10 @@ export const addUserNote =
         dispatch(addUserNoteRequest());
 
         try {
-            const response = await postApi(`user/${userId}/addNote`, values);
+            const response = await BackendAPI.post(
+                `user/${userId}/addNote`,
+                values
+            );
 
             const data = response.data;
 
@@ -656,7 +666,7 @@ export const searchUsers =
         dispatch(searchUsersRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `user/users/search?skip=${skip}&limit=${limit}`,
                 values
             );
@@ -704,7 +714,7 @@ export const twoFactorAuthTokenError = (error: $TSFixMe) => {
 
 export const updateTwoFactorAuthToken = (userId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`user/${userId}/2fa`, data);
+        const promise = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function (response) {
@@ -766,7 +776,9 @@ export function fetchUserloginHistory(
     limit = 10
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`history/${userId}?skip=${skip}&limit=${limit}`);
+        const promise = BackendAPI.get(
+            `history/${userId}?skip=${skip}&limit=${limit}`
+        );
         dispatch(fetchUserHistoryRequest());
         promise.then(
             function (response) {

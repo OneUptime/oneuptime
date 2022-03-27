@@ -35,7 +35,7 @@ interface ErrorEventViewProps {
     trackerLimit?: number;
 }
 
-class ErrorEventView extends Component<ErrorEventViewProps> {
+class ErrorEventView extends Component<ComponentProps> {
     override componentDidMount() {
         this.ready();
     }
@@ -271,7 +271,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const {
         componentSlug,
         errorTrackerSlug,

@@ -42,11 +42,11 @@ describe('Incoming HTTP Request API', function () {
         monitorId: $TSFixMe,
         requestId: $TSFixMe,
         authorization: $TSFixMe,
-        createIncidentUrl: string,
-        acknowledgeIncidentUrl: string,
-        resolveIncidentUrl: string,
-        incidentNoteUrl: string,
-        internalNoteUrl: string;
+        createIncidentUrl: URL,
+        acknowledgeIncidentUrl: URL,
+        resolveIncidentUrl: URL,
+        incidentNoteUrl: URL,
+        internalNoteUrl: URL;
 
     this.timeout(timeout);
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface BadgeProps {
+export interface ComponentProps {
     children?: string | unknown[];
     color?: string;
     id?: string;

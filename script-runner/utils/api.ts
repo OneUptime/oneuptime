@@ -10,7 +10,7 @@ const _this = {
             clusterKey: config.clusterKey,
         };
     },
-    postApi: (url: string, data: $TSFixMe) => {
+    post: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ const _this = {
         });
     },
 
-    getApi: (url: string) => {
+    get: (url: URL) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -56,7 +56,7 @@ const _this = {
         });
     },
 
-    putApi: (url: string, data: $TSFixMe) => {
+    put: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -79,7 +79,7 @@ const _this = {
         });
     },
 
-    deleteApi: (url: string, data: $TSFixMe) => {
+    delete: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({

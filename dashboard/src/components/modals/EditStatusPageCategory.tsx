@@ -185,7 +185,7 @@ const EditStatusPageCategoryForm = reduxForm({
     validate,
 })(EditStatusPageCategory);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { statusPageCategoryName } = ownProps.data;
     return {
         initialValues: {

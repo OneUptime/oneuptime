@@ -276,7 +276,7 @@ class WebHookList extends React.Component<WebHookListProps> {
 
 WebHookList.displayName = 'WebHookList';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     webHook: state.webHooks.webHook,
     page: state.webHooks.pages,
     isRequesting: state.webHooks.webHook.requesting,

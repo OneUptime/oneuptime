@@ -4,8 +4,8 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { DASHBOARD_URL } from '../../config';
 
-export class ProjectDetails extends Component<ComponentProps> {
-
+export class ProjectDetails extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {
@@ -23,7 +23,7 @@ export class ProjectDetails extends Component<ComponentProps> {
                                             style={{ float: 'right' }}
                                             onClick={() =>
 
-                                                (window.location = `${DASHBOARD_URL}/project/${this.props.project.slug}`)
+                                                (window.location.href = `${DASHBOARD_URL}/project/${this.props.project.slug}`)
                                             }
                                         >
                                             <span>Goto Project</span>
@@ -274,7 +274,7 @@ export class ProjectDetails extends Component<ComponentProps> {
 
 ProjectDetails.displayName = 'ProjectDetails';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const project = state.project.project.project || {};
     return {
         project,

@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import ShouldRender from '../basic/ShouldRender';
 class EmailLogsErrorViewModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -102,7 +103,7 @@ class EmailLogsErrorViewModal extends Component<ComponentProps> {
 
 EmailLogsErrorViewModal.displayName = 'EmailLogsErrorViewModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.emailLogs &&

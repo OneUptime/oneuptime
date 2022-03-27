@@ -32,7 +32,7 @@ interface CreateManualIncidentProps {
     incidentTemplateObj?: object;
 }
 
-class CreateManualIncident extends Component<CreateManualIncidentProps> {
+class CreateManualIncident extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -605,7 +605,7 @@ CreateManualIncident.propTypes = {
 const formName = 'CreateManualIncident';
 const selector = formValueSelector(formName);
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const { currentProject } = state.project;
     const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
     const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;

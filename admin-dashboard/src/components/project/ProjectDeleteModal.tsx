@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class ProjectDeleteModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -139,7 +140,7 @@ class ProjectDeleteModal extends Component<ComponentProps> {
 
 ProjectDeleteModal.displayName = 'ProjectDeleteModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.project &&

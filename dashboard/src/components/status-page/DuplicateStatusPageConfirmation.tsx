@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 import { bindActionCreators, Dispatch } from 'redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { closeModal } from 'common-ui/actions/modal';
 import {
     fetchStatusPage,
@@ -20,7 +20,7 @@ interface DuplicateStatusPageConfirmationProps {
     duplicateStatusPageReset?: Function;
 }
 
-class DuplicateStatusPageConfirmation extends Component<DuplicateStatusPageConfirmationProps> {
+class DuplicateStatusPageConfirmation extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -129,7 +129,7 @@ class DuplicateStatusPageConfirmation extends Component<DuplicateStatusPageConfi
 
 DuplicateStatusPageConfirmation.displayName = 'DuplicateStatusPageConfirmation';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         duplicateModalId: state.modal.modals[0].id,
         statusPageId: state.modal.modals[0].statusPageId,

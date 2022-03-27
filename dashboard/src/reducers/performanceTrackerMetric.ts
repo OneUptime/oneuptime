@@ -1,5 +1,7 @@
 import * as types from '../constants/performanceTrackerMetric';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     timeStartDate: null,
     timeEndDate: null,
@@ -57,7 +59,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function (state = INITIAL_STATE, action: $TSFixMe) {
+export default function (state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case types.SET_TIME_STARTDATE:
             return {

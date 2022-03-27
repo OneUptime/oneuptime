@@ -17,7 +17,7 @@ interface SetDefaultIncidentPriorityProps {
     data: object;
 }
 
-class SetDefaultIncidentPriority extends Component<SetDefaultIncidentPriorityProps> {
+class SetDefaultIncidentPriority extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -140,7 +140,7 @@ SetDefaultIncidentPriority.propTypes = {
     data: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         updatedIncident:
             state.incidentBasicSettings.updateIncidentBasicSettings,

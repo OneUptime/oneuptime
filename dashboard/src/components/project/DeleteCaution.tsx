@@ -26,7 +26,7 @@ interface DeleteCautionProps {
     deleteSuccess?: boolean;
 }
 
-class DeleteCaution extends Component<DeleteCautionProps> {
+class DeleteCaution extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

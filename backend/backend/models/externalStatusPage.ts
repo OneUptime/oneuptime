@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const externalStatusPageSchema = new Schema(
     {
         name: String,
-        url: String,
+        url: URL,
         description: String,
         statusPageId: {
             type: Schema.Types.ObjectId,

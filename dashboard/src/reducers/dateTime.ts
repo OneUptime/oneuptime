@@ -1,5 +1,7 @@
 import moment from 'moment';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     dates: {
         startDate: moment().subtract(1, 'd'),
@@ -7,7 +9,7 @@ const initialState = {
     },
 };
 
-export default function dateTime(state = initialState, action: $TSFixMe) {
+export default function dateTime(state = initialState, action: Action) {
     switch (action.type) {
         case 'SET_START_DATE':
             return Object.assign({}, state, {

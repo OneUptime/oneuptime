@@ -27,7 +27,9 @@ interface ResendTokenFormProps {
     requestingMasterAdmin?: boolean;
 }
 
-export class ResendTokenForm extends Component<ResendTokenFormProps> {
+export class ResendTokenForm extends Component<ResendTokenFormProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         serverResponse: '',
     };
@@ -226,7 +228,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         resendTokenState: state.resendToken,
         masterAdminExists: state.login.masterAdmin.exists,

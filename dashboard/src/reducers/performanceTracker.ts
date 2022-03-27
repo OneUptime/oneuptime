@@ -1,6 +1,8 @@
 import moment from 'moment';
 import * as types from '../constants/performanceTracker';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     dates: {
         startDate: moment().subtract(30, 'd'),
@@ -59,7 +61,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function (state = INITIAL_STATE, action: $TSFixMe) {
+export default function (state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case 'SET_START_DATE':
             return {

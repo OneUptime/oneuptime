@@ -31,7 +31,9 @@ interface GroupListProps {
     createGroupRequest?: object;
 }
 
-export class GroupList extends Component<GroupListProps> {
+export class GroupList extends Component<GroupListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { groupModalId: uuidv4() };
@@ -389,7 +391,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         groupError: state.groups.getGroups,
         currentProject: state.project.currentProject,

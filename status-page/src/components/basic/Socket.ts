@@ -4,6 +4,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import { REALTIME_URL } from '../../config';
+import { RootState } from '../../store';
 
 import {
     updatestatuspagebysocket,
@@ -39,9 +40,10 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
 export interface ComponentProps {}
 
 class SocketApp extends Component<ComponentProps> {
+    public static displayName = '';
     public static propTypes = {};
 
-    override shouldComponentUpdate(nextProps: $TSFixMe) {
+    override shouldComponentUpdate(nextProps: ComponentProps) {
         if (this.props.project !== nextProps.project) {
             if (this.props.project) {
                 socket.removeListener(
@@ -268,7 +270,7 @@ SocketApp.propTypes = {
     ]),
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     project: state.status.statusPage.projectId,
     probes: state.probe.probes,
     statusPage: state.status.statusPage,

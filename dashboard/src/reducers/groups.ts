@@ -1,5 +1,7 @@
 import * as types from '../constants/group';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     createGroup: { requesting: false, success: false, error: null },
     getGroups: { requesting: false, success: false, error: null },
@@ -10,7 +12,7 @@ const initialState = {
     oncallDuty: [],
 };
 
-export default function groups(state = initialState, action: $TSFixMe) {
+export default function groups(state = initialState, action: Action) {
     let updatedGroup;
     switch (action.type) {
         case types.GET_GROUPS_REQUEST:

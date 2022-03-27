@@ -16,7 +16,7 @@ import { RenderTextArea } from './basic/RenderTextArea';
 import { reset } from 'redux-form';
 import PropTypes from 'prop-types';
 
-interface FeedbackModalProps {
+export interface ComponentProps {
     page?: object;
     createFeedback: Function;
     closeFeedbackModal: Function;
@@ -28,7 +28,9 @@ interface FeedbackModalProps {
     resetCreateFeedback?: Function;
 }
 
-export class FeedbackModal extends Component<FeedbackModalProps> {
+export class FeedbackModal extends Component<FeedbackModalProps>{
+    public static displayName = '';
+    public static propTypes = {};
     submitForm = (values: $TSFixMe) => {
 
         const { reset, page } = this.props;
@@ -168,7 +170,7 @@ const FeedbackModalForm = reduxForm({
     form: 'FeedbackModal', // a unique identifier for this form
 })(FeedbackModal);
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     feedback: state.feedback,
     page: state.page,
     currentProject: state.project.currentProject

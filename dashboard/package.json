@@ -91,6 +91,7 @@
         "common-ui": "file:./../common-ui"
     },
     "scripts": {
+        "compile": "tsc",
         "lint": "eslint .",
         "dev": "PORT=3000 react-scripts --openssl-legacy-provider start",
         "build": "react-scripts --openssl-legacy-provider build && npm run build-sw",

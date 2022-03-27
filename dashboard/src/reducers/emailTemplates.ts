@@ -1,5 +1,7 @@
 import * as types from '../constants/emailTemplates';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     emailTemplates: {
         requesting: false,
@@ -33,7 +35,7 @@ const initialState = {
     showEmailSmtpConfiguration: false,
 };
 
-export default function incident(state = initialState, action: $TSFixMe) {
+export default function incident(state = initialState, action: Action) {
     switch (action.type) {
         case types.EMAIL_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {

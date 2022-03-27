@@ -5,7 +5,7 @@ const lighthouseLogSchema = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
     probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
     data: Object,
-    url: String,
+    url: URL,
     performance: Number,
     accessibility: Number,
     bestPractices: Number,

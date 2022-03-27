@@ -5,6 +5,7 @@ import ApplicationSecurityDetail from '../components/security/ApplicationSecurit
 
 class ApplicationDetail extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

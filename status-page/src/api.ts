@@ -7,7 +7,7 @@ const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
 };
 
-export const postApi = (url: string, data: $TSFixMe) => {
+export const post = (url: URL, data: $TSFixMe) => {
     if (User.isLoggedIn()) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
@@ -29,7 +29,7 @@ export const postApi = (url: string, data: $TSFixMe) => {
     return promise;
 };
 
-export const getApi = (url: string) => {
+export const get = (url: URL) => {
     if (User.isLoggedIn()) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
@@ -50,7 +50,7 @@ export const getApi = (url: string) => {
     return promise;
 };
 
-export const putApi = (url: string, data: $TSFixMe) => {
+export const put = (url: URL, data: $TSFixMe) => {
     if (User.isLoggedIn()) {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }

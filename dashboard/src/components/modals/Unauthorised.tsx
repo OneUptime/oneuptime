@@ -7,7 +7,7 @@ interface UnauthorisedProps {
     closeThisDialog: Function;
 }
 
-class Unauthorised extends Component<UnauthorisedProps> {
+class Unauthorised extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

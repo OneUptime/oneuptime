@@ -2206,7 +2206,7 @@ MonitorChart.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,

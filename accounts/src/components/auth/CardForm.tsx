@@ -73,7 +73,7 @@ interface CardFormProps {
     formValues?: object;
 }
 
-class CardForm extends Component<CardFormProps> {
+class CardForm extends Component<ComponentProps> {
     plan: $TSFixMe;
     /* This state holds error 
     messages for cardNumber,
@@ -619,7 +619,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         register: state.register,
         addCard: state.register.addCard,
@@ -649,8 +649,8 @@ const CardFormWithCheckOut = injectStripe(
 );
 CardFormWithCheckOut.displayName = 'CardFormWithCheckOut';
 
-export default class CardFormHOC extends Component<ComponentProps> {
-
+export default class CardFormHOC extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

@@ -10,14 +10,12 @@ import { blockProject } from '../../actions/project';
 import ProjectBlockModal from './ProjectBlockModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProjectBlockBox extends Component<ComponentProps> {
-
+export class ProjectBlockBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = { blockModalId: uuidv4() };
     }
 
@@ -100,7 +98,7 @@ ProjectBlockBox.displayName = 'ProjectBlockBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ blockProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

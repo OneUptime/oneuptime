@@ -23,7 +23,9 @@ interface ChangePasswordFormProps {
     token?: any;
 }
 
-export class ChangePasswordForm extends Component<ChangePasswordFormProps> {
+export class ChangePasswordForm extends Component<ChangePasswordFormProps>{
+    public static displayName = '';
+    public static propTypes = {};
     submitForm = (values: $TSFixMe) => {
 
         values.token = this.props.token || '';
@@ -182,7 +184,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         changePasswordState: state.changePassword,
     };

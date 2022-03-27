@@ -12,7 +12,9 @@ import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
 import ShouldRender from '../basic/ShouldRender';
 
-export class Component extends Component<ComponentProps> {
+export class Component extends Component<ComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         ssoModalId: uuidv4(),
         page: 1,
@@ -465,7 +467,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         ssos: state.sso.ssos,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

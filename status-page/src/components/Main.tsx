@@ -111,7 +111,7 @@ interface MainProps {
     languageMenu?: boolean;
 }
 
-class Main extends Component<MainProps> {
+class Main extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -228,7 +228,7 @@ class Main extends Component<MainProps> {
                     const { loginRequired } = this.props.login;
                     if (loginRequired) {
 
-                        window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+                        window.location.href = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                     }
 
                     this.selectbutton(this.props.activeProbe);
@@ -1773,7 +1773,7 @@ class Main extends Component<MainProps> {
 
 Main.displayName = 'Main';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const ongoing =
         state.status &&
         state.status.ongoing &&

@@ -64,7 +64,7 @@ ContainerSecurity.propTypes = {
     containerSecurityLogs: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         containerSecurityLogs: state.security.containerSecurityLogs,
     };

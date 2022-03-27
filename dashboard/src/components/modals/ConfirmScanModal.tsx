@@ -20,7 +20,7 @@ interface ConfirmScanModalProps {
     containerSecurityId: Function;
 }
 
-class ConfirmScanModal extends Component<ConfirmScanModalProps> {
+class ConfirmScanModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

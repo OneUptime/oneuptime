@@ -11,6 +11,7 @@ import { FormLoader } from '../basic/Loader';
 
 class DeleteConfirmationModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -143,7 +144,7 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     deleteRequest: state.auditLogs.auditLogs.deleteRequest,
     error: state.auditLogs.auditLogs.error,
     modalId: state.modal.modals[0].id

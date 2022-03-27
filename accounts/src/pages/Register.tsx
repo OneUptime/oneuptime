@@ -121,7 +121,7 @@ class RegisterPage extends React.Component<RegisterPageProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         register: state.register,
         masterAdminExists: state.login.masterAdmin.exists,

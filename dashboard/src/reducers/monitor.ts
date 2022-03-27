@@ -74,6 +74,8 @@ import {
 } from '../constants/monitor';
 import moment from 'moment';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     monitorsList: {
         monitors: [],
@@ -153,7 +155,7 @@ const INITIAL_STATE = {
     configFileInputKey: null,
 };
 
-export default function monitor(state = INITIAL_STATE, action: $TSFixMe) {
+export default function monitor(state = INITIAL_STATE, action: Action) {
     let monitors, monitorType, initialValue;
     switch (action.type) {
         case CREATE_MONITOR_FAILURE:

@@ -26,7 +26,7 @@ interface DeleteIncidentNoteTemplateProps {
     fetchIncidentNoteTemplates?: Function;
 }
 
-class DeleteIncidentNoteTemplate extends Component<DeleteIncidentNoteTemplateProps> {
+class DeleteIncidentNoteTemplate extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -196,7 +196,7 @@ DeleteIncidentNoteTemplate.propTypes = {
     fetchIncidentNoteTemplates: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId: state.modal.modals[0].projectId,
         templateId: state.modal.modals[0].templateId,

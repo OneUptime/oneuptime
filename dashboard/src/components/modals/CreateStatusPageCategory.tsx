@@ -193,7 +193,7 @@ const CreateStatusPageCategoryForm = reduxForm({
     validate,
 })(CreateStatusPageCategory);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         creatingCategory:
             state.statusPageCategory.createStatusPageCategory.requesting,

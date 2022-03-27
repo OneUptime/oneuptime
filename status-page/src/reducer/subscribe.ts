@@ -1,3 +1,4 @@
+import Action from 'common-ui/src/types/action';
 import {
     OPEN_SUBSCRIBE_MENU,
     SELECTED_MENU,
@@ -28,7 +29,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: $TSFixMe) => {
+export default (state = INITIAL_STATE, action: Action) => {
     switch (action.type) {
         case OPEN_SUBSCRIBE_MENU:
             return Object.assign({}, state, {

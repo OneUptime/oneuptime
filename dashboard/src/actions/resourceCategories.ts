@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resourceCategories';
 import errors from '../errors';
@@ -13,11 +13,11 @@ export function fetchResourceCategories(
     return function (dispatch: Dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `resourceCategory/${projectId}?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `resourceCategory/${projectId}?skip=${0}&limit=${10}`
             );
         }
@@ -74,7 +74,10 @@ export const createResourceCategory = (
     values: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`resourceCategory/${projectId}`, values);
+        const promise = BackendAPI.post(
+            `resourceCategory/${projectId}`,
+            values
+        );
         dispatch(createResourceCategoryRequest());
 
         promise.then(
@@ -106,7 +109,7 @@ export function updateResourceCategory(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
             values
         );
@@ -186,9 +189,8 @@ export function deleteResourceCategory(
     projectId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `resourceCategory/${projectId}/${resourceCategoryId}`
-        );
+        const promise =
+            delete `resourceCategory/${projectId}/${resourceCategoryId}`;
         dispatch(deleteResourceCategoryRequest(resourceCategoryId));
 
         promise.then(
@@ -242,7 +244,7 @@ export const deleteResourceCategoryFailure = (error: $TSFixMe) => {
 
 export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`resourceCategory/${projectId}`);
+        const promise = BackendAPI.get(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(

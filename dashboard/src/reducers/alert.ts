@@ -1,5 +1,7 @@
 import * as types from '../constants/alert';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     alerts: {
         requesting: false,
@@ -46,7 +48,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case types.ALERT_FETCH_SUCCESS:
             return Object.assign({}, state, {

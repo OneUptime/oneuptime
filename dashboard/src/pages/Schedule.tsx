@@ -39,7 +39,7 @@ interface ScheduleProps {
     history?: object;
 }
 
-class Schedule extends Component<ScheduleProps> {
+class Schedule extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { editSchedule: false, error: false };
@@ -241,7 +241,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
 
     let schedule =

@@ -1,5 +1,7 @@
 import * as types from '../constants/subProject';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     subProjects: {
         requesting: false,
@@ -40,7 +42,7 @@ const initialState = {
     activeSubProject: null,
 };
 
-export default function subProject(state = initialState, action: $TSFixMe) {
+export default function subProject(state = initialState, action: Action) {
     let subProjects, index;
     switch (action.type) {
         case types.SUBPROJECTS_SUCCESS:

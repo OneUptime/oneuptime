@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/report';
 
@@ -35,7 +35,7 @@ export const getActiveMembers =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = getApi(
+            const promise = BackendAPI.get(
                 `reports/${projectId}/active-members?startDate=${startDate}&endDate=${endDate}&skip=${skip}&limit=${limit}`
             );
             dispatch(getActiveMembersRequest(promise));
@@ -89,7 +89,7 @@ export const getActiveMonitors =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = getApi(
+            const promise = BackendAPI.get(
                 `reports/${projectId}/active-monitors?startDate=${startDate}&endDate=${endDate}&skip=${
                     skip || 0
                 }&limit=${limit || 0}`
@@ -144,7 +144,7 @@ export const getIncidents =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = getApi(
+            const promise = BackendAPI.get(
                 `reports/${projectId}/incidents?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
             );
             dispatch(getIncidentsRequest(promise));
@@ -197,7 +197,7 @@ export const getResolveTime =
     ) =>
     async (dispatch: Dispatch) => {
         try {
-            const promise = getApi(
+            const promise = BackendAPI.get(
                 `reports/${projectId}/average-resolved?startDate=${startDate}&endDate=${endDate}&filter=${filter}`
             );
             dispatch(getResolveTimeRequest(promise));

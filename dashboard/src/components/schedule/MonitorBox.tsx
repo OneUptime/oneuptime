@@ -328,7 +328,7 @@ const AddMonitorsForm = new reduxForm({
     enableReinitialize: true,
 })(MonitorBox);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(

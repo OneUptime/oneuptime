@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader, Spinner } from '../basic/Loader';
 import { deleteSiteUrl } from '../../actions/monitor';
@@ -24,11 +24,11 @@ interface MonitorLighthouseLogsListProps {
     componentSlug: string;
 }
 
-export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsListProps> {
+export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             deleteSiteUrlModalId: uuidv4(),
         };
@@ -729,7 +729,7 @@ export class MonitorLighthouseLogsList extends Component<MonitorLighthouseLogsLi
     }
 }
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

@@ -10,7 +10,7 @@ interface RemoveFooterLinkProps {
     data?: object;
 }
 
-class RemoveFooterLink extends Component<RemoveFooterLinkProps> {
+class RemoveFooterLink extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

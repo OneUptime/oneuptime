@@ -18,7 +18,7 @@ interface OneUptimeApiProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class OneUptimeApi extends Component<OneUptimeApiProps> {
+class OneUptimeApi extends Component<ComponentProps> {
     override render() {
         const {
 
@@ -118,7 +118,7 @@ OneUptimeApi.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

@@ -10,7 +10,7 @@ interface DeleteMessagingProps {
     requesting: boolean;
 }
 
-class DeleteMessaging extends Component<DeleteMessagingProps> {
+class DeleteMessaging extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

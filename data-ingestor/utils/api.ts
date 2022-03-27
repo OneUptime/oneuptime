@@ -12,7 +12,7 @@ const _this = {
             dataIngestorVersion,
         };
     },
-    postApi: (url: string, data: $TSFixMe, withBaseUrl = false) => {
+    post: (url: URL, data: $TSFixMe, withBaseUrl = false) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
@@ -40,7 +40,7 @@ const _this = {
         });
     },
 
-    getApi: (url: string, withBaseUrl = false) => {
+    get: (url: URL, withBaseUrl = false) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -62,7 +62,7 @@ const _this = {
         });
     },
 
-    putApi: (url: string, data: $TSFixMe, withBaseUrl: string) => {
+    put: (url: URL, data: $TSFixMe, withBaseUrl: URL) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
@@ -89,7 +89,7 @@ const _this = {
         });
     },
 
-    deleteApi: (url: string, data: $TSFixMe, withBaseUrl: string) => {
+    delete: (url: URL, data: $TSFixMe, withBaseUrl: URL) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({

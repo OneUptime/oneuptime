@@ -8,7 +8,7 @@ import moment from 'moment';
 const monitorLogCollection = global.db.collection('monitorlogs');
 import { ObjectId } from 'mongodb';
 
-import { postApi } from '../utils/api';
+import { post } from '../utils/api';
 
 import { realtimeUrl } from '../utils/config';
 import ProjectService from './projectService';
@@ -311,7 +311,7 @@ export default {
                     : monitor.projectId._id || monitor.projectId;
 
                 // realtime update
-                postApi(
+                post(
                     `${realtimeBaseUrl}/update-monitor-log`,
                     {
                         data,

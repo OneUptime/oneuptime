@@ -219,7 +219,7 @@ const CreateScheduleForm = reduxForm({
     validate,
 })(ScheduleForm);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         scheduleModalId: state.modal.modals[0].id,
         schedule: state.schedule,

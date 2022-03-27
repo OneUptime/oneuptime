@@ -19,11 +19,9 @@ interface WebhookSettingsProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class WebhookSettings extends Component<WebhookSettingsProps> {
+class WebhookSettings extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override render() {
@@ -81,7 +79,7 @@ WebhookSettings.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getSmsTemplates, getSmtpConfig }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

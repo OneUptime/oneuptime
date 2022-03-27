@@ -1,5 +1,7 @@
 import * as types from '../constants/credential';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     addCredential: { requesting: false, success: false, error: null },
     getCredential: { requesting: false, success: false, error: null },
@@ -12,7 +14,7 @@ const initialState = {
     dockerSecurities: [],
 };
 
-export default function credential(state = initialState, action: $TSFixMe) {
+export default function credential(state = initialState, action: Action) {
     switch (action.type) {
         case types.ADD_GIT_CREDENTIAL_REQUEST:
             return {

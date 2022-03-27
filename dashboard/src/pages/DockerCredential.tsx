@@ -24,11 +24,9 @@ interface DockerCredentialProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class DockerCredential extends Component<DockerCredentialProps> {
+class DockerCredential extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     componentDidUpdate(prevProps: $TSFixMe) {
@@ -127,7 +125,7 @@ DockerCredential.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

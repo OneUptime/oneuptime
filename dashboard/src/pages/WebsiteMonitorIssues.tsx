@@ -79,8 +79,6 @@ interface WebsiteMonitorIssuesProps {
 class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
     override componentDidMount() {
         this.ready();
@@ -483,7 +481,7 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { componentSlug, monitorSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

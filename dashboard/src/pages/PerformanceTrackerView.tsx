@@ -50,7 +50,7 @@ interface PerformanceTrackerViewProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class PerformanceTrackerView extends Component<PerformanceTrackerViewProps> {
+class PerformanceTrackerView extends Component<ComponentProps> {
     state = {
         tabIndex: 0,
         showQuickStart: true,
@@ -399,7 +399,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug, performanceTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     return {

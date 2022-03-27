@@ -26,7 +26,9 @@ interface ProjectSwitcherProps {
     getSubProjects?: Function;
 }
 
-export class ProjectSwitcher extends Component<ProjectSwitcherProps> {
+export class ProjectSwitcher extends Component<ProjectSwitcherProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.selectProject = this.selectProject.bind(this);
@@ -227,7 +229,7 @@ export class ProjectSwitcher extends Component<ProjectSwitcherProps> {
 
 ProjectSwitcher.displayName = 'ProjectSwitcher';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     project: state.project,
     currentProject: state.project.currentProject
 });

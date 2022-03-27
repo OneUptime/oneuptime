@@ -1,4 +1,4 @@
-import { getApi, postApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/smsLogs';
 import errors from '../errors';
@@ -32,7 +32,7 @@ export const fetchSmsLogs =
         dispatch(fetchSmsLogsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `sms-logs?skip=${skip}&limit=${limit}`
             );
 
@@ -88,7 +88,7 @@ export const searchSmsLogs =
         dispatch(searchSmsLogsRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `sms-logs/search?skip=${skip}&limit=${limit}`,
                 values
             );
@@ -138,7 +138,7 @@ export const deleteSmsLogs = () => async (dispatch: Dispatch) => {
     dispatch(deleteSmsLogsRequest());
 
     try {
-        const response = await deleteApi(`sms-logs`);
+        const response = await delete `sms-logs`;
 
         const message = response.data.message;
 
@@ -193,7 +193,9 @@ export const fetchSmsLogStatus = () => async (dispatch: Dispatch) => {
     dispatch(fetchSmsLogStatusRequest());
 
     try {
-        const response = await getApi('globalConfig/smsLogMonitoringStatus');
+        const response = await BackendAPI.get(
+            'globalConfig/smsLogMonitoringStatus'
+        );
 
         dispatch(fetchSmsLogStatusSuccess(response.data));
         return response;
@@ -249,7 +251,7 @@ export const smsLogStatusChange =
         dispatch(changeSmsLogStatusRequest());
 
         try {
-            const response = await postApi('globalConfig/', [
+            const response = await BackendAPI.post('globalConfig/', [
                 { name: 'smsLogMonitoringStatus', value: values.status },
             ]);
 

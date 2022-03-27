@@ -18,15 +18,15 @@ import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
 import { openModal, closeModal } from 'common-ui/actions/modal';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 import DropDownMenu from '../basic/DropDownMenu';
 import ExitProjectModal from '../settings/ExitProjectModal';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 
-export class TeamMember extends Component<ComponentProps> {
-
+export class TeamMember extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -444,7 +444,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const userId = User.getUserId();
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

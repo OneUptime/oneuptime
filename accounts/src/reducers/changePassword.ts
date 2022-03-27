@@ -4,13 +4,15 @@ import * as types from '../constants/changePassword';
 // based on a token being in local storage. In a real app,
 // we would also want a util to check if the token is expired.
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     requesting: false,
     error: null,
     success: false,
 };
 
-export default function register(state = initialState, action: $TSFixMe) {
+export default function register(state = initialState, action: Action) {
     switch (action.type) {
         case types.CHANGEPASSWORD_REQUEST:
             return Object.assign({}, state, {

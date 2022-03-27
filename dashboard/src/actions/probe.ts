@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
 import errors from '../errors';
@@ -44,11 +44,11 @@ export function getProbes(
     return function (dispatch: Dispatch) {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
-            promise = getApi(
+            promise = BackendAPI.get(
                 `probe/${projectId}/probes?skip=${skip}&limit=${limit}`
             );
         } else {
-            promise = getApi(`probe/${projectId}/probes`);
+            promise = BackendAPI.get(`probe/${projectId}/probes`);
         }
         dispatch(probeRequest(promise));
 

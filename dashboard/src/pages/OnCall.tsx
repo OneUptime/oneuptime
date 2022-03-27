@@ -43,7 +43,9 @@ interface OnCallProps {
     projectId?: string;
 }
 
-export class OnCall extends Component<OnCallProps> {
+export class OnCall extends Component<OnCallProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { scheduleModalId: uuidv4() };
@@ -302,7 +304,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
     // sort subprojects names for display in alphabetical order
     const subProjectNames =

@@ -14,7 +14,7 @@ interface AddSeatsProps {
     requesting?: boolean;
 }
 
-class AddSeats extends Component<AddSeatsProps> {
+class AddSeats extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -154,7 +154,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         error: state.monitor.addseat && state.monitor.addseat.error,
         requesting: state.monitor.addseat && state.monitor.addseat.requesting,

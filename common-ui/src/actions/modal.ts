@@ -4,16 +4,16 @@ import {
     CloseModalActionPayload,
 } from '../types/payloads/modal';
 
-export const openModal = function (paylaod: OpenModalActionPayload) {
+export const openModal = function (payload: OpenModalActionPayload) {
     return {
         type: Modal.OPEN_MODAL,
-        payload: paylaod,
+        payload: payload,
     };
 };
 
-export const closeModal = function (paylaod: CloseModalActionPayload) {
+export const closeModal = function (payload: CloseModalActionPayload) {
     return {
         type: Modal.CLOSE_MODAL,
-        payload: paylaod,
+        payload: payload,
     };
 };

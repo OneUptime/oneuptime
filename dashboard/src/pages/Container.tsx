@@ -49,7 +49,7 @@ interface ContainerProps {
     error?: string;
 }
 
-class Container extends Component<ContainerProps> {
+class Container extends Component<ComponentProps> {
     state = {
         showContainerSecurityForm: false,
         page: 1,
@@ -568,7 +568,7 @@ Container.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     // ids from url
     const { componentSlug } = ownProps.match.params;
 

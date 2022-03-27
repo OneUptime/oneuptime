@@ -67,8 +67,6 @@ interface IncidentLogProps {
 class IncidentLog extends React.Component<IncidentLogProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = { createIncidentModalId: uuidv4(), page: {} };
     }
 
@@ -411,7 +409,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

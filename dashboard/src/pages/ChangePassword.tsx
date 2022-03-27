@@ -15,8 +15,6 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
-        this.props = props;
-
         this.token = this.props.match.params.token;
 
         //if token is not present. Redirect to login page.

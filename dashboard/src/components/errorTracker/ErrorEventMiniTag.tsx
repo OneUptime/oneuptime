@@ -6,7 +6,7 @@ interface ErrorEventMiniTagProps {
     errorEvent?: object;
 }
 
-class ErrorEventMiniTag extends Component<ErrorEventMiniTagProps> {
+class ErrorEventMiniTag extends Component<ComponentProps> {
     override render() {
 
         const { errorEvent } = this.props;

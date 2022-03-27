@@ -1,4 +1,4 @@
-import { deleteApi, getApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/slack';
 import errors from '../errors';
@@ -34,7 +34,7 @@ export const resetdeleteSlackLink = () => {
 // Calls the API to link slack team to project
 export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`slack/${projectId}/unLink/${teamId}`, null);
+        const promise = delete (`slack/${projectId}/unLink/${teamId}`, null);
 
         dispatch(deleteSlackLinkRequest());
 
@@ -96,11 +96,11 @@ export function getSlackTeams(
     return function (dispatch: Dispatch) {
         let promise = null;
         if (skip && limit)
-            promise = getApi(
+            promise = BackendAPI.get(
                 `slack/${projectId}/teams?skip=${skip}&limit=${limit}`
             );
         else {
-            promise = getApi(`slack/${projectId}/teams`);
+            promise = BackendAPI.get(`slack/${projectId}/teams`);
         }
         dispatch(getSlackTeamsRequest(promise));
 

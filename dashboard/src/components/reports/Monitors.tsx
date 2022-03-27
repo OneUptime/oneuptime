@@ -20,7 +20,7 @@ interface MonitorsProps {
     currentProject?: object | string;
 }
 
-class Monitors extends Component<MonitorsProps> {
+class Monitors extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -46,7 +46,7 @@ class Monitors extends Component<MonitorsProps> {
         getActiveMonitors(currentProject, startDate, endDate);
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps: $TSFixMe, prevState: $TSFixMe) {
+    UNSAFE_componentWillReceiveProps(nextProps: ComponentProps, prevstate: RootState) {
         const {
             getActiveMonitors,
             currentProject,
@@ -471,7 +471,7 @@ const actionCreators = {
     getActiveMonitorsError,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     activeMonitors: state.report.activeMonitors
 });
 

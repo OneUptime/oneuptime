@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface RenderTextAreaProps {
+export interface ComponentProps {
     input: object;
     placeholder: string;
     type?: string;

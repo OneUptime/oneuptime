@@ -285,7 +285,7 @@ const CreateSubProjectForm = reduxForm({
     enableReinitialize: true,
 })(SubProjectForm);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const initval = props.data.editSubProject
         ? { subProjectName: props.data.subProjectTitle }
         : {};

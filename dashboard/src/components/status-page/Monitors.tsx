@@ -63,8 +63,8 @@ const validate = (values: $TSFixMe) => {
     return errors;
 };
 
-export class Monitors extends Component<ComponentProps> {
-
+export class Monitors extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     submitForm = (values: $TSFixMe) => {
@@ -422,7 +422,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const selector = formValueSelector('StatuspageMonitors');
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { subProjectId } = ownProps;
     const { currentProject } = state.project;
 

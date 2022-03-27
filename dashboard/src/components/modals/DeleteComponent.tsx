@@ -12,7 +12,7 @@ interface DeleteComponentProps {
     data?: object;
 }
 
-class DeleteComponent extends Component<DeleteComponentProps> {
+class DeleteComponent extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -142,7 +142,7 @@ DeleteComponent.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         componentState: state.component,
     };

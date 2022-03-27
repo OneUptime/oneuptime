@@ -23,7 +23,7 @@ interface ColorPickerProps {
     handleClose: Function;
 }
 
-class ColorPicker extends Component<ColorPickerProps> {
+class ColorPicker extends Component<ComponentProps> {
     handleChange(e: $TSFixMe) {
 
         this.props.input.onChange(e.rgb);
@@ -79,7 +79,7 @@ interface EditIncidentPriorityProps {
     updateIncidentPriority: Function;
 }
 
-class EditIncidentPriority extends Component<EditIncidentPriorityProps> {
+class EditIncidentPriority extends Component<ComponentProps> {
     constructor() {
 
         super();
@@ -305,7 +305,7 @@ const EditIncidentPriorityForm = reduxForm({
     form: 'EditIncidentPriorityForm',
 })(EditIncidentPriority);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         editIncidentPriority: state.incidentPriorities.editIncidentPriority,

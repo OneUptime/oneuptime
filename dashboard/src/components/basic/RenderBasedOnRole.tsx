@@ -15,7 +15,9 @@ interface RenderBasedOnRoleProps {
     visibleForAll?: boolean;
 }
 
-export default class RenderBasedOnRole extends Component<RenderBasedOnRoleProps> {
+export default class RenderBasedOnRole extends Component<RenderBasedOnRoleProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

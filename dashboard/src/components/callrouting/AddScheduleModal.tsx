@@ -70,7 +70,9 @@ interface AddScheduleModalProps {
     };
 }
 
-export class AddScheduleModal extends Component<AddScheduleModalProps> {
+export class AddScheduleModal extends Component<AddScheduleModalProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -601,7 +603,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const callRoutingId = props.data.callRoutingId;
     const teamMembersAndSchedules = state.callRouting.teamMembersAndSchedules;
     let teamMembers = teamMembersAndSchedules.teamMembers;

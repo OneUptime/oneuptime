@@ -1,4 +1,4 @@
-import { putApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import * as types from '../constants/domain';
 import { Dispatch } from 'redux';
 export const resetDomain = () => {
@@ -32,7 +32,7 @@ export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe) => {
         dispatch(verifyDomainRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 payload
             );
@@ -85,7 +85,7 @@ export function createDomain({
         dispatch(createDomainRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `status-page/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
@@ -133,9 +133,8 @@ export const deleteDomain = ({
     return async function (dispatch: Dispatch) {
         dispatch(deleteDomainRequest());
         try {
-            const response = await deleteApi(
-                `status-page/${projectId}/${statusPageId}/${domainId}`
-            );
+            const response =
+                await delete `status-page/${projectId}/${statusPageId}/${domainId}`;
 
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
@@ -185,7 +184,7 @@ export function updateDomain({
     return async function (dispatch: Dispatch) {
         dispatch(updateDomainRequest());
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `status-page/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );

@@ -3,6 +3,7 @@ import Badge from '../common/Badge';
 
 class ErrorEventList extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

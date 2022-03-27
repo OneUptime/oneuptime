@@ -25,7 +25,7 @@ interface DeleteDomainProps {
     currentProject?: object;
 }
 
-class DeleteDomain extends Component<DeleteDomainProps> {
+class DeleteDomain extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.resetDeleteProjectDomain();
@@ -198,7 +198,7 @@ DeleteDomain.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.project.deleteDomain.requesting,
         deleteError: state.project.deleteDomain.error,

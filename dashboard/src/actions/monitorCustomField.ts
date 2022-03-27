@@ -1,5 +1,5 @@
 import * as types from '../constants/monitorCustomField';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 export const createCustomFieldRequest = () => ({
@@ -21,7 +21,7 @@ export const createCustomField =
         try {
             dispatch(createCustomFieldRequest());
 
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `monitorCustomField/${projectId}`,
                 data
             );
@@ -60,7 +60,7 @@ export const updateCustomField =
         try {
             dispatch(updateCustomFieldRequest());
 
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `monitorCustomField/${projectId}/${customFieldId}`,
                 data
             );
@@ -101,9 +101,11 @@ export const fetchCustomFields =
 
             let response;
             if (skip === 0 && limit === 0) {
-                response = await getApi(`monitorCustomField/${projectId}`);
+                response = await BackendAPI.get(
+                    `monitorCustomField/${projectId}`
+                );
             } else {
-                response = await getApi(
+                response = await BackendAPI.get(
                     `monitorCustomField/${projectId}?skip=${skip}&limit=${limit}`
                 );
             }
@@ -142,9 +144,8 @@ export const deleteCustomField =
         try {
             dispatch(deleteCustomFieldRequest());
 
-            const response = await deleteApi(
-                `monitorCustomField/${projectId}/${customFieldId}`
-            );
+            const response =
+                await delete `monitorCustomField/${projectId}/${customFieldId}`;
 
             dispatch(deleteCustomFieldSuccess(response.data));
         } catch (error) {

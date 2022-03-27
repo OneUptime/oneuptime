@@ -12,7 +12,7 @@ interface ExternalStatusPagesProps {
     theme?: string;
 }
 
-class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
+class ExternalStatusPages extends Component<ComponentProps> {
     async override componentDidMount() {
 
         this.props.fetchExternalStatusPages(
@@ -246,7 +246,7 @@ class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
 
 
 ExternalStatusPages.displayName = 'ExternalStatusPages';
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     statusPage: state.status.statusPage,
     externalStatusPages: state.status.externalStatusPages,
     requesting: state.status.announcementLogs.requesting,

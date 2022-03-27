@@ -181,7 +181,9 @@ interface RenderOptionProps {
     formCriteria?: unknown[];
 }
 
-export class RenderOption extends Component<RenderOptionProps> {
+export class RenderOption extends Component<RenderOptionProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
         const {
 
@@ -1390,7 +1392,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const selector = formValueSelector('NewMonitor');
     const formCriteria = selector(state, `${ownProps.fieldnameprop}.criteria`);
     return {

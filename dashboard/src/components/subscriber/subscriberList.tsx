@@ -27,7 +27,9 @@ interface SubscriberListProps {
     openModal?: Function;
 }
 
-export class SubscriberList extends Component<SubscriberListProps> {
+export class SubscriberList extends Component<SubscriberListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -538,7 +540,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

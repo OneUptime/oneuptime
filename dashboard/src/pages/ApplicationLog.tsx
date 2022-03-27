@@ -37,7 +37,7 @@ interface ApplicationLogProps {
     activeProjectId?: string;
 }
 
-class ApplicationLog extends Component<ApplicationLogProps> {
+class ApplicationLog extends Component<ComponentProps> {
     state = {
         showNewLogContainerForm: false,
         page: 1,
@@ -332,7 +332,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

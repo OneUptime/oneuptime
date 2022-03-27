@@ -1,4 +1,4 @@
-import { getApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/notification';
 import errors from '../errors';
@@ -70,7 +70,9 @@ export const allNotificationReadSuccess = (userId: $TSFixMe) => {
 export const fetchNotifications = (projectId: $TSFixMe) => {
     return async function (dispatch: Dispatch) {
         try {
-            const notifications = await getApi(`notification/${projectId}`);
+            const notifications = await BackendAPI.get(
+                `notification/${projectId}`
+            );
 
             dispatch(fetchNotificationsRequest());
 
@@ -103,9 +105,11 @@ export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
                     notification.notificaitonId._id
             );
 
-            const notifications = await putApi(
+            const notifications = await BackendAPI.put(
                 `notification/${projectId}/read`,
-                { notificationIds }
+                {
+                    notificationIds,
+                }
             );
 
             for (const notificationId of notifications.data) {
@@ -149,7 +153,9 @@ export function closeNotification(
                 })
             );
 
-            await putApi(`notification/${projectId}/${notificationId}/closed`);
+            await BackendAPI.put(
+                `notification/${projectId}/${notificationId}/closed`
+            );
         } catch (error) {
             let payload;
             if (error && error.response && error.response.data)
@@ -173,7 +179,7 @@ export const markAllAsRead = (projectId: $TSFixMe) => {
         try {
             const userId = User.getUserId();
 
-            await putApi(`notification/${projectId}/readAll`);
+            await BackendAPI.put(`notification/${projectId}/readAll`);
 
             dispatch(allNotificationReadSuccess(userId));
         } catch (error) {
@@ -201,7 +207,7 @@ export function billingActionTaken(
 ) {
     return async function (dispatch: Dispatch) {
         try {
-            const notification = putApi(
+            const notification = BackendAPI.put(
                 `notification/${projectId}/${notificationId}`,
                 values
             );

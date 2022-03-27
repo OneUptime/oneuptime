@@ -16,6 +16,8 @@ import {
     UPDATE_SSO_FAILURE,
 } from '../constants/sso';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     ssos: {
         requesting: false,
@@ -49,7 +51,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function sso(state = INITIAL_STATE, action: $TSFixMe) {
+export default function sso(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case FETCH_SSOS_REQUEST:
             return Object.assign({}, state, {

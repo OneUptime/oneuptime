@@ -22,7 +22,7 @@ interface RemoveResourceCategoryProps {
     fetchStatusPageCategories?: Function;
 }
 
-class RemoveResourceCategory extends Component<RemoveResourceCategoryProps> {
+class RemoveResourceCategory extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -162,7 +162,7 @@ RemoveResourceCategory.propTypes = {
     fetchStatusPageCategories: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deletingCategory:
             state.statusPageCategory.deleteStatusPageCategory.requesting,

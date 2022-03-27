@@ -13,10 +13,10 @@ import SmsLogsContentViewModal from './SmsLogsContentViewModal';
 import SmsLogsErrorViewModal from './SmsLogsErrorViewModal';
 import ShouldRender from '../basic/ShouldRender';
 
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
-export class SmsLogsList extends Component<ComponentProps> {
-
+export class SmsLogsList extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -581,7 +581,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         users: state.user.users.users,
         deleteRequest: state.smsLogs.smsLogs.deleteRequest,

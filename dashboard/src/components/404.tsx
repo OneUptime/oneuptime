@@ -2,6 +2,7 @@ import React, { Component, Fragment } from 'react';
 
 class NotFound extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

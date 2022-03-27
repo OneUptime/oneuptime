@@ -16,6 +16,8 @@ import {
     FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,
 } from '../constants/resourceCategories';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     resourceCategoryListForNewResource: {
         resourceCategories: [],
@@ -53,7 +55,7 @@ const INITIAL_STATE = {
 
 export default function resourceCategory(
     state = INITIAL_STATE,
-    action: $TSFixMe
+    action: Action
 ) {
     switch (action.type) {
         case CREATE_RESOURCE_CATEGORY_SUCCESS:

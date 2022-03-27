@@ -8,7 +8,7 @@ import { closeModal } from 'common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { deletePerformanceTracker } from '../../actions/performanceTracker';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface DeletePerformanceTrackerProps {
     closeModal: Function;
@@ -17,7 +17,7 @@ interface DeletePerformanceTrackerProps {
     deletePerformanceTracker?: Function;
 }
 
-class DeletePerformanceTracker extends Component<DeletePerformanceTrackerProps> {
+class DeletePerformanceTracker extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -177,7 +177,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         trackerObj: state.performanceTracker.deletePerformanceTracker,
         data: state.modal.modals[0],

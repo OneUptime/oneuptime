@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 const composableComponent = (ComposedComponent: $TSFixMe) => {
     class Modal extends Component<ComponentProps> {
 
+        public static displayName = '';
         public static propTypes = {};
 
         constructor(props: $TSFixMe) {

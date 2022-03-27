@@ -22,11 +22,9 @@ interface EmailTemplatesProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class EmailTemplates extends Component<EmailTemplatesProps> {
+class EmailTemplates extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     ready = () => {
@@ -97,7 +95,7 @@ EmailTemplates.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getEmailTemplates, getSmtpConfig }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

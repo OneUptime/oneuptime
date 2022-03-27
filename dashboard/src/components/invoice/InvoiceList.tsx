@@ -15,11 +15,11 @@ interface InvoiceListProps {
     prevClicked: Function;
 }
 
-export class InvoiceList extends Component<InvoiceListProps> {
+export class InvoiceList extends Component<InvoiceListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override render() {
@@ -399,7 +399,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const { invoices, nextCount } = state.invoice;
     const { has_more } = invoices;
     const isRequesting = state.invoice.requesting;

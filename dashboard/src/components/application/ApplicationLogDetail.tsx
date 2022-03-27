@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
@@ -41,11 +41,9 @@ interface ApplicationLogDetailProps {
     setShow?: Function;
 }
 
-class ApplicationLogDetail extends Component<ApplicationLogDetailProps> {
+class ApplicationLogDetail extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             deleting: false,
             deleteModalId: uuidv4(),
@@ -394,7 +392,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const applicationLogId = ownProps.index;
     const applicationLogs =
         state.applicationLog.applicationLogsList.applicationLogs;

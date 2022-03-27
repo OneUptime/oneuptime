@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incomingRequest';
 
@@ -21,7 +21,7 @@ export const createIncomingRequest =
         try {
             dispatch(createIncomingRequestRequest());
 
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `incoming-request/${projectId}/create-request-url`,
                 data
             );
@@ -60,7 +60,7 @@ export const editIncomingRequest =
         try {
             dispatch(editIncomingRequestRequest());
 
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `incoming-request/${projectId}/update/${requestId}`,
                 data
             );
@@ -99,9 +99,8 @@ export const deleteIncomingRequest =
         try {
             dispatch(deleteIncomingRequestRequest());
 
-            const response = await deleteApi(
-                `incoming-request/${projectId}/remove/${requestId}`
-            );
+            const response =
+                await delete `incoming-request/${projectId}/remove/${requestId}`;
 
             dispatch(deleteIncomingRequestSuccess(response.data));
         } catch (error) {
@@ -137,7 +136,7 @@ export const fetchAllIncomingRequest =
         try {
             dispatch(fetchAllIncomingRequestRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `incoming-request/${projectId}/all-incoming-request?skip=${skip}&limit=${limit}`
             );
 
@@ -165,7 +164,7 @@ export const incomingRequestToggle =
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `incoming-request/${projectId}/toggle/${requestId}`,
                 enabled
             );

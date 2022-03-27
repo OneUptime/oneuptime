@@ -12,7 +12,7 @@ interface DeleteApplicationLogProps {
     data?: object;
 }
 
-class DeleteApplicationLog extends Component<DeleteApplicationLogProps> {
+class DeleteApplicationLog extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -130,7 +130,7 @@ DeleteApplicationLog.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         applicationLogState: state.applicationLog,
     };

@@ -1,5 +1,4 @@
 import isEmail from 'sane-email-validation';
-
 import validUrl from 'valid-url';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -94,7 +93,7 @@ export const Validate = {
         return domain.search(/\./) >= 0;
     },
 
-    url(url: string) {
+    url(url: URL) {
         return validUrl.isUri(url);
     },
 
@@ -117,7 +116,7 @@ export const Validate = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: string) => {
+export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     if (!url) url = window.location.href;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),

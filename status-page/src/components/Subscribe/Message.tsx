@@ -26,7 +26,7 @@ interface MessageProps {
     handleCloseButtonClick?: Function;
 }
 
-class Message extends Component<MessageProps> {
+class Message extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { email: '' };
@@ -211,7 +211,7 @@ class Message extends Component<MessageProps> {
 
 Message.displayName = 'Message';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
     statuspage: state.status.statusPage

@@ -1,4 +1,4 @@
-import { getApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
@@ -27,7 +27,7 @@ export const fetchTimeMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}/time?startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -74,7 +74,7 @@ export const fetchThroughputMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}/throughput?startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -121,7 +121,7 @@ export const fetchErrorMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}/error?startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -240,7 +240,7 @@ export const fetchIncomingMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}?type=incoming&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -286,7 +286,7 @@ export const fetchOutgoingMetrics =
         startDate = encode(moment(startDate).format());
         endDate = encode(moment(endDate).format());
 
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `performanceMetric/${appId}/key/${key}?type=outgoing&skip=${skip}&limit=${limit}&startDate=${startDate}&endDate=${endDate}`
         );
 
@@ -354,9 +354,8 @@ export const deleteIncomingMetrics =
     (dispatch: Dispatch) => {
         dispatch(deleteIncomingMetricsRequest());
 
-        const promise = deleteApi(
-            `performanceMetric/${appId}/key/${key}/${metricId}`
-        );
+        const promise =
+            delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
             function (response) {
@@ -401,9 +400,8 @@ export const deleteOutgoingMetrics =
     (dispatch: Dispatch) => {
         dispatch(deleteOutgoingMetricsRequest());
 
-        const promise = deleteApi(
-            `performanceMetric/${appId}/key/${key}/${metricId}`
-        );
+        const promise =
+            delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
             function (response) {

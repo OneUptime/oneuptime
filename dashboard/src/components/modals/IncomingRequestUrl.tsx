@@ -156,7 +156,7 @@ IncomingRequestUrl.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     currentProject: state.project.currentProject,
 
     incomingRequest:

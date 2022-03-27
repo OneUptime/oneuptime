@@ -6,7 +6,7 @@ import { ListLoader } from '../basic/Loader';
 import moment from 'moment';
 import { fetchAlertCharges } from '../../actions/alert';
 import { getProjectBalance } from '../../actions/project';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface AlertChargesListProps {
     alertCharges?: unknown[];
@@ -21,11 +21,11 @@ interface AlertChargesListProps {
     getProjectBalance?: Function;
 }
 
-export class AlertChargesList extends Component<AlertChargesListProps> {
+export class AlertChargesList extends Component<AlertChargesListProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {};
     }
     override componentDidMount() {
@@ -450,7 +450,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

@@ -178,7 +178,7 @@ ErrorTrackerList.propTypes = {
     showComponentWithIssue: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 

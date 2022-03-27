@@ -38,7 +38,7 @@ interface EditComponentProps {
     handleSubmit?: Function;
 }
 
-class EditComponent extends Component<EditComponentProps> {
+class EditComponent extends Component<ComponentProps> {
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);
@@ -208,7 +208,7 @@ const UpdateComponentForm = reduxForm({
     validate,
 })(EditComponent);
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     return {
         editComponentModalId: state.modal.modals[0].id,
         initialValues: state.component.componentList.components.map(

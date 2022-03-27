@@ -59,7 +59,7 @@ export default {
     },
 };
 
-const lighthouseFetch = (url: string) => {
+const lighthouseFetch = (url: URL) => {
     return new Promise((resolve, reject) => {
         const lighthouseWorker = fork('./utils/lighthouse');
         const timeoutHandler = setTimeout(async () => {

@@ -12,7 +12,7 @@ interface OngoingScheduleProps {
     ongoing?: unknown[];
 }
 
-class OngoingSchedule extends Component<OngoingScheduleProps> {
+class OngoingSchedule extends Component<ComponentProps> {
     override render() {
         return <>
 

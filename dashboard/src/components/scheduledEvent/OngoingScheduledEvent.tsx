@@ -18,7 +18,7 @@ const OngoingScheduledEvent = ({
     history,
     slug
 }: OngoingScheduledEventProps) => {
-    let monitorState: $TSFixMe = [];
+    let monitorstate: RootState = [];
     monitorList.forEach((list: $TSFixMe) => {
         if (
             String(list._id) === String(event.projectId._id || event.projectId)

@@ -17,8 +17,6 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
-        this.props = props;
-
         this.token = this.props.match.params.token;
 
         //if token is not present. Redirect to login page.
@@ -81,7 +79,7 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         masterAdminExists: state.login.masterAdmin.exists,
         requestingMasterAdmin: state.login.masterAdmin.requesting,

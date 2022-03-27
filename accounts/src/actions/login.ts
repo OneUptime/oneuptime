@@ -1,4 +1,4 @@
-import { postApi, getApi } from '../api';
+import BackendAPI from '../utils/backendApi';
 import { Dispatch } from 'redux';
 import * as types from '../constants/login';
 import { User, DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config.js';
@@ -39,7 +39,7 @@ export const loginSuccess = (user: $TSFixMe) => {
     if (statusPageLogin) {
         const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 
-        return (window.location = newURL);
+        return (window.location.href = newURL);
     }
 
     //share localStorage with dashboard app
@@ -63,13 +63,13 @@ export const loginSuccess = (user: $TSFixMe) => {
     }
 
     if (user.redirect && user?.tokens?.jwtAccessToken) {
-        return (window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
+        return (window.location.href = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
     } else if (user.redirect) {
-        return (window.location = user.redirect);
+        return (window.location.href = user.redirect);
     } else if (user.role === 'master-admin') {
-        window.location = ADMIN_DASHBOARD_URL;
+        window.location.href = ADMIN_DASHBOARD_URL;
     } else {
-        window.location = DASHBOARD_URL;
+        window.location.href = DASHBOARD_URL;
     }
 
     return {
@@ -104,7 +104,7 @@ export const loginUser = (values: $TSFixMe) => {
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/login', values);
+        const promise = BackendAPI.post('user/login', values);
         dispatch(loginRequest(promise));
 
         promise.then(
@@ -139,12 +139,12 @@ export const loginUser = (values: $TSFixMe) => {
 export const loginUserSso =
     (values: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `user/sso/login?email=${values.email}`
             );
 
             const { url } = response.data;
-            window.location = url;
+            window.location.href = url;
         } catch (error) {
             let errorMsg;
             if (error && error.response && error.response.data)
@@ -169,7 +169,7 @@ export const verifyAuthToken = (values: $TSFixMe) => {
     const email = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/totp/verifyToken', values);
+        const promise = BackendAPI.post('user/totp/verifyToken', values);
         dispatch(verifyTokenRequest(promise));
 
         promise.then(
@@ -223,7 +223,7 @@ export const verifyBackupCode = (values: $TSFixMe) => {
     const email = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/verify/backupCode', values);
+        const promise = BackendAPI.post('user/verify/backupCode', values);
         dispatch(useBackupCodeRequest(promise));
 
         promise.then(
@@ -285,7 +285,7 @@ export const resetMasterAdminExists = () => {
 // Calls the API to register a user.
 export const checkIfMasterAdminExists = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi('user/masterAdminExists', values);
+        const promise = BackendAPI.get('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
             function (response) {

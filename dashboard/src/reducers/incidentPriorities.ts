@@ -17,6 +17,8 @@ import {
     DELETE_INCIDENT_PRIORITY_RESET,
 } from '../constants/incidentPriorities';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     incidentPrioritiesList: {
         error: null,
@@ -44,7 +46,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: $TSFixMe) => {
+export default (state = INITIAL_STATE, action: Action) => {
     let incidentPriorities, count, index;
     switch (action.type) {
         case FETCH_INCIDENT_PRIORITIES_SUCCESS:

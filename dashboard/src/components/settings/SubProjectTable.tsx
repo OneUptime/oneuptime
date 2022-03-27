@@ -23,7 +23,9 @@ interface SubProjectTableProps {
     currentProject?: object;
 }
 
-export class SubProjectTable extends Component<SubProjectTableProps> {
+export class SubProjectTable extends Component<SubProjectTableProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { subProjectModalId: uuidv4() };
@@ -203,7 +205,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         subProjectState: state.subProject,

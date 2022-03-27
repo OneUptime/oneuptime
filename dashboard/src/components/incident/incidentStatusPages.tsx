@@ -260,7 +260,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         requesting: state.statusPage.requesting,
         projectId: state.project.currentProject._id,

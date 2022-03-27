@@ -6,7 +6,7 @@ import {
     SHOW_SEARCH_BAR,
     CLOSE_SEARCH_BAR,
 } from '../constants/search';
-import { postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import errors from '../errors';
 
@@ -44,7 +44,7 @@ export const searchFailure = (payload: $TSFixMe) => {
 export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         dispatch(searchRequest());
-        const promise = postApi(`search/${projectId}`, values);
+        const promise = BackendAPI.post(`search/${projectId}`, values);
         promise.then(
             function (result) {
                 const search = result.data;

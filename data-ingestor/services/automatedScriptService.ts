@@ -1,4 +1,4 @@
-import { postApi } from '../utils/api';
+import BackendAPI from '../utils/api';
 import ErrorService from './errorService';
 
 import { scriptBaseUrl } from '../utils/config';
@@ -174,7 +174,7 @@ export default {
                 });
             let data = null;
             if (scriptType === 'JavaScript') {
-                const result = await postApi(
+                const result = await BackendAPI.post(
                     `${scriptBaseUrl}/script/js`,
                     {
                         script,
@@ -192,7 +192,7 @@ export default {
                     consoleLogs: result.consoleLogs,
                 };
             } else if (scriptType === 'Bash') {
-                const result = await postApi(
+                const result = await BackendAPI.post(
                     `${scriptBaseUrl}/script/bash`,
                     {
                         script,

@@ -31,11 +31,11 @@ interface PrivateStatusPageProps {
     formValues?: object;
 }
 
-export class PrivateStatusPage extends Component<PrivateStatusPageProps> {
+export class PrivateStatusPage extends Component<PrivateStatusPageProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             subscriberAdvanceOptionModalId: uuidv4(),
             showMoreOptions: false,
@@ -1525,7 +1525,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const initialValues = {};
     const { currentProject } = state.project;
     const {

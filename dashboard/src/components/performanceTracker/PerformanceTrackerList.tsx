@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import moment from 'moment';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
 import AlertPanel from '../basic/AlertPanel';
 import { fetchLastMetrics } from '../../actions/performanceTracker';
@@ -18,7 +18,7 @@ interface PerformanceTrackerListProps {
     projectId?: string;
 }
 
-class PerformanceTrackerList extends Component<PerformanceTrackerListProps> {
+class PerformanceTrackerList extends Component<ComponentProps> {
     override componentDidMount() {
 
         const { fetchLastMetrics, performanceTracker, projectId } = this.props;
@@ -241,7 +241,7 @@ PerformanceTrackerList.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchLastMetrics }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         lastMetricsObj: state.performanceTracker.lastMetrics,
     };

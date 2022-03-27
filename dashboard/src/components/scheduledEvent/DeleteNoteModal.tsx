@@ -18,7 +18,7 @@ interface DeleteNoteModalProps {
     modalId?: string;
 }
 
-class DeleteNoteModal extends Component<DeleteNoteModalProps> {
+class DeleteNoteModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -149,7 +149,7 @@ DeleteNoteModal.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deletingNote: state.scheduledEvent.deleteScheduledEventNote.requesting,
         deleteError: state.scheduledEvent.deleteScheduledEventNote.error,

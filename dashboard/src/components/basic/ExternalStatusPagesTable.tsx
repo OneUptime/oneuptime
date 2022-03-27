@@ -14,7 +14,9 @@ interface ExternalStatusPagesTableProps {
     openModal: Function;
 }
 
-export class ExternalStatusPagesTable extends Component<ExternalStatusPagesTableProps> {
+export class ExternalStatusPagesTable extends Component<ExternalStatusPagesTableProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         deleteExternalStatusPageModalId: uuidv4(),
     };

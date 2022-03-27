@@ -10,8 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import About from '../modals/About';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class ProfileMenu extends Component<ComponentProps> {
-
+export class ProfileMenu extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -174,7 +174,7 @@ export class ProfileMenu extends Component<ComponentProps> {
 
 ProfileMenu.displayName = 'ProfileMenu';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         position: state.profileSettings.menuPosition,
     };

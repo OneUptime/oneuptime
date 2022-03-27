@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 
 class ErrorEventTagDetail extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

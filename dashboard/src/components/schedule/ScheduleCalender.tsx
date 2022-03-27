@@ -56,7 +56,7 @@ function ScheduleCalender({
     // to the correct localizer.
     const localizer = momentLocalizer(moment); // or globalizeLocalizer
 
-    const handleNavigate = (date: $TSFixMe, view: $TSFixMe, action: $TSFixMe) => {
+    const handleNavigate = (date: $TSFixMe, view: $TSFixMe, action: Action) => {
         setDefaultDate(date);
         if (view === 'month') {
             setDayOffset(prevState => {
@@ -170,7 +170,7 @@ function ScheduleCalender({
                                         ]}
                                         showMultiDayTimes={true}
                                         onView={(view: $TSFixMe) => handleView(view)}
-                                        onNavigate={(date: $TSFixMe, view: $TSFixMe, action: $TSFixMe) =>
+                                        onNavigate={(date: $TSFixMe, view: $TSFixMe, action: Action) =>
                                             handleNavigate(date, view, action)
                                         }
                                         popup={true}

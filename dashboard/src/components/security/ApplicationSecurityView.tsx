@@ -334,7 +334,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.security.deleteApplication.requesting,
         securityLog: state.security.applicationSecurityLog || {},

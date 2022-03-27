@@ -7,6 +7,7 @@ import { fetchLicense } from '../actions/license';
 
 class License extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {

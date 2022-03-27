@@ -20,11 +20,11 @@ interface VerifyAuthTokenProps {
     login?: object;
 }
 
-export class VerifyAuthToken extends Component<VerifyAuthTokenProps> {
+export class VerifyAuthToken extends Component<VerifyAuthTokenProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override componentDidMount() {
@@ -43,7 +43,7 @@ export class VerifyAuthToken extends Component<VerifyAuthTokenProps> {
 
         if (!this.props.login.user.email)
 
-            window.location = ACCOUNTS_URL + '/login';
+            window.location.href = ACCOUNTS_URL + '/login';
 
         const { error } = this.props.login.authToken;
         let header;
@@ -169,7 +169,7 @@ const verifyAuthTokenForm = reduxForm({
     validate,
 })(VerifyAuthToken);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return { login: state.login };
 };
 

@@ -17,11 +17,9 @@ interface ViewErrorTrackerKeyProps {
     data?: object;
 }
 
-class ViewErrorTrackerKey extends Component<ViewErrorTrackerKeyProps> {
+class ViewErrorTrackerKey extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             hidden: true,
             confirmBoxHidden: true,
@@ -397,7 +395,7 @@ ViewErrorTrackerKey.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
     };

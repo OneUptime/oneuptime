@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../utils/backendApi';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resendToken';
 import errors from '../errors';
@@ -34,7 +34,7 @@ export const resendTokenReset = () => {
 
 export const resendToken = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/resend', values);
+        const promise = BackendAPI.post('user/resend', values);
         dispatch(resendTokenRequest(promise));
 
         promise.then(

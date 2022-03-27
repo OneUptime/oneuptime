@@ -12,8 +12,8 @@ import DataPathHoC from '../DataPathHoC';
 import DuplicateStatusPageForm from './DuplicateStatusPageForm';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class DuplicateStatusPageBox extends Component<ComponentProps> {
-
+export class DuplicateStatusPageBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -116,7 +116,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.statusPage &&

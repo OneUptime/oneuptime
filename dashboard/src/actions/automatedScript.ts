@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/automatedScript';
 
@@ -32,7 +32,7 @@ export const createAutomatedScriptFailure = (error: $TSFixMe) => {
 
 export const createAutomatedScript = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`automated-scripts/${projectId}`, data);
+        const promise = BackendAPI.post(`automated-scripts/${projectId}`, data);
 
         dispatch(createAutomatedScriptRequest());
 
@@ -90,7 +90,7 @@ export function updateAutomatedScript(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}`,
             data
         );
@@ -152,7 +152,7 @@ export function fetchSingleAutomatedScript(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
 
@@ -202,7 +202,7 @@ export function fetchAutomatedScript(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
         );
 
@@ -249,7 +249,7 @@ export const runAutomatedScriptSuccess = (data: $TSFixMe) => {
 
 export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
         dispatch(runAutomatedScriptRequest());
@@ -304,9 +304,8 @@ export function deleteAutomatedScript(
     automatedSlug: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `automated-scripts/${projectId}/${automatedSlug}`
-        );
+        const promise =
+            delete `automated-scripts/${projectId}/${automatedSlug}`;
         dispatch(deleteAutomatedScriptRequest());
 
         promise.then(

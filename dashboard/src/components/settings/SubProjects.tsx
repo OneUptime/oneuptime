@@ -27,7 +27,9 @@ interface SubProjectsProps {
     modalList?: unknown[];
 }
 
-export class SubProjects extends Component<SubProjectsProps> {
+export class SubProjects extends Component<SubProjectsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { subProjectModalId: uuidv4(), page: 1 };
@@ -352,7 +354,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let skip =
         state.subProject.subProjects && state.subProject.subProjects.skip
             ? state.subProject.subProjects.skip

@@ -49,7 +49,7 @@ interface ApplicationProps {
     error?: string;
 }
 
-class Application extends Component<ApplicationProps> {
+class Application extends Component<ComponentProps> {
     state = {
         showApplicationSecurityForm: false,
         page: 1,
@@ -556,7 +556,7 @@ Application.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     return {
         componentId:

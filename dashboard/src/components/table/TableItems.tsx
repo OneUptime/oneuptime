@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import TableItem from './TableItem';
 import PropTypes from 'prop-types';
 
-interface TableItemsProps {
+export interface ComponentProps {
     columns: unknown[];
     items: unknown[];
     id?: string;
@@ -10,7 +10,9 @@ interface TableItemsProps {
     actionButtons?: unknown[];
 }
 
-export default class TableItems extends Component<TableItemsProps> {
+export default class TableItems extends Component<TableItemsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

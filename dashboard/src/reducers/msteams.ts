@@ -20,6 +20,8 @@ import {
     PAGINATE_RESET,
 } from '../constants/msteams';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     msTeams: {
         error: null,
@@ -50,7 +52,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     let msTeams, index, count;
     switch (action.type) {
         case GET_MS_TEAMS_FAILED:

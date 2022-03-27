@@ -50,6 +50,8 @@ import {
     DELETE_ERROR_TRACKER_ISSUE_SUCCESS,
 } from '../constants/errorTracker';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     newErrorTracker: {
         errorTracker: null,
@@ -82,7 +84,7 @@ const INITIAL_STATE = {
     errorTrackerIssueMembers: {},
     deleteErrorTrackerIssue: false,
 };
-export default function errorTracker(state = INITIAL_STATE, action: $TSFixMe) {
+export default function errorTracker(state = INITIAL_STATE, action: Action) {
     let temporaryIssues,
         temporaryErrorEvents,
         temporaryErrorTrackers,

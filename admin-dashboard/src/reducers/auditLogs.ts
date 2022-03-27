@@ -18,6 +18,8 @@ import {
     CHANGE_AUDITLOG_STATUS_SUCCESS,
 } from '../constants/auditLogs';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     auditLogs: {
         error: null,
@@ -48,7 +50,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: $TSFixMe) {
+export default function project(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         // Fetch auditLogs list
         case FETCH_AUDITLOGS_REQUEST:

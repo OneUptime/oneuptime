@@ -195,7 +195,7 @@ const _this = {
         projectName: $TSFixMe,
         projectId: $TSFixMe,
         componentName: $TSFixMe,
-        statusPageUrl: string,
+        statusPageUrl: URL,
         customFields: $TSFixMe
     ) {
         let smsBody;
@@ -325,7 +325,7 @@ const _this = {
         projectName: $TSFixMe,
         projectId: $TSFixMe,
         componentName: $TSFixMe,
-        statusUrl: string,
+        statusUrl: URL,
         customFields: $TSFixMe,
         note: $TSFixMe
     ) {
@@ -456,7 +456,7 @@ const _this = {
         projectName: $TSFixMe,
         projectId: $TSFixMe,
         componentName: $TSFixMe,
-        statusPageUrl: string,
+        statusPageUrl: URL,
         customFields: $TSFixMe,
         length: $TSFixMe
     ) {
@@ -588,7 +588,7 @@ const _this = {
         projectName: $TSFixMe,
         projectId: $TSFixMe,
         componentName: $TSFixMe,
-        statusPageUrl: string,
+        statusPageUrl: URL,
         customFields: $TSFixMe,
         length: $TSFixMe
     ) {

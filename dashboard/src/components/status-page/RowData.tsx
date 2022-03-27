@@ -13,7 +13,9 @@ interface RowDataProps {
     switchToProjectViewerNav?: boolean;
 }
 
-export class RowData extends Component<RowDataProps> {
+export class RowData extends Component<RowDataProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
 
         const { statusPage, project } = this.props;
@@ -25,7 +27,7 @@ export class RowData extends Component<RowDataProps> {
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
         const path = `/dashboard/project/${project.slug}/status-page/${statusPage.slug}`;
-        let publicStatusPageurl: string, statusPageSlug;
+        let publicStatusPageurl: URL, statusPageSlug;
         if (statusPage) {
             statusPageSlug = statusPage.slug;
         }

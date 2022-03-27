@@ -1,5 +1,7 @@
 import React from 'react';
 
+export interface ComponentProps { }
+
 function DataPathHoC(WrappedComponent: $TSFixMe, data: $TSFixMe) {
     return class extends Component<ComponentProps> {
         static displayName = 'HocCom';

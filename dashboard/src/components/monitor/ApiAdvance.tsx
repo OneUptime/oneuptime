@@ -33,7 +33,9 @@ interface ApiAdvanceProps {
     index?: number;
 }
 
-export class ApiAdvance extends Component<ApiAdvanceProps> {
+export class ApiAdvance extends Component<ApiAdvanceProps>{
+    public static displayName = '';
+    public static propTypes = {};
     addValue = () => {
 
         this.props.pushArray('NewMonitor', `headers_${this.props.index}`, {
@@ -288,7 +290,7 @@ const mapDispatchToProps = {
     pushArray: arrayPush,
 };
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     return {
         bodytype: newSelector(state, `bodyType_${ownProps.index}`),
     };

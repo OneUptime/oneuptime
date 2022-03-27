@@ -10,14 +10,12 @@ import { deleteUser } from '../../actions/user';
 import UserDeleteModal from './UserDeleteModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserDeleteBox extends Component<ComponentProps> {
-
+export class UserDeleteBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = { deleteModalId: uuidv4() };
     }
 
@@ -100,7 +98,7 @@ UserDeleteBox.displayName = 'UserDeleteBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

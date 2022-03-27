@@ -11,7 +11,7 @@ interface ResetSmsTemplateProps {
     resetSmsTemplates?: object;
 }
 
-class ResetSmsTemplate extends Component<ResetSmsTemplateProps> {
+class ResetSmsTemplate extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -126,7 +126,7 @@ ResetSmsTemplate.propTypes = {
     resetSmsTemplates: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         applicationLogState: state.applicationLog,
     };

@@ -7,7 +7,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderField } from '../basic/RenderField';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import { reduxForm, Field, reset } from 'redux-form';
 import { renameSchedule } from '../../actions/schedule';
@@ -26,8 +26,8 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-export class RenameScheduleBox extends Component<ComponentProps> {
-
+export class RenameScheduleBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     submitForm = (values: $TSFixMe) => {
@@ -176,7 +176,7 @@ const RenameScheduleForm = new reduxForm({
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renameSchedule }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(

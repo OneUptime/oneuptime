@@ -959,7 +959,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const monitorsList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
         item.monitors.forEach((m: $TSFixMe) => {

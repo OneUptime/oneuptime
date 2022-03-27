@@ -14,7 +14,7 @@ const _this = {
         };
     },
 
-    postApi: (url: string, data: $TSFixMe) => {
+    post: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
@@ -43,7 +43,7 @@ const _this = {
         });
     },
 
-    getApi: (url: string, limit = 10) => {
+    get: (url: URL, limit = 10) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
@@ -65,7 +65,7 @@ const _this = {
         });
     },
 
-    putApi: (url: string, data: $TSFixMe) => {
+    put: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
@@ -93,7 +93,7 @@ const _this = {
         });
     },
 
-    deleteApi: (url: string, data: $TSFixMe) => {
+    delete: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({

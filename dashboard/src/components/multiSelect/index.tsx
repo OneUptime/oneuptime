@@ -18,7 +18,7 @@ interface MultiSelectProps {
     filterOptions?: any;
 }
 
-class MultiSelect extends Component<MultiSelectProps> {
+class MultiSelect extends Component<ComponentProps> {
     state = {};
 
     getSelectedText() {

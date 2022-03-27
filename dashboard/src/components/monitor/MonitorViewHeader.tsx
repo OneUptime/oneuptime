@@ -22,7 +22,7 @@ import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
 import { openModal, closeModal } from 'common-ui/actions/modal';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';
 
@@ -51,11 +51,11 @@ interface MonitorViewHeaderProps {
     toggleEdit?: Function;
 }
 
-export class MonitorViewHeader extends Component<MonitorViewHeaderProps> {
+export class MonitorViewHeader extends Component<MonitorViewHeaderProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             deleteModalId: uuidv4(),
             startDate: moment().subtract(30, 'd'),
@@ -509,7 +509,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         monitorState: state.monitor,
         subProjects: state.subProject.subProjects.subProjects,

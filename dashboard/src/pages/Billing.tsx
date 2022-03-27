@@ -29,11 +29,9 @@ interface BillingProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Billing extends Component<BillingProps> {
+class Billing extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override componentDidMount() {
@@ -95,7 +93,7 @@ class Billing extends Component<BillingProps> {
 
 Billing.displayName = 'Billing';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     return {

@@ -27,7 +27,7 @@ interface HideAnnouncementProps {
     fetchAnnouncementLogs?: Function;
 }
 
-class HideAnnouncement extends Component<HideAnnouncementProps> {
+class HideAnnouncement extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.resetDeleteAnnouncement();
@@ -236,7 +236,7 @@ HideAnnouncement.propTypes = {
     fetchAnnouncementLogs: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         modalId: state.modal.modals[0].id,
         requesting: state.statusPage.createAnnouncement.requesting,

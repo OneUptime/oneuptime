@@ -65,7 +65,9 @@ interface LinksProps {
     initialValues?: object;
 }
 
-export class Links extends Component<LinksProps> {
+export class Links extends Component<LinksProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyBoard: $TSFixMe;
     state = {
         createFooterLinkModalId: uuidv4(),
@@ -291,7 +293,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const status = state.statusPage.status || [];
     const links: $TSFixMe = [];
 

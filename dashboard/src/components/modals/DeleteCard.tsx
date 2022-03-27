@@ -20,7 +20,7 @@ interface DeleteCardProps {
     error?: string;
 }
 
-class DeleteCard extends Component<DeleteCardProps> {
+class DeleteCard extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -186,7 +186,7 @@ DeleteCard.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         userId: User.getUserId(),
         requesting: state.card.deleteCard.requesting,

@@ -1,4 +1,4 @@
-import { getApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/dashboard';
 import errors from '../errors';
@@ -32,7 +32,9 @@ export const loadDashboard = () => async (dispatch: Dispatch) => {
     dispatch(dashboardLoadRequest());
 
     try {
-        const response = await getApi(`user/users?skip=${skip}&limit=${limit}`);
+        const response = await BackendAPI.get(
+            `user/users?skip=${skip}&limit=${limit}`
+        );
         dispatch(dashboardLoadSuccess());
 
         return response;

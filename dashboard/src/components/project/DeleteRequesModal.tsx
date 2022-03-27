@@ -10,7 +10,7 @@ interface DeleteRequestModalProps {
     requesting?: boolean;
 }
 
-class DeleteRequestModal extends Component<DeleteRequestModalProps> {
+class DeleteRequestModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

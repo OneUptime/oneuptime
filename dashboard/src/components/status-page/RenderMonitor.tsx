@@ -320,7 +320,7 @@ let RenderMonitor = ({
     );
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const selector = formValueSelector(ownProps.form);
     const { subProject } = ownProps;
     const subProjectId = subProject?._id;

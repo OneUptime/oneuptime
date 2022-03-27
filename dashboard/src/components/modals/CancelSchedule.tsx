@@ -8,7 +8,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { cancelScheduledEvent } from '../../actions/scheduledEvent';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface CancelScheduleProps {
     closeThisDialog: Function;
@@ -21,7 +21,7 @@ interface CancelScheduleProps {
     data?: object;
 }
 
-class CancelSchedule extends Component<CancelScheduleProps> {
+class CancelSchedule extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -172,7 +172,7 @@ CancelSchedule.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.scheduledEvent.cancelScheduledEvent.requesting,
         cancelError: state.scheduledEvent.cancelScheduledEvent.error,

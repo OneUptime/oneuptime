@@ -7,6 +7,7 @@ import ClickOutside from 'react-click-outside';
 
 class ConfirmBalanceTopUp extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -119,7 +120,7 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
 
 
 ConfirmBalanceTopUp.displayName = 'ConfirmBalanceTopUpFormModal';
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     isRequesting: state.project.updateBalance.requesting
 });
 

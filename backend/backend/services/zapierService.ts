@@ -829,7 +829,7 @@ export default {
 
     subscribe: async function (
         projectId: $TSFixMe,
-        url: string,
+        url: URL,
         type: $TSFixMe,
         monitors: $TSFixMe
     ) {

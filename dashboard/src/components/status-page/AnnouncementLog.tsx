@@ -24,7 +24,7 @@ interface AnnouncementLogProps {
     openModal?: Function;
 }
 
-class AnnouncementLog extends Component<AnnouncementLogProps> {
+class AnnouncementLog extends Component<ComponentProps> {
     deleteAnnouncement: $TSFixMe;
     limit: $TSFixMe;
     constructor(props: $TSFixMe) {
@@ -416,7 +416,7 @@ AnnouncementLog.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     logs: state.statusPage.announcementLogs.logsList,
     requesting: state.statusPage.announcementLogs.requesting,
     error: state.statusPage.announcementLogs.error

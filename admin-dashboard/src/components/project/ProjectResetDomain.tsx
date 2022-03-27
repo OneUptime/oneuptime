@@ -15,6 +15,7 @@ import {
 
 class ProjectResetDomain extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -204,7 +205,7 @@ ProjectResetDomain.propTypes = {
     resetProjectDomainOnMount: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     domainId: state.modal.modals[0].id,
     domain: state.modal.modals[0].domain,
     projectId: state.modal.modals[0].projectId,

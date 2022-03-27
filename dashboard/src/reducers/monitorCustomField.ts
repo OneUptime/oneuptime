@@ -1,5 +1,7 @@
 import * as types from '../constants/monitorCustomField';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     monitorCustomField: {
         requesting: false,
@@ -20,7 +22,7 @@ const initialState = {
 
 export default function monitorCustomField(
     state = initialState,
-    action: $TSFixMe
+    action: Action
 ) {
     switch (action.type) {
         case types.CREATE_CUSTOM_FIELD_REQUEST:

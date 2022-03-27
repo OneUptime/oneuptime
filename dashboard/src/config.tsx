@@ -157,7 +157,7 @@ export const Validate = {
         return domain.search(/\./) >= 0;
     },
 
-    url(url: string) {
+    url(url: URL) {
         return validUrl.isUri(url);
     },
 
@@ -295,7 +295,7 @@ export const ValidateField = {
 
     isDomain: (domain: $TSFixMe) => domain.search(/\./) >= 0 ? undefined : 'Please enter a valid Domain',
 
-    url: (url: string) => validUrl.isUri(url) ? undefined : 'Please enter a valid Url',
+    url: (url: URL) => validUrl.isUri(url) ? undefined : 'Please enter a valid Url',
 
     text: (text: $TSFixMe) => !text || text.trim() === ''
         ? 'This field cannot be left blank'
@@ -618,7 +618,7 @@ export const tutorials = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: string) => {
+export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),

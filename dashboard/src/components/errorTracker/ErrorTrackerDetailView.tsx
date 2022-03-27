@@ -27,11 +27,9 @@ interface ErrorTrackerDetailViewProps {
     errorTrackerStatus?: object;
 }
 
-class ErrorTrackerDetailView extends Component<ErrorTrackerDetailViewProps> {
+class ErrorTrackerDetailView extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             selectedErrorEvents: [],
             ignoreModalId: uuidv4(),
@@ -577,7 +575,7 @@ class ErrorTrackerDetailView extends Component<ErrorTrackerDetailViewProps> {
     }
 }
 
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     // get current error event tracker
     const errorTracker = ownProps.errorTracker;
     // get its list of error tracker issues

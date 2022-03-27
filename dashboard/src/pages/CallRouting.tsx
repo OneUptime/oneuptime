@@ -40,11 +40,9 @@ interface CallRoutingProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class CallRouting extends Component<CallRoutingProps> {
+class CallRouting extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             tabIndex: 0,
         };
@@ -192,7 +190,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

@@ -9,7 +9,7 @@ import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { ValidateField } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
@@ -30,7 +30,7 @@ interface EditApplicationSecurityProps {
     formValues?: unknown;
 }
 
-class EditApplicationSecurity extends Component<EditApplicationSecurityProps> {
+class EditApplicationSecurity extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -536,7 +536,7 @@ EditApplicationSecurity.propTypes = {
     formValues: PropTypes.obj,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.security.editApplicationSecurity.requesting,
         editError: state.security.editApplicationSecurity.error,

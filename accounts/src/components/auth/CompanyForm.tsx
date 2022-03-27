@@ -19,7 +19,7 @@ interface CompanyFormProps {
     submitForm: Function;
 }
 
-class CompanyForm extends Component<CompanyFormProps> {
+class CompanyForm extends Component<ComponentProps> {
     override render() {
         return (
             <div id="main-body" className="box css" >
@@ -214,7 +214,7 @@ const mapDispatchToProps = () => {
     return {};
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         register: state.register,
     };

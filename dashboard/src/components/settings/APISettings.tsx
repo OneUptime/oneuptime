@@ -14,8 +14,8 @@ import { openModal } from 'common-ui/actions/modal';
 import { API_URL } from '../../config';
 import TooltipMini from '../basic/TooltipMini';
 
-export class APISettings extends Component<ComponentProps> {
-
+export class APISettings extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -232,7 +232,7 @@ export class APISettings extends Component<ComponentProps> {
 
 APISettings.displayName = 'APISettings';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     currentProject: state.project.currentProject,
     isRequesting: state.project.resetToken.requesting
 });

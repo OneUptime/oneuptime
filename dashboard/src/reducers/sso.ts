@@ -1,5 +1,7 @@
 import * as types from '../constants/sso';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     fetchSsos: {
         requesting: false,
@@ -33,7 +35,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function sso(state = INITIAL_STATE, action: $TSFixMe) {
+export default function sso(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case types.CREATE_SSO_REQUEST:
             return {

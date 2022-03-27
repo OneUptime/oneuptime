@@ -47,7 +47,7 @@ interface ScheduledEventDetailProps {
     history?: object;
 }
 
-class ScheduledEventDetail extends Component<ScheduledEventDetailProps> {
+class ScheduledEventDetail extends Component<ComponentProps> {
     limit: $TSFixMe;
     type: $TSFixMe;
     constructor(props: $TSFixMe) {
@@ -395,7 +395,7 @@ ScheduledEventDetail.propTypes = {
     history: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { scheduledEventSlug } = props.match.params;
     const monitorList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.map((data: $TSFixMe) => {

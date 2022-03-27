@@ -8,7 +8,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { deleteErrorTracker } from '../../actions/errorTracker';
 
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import DeleteErrorTracker from '../modals/DeleteErrorTracker';
 
 interface ErrorTrackerViewDeleteBoxProps {
@@ -19,7 +19,7 @@ interface ErrorTrackerViewDeleteBoxProps {
     component?: object;
 }
 
-class ErrorTrackerViewDeleteBox extends Component<ErrorTrackerViewDeleteBoxProps> {
+class ErrorTrackerViewDeleteBox extends Component<ComponentProps> {
     handleKeyBoard: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);
@@ -102,7 +102,7 @@ class ErrorTrackerViewDeleteBox extends Component<ErrorTrackerViewDeleteBoxProps
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const componentId = props.errorTracker.componentId._id;
     let component;
     state.component.componentList.components.forEach((item: $TSFixMe) => {

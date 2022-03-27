@@ -7,7 +7,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { Validate } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { ButtonSpinner } from '../basic/Loader.js';
-import { removeQuery } from '../../store';
+import { removeQuery, RootState } from '../../store';
 
 import queryString from 'query-string';
 
@@ -22,7 +22,7 @@ interface UserFormProps {
     initialValues?: object;
 }
 
-class UserForm extends Component<UserFormProps> {
+class UserForm extends Component<ComponentProps> {
     state = {
         serverResponse: '',
     };
@@ -364,7 +364,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getEmailFromToken }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         register: state.register,
         initialValues: state.register.email,

@@ -24,7 +24,7 @@ interface RemoveSubProjectProps {
     resetProjectNotification?: Function;
 }
 
-class RemoveSubProject extends Component<RemoveSubProjectProps> {
+class RemoveSubProject extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -171,7 +171,7 @@ class RemoveSubProject extends Component<RemoveSubProjectProps> {
 
 RemoveSubProject.displayName = 'RemoveSubProjectFormModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         subProjectDelete: state.subProject.deleteSubProject,

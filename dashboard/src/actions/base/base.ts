@@ -1,4 +1,4 @@
-import { postApi, getApi, putApi, deleteApi } from '../../api';
+import BackendAPI from '../../api';
 import { getErrorMessageFromResponse } from '../../utils/error';
 import { Dispatch } from 'redux';
 class BaseAction {
@@ -126,23 +126,23 @@ class BaseAction {
                 let response = null;
                 try {
                     if (this.actionType === 'create') {
-                        response = await postApi(path, data);
+                        response = await BackendAPI.post(path, data);
                     }
 
                     if (this.actionType === 'list') {
-                        response = await getApi(path, data);
+                        response = await BackendAPI.get(path, data);
                     }
 
                     if (this.actionType === 'get') {
-                        response = await getApi(path, data);
+                        response = await BackendAPI.get(path, data);
                     }
 
                     if (this.actionType === 'update') {
-                        response = await putApi(path, data);
+                        response = await BackendAPI.put(path, data);
                     }
 
                     if (this.actionType === 'delete') {
-                        response = await deleteApi(path, data);
+                        response = await delete (path, data);
                     }
 
                     const data = response.data;

@@ -19,7 +19,7 @@ interface DeleteMonitorSlaModalProps {
     data?: object;
 }
 
-class DeleteMonitorSlaModal extends Component<DeleteMonitorSlaModalProps> {
+class DeleteMonitorSlaModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -176,7 +176,7 @@ DeleteMonitorSlaModal.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.monitorSla.monitorSlas.requesting,
         deleteError: state.monitorSla.monitorSlas.error,

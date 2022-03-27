@@ -12,7 +12,7 @@ const httpsAgent = new https.Agent({
 const httpAgent = new http.Agent();
 
 const pingfetch = async (
-    url: string,
+    url: URL,
     method: $TSFixMe,
     body: $TSFixMe,
     headers: $TSFixMe

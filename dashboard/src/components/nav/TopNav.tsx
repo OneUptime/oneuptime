@@ -32,7 +32,7 @@ import isSubProjectViewer from '../../utils/isSubProjectViewer';
 import { setActiveSubProject } from '../../actions/subProject';
 import SubProjectDropDown from '../basic/SubProjectDropDown';
 import { fetchMonitors } from '../../actions/monitor';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { socket } from '../basic/Socket';
 import { showSearchBar, closeSearchBar } from '../../actions/search';
 
@@ -79,7 +79,7 @@ interface TopContentProps {
     resetCreateFeedback?: Function;
 }
 
-class TopContent extends Component<TopContentProps> {
+class TopContent extends Component<ComponentProps> {
     ArrowDown: $TSFixMe;
     state = { width: 0 };
     updateDimensions = () => {
@@ -786,7 +786,7 @@ class TopContent extends Component<TopContentProps> {
 
 TopContent.displayName = 'TopContent';
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';
     const { projectId } = props;

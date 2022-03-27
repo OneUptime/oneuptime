@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
@@ -126,7 +126,7 @@ export const resetProjects = () => {
 
 export const getProjects = (switchToProjectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `project/projects?skip=${0}&limit=${9999}`,
 
             null
@@ -214,7 +214,7 @@ export const getProjectBalanceSuccess = (project: $TSFixMe) => {
 
 export const getProjectBalance = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`project/${projectId}/balance`, null);
+        const promise = BackendAPI.get(`project/${projectId}/balance`, null);
 
         dispatch(getProjectBalanceRequest(promise));
 
@@ -266,7 +266,7 @@ export const resetCreateProject = () => {
 
 export const createProject = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi('project/create', values);
+        const promise = BackendAPI.post('project/create', values);
 
         dispatch(createProjectRequest());
 
@@ -475,7 +475,7 @@ export const resetProjectTokenError = (error: $TSFixMe) => {
 
 export const resetProjectToken = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`project/${projectId}/resetToken`);
+        const promise = BackendAPI.get(`project/${projectId}/resetToken`);
 
         dispatch(resetProjectTokenRequest());
 
@@ -534,7 +534,7 @@ export const renameProjectError = (error: $TSFixMe) => {
 
 export const renameProject = (projectId: $TSFixMe, projectName: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`project/${projectId}/renameProject`, {
+        const promise = BackendAPI.put(`project/${projectId}/renameProject`, {
             projectName,
         });
 
@@ -590,7 +590,8 @@ export const deleteProjectError = (error: $TSFixMe) => {
 
 export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`project/${projectId}/deleteProject`, {
+        const promise = delete (`project/${projectId}/deleteProject`,
+        {
             projectId,
             feedback,
         });
@@ -658,7 +659,7 @@ export function changePlan(
     newPlan: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`project/${projectId}/changePlan`, {
+        const promise = BackendAPI.post(`project/${projectId}/changePlan`, {
             projectName,
             planId,
             oldPlan,
@@ -700,10 +701,13 @@ export function upgradeToEnterpriseMail(
     oldPlan: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`project/${projectId}/upgradeToEnterprise`, {
-            projectName,
-            oldPlan,
-        });
+        const promise = BackendAPI.post(
+            `project/${projectId}/upgradeToEnterprise`,
+            {
+                projectName,
+                oldPlan,
+            }
+        );
 
         dispatch(changePlanRequest());
 
@@ -758,10 +762,8 @@ export const exitProjectError = (error: $TSFixMe) => {
 
 export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(
-            `project/${projectId}/user/${userId}/exitProject`,
-            null
-        );
+        const promise =
+            delete (`project/${projectId}/user/${userId}/exitProject`, null);
         dispatch(exitProjectRequest());
 
         promise.then(
@@ -820,7 +822,8 @@ export const markProjectForDelete = (
     feedback: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`project/${projectId}/deleteProject`, {
+        const promise = delete (`project/${projectId}/deleteProject`,
+        {
             projectId,
             feedback,
         });
@@ -875,7 +878,10 @@ export const alertOptionsUpdate = (
     alertData: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = putApi(`project/${projectId}/alertOptions`, alertData);
+        const promise = BackendAPI.put(
+            `project/${projectId}/alertOptions`,
+            alertData
+        );
 
         dispatch(alertOptionsUpdateRequest());
 
@@ -923,7 +929,7 @@ export const addBalanceError = (error: $TSFixMe) => {
 
 export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`stripe/${projectId}/addBalance`, data);
+        const promise = BackendAPI.post(`stripe/${projectId}/addBalance`, data);
 
         dispatch(addBalanceRequest());
 
@@ -975,7 +981,7 @@ export const updateProjectBalance =
         dispatch(updateProjectBalanceRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `stripe/${projectId}/updateBalance/${intentId}`
             );
 
@@ -1016,7 +1022,7 @@ export const checkCardSuccess = (card: $TSFixMe) => {
 
 export const checkCard = (data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi('stripe/checkCard', data);
+        const promise = BackendAPI.post('stripe/checkCard', data);
 
         dispatch(checkCardRequest(promise));
 
@@ -1067,7 +1073,7 @@ export const setEmailNotification = ({ projectId, data }: $TSFixMe) => {
         dispatch(setEmailNotificationRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `project/${projectId}/advancedOptions/email`,
                 data
             );
@@ -1112,7 +1118,7 @@ export const setSmsNotification = ({ projectId, data }: $TSFixMe) => {
         dispatch(setSmsNotificationRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `project/${projectId}/advancedOptions/sms`,
                 data
             );
@@ -1161,7 +1167,7 @@ export const setWebhookNotificationSettings = ({
         dispatch(setWebhookNotificationSettingsRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `project/${projectId}/advancedOptions/webhook`,
                 data
             );
@@ -1213,7 +1219,7 @@ export const createProjectDomain = ({ projectId, data }: $TSFixMe) => {
         dispatch(createProjectDomainRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `domainVerificationToken/${projectId}/domain`,
                 data
             );
@@ -1264,7 +1270,7 @@ export const fetchProjectDomains = (
         dispatch(fetchProjectDomainsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `domainVerificationToken/${projectId}/domains?skip=${skip}&limit=${limit}`
             );
 
@@ -1320,7 +1326,7 @@ export const updateProjectDomain = ({
         dispatch(updateProjectDomainRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `domainVerificationToken/${projectId}/domain/${domainId}`,
                 data
             );
@@ -1377,7 +1383,7 @@ export const verifyProjectDomain = ({
         dispatch(verifyProjectDomainRequest());
 
         try {
-            const response = await putApi(
+            const response = await BackendAPI.put(
                 `domainVerificationToken/${projectId}/verify/${domainId}`,
                 data
             );
@@ -1430,9 +1436,8 @@ export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
         dispatch(deleteProjectDomainRequest());
 
         try {
-            const response = await deleteApi(
-                `domainVerificationToken/${projectId}/domain/${domainId}`
-            );
+            const response =
+                await delete `domainVerificationToken/${projectId}/domain/${domainId}`;
 
             dispatch(deleteProjectDomainSuccess(response.data));
 
@@ -1479,7 +1484,7 @@ export const fetchTrialError = (error: $TSFixMe) => {
 
 export const fetchTrial = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`stripe/${projectId}/getTrial`);
+        const promise = BackendAPI.post(`stripe/${projectId}/getTrial`);
 
         dispatch(fetchTrialRequest());
 
@@ -1528,7 +1533,7 @@ export const fetchProjectSlugFailure = (error: $TSFixMe) => {
 
 export const fetchProjectSlug = (slug: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`project/project-slug/${slug}`);
+        const promise = BackendAPI.get(`project/project-slug/${slug}`);
 
         dispatch(fetchProjectSlugRequest());
 

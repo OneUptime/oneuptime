@@ -22,7 +22,7 @@ interface LogListProps {
     getLogSuccess?: Function;
 }
 
-class LogList extends Component<LogListProps> {
+class LogList extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { viewJsonModalId: uuidv4() };
@@ -554,7 +554,7 @@ LogList.propTypes = {
     handleNavigationButtonClick: PropTypes.func,
     getLogSuccess: PropTypes.func,
 };
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {

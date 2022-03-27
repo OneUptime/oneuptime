@@ -21,7 +21,7 @@ interface NotesProps {
     history?: object;
 }
 
-class Notes extends Component<NotesProps> {
+class Notes extends Component<ComponentProps> {
     handleIncidentStatus = (incident: $TSFixMe, timelines: $TSFixMe) => {
         let incidentTimeline = null,
             timelineStatus = null;

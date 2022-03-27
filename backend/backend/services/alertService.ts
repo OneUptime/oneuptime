@@ -2989,7 +2989,7 @@ export default {
             populate: populateComponent,
         });
 
-        let statusPageUrl: string;
+        let statusPageUrl: URL;
         if (statusPage) {
             statusPageUrl = `${global.statusHost}/status-page/${statusPage._id}`;
             if (statusPage.domains && statusPage.domains.length > 0) {
@@ -3008,7 +3008,7 @@ export default {
             }
         }
 
-        let statusUrl: string;
+        let statusUrl: URL;
         if (statusPageSlug) {
             statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.slug}`;
         }

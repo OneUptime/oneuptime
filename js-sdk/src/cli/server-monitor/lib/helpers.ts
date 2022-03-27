@@ -47,8 +47,8 @@ const defaultErrorHandler = (error: $TSFixMe) => {
  * @return {Promise} The request promise.
  */
 const get = (
-    apiUrl: string,
-    url: string,
+    apiUrl: URL,
+    url: URL,
     key: $TSFixMe,
     success: $TSFixMe,
     error = defaultErrorHandler
@@ -73,8 +73,8 @@ const get = (
  * @return {Promise} The request promise.
  */
 const post = (
-    apiUrl: string,
-    url: string,
+    apiUrl: URL,
+    url: URL,
     data: $TSFixMe,
     key: $TSFixMe,
     success: $TSFixMe,

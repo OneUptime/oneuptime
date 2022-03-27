@@ -27,7 +27,7 @@ interface IncidentsProps {
     incidentReports?: object;
 }
 
-class Incidents extends Component<IncidentsProps> {
+class Incidents extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -52,7 +52,7 @@ class Incidents extends Component<IncidentsProps> {
         getIncidents(currentProject, filter, startDate, endDate);
     }
 
-    UNSAFE_componentWillReceiveProps(nextProps: $TSFixMe, prevState: $TSFixMe) {
+    UNSAFE_componentWillReceiveProps(nextProps: ComponentProps, prevstate: RootState) {
         const {
             getIncidents,
             currentProject,
@@ -247,7 +247,7 @@ const actionCreators = {
     getIncidentsSuccess,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     incidentReports: state.report.incidents
 });
 

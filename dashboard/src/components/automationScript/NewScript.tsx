@@ -41,7 +41,7 @@ interface NewScriptProps {
     activeProject?: string;
 }
 
-class NewScript extends Component<NewScriptProps> {
+class NewScript extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -829,7 +829,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const schedules: $TSFixMe = [];
     state.schedule.subProjectSchedules.forEach((elem: $TSFixMe) => {
         elem.schedules.forEach((schedule: $TSFixMe) => {

@@ -3,7 +3,7 @@ import ErrorService from './errorService';
 const incidentCollection = global.db.collection('incidents');
 import { ObjectId } from 'mongodb';
 
-import { postApi } from '../utils/api';
+import { post } from '../utils/api';
 
 import { realtimeUrl } from '../utils/config';
 import ProjectService from './projectService';
@@ -349,7 +349,7 @@ export default {
                 : updatedIncident.projectId._id || updatedIncident.projectId;
 
             // realtime update
-            postApi(
+            post(
                 `${realtimeBaseUrl}/update-incident`,
                 {
                     incident: updatedIncident,

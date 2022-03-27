@@ -228,7 +228,7 @@ class SlackTeamList extends React.Component<SlackTeamListProps> {
 
 SlackTeamList.displayName = 'SlackTeamList';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     teams: state.slack.teams,
     currentProject: state.project.currentProject,
     projectId: state.project.currentProject && state.project.currentProject._id

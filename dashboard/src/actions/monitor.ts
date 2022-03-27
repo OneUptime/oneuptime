@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/monitor';
 import errors from '../errors';
@@ -12,7 +12,7 @@ import { change, autofill } from 'redux-form';
 //props -> {name: '', type, data -> { data.url}}
 export const fetchMonitors = (projectId: $TSFixMe, skip = 0, limit = 0) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `monitor/${projectId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchMonitorsRequest());
@@ -81,7 +81,7 @@ export function fetchPaginatedMonitors({
         if (componentSlug) {
             url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentSlug=${componentSlug}`;
         }
-        const promise = getApi(url);
+        const promise = BackendAPI.get(url);
         dispatch(fetchPaginatedMonitorsRequest(paginate));
 
         promise.then(
@@ -134,7 +134,7 @@ export const createMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch) {
         dispatch(createMonitorRequest());
-        const promise = postApi(`monitor/${projectId}`, values);
+        const promise = BackendAPI.post(`monitor/${projectId}`, values);
         promise.then(
             function (monitor) {
                 dispatch(createMonitorSuccess(monitor.data));
@@ -168,7 +168,10 @@ export const uploadIdentityFile = (projectId: $TSFixMe, file: $TSFixMe) => {
         if (file) {
             data.append('identityFile', file);
 
-            const promise = postApi(`monitor/${projectId}/identityFile`, data);
+            const promise = BackendAPI.post(
+                `monitor/${projectId}/identityFile`,
+                data
+            );
             dispatch(uploadIdentityFileRequest());
             promise.then(
                 function (response) {
@@ -251,7 +254,7 @@ export const uploadConfigurationFile = (
         if (file) {
             data.append('configurationFile', file);
 
-            const promise = postApi(
+            const promise = BackendAPI.post(
                 `monitor/${projectId}/configurationFile`,
                 data
             );
@@ -327,7 +330,10 @@ export const resetCreateMonitor = () => {
 export const editMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId || projectId;
     return function (dispatch: Dispatch) {
-        const promise = putApi(`monitor/${projectId}/${values._id}`, values);
+        const promise = BackendAPI.put(
+            `monitor/${projectId}/${values._id}`,
+            values
+        );
         if (
             !values.lighthouseScanStatus ||
             (values.lighthouseScanStatus &&
@@ -400,12 +406,15 @@ export const resetEditMonitor = () => {
 export function addSiteUrl(
     monitorId: $TSFixMe,
     projectId: $TSFixMe,
-    siteUrl: string
+    siteUrl: URL
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
-            siteUrl,
-        });
+        const promise = BackendAPI.post(
+            `monitor/${projectId}/siteUrl/${monitorId}`,
+            {
+                siteUrl,
+            }
+        );
         dispatch(editMonitorRequest());
 
         promise.then(
@@ -435,10 +444,11 @@ export function addSiteUrl(
 export function deleteSiteUrl(
     monitorId: $TSFixMe,
     projectId: $TSFixMe,
-    siteUrl: string
+    siteUrl: URL
 ) {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`monitor/${projectId}/siteUrl/${monitorId}`, {
+        const promise = delete (`monitor/${projectId}/siteUrl/${monitorId}`,
+        {
             siteUrl,
         });
         dispatch(editMonitorRequest());
@@ -471,7 +481,7 @@ export function deleteSiteUrl(
 //props -> {name: '', type, data -> { data.url}}
 export const deleteMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = deleteApi(`monitor/${projectId}/${monitorId}`);
+        const promise = delete `monitor/${projectId}/${monitorId}`;
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
@@ -530,7 +540,7 @@ export const deleteProjectMonitors = (projectId: $TSFixMe) => {
 //Disable a monitor
 export const disableMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `monitor/${projectId}/disableMonitor/${monitorId}`,
             {
                 monitorId,
@@ -599,7 +609,7 @@ export const changeMonitorComponent = (
     return async (dispatch: Dispatch) => {
         try {
             dispatch(changeMonitorComponentRequest(monitorId));
-            const monitor = await postApi(
+            const monitor = await BackendAPI.post(
                 `monitor/${projectId}/changeComponent/${monitorId}`,
                 {
                     newComponentId,
@@ -670,10 +680,13 @@ export function fetchMonitorsIncidents(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`incident/${projectId}/monitor/${monitorId}`, {
-            limit,
-            skip,
-        });
+        const promise = BackendAPI.post(
+            `incident/${projectId}/monitor/${monitorId}`,
+            {
+                limit,
+                skip,
+            }
+        );
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(
@@ -739,7 +752,7 @@ export function fetchMonitorsSubscribers(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `subscriber/${projectId}/monitor/${monitorId}?limit=${limit}&skip=${skip}`
         );
         dispatch(fetchMonitorsSubscribersRequest(monitorId));
@@ -807,7 +820,7 @@ export function fetchMonitorLogs(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `monitor/${projectId}/monitorLog/${monitorId}`,
             { startDate, endDate }
         );
@@ -881,7 +894,7 @@ export function fetchMonitorStatuses(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `monitor/${projectId}/monitorStatuses/${monitorId}`,
             { startDate, endDate }
         );
@@ -941,7 +954,7 @@ export const fetchMonitorStatusesFailure = (error: $TSFixMe) => {
 // Fetch Monitor Criteria
 export const fetchMonitorCriteria = () => {
     return function (dispatch: Dispatch) {
-        const promise = getApi('monitorCriteria');
+        const promise = BackendAPI.get('monitorCriteria');
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(
@@ -1026,7 +1039,7 @@ export function getMonitorLogs(
     type: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `monitor/${projectId}/monitorLogs/${monitorId}`,
             {
                 skip,
@@ -1101,10 +1114,10 @@ export function fetchLighthouseLogs(
     monitorId: $TSFixMe,
     skip: $TSFixMe,
     limit: $TSFixMe,
-    url: string
+    url: URL
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             url
                 ? `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}&url=${url}`
                 : `monitor/${projectId}/lighthouseLog/${monitorId}?limit=${limit}&skip=${skip}`
@@ -1168,7 +1181,7 @@ export const fetchLighthouseLogsFailure = (error: $TSFixMe) => {
 // Fetch Monitor Issue list
 export const fetchMonitorIssue = (projectId: $TSFixMe, issueId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `monitor/${projectId}/lighthouseIssue/${issueId}`
         );
         dispatch(fetchMonitorIssueRequest());
@@ -1218,7 +1231,7 @@ export const fetchMonitorIssueFailure = (error: $TSFixMe) => {
 
 export const addSeat = (projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`monitor/${projectId}/addseat`, {});
+        const promise = BackendAPI.post(`monitor/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
 
         promise.then(
@@ -1331,7 +1344,7 @@ export const closeBreachedMonitorSla =
         try {
             dispatch(closeBreachedMonitorSlaRequest());
 
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `monitor/${projectId}/closeSla/${monitorId}`
             );
 
@@ -1368,7 +1381,7 @@ export const fetchBreachedMonitorSla =
         try {
             dispatch(fetchBreachedMonitorSlaRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `monitor/${projectId}/monitorSlaBreaches`
             );
 

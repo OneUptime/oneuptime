@@ -19,7 +19,7 @@ interface TrackerInfoProps {
     resetPerformanceTrackerKey?: Function;
 }
 
-class TrackerInfo extends Component<TrackerInfoProps> {
+class TrackerInfo extends Component<ComponentProps> {
     state = {
         hidden: true,
         confirmBoxHidden: true,
@@ -384,7 +384,7 @@ TrackerInfo.propTypes = {
     resetPerformanceTrackerKey: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         trackerObj: state.performanceTracker.resetPerformanceTrackerKey,
         data: state.modal.modals[0],

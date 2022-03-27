@@ -6,6 +6,8 @@ import {
     RESET_LOGIN,
 } from '../constants/login';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     loginRequired: false,
     success: false,
@@ -13,7 +15,7 @@ const INITIAL_STATE = {
     error: false,
 };
 
-export default (state = INITIAL_STATE, action: $TSFixMe) => {
+export default (state = INITIAL_STATE, action: Action) => {
     switch (action.type) {
         case LOGIN_REQUIRED:
             return Object.assign({}, state, {

@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface FooterProps {
+export interface ComponentProps {
     link?: object;
     textColor?: object;
 }
 
-class Footer extends Component<FooterProps> {
+class Footer extends Component<ComponentProps> {
     override render() {
 
         const { link } = this.props;

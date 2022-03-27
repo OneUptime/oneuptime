@@ -16,11 +16,9 @@ interface ProfileBillingProps {
     };
 }
 
-class ProfileBilling extends Component<ProfileBillingProps> {
+class ProfileBilling extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
 
     override render() {

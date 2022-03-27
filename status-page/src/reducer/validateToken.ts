@@ -6,6 +6,8 @@ import * as types from '../constants/validateToken';
  * we would also want a util to check if the token is expired.
  */
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     requesting: false,
     user: {},
@@ -13,7 +15,7 @@ const initialState = {
     success: false,
 };
 
-export default function register(state = initialState, action: $TSFixMe) {
+export default function register(state = initialState, action: Action) {
     switch (action.type) {
         case types.VALIDATE_TOKEN_REQUEST:
             return Object.assign({}, state, {

@@ -101,7 +101,7 @@ DomainSettings.propTypes = {
     currentProject: PropTypes.object.isRequired,
     switchToProjectViewerNav: PropTypes.bool,
 };
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

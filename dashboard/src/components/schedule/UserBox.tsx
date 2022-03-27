@@ -26,8 +26,8 @@ function submitUserForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe) {
     props.addUsers(props.projectId, scheduleId, { users });
 }
 
-export class UserBox extends Component<ComponentProps> {
-
+export class UserBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -226,7 +226,7 @@ const AddUsersForm = new reduxForm({
     enableReinitialize: true,
 })(UserBox);
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const initialValues = {};
     const schedules = state.schedule.schedules.data;
     const users =

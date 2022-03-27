@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import { User } from '../../config';
-
+import { RootState } from '../../store';
 // Description: Will render the component is the current user in the project is admin.
 // Params
 // params 1: props
@@ -38,7 +38,7 @@ export const RenderIfUserInSubProject = (props: $TSFixMe) => {
     return renderItems;
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,

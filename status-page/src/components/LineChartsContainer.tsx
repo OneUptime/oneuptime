@@ -130,7 +130,7 @@ LineChartsContainer.propTypes = {
     logs: PropTypes.array.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const {
         status: { logs },
     } = state;

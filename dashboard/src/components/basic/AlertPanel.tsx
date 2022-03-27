@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface AlertPanelProps {
+export interface ComponentProps {
     message: object;
     id?: string;
     customClass?: string;
     backgroundClass?: string;
 }
 
-class AlertPanel extends Component<AlertPanelProps> {
+class AlertPanel extends Component<ComponentProps> {
     override render() {
         return (
 

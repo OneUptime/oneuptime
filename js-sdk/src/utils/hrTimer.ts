@@ -4,7 +4,7 @@ class HrTimer {
     private apiUrl;
     private appId;
     private appKey;
-    constructor(apiUrl: string, appId: $TSFixMe, appKey: $TSFixMe) {
+    constructor(apiUrl: URL, appId: $TSFixMe, appKey: $TSFixMe) {
         this.apiUrl = apiUrl;
         this.appId = appId;
         this.appKey = appKey;

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface RenderTagContentProps {
+export interface ComponentProps {
     title?: string;
     value?: string;
 }
@@ -47,8 +47,8 @@ function ErrorEventInfoSection({
     return (
         <div>
             {errorEventDetails &&
-            errorEventDetails.device &&
-            errorEventDetails.device.browser ? (
+                errorEventDetails.device &&
+                errorEventDetails.device.browser ? (
                 <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -71,8 +71,8 @@ function ErrorEventInfoSection({
             ) : null}
 
             {errorEventDetails &&
-            errorEventDetails.device &&
-            errorEventDetails.device.device ? (
+                errorEventDetails.device &&
+                errorEventDetails.device.device ? (
                 <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
@@ -91,8 +91,8 @@ function ErrorEventInfoSection({
             ) : null}
 
             {!errorEvent.requesting &&
-            errorEventDetails &&
-            errorEventDetails.sdk ? (
+                errorEventDetails &&
+                errorEventDetails.sdk ? (
                 <div className="ContentHeader Box-root Box-background--white Box-divider--border-top-1 Flex-flex Flex-direction--column Padding-vertical--16">
                     <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
                         <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">

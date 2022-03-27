@@ -28,7 +28,7 @@ export default {
         return bodyContent;
     },
 
-    postApi: async (url: string, data: $TSFixMe) => {
+    post: async (url: URL, data: $TSFixMe) => {
         // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
         // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
         const response = await axios({

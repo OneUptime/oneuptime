@@ -713,7 +713,7 @@ AutomatedScripView.propTypes = {
     subProjects: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     currentProject: state.project.currentProject,
     activeProject: state.subProject.activeSubProject,
     script: state.automatedScripts.individualScript,

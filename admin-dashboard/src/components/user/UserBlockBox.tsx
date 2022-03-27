@@ -10,8 +10,8 @@ import { blockUser } from '../../actions/user';
 import UserBlockModal from './UserBlockModal';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
-export class UserBlockBox extends Component<ComponentProps> {
-
+export class UserBlockBox extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -98,7 +98,7 @@ UserBlockBox.displayName = 'UserBlockBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ blockUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

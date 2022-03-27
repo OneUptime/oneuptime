@@ -29,7 +29,7 @@ interface DockerCredentialModalProps {
     updatingCredential?: boolean;
 }
 
-class DockerCredentialModal extends Component<DockerCredentialModalProps> {
+class DockerCredentialModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -468,7 +468,7 @@ DockerCredentialModal.propTypes = {
     updatingCredential: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialId } = propArr[0];
     const dockerCredential = credentialId

@@ -3,7 +3,7 @@ import Util from './util';
 import Http from 'http';
 import Https from 'https';
 class OneUptimeListener {
-    BASE_url: string;
+    BASE_url: URL;
     currentEventId: $TSFixMe;
     debounceDuration: $TSFixMe;
     isWindow: $TSFixMe;
@@ -116,11 +116,7 @@ class OneUptimeListener {
     _setUpXhrListener() {
         const open = window.XMLHttpRequest.prototype.open;
         const _this = this;
-        function openReplacement(
-            this: $TSFixMe,
-            method: $TSFixMe,
-            url: string
-        ) {
+        function openReplacement(this: $TSFixMe, method: $TSFixMe, url: URL) {
             const obj = {
                 method,
                 url,

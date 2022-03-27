@@ -8,7 +8,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-
+import { RootState } from '../../store';
 interface RenderIfOwnerOrAdminProps {
     currentProject?: object;
 }
@@ -26,7 +26,7 @@ RenderIfOwnerOrAdmin.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
     };

@@ -68,7 +68,9 @@ interface ReportsProps {
     switchToProjectViewerNav?: boolean;
 }
 
-export class Reports extends Component<ReportsProps> {
+export class Reports extends Component<ReportsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -699,7 +701,7 @@ export class Reports extends Component<ReportsProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProjectId:
             state.project.currentProject && state.project.currentProject._id,

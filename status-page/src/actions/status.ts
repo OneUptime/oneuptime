@@ -1,4 +1,4 @@
-import { getApi, postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/status';
 import errors from '../errors';
@@ -26,9 +26,11 @@ export const statusPageFailure = (error: $TSFixMe) => {
 };
 
 // Calls the API to get status
-export const getStatusPage = (statusPageSlug: $TSFixMe, url: string) => {
+export const getStatusPage = (statusPageSlug: $TSFixMe, url: URL) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(`status-page/${statusPageSlug}?url=${url}`);
+        const promise = BackendAPI.get(
+            `status-page/${statusPageSlug}?url=${url}`
+        );
 
         dispatch(statusPageRequest());
 
@@ -67,68 +69,68 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: string) => {
 // Calls the API to get all status page resources
 export const getAllStatusPageResource = (
     statusPageSlug: $TSFixMe,
-    url: string,
+    url: URL,
     range: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
         const promises = [];
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/ongoing-events?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/future-events?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/past-events?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/probes?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/monitor-logs?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/announcements?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/announcement-logs?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/monitor-timelines?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/statuspage-notes?url=${url}&range=${range}`
             )
         );
 
         promises.push(
-            getApi(
+            BackendAPI.get(
                 `status-page/resources/${statusPageSlug}/monitor-statuses?url=${url}&range=${range}`
             )
         );
@@ -285,7 +287,7 @@ export const getStatusPageNote = (
     newTheme = false
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
 
@@ -325,7 +327,7 @@ export const getStatusPageIndividualNote = (
     theme: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
         );
 
@@ -398,7 +400,7 @@ export const getScheduledEvent = (
     days: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
 
@@ -461,7 +463,7 @@ export const getOngoingScheduledEvent = (
     limit: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
         );
 
@@ -512,7 +514,7 @@ export const getIndividualEvent = (
     theme: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
         );
 
@@ -571,7 +573,7 @@ export const fetchFutureEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(futureEventsRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
             );
 
@@ -614,7 +616,7 @@ export const fetchPastEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(pastEventsRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
             );
 
@@ -679,7 +681,7 @@ export const getMoreNote = (
     skip: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${statusPageSlug}/notes?skip=${skip}`
         );
 
@@ -732,7 +734,7 @@ export const getMoreEvent = (
     skip: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/${statusPageSlug}/events?skip=${skip}`
         );
 
@@ -783,7 +785,7 @@ export const fetchMoreFutureEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(moreFutureEventsRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
             );
 
@@ -820,7 +822,7 @@ export const fetchMorePastEvents =
     async (dispatch: Dispatch) => {
         try {
             dispatch(morePastEventsRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
             );
 
@@ -855,7 +857,7 @@ export function fetchMonitorStatuses(
     endDate: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `status-page/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
         );
@@ -919,7 +921,7 @@ export function fetchMonitorLogs(
     data: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(
+        const promise = BackendAPI.post(
             `status-page/${projectId}/${monitorId}/monitorLogs`,
             data
         );
@@ -1001,7 +1003,7 @@ export const fetchEvent = (projectId: $TSFixMe, scheduledEventId: $TSFixMe) => {
         dispatch(fetchEventRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/scheduledEvent/${scheduledEventId}`
             );
 
@@ -1050,7 +1052,7 @@ export function fetchEventNote(
         dispatch(fetchEventNoteRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
 
@@ -1099,7 +1101,7 @@ export function moreEventNote(
         try {
             dispatch(moreEventNoteRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/notes/${scheduledEventId}?type=${type}&skip=${skip}`
             );
 
@@ -1143,7 +1145,7 @@ export const fetchIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
     return async function (dispatch: Dispatch) {
         try {
             dispatch(fetchIncidentRequest());
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/incident/${incidentSlug}`
             );
 
@@ -1191,7 +1193,7 @@ export function fetchIncidentNotes(
         try {
             dispatch(fetchIncidentNotesRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${incidentId}/incidentNotes?postOnStatusPage=${postOnStatusPage}`
             );
 
@@ -1240,7 +1242,7 @@ export function moreIncidentNotes(
         try {
             dispatch(moreIncidentNotesRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${incidentSlug}/incidentNotes?postOnStatusPage=${postOnStatusPage}&skip=${skip}`
             );
 
@@ -1287,7 +1289,7 @@ export function fetchLastIncidentTimeline(
         try {
             dispatch(fetchLastIncidentTimelineRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/timeline/${incidentSlug}`
             );
 
@@ -1334,7 +1336,7 @@ export function fetchLastIncidentTimelines(
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
 
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `status-page/${projectId}/${statusPageSlug}/timelines`
             );
 
@@ -1388,7 +1390,7 @@ export function getAnnouncements(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
         );
         dispatch(getAnnouncementsRequest());
@@ -1438,7 +1440,7 @@ export function getSingleAnnouncement(
     announcementSlug: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         dispatch(getSingleAnnouncementRequest());
@@ -1489,7 +1491,7 @@ export function fetchAnnouncementLogs(
     limit: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
         );
         dispatch(fetchAnnouncementLogsRequest());
@@ -1543,7 +1545,7 @@ export function calculateTime(
     monitorId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`monitor/${monitorId}/calculate-time`, {
+        const promise = BackendAPI.post(`monitor/${monitorId}/calculate-time`, {
             statuses,
             start,
             range,
@@ -1594,7 +1596,7 @@ export const fetchTweetsFailure = (error: $TSFixMe) => {
 
 export const fetchTweets = (handle: $TSFixMe, projectId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi(`status-page/${projectId}/tweets`, {
+        const promise = BackendAPI.post(`status-page/${projectId}/tweets`, {
             handle,
         });
 
@@ -1646,7 +1648,7 @@ export function fetchExternalStatusPages(
     statusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
 

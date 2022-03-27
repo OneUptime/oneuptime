@@ -19,7 +19,7 @@ interface ScheduledEventProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class ScheduledEvent extends Component<ScheduledEventProps> {
+class ScheduledEvent extends Component<ComponentProps> {
     override render() {
         const {
 
@@ -65,7 +65,7 @@ class ScheduledEvent extends Component<ScheduledEventProps> {
 
 ScheduledEvent.displayName = 'ScheduledEvent';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId: state.subProject.activeSubProject,
         requesting:

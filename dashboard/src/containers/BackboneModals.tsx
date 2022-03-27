@@ -10,7 +10,9 @@ interface ModalsProps {
     closeModal: Function;
 }
 
-export class Modals extends Component<ModalsProps> {
+export class Modals extends Component<ModalsProps>{
+    public static displayName = '';
+    public static propTypes = {};
     override render() {
 
         const modals = this.props.modals.map((item: $TSFixMe, i: $TSFixMe) => {

@@ -1,5 +1,5 @@
 import * as types from '../constants/security';
-import { postApi, getApi, deleteApi, putApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 // Add Container Security
@@ -23,7 +23,7 @@ export const addContainerSecurity =
         dispatch(addContainerSecurityRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `security/${projectId}/${componentId}/container`,
                 data
             );
@@ -63,7 +63,7 @@ export const getContainerSecurity =
         dispatch(getContainerSecurityRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/${componentId}/container/${containerSecurityId}`
             );
 
@@ -87,7 +87,7 @@ export const getContainerSecurityBySlug =
         dispatch(getContainerSecurityRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/${componentId}/containerSecuritySlug/${containerSecuritySlug}`
             );
 
@@ -133,7 +133,7 @@ export const getContainerSecurities =
         dispatch(getContainerSecuritiesRequest(fetchingPage));
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/${componentId}/container?skip=${skip}&limit=${limit}`
             );
 
@@ -172,9 +172,8 @@ export const deleteContainerSecurity =
         dispatch(deleteContainerSecurityRequest());
 
         try {
-            const response = await deleteApi(
-                `security/${projectId}/${componentId}/container/${containerSecurityId}`
-            );
+            const response =
+                await delete `security/${projectId}/${componentId}/container/${containerSecurityId}`;
 
             dispatch(deleteContainerSecuritySuccess(response.data));
 
@@ -215,7 +214,7 @@ export const scanContainerSecurity =
         dispatch(setActiveContainerSecurity(containerSecurityId));
 
         try {
-            await postApi(
+            await BackendAPI.post(
                 `security/${projectId}/container/scan/${containerSecurityId}`
             );
         } catch (error) {
@@ -252,7 +251,7 @@ export const getContainerSecurityLog =
         dispatch(getContainerSecurityLogRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/container/logs/${containerSecurityId}`
             );
 
@@ -276,7 +275,7 @@ export const getContainerSecurityLogBySlug =
         dispatch(getContainerSecurityLogRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/containerSecuritySlug/logs/${containerSecuritySlug}`
             );
 
@@ -315,7 +314,7 @@ export const getContainerSecurityLogs =
         dispatch(getContainerSecurityLogsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/container/logs`
             );
 
@@ -355,7 +354,7 @@ export function editContainerSecurity({
     data,
 }: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
         );
@@ -403,7 +402,7 @@ export const addApplicationSecurity =
         dispatch(addApplicationSecurityRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `security/${projectId}/${componentId}/application`,
                 data
             );
@@ -443,7 +442,7 @@ export const getApplicationSecurity =
         dispatch(getApplicationSecurityRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/${componentId}/application/${applicationSecurityId}`
             );
 
@@ -467,7 +466,7 @@ export const getApplicationSecurityBySlug =
         dispatch(getApplicationSecurityRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/${componentId}/applicationSecuritySlug/${applicationSecuritySlug}`
             );
 
@@ -513,7 +512,7 @@ export const getApplicationSecurities =
         dispatch(getApplicationSecuritiesRequest(fetchingPage));
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `security/${projectId}/${componentId}/application?skip=${skip}&limit=${limit}`
             );
 
@@ -552,9 +551,8 @@ export const deleteApplicationSecurity =
         dispatch(deleteApplicationSecurityRequest());
 
         try {
-            const response = await deleteApi(
-                `security/${projectId}/${componentId}/application/${applicationSecurityId}`
-            );
+            const response =
+                await delete `security/${projectId}/${componentId}/application/${applicationSecurityId}`;
 
             dispatch(deleteApplicationSecuritySuccess(response.data));
 
@@ -594,7 +592,7 @@ export const scanApplicationSecurity =
         dispatch(scanApplicationSecurityRequest());
         dispatch(setActiveApplicationSecurity(applicationSecurityId));
         try {
-            await postApi(
+            await BackendAPI.post(
                 `security/${projectId}/application/scan/${applicationSecurityId}`
             );
         } catch (error) {
@@ -631,7 +629,7 @@ export const getApplicationSecurityLog =
         dispatch(getApplicationSecurityLogRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/application/logs/${applicationSecurityId}`
             );
 
@@ -655,7 +653,7 @@ export const getApplicationSecurityLogBySlug =
         dispatch(getApplicationSecurityLogRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/applicationSecuritySlug/logs/${applicationSecuritySlug}`
             );
 
@@ -694,7 +692,7 @@ export const getApplicationSecurityLogs =
         dispatch(getApplicationSecurityLogsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `securityLog/${projectId}/${componentId}/application/logs`
             );
 
@@ -734,7 +732,7 @@ export function editApplicationSecurity({
     data,
 }: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data
         );

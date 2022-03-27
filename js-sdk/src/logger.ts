@@ -1,10 +1,10 @@
 import axios from 'axios';
 class Logger {
-    apiUrl: string;
+    apiUrl: URL;
     applicationLogId: $TSFixMe;
     applicationLogKey: $TSFixMe;
     constructor(
-        apiUrl: string,
+        apiUrl: URL,
         applicationLogId: $TSFixMe,
         applicationLogKey: $TSFixMe
     ) {
@@ -18,7 +18,7 @@ class Logger {
     _setApplicationLogKey(applicationLogKey: $TSFixMe) {
         this.applicationLogKey = applicationLogKey;
     }
-    _setApiUrl(apiUrl: string) {
+    _setApiUrl(apiUrl: URL) {
         this.apiUrl = `${apiUrl}/application-log/${this.applicationLogId}/log`;
     }
 

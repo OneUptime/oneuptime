@@ -15,6 +15,8 @@ import {
     RUN_AUTOMATED_SCRIPT_SUCCESS,
 } from '../constants/automatedScript';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     addScripts: {
         requesting: false,
@@ -47,7 +49,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function component(state = INITIAL_STATE, action: $TSFixMe) {
+export default function component(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case RESET_AUTOMATED_SCRIPT:
             return Object.assign({}, state, {

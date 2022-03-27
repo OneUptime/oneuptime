@@ -30,7 +30,7 @@ interface EventsMainProps {
     showEventCard?: Function;
 }
 
-class EventsMain extends Component<EventsMainProps> {
+class EventsMain extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
 
@@ -385,7 +385,7 @@ class EventsMain extends Component<EventsMainProps> {
 
 EventsMain.displayName = 'EventsMain';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     let skip =
         state.status.futureEvents && state.status.futureEvents.skip
             ? state.status.futureEvents.skip

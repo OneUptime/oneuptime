@@ -7,7 +7,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 import { bindActionCreators, Dispatch } from 'redux';
 import {
@@ -32,7 +32,7 @@ interface NewPerformanceTrackerProps {
     showCancelBtn?: boolean;
 }
 
-class NewPerformanceTracker extends Component<NewPerformanceTrackerProps> {
+class NewPerformanceTracker extends Component<ComponentProps> {
     cancelEdit: $TSFixMe;
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -368,7 +368,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const currentProject = state.project.currentProject;

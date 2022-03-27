@@ -71,7 +71,7 @@ interface StatusPageProps {
     fetchMonitors?: Function;
 }
 
-class StatusPage extends Component<StatusPageProps> {
+class StatusPage extends Component<ComponentProps> {
     state = {
         tabIndex: 0,
         monitorError: null,
@@ -840,7 +840,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe, props: $TSFixMe) {
+function mapStateToProps(state: RootState, props: $TSFixMe) {
     const { statusPageSlug } = props.match.params;
     const statusPageObject = state.statusPage;
     let statusPage: $TSFixMe;

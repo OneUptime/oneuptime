@@ -7,7 +7,7 @@ import ProjectForm from './ProjectForm';
 import { hideForm, createProject, switchProject } from '../../actions/project';
 import PropTypes from 'prop-types';
 
-interface CreateProjectModalProps {
+export interface ComponentProps {
     dispatch: Function;
     hideForm: Function;
     switchProject: Function;
@@ -16,7 +16,9 @@ interface CreateProjectModalProps {
     visible?: boolean;
 }
 
-export class CreateProjectModal extends Component<CreateProjectModalProps> {
+export class CreateProjectModal extends Component<CreateProjectModalProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.createProject = this.createProject.bind(this);
@@ -68,7 +70,7 @@ export class CreateProjectModal extends Component<CreateProjectModalProps> {
     }
 }
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     visible: state.project.showForm,
     errorStack: state.project.newProject.error,
     requesting: state.project.newProject.requesting,

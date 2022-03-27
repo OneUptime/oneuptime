@@ -37,7 +37,7 @@ interface PricingPlanModalProps {
     activePlan?: string;
 }
 
-class PricingPlanModal extends Component<PricingPlanModalProps> {
+class PricingPlanModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
     }
@@ -326,7 +326,7 @@ PricingPlanModal.propTypes = {
     activePlan: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const currentPlanId =
         state.project &&
             state.project.currentProject &&

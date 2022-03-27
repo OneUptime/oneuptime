@@ -108,7 +108,7 @@ ExtraCharge.propTypes = {
 
 ExtraCharge.displayName = 'ExtraCharge';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         modalId: state.modal.modals[0].id,
     };

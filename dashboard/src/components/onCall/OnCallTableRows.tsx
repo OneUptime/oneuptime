@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import { withRouter } from 'react-router-dom';
 import { OnCallTableBody } from './OnCallData';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface RowProps {
     name: string;

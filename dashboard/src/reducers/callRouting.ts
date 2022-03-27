@@ -1,5 +1,7 @@
 import * as types from '../constants/callRouting';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     allNumbers: {
         requesting: false,
@@ -76,7 +78,7 @@ const initialState = {
     },
 };
 
-export default function card(state = initialState, action: $TSFixMe) {
+export default function card(state = initialState, action: Action) {
     switch (action.type) {
         case types.GET_CALL_ROUTING_NUMBERS_REQUEST:
             return Object.assign({}, state, {

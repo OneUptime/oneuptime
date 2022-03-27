@@ -45,7 +45,7 @@ interface CreateAnnouncementProps {
     change?: Function;
 }
 
-class CreateAnnouncement extends Component<CreateAnnouncementProps> {
+class CreateAnnouncement extends Component<ComponentProps> {
     state = {
         monitorError: null,
     };
@@ -597,7 +597,7 @@ CreateAnnouncement.propTypes = {
     change: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const {
         data: { projectId },
     } = ownProps;

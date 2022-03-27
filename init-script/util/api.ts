@@ -11,7 +11,7 @@ const _this = {
         };
     },
 
-    deleteApi: (url: string, data: $TSFixMe) => {
+    delete: (url: URL, data: $TSFixMe) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({

@@ -5,6 +5,8 @@ import {
     GET_VERSION_SUCCESS,
 } from '../constants/version';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     versions: {
         error: null,
@@ -18,7 +20,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case GET_VERSION_FAILED:
             return Object.assign({}, state, {

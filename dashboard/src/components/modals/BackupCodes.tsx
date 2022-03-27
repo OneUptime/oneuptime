@@ -328,7 +328,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         profileSettings: state.profileSettings.profileSetting,
         backupCodesState: state.profileSettings.backupCodes,

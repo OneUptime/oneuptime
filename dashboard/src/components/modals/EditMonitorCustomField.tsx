@@ -370,7 +370,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const customFieldToBeUpdated = state.modal.modals[0].customField;
     const initialValues = {};
 

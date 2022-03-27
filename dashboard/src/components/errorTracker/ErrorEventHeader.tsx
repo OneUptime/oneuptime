@@ -18,7 +18,7 @@ interface ErrorEventHeaderProps {
     errorTrackerState?: object;
 }
 
-class ErrorEventHeader extends Component<ErrorEventHeaderProps> {
+class ErrorEventHeader extends Component<ComponentProps> {
     navigate = (currentId: $TSFixMe) => {
         if (currentId) {
 

@@ -9,7 +9,7 @@ interface ResetStatusBubbleIdModalProps {
     confirmThisDialog: Function;
 }
 
-class ResetStatusBubbleIdModal extends Component<ResetStatusBubbleIdModalProps> {
+class ResetStatusBubbleIdModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }

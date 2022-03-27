@@ -12,8 +12,8 @@ import EmailLogsContentViewModal from './EmailLogsContentViewModal';
 import EmailLogsErrorViewModal from './EmailLogsErrorViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-export class EmailLogsList extends Component<ComponentProps> {
-
+export class EmailLogsList extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     constructor(props: $TSFixMe) {
@@ -559,7 +559,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         users: state.user.users.users,
         deleteRequest: state.emailLogs.emailLogs.deleteRequest,

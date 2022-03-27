@@ -10,7 +10,7 @@ import {
 } from 'react-router-dom';
 import { User } from './config';
 import queryString from 'query-string';
-import { removeQuery } from './store/store';
+import { removeQuery } from './store';
 const Main = lazy(() => import('./components/Main'));
 const ScheduledEvent = lazy(() => import('./components/ScheduledEvent'));
 const Incident = lazy(() => import('./components/Incident'));

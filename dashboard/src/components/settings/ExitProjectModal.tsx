@@ -8,6 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 class ExitProjectModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -140,7 +141,7 @@ ExitProjectModal.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     isRequesting:
         state.project &&
         state.project.exitProject &&

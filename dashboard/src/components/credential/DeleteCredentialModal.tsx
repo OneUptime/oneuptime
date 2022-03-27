@@ -18,7 +18,7 @@ interface DeleteCredentialModalProps {
     slug?: string;
 }
 
-class DeleteCredentialModal extends Component<DeleteCredentialModalProps> {
+class DeleteCredentialModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -237,7 +237,7 @@ DeleteCredentialModal.propTypes = {
     slug: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialType } = propArr[0];
 

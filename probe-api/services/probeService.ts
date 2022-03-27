@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 import Database from 'common-server/utils/database';
 const probeCollection = Database.getDatabase().collection('probes');
 import { v1 as uuidv1 } from 'uuid';
-import { postApi } from '../utils/api';
+import { post } from '../utils/api';
 import { realtimeUrl } from '../utils/config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
@@ -112,7 +112,7 @@ export default {
             });
 
             // realtime update for probe
-            postApi(
+            post(
                 `${realtimeBaseUrl}/update-probe`,
                 { data: probe },
                 true

@@ -1,5 +1,7 @@
 import * as types from '../constants/profile';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     menuVisible: false,
     menuPosition: 0,
@@ -78,10 +80,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function profileSettings(
-    state = INITIAL_STATE,
-    action: $TSFixMe
-) {
+export default function profileSettings(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         //update profile setting
         case types.UPDATE_PROFILE_SETTING_REQUEST:

@@ -55,7 +55,7 @@ interface ContainerSecurityDetailProps {
     fetchCredentialError?: Function;
 }
 
-class ContainerSecurityDetail extends Component<ContainerSecurityDetailProps> {
+class ContainerSecurityDetail extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -442,7 +442,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug, containerSecuritySlug } = ownProps.match.params;
     const components: $TSFixMe = [];
     // filter to get the actual component

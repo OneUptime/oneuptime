@@ -28,7 +28,7 @@ interface SubProjectApiKeyProps {
     closeThisDialog: Function;
 }
 
-class SubProjectApiKey extends Component<SubProjectApiKeyProps> {
+class SubProjectApiKey extends Component<ComponentProps> {
     state = {
         hidden: true,
         confirmationModalId: uuidv4(),
@@ -328,7 +328,7 @@ class SubProjectApiKey extends Component<SubProjectApiKeyProps> {
 
 SubProjectApiKey.displayName = 'SubProjectApiKeyModal';
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     let subproject =
         state.subProject &&
             state.subProject.subProjects &&

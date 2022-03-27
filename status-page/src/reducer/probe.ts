@@ -1,6 +1,8 @@
 import * as types from '../constants/probe';
 import { FETCH_ALL_RESOURCES_SUCCESS } from '../constants/status';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     requesting: false,
     error: null,
@@ -11,7 +13,7 @@ const INITIAL_STATE = {
     skip: null,
 };
 
-export default function probes(state = INITIAL_STATE, action: $TSFixMe) {
+export default function probes(state = INITIAL_STATE, action: Action) {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {

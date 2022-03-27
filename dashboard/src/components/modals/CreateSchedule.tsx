@@ -1321,7 +1321,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const selector = formValueSelector('newCreateSchedule');
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const minStartDate = selector(state, 'startDate');
     const currentDate = moment().format();
 

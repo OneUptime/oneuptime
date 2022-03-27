@@ -53,7 +53,7 @@ EscalationsList.propTypes = {
     subProjectId: PropTypes.string.isRequired,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     const { escalations } = state.schedule;
     return { escalations };
 };

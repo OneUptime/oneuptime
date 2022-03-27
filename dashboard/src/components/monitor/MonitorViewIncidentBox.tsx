@@ -24,7 +24,9 @@ interface MonitorViewIncidentBoxProps {
     closeModal?: Function;
 }
 
-export class MonitorViewIncidentBox extends Component<MonitorViewIncidentBoxProps> {
+export class MonitorViewIncidentBox extends Component<MonitorViewIncidentBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {
@@ -280,7 +282,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,

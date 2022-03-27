@@ -36,7 +36,7 @@ interface ComponentSettingsProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class ComponentSettings extends Component<ComponentSettingsProps> {
+class ComponentSettings extends Component<ComponentProps> {
     submitForm = (values: $TSFixMe) => {
 
         if (this.props.initialValues.name === values.name) {
@@ -254,7 +254,7 @@ ComponentSettings.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     return {
         component:

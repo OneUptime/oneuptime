@@ -18,7 +18,7 @@ interface ConsultingProps {
     switchToProjectViewerNav?: boolean;
 }
 
-class Consulting extends Component<ConsultingProps> {
+class Consulting extends Component<ComponentProps> {
     override render() {
         const settings = {
             infinite: true,
@@ -525,7 +525,7 @@ Consulting.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

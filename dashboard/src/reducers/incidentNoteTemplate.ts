@@ -1,5 +1,7 @@
 import * as types from '../constants/incidentNoteTemplate';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     noteTemplates: {
         requesting: false,
@@ -27,7 +29,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case types.FETCH_INCIDENT_NOTE_TEMPLATES_REQUEST:
             return {

@@ -5,6 +5,8 @@ import {
     TOGGLE_PROJECT_SETTINGS_MORE,
 } from '../constants/page';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     requesting: false,
     title: '',
@@ -12,7 +14,7 @@ const initialState = {
     toggleProjectSettingsMore: false,
 };
 
-export default (state = initialState, action: $TSFixMe) => {
+export default (state = initialState, action: Action) => {
     switch (action.type) {
         case PAGE_LOAD_REQUEST:
             return Object.assign({}, state, {

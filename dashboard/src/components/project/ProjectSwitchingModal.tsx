@@ -4,7 +4,9 @@ import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 
-export class SwitchingModal extends Component<ComponentProps> {
+export class SwitchingModal extends Component<ComponentProps>{
+    public static displayName = '';
+    public static propTypes = {};
     constructor(props: $TSFixMe) {
         super(props);
     }

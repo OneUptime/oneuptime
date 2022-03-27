@@ -11,6 +11,7 @@ import { deleteProbe } from '../../actions/probe';
 
 class ProbeDeleteModal extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -143,7 +144,7 @@ class ProbeDeleteModal extends Component<ComponentProps> {
 
 ProbeDeleteModal.displayName = 'ProbeDeleteModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.probes &&

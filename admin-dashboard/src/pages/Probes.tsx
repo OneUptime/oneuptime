@@ -198,7 +198,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getProbes, openModal, closeModal }, dispatch);
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         modalId: state.modal.modals[0] && state.modal.modals[0].id,
         modalList: state.modal.modals,

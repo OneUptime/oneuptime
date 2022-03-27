@@ -1,4 +1,6 @@
-export const INITIAL_STATE = {
+import Action from 'common-ui/src/types/action';
+
+const INITIAL_STATE = {
     data: {
         list: {
             data: [],
@@ -31,7 +33,7 @@ const getReducer = ({ actionBase }: $TSFixMe) => {
     const deleteConstants = actionBase.getDeleteConstants();
     const updateConstants = actionBase.getUpdateConstants();
 
-    return (state = INITIAL_STATE, action: $TSFixMe) => {
+    return (state = INITIAL_STATE, action: Action) => {
         switch (action.type) {
             // request
             case createConstants.request: {

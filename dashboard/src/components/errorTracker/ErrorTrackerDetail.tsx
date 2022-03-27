@@ -15,7 +15,7 @@ import { subProjectTeamLoading } from '../../actions/team';
 import { bindActionCreators, Dispatch } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -50,11 +50,9 @@ interface ErrorTrackerDetailProps {
     getErrorEventSuccess?: Function;
 }
 
-class ErrorTrackerDetail extends Component<ErrorTrackerDetailProps> {
+class ErrorTrackerDetail extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
         this.state = {
             deleteModalId: uuidv4(),
             trackerKeyModalId: uuidv4(),
@@ -495,7 +493,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-function mapStateToProps(state: $TSFixMe, ownProps: $TSFixMe) {
+function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const errorTrackerId = ownProps.index;
     const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers;
     const currentErrorTracker = errorTrackers.filter(

@@ -18,7 +18,8 @@
         "@types/react": "^17.0.43",
         "common": "file:../common",
         "prop-types": "^15.8.1",
-        "react": "^17.0.2"
+        "react": "^17.0.2",
+        "universal-cookie": "^4.0.4"
     },
     "devDependencies": {
         "@types/node": "^17.0.23"

@@ -18,7 +18,7 @@ interface DeleteCustomFieldProps {
     data?: object;
 }
 
-class DeleteCustomField extends Component<DeleteCustomFieldProps> {
+class DeleteCustomField extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -185,7 +185,7 @@ DeleteCustomField.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.customField.customField.requesting,
         deleteError: state.customField.customField.error,

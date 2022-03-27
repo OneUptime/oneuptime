@@ -13,7 +13,7 @@ interface DeleteScheduleModalProps {
     error?: string;
 }
 
-class DeleteScheduleModal extends Component<DeleteScheduleModalProps> {
+class DeleteScheduleModal extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -143,7 +143,7 @@ class DeleteScheduleModal extends Component<DeleteScheduleModalProps> {
 
 DeleteScheduleModal.displayName = 'DeleteScheduleModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting:
             state.schedule &&

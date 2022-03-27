@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-interface MessageBoxProps {
+export interface MessageBoxProps {
     title?: string;
     message?: string;
     children?: React.ReactNode;

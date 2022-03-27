@@ -19,7 +19,9 @@ interface ExternalStatusPagesProps {
     statusPageId?: string;
 }
 
-export class ExternalStatusPages extends Component<ExternalStatusPagesProps> {
+export class ExternalStatusPages extends Component<ExternalStatusPagesProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleKeyBoard: $TSFixMe;
     state = {
         externalStatusPageModalId: uuidv4(),
@@ -183,7 +185,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         statusPage: state.statusPage,
     };

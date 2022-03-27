@@ -63,7 +63,7 @@ interface PerformanceChartProps {
     type?: string;
 }
 
-class PerformanceChart extends Component<PerformanceChartProps> {
+class PerformanceChart extends Component<ComponentProps> {
     calcPercent = (val: $TSFixMe, total: $TSFixMe) => {
         val = parseFloat(val);
         total = parseFloat(total);

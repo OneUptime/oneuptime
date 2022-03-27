@@ -7,6 +7,8 @@ import {
     CLOSE_SEARCH_BAR,
 } from '../constants/search';
 
+import Action from 'common-ui/src/types/action';
+
 const initialState = {
     requesting: false,
     success: false,
@@ -15,7 +17,7 @@ const initialState = {
     searchFieldVisible: false,
 };
 
-export default function search(state = initialState, action: $TSFixMe) {
+export default function search(state = initialState, action: Action) {
     switch (action.type) {
         case SHOW_SEARCH_BAR:
             return Object.assign({}, state, {

@@ -5,7 +5,7 @@ import { reduxForm, Field } from 'redux-form';
 import { RenderSearchField } from '../basic/RenderSearchField';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { addCurrentComponent } from '../../actions/component';
 import { animateSidebar } from '../../actions/animateSidebar';
 import { resetSearch, search } from '../../actions/search';
@@ -54,7 +54,7 @@ interface SearchProps {
     closeSearchBar?: Function;
 }
 
-class Search extends Component<SearchProps> {
+class Search extends Component<ComponentProps> {
     activeRef: $TSFixMe;
     containerRef: $TSFixMe;
     constructor() {
@@ -723,7 +723,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const searcResult = state.search.search;
     const subProject = state.subProject.subProjects;
     return {

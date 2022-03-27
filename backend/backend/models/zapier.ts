@@ -13,7 +13,7 @@ const Schema = mongoose.Schema;
  */
 const zapierSchema = new Schema({
     projectId: String,
-    url: String,
+    url: URL,
     type: String,
     monitors: [String],
     deleted: {

@@ -37,7 +37,9 @@ interface AlertAdvanceOptionProps {
     currentProject?: object;
 }
 
-export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps> {
+export class AlertAdvanceOption extends Component<AlertAdvanceOptionProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         MessageBoxId: uuidv4(),
     };
@@ -977,7 +979,7 @@ const AlertAdvanceOptionForm = new reduxForm({
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,
     project: state.project.currentProject,
 
@@ -1021,8 +1023,8 @@ const AlertAdvanceOptionFormStripe = injectStripe(
     connect(mapStateToProps, mapDispatchToProps)(AlertAdvanceOptionForm)
 );
 
-export default class AlertAdvanceOptionWithCheckout extends Component<ComponentProps> {
-
+export default class AlertAdvanceOptionWithCheckout extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     override render() {

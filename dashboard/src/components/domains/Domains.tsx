@@ -26,7 +26,7 @@ interface DomainsProps {
     fetchProjectDomains: Function;
 }
 
-class Domains extends Component<DomainsProps> {
+class Domains extends Component<ComponentProps> {
     limit: $TSFixMe;
     constructor() {
 
@@ -472,7 +472,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         projectDomains: state.project.fetchDomains.domains,

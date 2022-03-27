@@ -17,7 +17,9 @@ interface ApplicationSecurityDeleteBoxProps {
     deleting?: boolean;
 }
 
-export class ApplicationSecurityDeleteBox extends Component<ApplicationSecurityDeleteBoxProps> {
+export class ApplicationSecurityDeleteBox extends Component<ApplicationSecurityDeleteBoxProps>{
+    public static displayName = '';
+    public static propTypes = {};
     handleDelete = ({
         projectId,
         componentId,
@@ -114,7 +116,7 @@ ApplicationSecurityDeleteBox.displayName = 'ApplicationSecurityDeleteBox';
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         deleting: state.security.deleteApplication.requesting,
     };

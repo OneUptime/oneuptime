@@ -22,8 +22,8 @@ import AlertPanel from './basic/AlertPanel';
 import { closeModal } from '../actions/modal';
 import { loadDashboard } from '../actions/dashboard';
 
-export class DashboardApp extends Component<ComponentProps> {
-
+export class DashboardApp extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     componentDidMount = async () => {
@@ -290,7 +290,7 @@ DashboardApp.propTypes = {
     loadDashboard: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     profile: state.profileSettings,
     notification: state.notifications,
     user: state.user,

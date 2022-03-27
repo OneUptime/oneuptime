@@ -1,5 +1,5 @@
 import * as types from '../constants/invoice';
-
+import Action from 'common-ui/src/types/action';
 const getInitialState = () => ({
     requesting: false,
     error: null,
@@ -8,10 +8,7 @@ const getInitialState = () => ({
     nextCount: 0,
 });
 
-export default function getInvoice(
-    state = getInitialState(),
-    action: $TSFixMe
-) {
+export default function getInvoice(state = getInitialState(), action: Action) {
     switch (action.type) {
         case types.GET_INVOICE_REQUEST:
             return Object.assign({}, state, {

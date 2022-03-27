@@ -65,7 +65,7 @@ ApplicationSecurity.propTypes = {
     applicationSecurityLogs: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         applicationSecurityLogs: state.security.applicationSecurityLogs,
     };

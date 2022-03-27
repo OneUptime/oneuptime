@@ -16,6 +16,7 @@ import ProjectResetDomain from './ProjectResetDomain';
 
 class ProjectDomain extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     limit: $TSFixMe;
@@ -433,7 +434,7 @@ class ProjectDomain extends Component<ComponentProps> {
 
 ProjectDomain.displayName = 'ProjectDomain';
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     projectDomain: state.project.projectDomain,
     requesting: state.project.projectDomain.requesting,
     error: state.project.projectDomain.error,

@@ -1,4 +1,4 @@
-import { postApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import errors from '../errors';
 import * as types from '../constants/login';
@@ -44,7 +44,7 @@ export const resetLogin = () => {
 // Calls the API to register a user.
 export const loginUser = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = postApi('user/login', values);
+        const promise = BackendAPI.post('user/login', values);
         dispatch(loginRequest(promise));
 
         promise.then(

@@ -9,11 +9,9 @@ interface ErrorEventTimelineProps {
     errorEvent?: object;
 }
 
-class ErrorEventTimeline extends Component<ErrorEventTimelineProps> {
+class ErrorEventTimeline extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
-
-        this.props = props;
     }
     renderTimelineContent = (timeline: $TSFixMe) => {
         let rendered = '';

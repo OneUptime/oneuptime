@@ -964,7 +964,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe, props: $TSFixMe) => {
+const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     const currentMonitorValue = { value: '', label: 'Select monitor' };
 
     if (props.data && props.data.monitorId) {

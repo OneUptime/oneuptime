@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-interface ModalProps {
+export interface ComponentProps {
     onConfirm?: Function;
     item: object;
     onClose: Function;
@@ -10,7 +10,7 @@ interface ModalProps {
 }
 
 const composableComponent = (ComposedComponent: $TSFixMe) => {
-    class Modal extends Component<ModalProps> {
+    class Modal extends Component<ComponentProps> {
         constructor(props: $TSFixMe) {
             super(props);
 

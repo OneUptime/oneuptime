@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { renameProject } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import { openModal, closeModal } from 'common-ui/actions/modal';
@@ -26,8 +26,8 @@ function validate(value: $TSFixMe) {
     return errors;
 }
 
-export class ProjectSettings extends Component<ComponentProps> {
-
+export class ProjectSettings extends Component<ComponentProps>{
+    public static displayName = '';
     public static propTypes = {};
 
     submitForm = (values: $TSFixMe) => {
@@ -194,7 +194,7 @@ const ProjectSettingsForm = new reduxForm({
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renameProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     isRequesting: state.project.renameProject.isRequesting,
     projectId: state.project.currentProject && state.project.currentProject._id,
 

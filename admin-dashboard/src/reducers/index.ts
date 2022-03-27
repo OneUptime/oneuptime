@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
-
+import { RootState } from '../store';
 import { routerReducer } from 'react-router-redux';
-
+import Action from 'common-ui/src/types/action';
 import { reducer as formReducer } from 'redux-form';
 import modal from './modal';
 import profileSettings from './profile';
@@ -43,7 +43,7 @@ const appReducer = combineReducers({
     dashboard,
 });
 
-export default (state: $TSFixMe, action: $TSFixMe) => {
+export default (state: RootState, action: Action) => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }

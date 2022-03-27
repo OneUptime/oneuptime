@@ -42,7 +42,7 @@ if (userIsLoggedIn) {
         userId,
         tokens: { jwtAccessToken },
     } = userIsLoggedIn;
-    window.location = cookies.get('admin-data')
+    window.location.href = cookies.get('admin-data')
         ? ADMIN_DASHBOARD_URL
         : isStatusPageLogin
             ? `${statusPageURL}?userId=${userId}&accessToken=${jwtAccessToken}`
@@ -118,7 +118,7 @@ App.propTypes = {
     masterAdmin: PropTypes.object,
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return state.login;
 }
 function mapDispatchToProps(dispatch: Dispatch) {

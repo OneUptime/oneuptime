@@ -220,7 +220,7 @@ const CreateAddResourceCategoryForm = reduxForm({
     validate,
 })(AddResourceCategoryForm);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

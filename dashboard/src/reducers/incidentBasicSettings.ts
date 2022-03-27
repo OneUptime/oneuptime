@@ -24,6 +24,8 @@ import {
     FETCH_DEFAULT_TEMPLATE_FAILURE,
 } from '../constants/incidentBasicSettings';
 
+import Action from 'common-ui/src/types/action';
+
 const INITIAL_STATE = {
     incidentBasicSettingsVariables: {
         incidentBasicSettingsVariables: [],
@@ -70,7 +72,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: $TSFixMe) => {
+export default (state = INITIAL_STATE, action: Action) => {
     switch (action.type) {
         case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST:
             return Object.assign({}, state, {

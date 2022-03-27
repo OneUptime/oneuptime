@@ -1,4 +1,4 @@
-import { getApi, postApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/emailLogs';
 import errors from '../errors';
@@ -32,7 +32,7 @@ export const fetchEmailLogs =
         dispatch(fetchEmailLogsRequest());
 
         try {
-            const response = await getApi(
+            const response = await BackendAPI.get(
                 `email-logs?skip=${skip}&limit=${limit}`
             );
 
@@ -88,7 +88,7 @@ export const searchEmailLogs =
         dispatch(searchEmailLogsRequest());
 
         try {
-            const response = await postApi(
+            const response = await BackendAPI.post(
                 `email-logs/search?skip=${skip}&limit=${limit}`,
                 values
             );
@@ -138,7 +138,7 @@ export const deleteEmailLogs = () => async (dispatch: Dispatch) => {
     dispatch(deleteEmailLogsRequest());
 
     try {
-        const response = await deleteApi(`email-logs`);
+        const response = await delete `email-logs`;
 
         const message = response.data.message;
 
@@ -193,7 +193,9 @@ export const fetchEmailLogStatus = () => async (dispatch: Dispatch) => {
     dispatch(fetchEmailLogStatusRequest());
 
     try {
-        const response = await getApi('globalConfig/emailLogMonitoringStatus');
+        const response = await BackendAPI.get(
+            'globalConfig/emailLogMonitoringStatus'
+        );
 
         dispatch(fetchEmailLogStatusSuccess(response.data));
         return response;
@@ -249,7 +251,7 @@ export const emailLogStatusChange =
         dispatch(changeEmailLogStatusRequest());
 
         try {
-            const response = await postApi('globalConfig/', [
+            const response = await BackendAPI.post('globalConfig/', [
                 { name: 'emailLogMonitoringStatus', value: values.status },
             ]);
 

@@ -16,7 +16,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 
 import queryString from 'query-string';
-import { removeQuery } from '../../store';
+import { removeQuery, RootState } from '../../store';
 
 const errorStyle = {
     color: '#c23d4b',
@@ -31,7 +31,9 @@ interface LoginFormProps {
     changeLogin: Function;
 }
 
-export class LoginForm extends Component<LoginFormProps> {
+export class LoginForm extends Component<LoginFormProps>{
+    public static displayName = '';
+    public static propTypes = {};
     state = {
         serverResponse: '',
     };
@@ -215,7 +217,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         login: state.login,
         loginMethod: state.login.loginMethod,

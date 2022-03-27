@@ -1,4 +1,4 @@
-import { postApi } from './api';
+import BackendAPI from './api';
 const SLACK_URL = process.env.SLACK_BILLING_WEBHOOK;
 
 export default {
@@ -8,7 +8,7 @@ export default {
         identifier: $TSFixMe,
         reason: $TSFixMe,
         code: $TSFixMe,
-        invoiceUrl: string
+        invoiceUrl: URL
     ) => {
         let data = {
             blocks: [
@@ -97,6 +97,6 @@ export default {
             };
         }
 
-        await postApi(SLACK_URL, data);
+        await BackendAPI.post(SLACK_URL, data);
     },
 };

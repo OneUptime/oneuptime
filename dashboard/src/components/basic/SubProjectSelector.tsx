@@ -101,7 +101,7 @@ const SubProjectSelector = ({
 
 SubProjectSelector.displayName = 'SubProjectSelector';
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     return {
         currentProject: state.project.currentProject,
     };

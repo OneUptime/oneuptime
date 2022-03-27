@@ -9,6 +9,7 @@ import { fetchSmsLogStatus, smsLogStatusChange } from '../../actions/smsLogs';
 
 class SmsLog extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     handleKeyBoard: $TSFixMe;
@@ -162,7 +163,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const smsLogStatus = state.smsLogs.smsLogStatus;
     const changeSmsLogStatus = state.smsLogs.changeSmsLogStatus;
     return {

@@ -1,5 +1,5 @@
 import * as types from '../constants/incidentNoteTemplate';
-import { getApi, putApi, postApi, deleteApi } from '../api';
+import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
 // CREATE INCIDENT NOTE TEMPLATE
@@ -21,7 +21,10 @@ export const createIncidentNoteTemplate =
     ({ projectId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(createIncidentNoteTemplateRequest());
-        const promise = postApi(`incidentNoteTemplate/${projectId}`, data);
+        const promise = BackendAPI.post(
+            `incidentNoteTemplate/${projectId}`,
+            data
+        );
 
         promise.then(
             function (response) {
@@ -62,7 +65,7 @@ export const fetchIncidentNoteTemplates =
     ({ projectId, skip = 0, limit = 0 }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(fetchIncidentNoteTemplatesRequest());
-        const promise = getApi(
+        const promise = BackendAPI.get(
             `incidentNoteTemplate/${projectId}?skip=${skip}&limit=${limit}`
         );
 
@@ -105,7 +108,7 @@ export const updateIncidentNoteTemplate =
     ({ projectId, templateId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
         dispatch(updateIncidentNoteTemplateRequest());
-        const promise = putApi(
+        const promise = BackendAPI.put(
             `incidentNoteTemplate/${projectId}/${templateId}`,
             data
         );
@@ -150,9 +153,8 @@ export const deleteIncidentNoteTemplate =
     (dispatch: Dispatch) => {
         dispatch(deleteIncidentNoteTemplateRequest());
 
-        const promise = deleteApi(
-            `incidentNoteTemplate/${projectId}/${templateId}`
-        );
+        const promise =
+            delete `incidentNoteTemplate/${projectId}/${templateId}`;
 
         promise.then(
             function (response) {

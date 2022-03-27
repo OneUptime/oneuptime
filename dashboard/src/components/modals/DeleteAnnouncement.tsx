@@ -25,7 +25,7 @@ interface DeleteAnnouncementProps {
     fetchAnnouncements?: Function;
 }
 
-class DeleteAnnouncement extends Component<DeleteAnnouncementProps> {
+class DeleteAnnouncement extends Component<ComponentProps> {
     override componentDidMount() {
 
         this.props.resetDeleteAnnouncement();
@@ -196,7 +196,7 @@ DeleteAnnouncement.propTypes = {
     fetchAnnouncements: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         modalId: state.modal.modals[0].id,
         isRequesting: state.statusPage.updateAnnouncement.requesting,

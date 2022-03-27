@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { openModal, closeModal } from 'common-ui/actions/modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import DataPathHoC from '../DataPathHoC';
 
 import DeleteApplicationLog from '../modals/DeleteApplicationLog';
@@ -23,7 +23,7 @@ interface ApplicationLogViewDeleteBoxProps {
     deleteApplicationLog: Function;
 }
 
-class ApplicationLogViewDeleteBox extends Component<ApplicationLogViewDeleteBoxProps> {
+class ApplicationLogViewDeleteBox extends Component<ComponentProps> {
     constructor(props: $TSFixMe) {
         super(props);
         this.state = { deleteModalId: uuidv4() };
@@ -123,7 +123,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         applicationLogState: state.applicationLog,
         currentProject: state.project.currentProject,

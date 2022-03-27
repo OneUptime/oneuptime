@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import IssueIndicator from './IssueIndicator';
@@ -430,7 +430,7 @@ SecurityInfo.propTypes = {
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         scanningApplication: state.security.scanApplicationSecurity.requesting,
         scanningContainer: state.security.scanContainerSecurity.requesting,

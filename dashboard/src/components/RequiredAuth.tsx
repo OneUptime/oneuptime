@@ -9,7 +9,7 @@ interface AuthenticationProps {
 }
 
 export default function (ComposedComponent: $TSFixMe) {
-    class Authentication extends Component<AuthenticationProps> {
+    class Authentication extends Component<ComponentProps> {
         isAuthenticated: $TSFixMe;
         constructor(props: $TSFixMe) {
             super(props);

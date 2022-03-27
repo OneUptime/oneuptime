@@ -303,7 +303,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     return bindActionCreators({ getTeamMember }, dispatch);
 };
 
-function mapStateToProps(state: $TSFixMe) {
+function mapStateToProps(state: RootState) {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     return {

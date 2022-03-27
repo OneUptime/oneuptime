@@ -12,7 +12,7 @@ import TrackerInfo from './TrackerInfo';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 import { updatePerformanceTracker } from '../../actions/performanceTracker';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface PerformanceTrackerHeaderProps {
     performanceTracker?: object;
@@ -25,7 +25,7 @@ interface PerformanceTrackerHeaderProps {
     updatePerformanceTracker?: Function;
 }
 
-class PerformanceTrackerHeader extends Component<PerformanceTrackerHeaderProps> {
+class PerformanceTrackerHeader extends Component<ComponentProps> {
     state = {
         editName: false,
     };
@@ -352,7 +352,7 @@ PerformanceTrackerHeader.propTypes = {
     updatePerformanceTracker: PropTypes.func,
 };
 
-const mapStateToProps = (state: $TSFixMe, ownProps: $TSFixMe) => {
+const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     return {
         updateTrackerObj: state.performanceTracker.updatePerformanceTracker,
         initialValues: {

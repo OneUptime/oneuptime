@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 class About extends Component<ComponentProps> {
 
+    public static displayName = '';
     public static propTypes = {};
 
     override componentDidMount() {
@@ -351,7 +352,7 @@ class About extends Component<ComponentProps> {
 
 About.displayName = 'AboutModal';
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         versions: state.version.versions,
         probes: state.probe.probes.data,

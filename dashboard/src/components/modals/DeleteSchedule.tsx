@@ -8,7 +8,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
 import { deleteScheduledEvent } from '../../actions/scheduledEvent';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 
 interface DeleteScheduleProps {
     closeThisDialog: Function;
@@ -21,7 +21,7 @@ interface DeleteScheduleProps {
     data?: object;
 }
 
-class DeleteSchedule extends Component<DeleteScheduleProps> {
+class DeleteSchedule extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -183,7 +183,7 @@ DeleteSchedule.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.scheduledEvent.deletedScheduledEvent.requesting,
         deleteError: state.scheduledEvent.deletedScheduledEvent.error,

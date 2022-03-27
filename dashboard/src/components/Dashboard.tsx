@@ -43,7 +43,9 @@ interface DashboardAppProps {
     pageName?: string;
 }
 
-export class DashboardApp extends Component<DashboardAppProps> {
+export class DashboardApp extends Component<DashboardAppProps>{
+    public static displayName = '';
+    public static propTypes = {};
     // eslint-disable-next-line
     constructor(props: $TSFixMe) {
         super(props);
@@ -410,7 +412,7 @@ DashboardApp.propTypes = {
     pageName: PropTypes.string,
 };
 
-const mapStateToProps = (state: $TSFixMe) => ({
+const mapStateToProps = (state: RootState) => ({
     project: state.project,
     profile: state.profileSettings,
     projectId: state.project.currentProject && state.project.currentProject._id,

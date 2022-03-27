@@ -7,7 +7,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from 'common-ui/actions/modal';
-import { history } from '../../store';
+import { history, RootState } from '../../store';
 import { deleteApplicationSecurity } from '../../actions/security';
 
 interface DeleteApplicationSecurityProps {
@@ -22,7 +22,7 @@ interface DeleteApplicationSecurityProps {
     propArr?: unknown[];
 }
 
-class DeleteApplicationSecurity extends Component<DeleteApplicationSecurityProps> {
+class DeleteApplicationSecurity extends Component<ComponentProps> {
     override componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -205,7 +205,7 @@ DeleteApplicationSecurity.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = (state: $TSFixMe) => {
+const mapStateToProps = (state: RootState) => {
     return {
         isRequesting: state.security.deleteApplication.requesting,
         deleteApplicationError: state.security.deleteApplication.error,
