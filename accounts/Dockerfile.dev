@@ -19,6 +19,7 @@ WORKDIR /usr/src/common
 COPY ./common/package*.json /usr/src/common/
 RUN npm install
 COPY ./common /usr/src/common
+RUN npm compile
 
 # Install common-server
 RUN mkdir /usr/src/common-server
@@ -26,6 +27,7 @@ WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
 RUN npm install
 COPY ./common-server /usr/src/common-server
+RUN npm compile
 
 
 # Install common-ui
@@ -34,6 +36,7 @@ WORKDIR /usr/src/common-ui
 COPY ./common-ui/package*.json /usr/src/common-ui/
 RUN npm install
 COPY ./common-ui /usr/src/common-ui
+RUN npm compile
 
 
 #SET ENV Variables

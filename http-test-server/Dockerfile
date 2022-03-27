@@ -20,6 +20,7 @@ WORKDIR /usr/src/common
 COPY ./common/package*.json /usr/src/common/
 RUN npm install
 COPY ./common /usr/src/common
+RUN npm compile
 
 # Install common-server
 RUN mkdir /usr/src/common-server
@@ -27,6 +28,7 @@ WORKDIR /usr/src/common-server
 COPY ./common-server/package*.json /usr/src/common-server/
 RUN npm install
 COPY ./common-server /usr/src/common-server
+RUN npm compile
 
 #SET ENV Variables
 ENV PRODUCTION=true
@@ -50,4 +52,5 @@ COPY ./http-test-server /usr/src/app
 EXPOSE 3010
 
 #Run the app
+RUN npm compile
 CMD [ "npm", "start"]
