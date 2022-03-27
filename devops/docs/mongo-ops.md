@@ -17,16 +17,14 @@ db.createUser(
 ## Create OneUptime User
 
 ```
-use admin
-
-db.auth(<root_username>, <root_password>)
+use oneuptimedb
 
 db.createUser(
 {
     user: "<username>",
     pwd: "<password>",
     roles: [ 
-        { role: "dbOwner", db: "oneuptimedb" }
+       "dbOwner"
     ]
 })
 ```
