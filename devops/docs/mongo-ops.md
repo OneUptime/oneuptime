@@ -1,5 +1,34 @@
 # Mongo Operations Manual
 
+## Create Root User
+
+```
+use admin
+
+db.createUser(
+{
+    user: "root",
+    pwd: "<password>",
+    roles: [ "root" ]
+})
+```
+
+
+## Create OneUptime User
+
+```
+use oneuptimedb
+
+db.createUser(
+{
+    user: "<username>",
+    pwd: "<password>",
+    roles: [ 
+       "dbOwner"
+    ]
+})
+```
+
 ## Copy DB from One Server to Another
 
 ```
