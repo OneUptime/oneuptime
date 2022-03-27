@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/team';
-import errors from '../errors';
 
 export const teamLoadingRequest = () => {
     return {
@@ -44,7 +43,7 @@ export const teamLoading = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(teamLoadingError(errors(error)));
+                dispatch(teamLoadingError(error));
             }
         );
 
@@ -92,7 +91,7 @@ export const subProjectTeamLoading = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(subProjectTeamLoadingError(errors(error)));
+                dispatch(subProjectTeamLoadingError(error));
             }
         );
 
@@ -143,7 +142,7 @@ export const teamCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(teamCreateError(errors(error)));
+                dispatch(teamCreateError(error));
             }
         );
 
@@ -207,7 +206,7 @@ export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(teamDeleteError(errors(error)));
+                dispatch(teamDeleteError(error));
                 return { error };
             }
         );
@@ -258,7 +257,7 @@ export const getTeamMember = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(teamMemberError(errors(error)));
+                dispatch(teamMemberError(error));
             }
         );
 
@@ -312,7 +311,7 @@ export const teamUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(teamUpdateRoleError(errors(error)));
+                dispatch(teamUpdateRoleError(error));
             }
         );
 

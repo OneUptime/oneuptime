@@ -1,11 +1,14 @@
 import BackendAPI from '../utils/api';
 import UrlMonitors from './urlMonitors';
 import ErrorService from '../utils/errorService';
+import Route from 'common/types/api/route';
 
 export default {
     runJob: async function () {
         try {
-            let monitors = await BackendAPI.get('lighthouse/monitors');
+            let monitors = await BackendAPI.get(
+                new Route('lighthouse/monitors')
+            );
             monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
                 monitors.map((monitor: $TSFixMe) => {

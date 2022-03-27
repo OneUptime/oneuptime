@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 //Array of Incidents
 
 export const probeRequest = (promise: $TSFixMe) => {
@@ -63,7 +62,7 @@ export const getProbes = (skip = 0, limit = 10) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(probeError(errors(error)));
+                dispatch(probeError(error));
             }
         );
     };
@@ -117,7 +116,7 @@ export const deleteProbe =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(deleteProbeError(errors(errorMsg)));
+            dispatch(deleteProbeError(errorMsg));
         }
     };
 
@@ -160,7 +159,7 @@ export const addProbe =
         dispatch(addProbeRequest());
 
         try {
-            const response = await BackendAPI.post('probe/', {
+            const response = await BackendAPI.post(new Route('probe/'), {
                 probeKey,
                 probeName,
             });
@@ -180,7 +179,7 @@ export const addProbe =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(addProbeError(errors(errorMsg)));
+            dispatch(addProbeError(errorMsg));
             return 'error';
         }
     };
@@ -228,7 +227,7 @@ export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch) => {
             dispatch(updateProbeSuccess(resp));
             return 'ok';
         } else {
-            dispatch(addProbeError(errors('Network Error')));
+            dispatch(addProbeError('Network Error'));
         }
     } catch (error) {
         let errorMsg;
@@ -242,7 +241,7 @@ export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(addProbeError(errors(errorMsg)));
+        dispatch(addProbeError(errorMsg));
         return 'error';
     }
 };

@@ -1,8 +1,9 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
+import Route from 'common/types/api/route';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
-import errors from '../errors';
+
 import Action from 'common-ui/src/types/action';
 //Update profile setting
 
@@ -95,7 +96,7 @@ export const updateProfileSetting = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateProfileSettingError(errors(error)));
+                dispatch(updateProfileSettingError(error));
             }
         );
 
@@ -125,7 +126,7 @@ export const updatePushNotification = (data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updatePushNotificationError(errors(error)));
+                dispatch(updatePushNotificationError(error));
             }
         );
 
@@ -156,7 +157,10 @@ export const twoFactorAuthTokenError = (error: $TSFixMe) => {
 
 export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/totp/verifyToken', values);
+        const promise = BackendAPI.post(
+            new Route('user/totp/verifyToken'),
+            values
+        );
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
             function (response) {
@@ -175,7 +179,7 @@ export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(twoFactorAuthTokenError(errors(error)));
+                dispatch(twoFactorAuthTokenError(error));
             }
         );
 
@@ -225,7 +229,7 @@ export const generateTwoFactorQRCode = (userId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(generateTwoFactorQRCodeError(errors(error)));
+                dispatch(generateTwoFactorQRCodeError(error));
             }
         );
 
@@ -256,7 +260,7 @@ export const updateTwoFactorAuthToken = (data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(twoFactorAuthTokenError(errors(error)));
+                dispatch(twoFactorAuthTokenError(error));
             }
         );
 
@@ -307,7 +311,7 @@ export const updateChangePasswordSetting = (data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateChangePasswordSettingError(errors(error)));
+                dispatch(updateChangePasswordSettingError(error));
             }
         );
         return promise;
@@ -353,7 +357,7 @@ export const userSettingsError = (error: $TSFixMe) => {
 // Calls the API to update on cal alert setting.
 export const userSettings = () => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.get('user/profile');
+        const promise = BackendAPI.get(new Route('user/profile'));
         dispatch(userSettingsRequest());
 
         promise.then(
@@ -373,7 +377,7 @@ export const userSettings = () => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(userSettingsError(errors(error)));
+                dispatch(userSettingsError(error));
             }
         );
 
@@ -441,7 +445,7 @@ export const sendEmailVerificationError = (error: $TSFixMe) => {
 
 export const sendEmailVerificationLink = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/resend', values);
+        const promise = BackendAPI.post(new Route('user/resend'), values);
         dispatch(sendEmailVerificationRequest());
 
         promise.then(
@@ -460,7 +464,7 @@ export const sendEmailVerificationLink = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(sendEmailVerificationError(errors(error)));
+                dispatch(sendEmailVerificationError(error));
             }
         );
     };
@@ -491,7 +495,7 @@ export const sendVerificationSMS = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(sendVerificationSMSError(errors(error)));
+                dispatch(sendVerificationSMSError(error));
             }
         );
 
@@ -549,7 +553,7 @@ export const verifySMSCode = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(verifySMSCodeError(errors(error)));
+                dispatch(verifySMSCodeError(error));
             }
         );
 
@@ -690,7 +694,7 @@ export const deleteAccount = (userId: $TSFixMe, confirmation: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteAccountFailure(errors(error)));
+                dispatch(deleteAccountFailure(error));
             }
         );
 
@@ -734,7 +738,7 @@ export const generateBackupCodes = () => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(generateBackupCodesFailure(errors(error)));
+                dispatch(generateBackupCodesFailure(error));
             }
         );
 

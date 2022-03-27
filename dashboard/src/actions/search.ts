@@ -8,7 +8,6 @@ import {
 } from '../constants/search';
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
-import errors from '../errors';
 
 export const showSearchBar = function () {
     return {
@@ -61,7 +60,7 @@ export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(searchFailure(errors(error)));
+                dispatch(searchFailure(error));
             }
         );
 

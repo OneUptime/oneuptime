@@ -1,6 +1,5 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
-import errors from '../errors';
 
 export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
 export const SELECTED_MENU = 'SELECTED_MENU';
@@ -106,7 +105,7 @@ export const subscribeUser = (
                     error = 'Network Error';
                 }
 
-                dispatch(subscribeFailure(errors(error)));
+                dispatch(subscribeFailure(error));
             }
         );
     };

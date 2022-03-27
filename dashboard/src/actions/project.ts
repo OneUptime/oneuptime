@@ -1,4 +1,5 @@
 import BackendAPI from '../api';
+import Route from 'common/types/api/route';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
@@ -37,7 +38,7 @@ import {
     setActiveSubProject,
 } from './subProject';
 import { resetFetchComponentResources } from './component';
-import errors from '../errors';
+
 import isMainProjectViewer from '../utils/isMainProjectViewer';
 import { socket } from '../components/basic/Socket';
 
@@ -186,7 +187,7 @@ export const getProjects = (switchToProjectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(projectsError(errors(error)));
+                dispatch(projectsError(error));
             }
         );
 
@@ -233,7 +234,7 @@ export const getProjectBalance = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(getprojectError(errors(error)));
+                dispatch(getprojectError(error));
             }
         );
     };
@@ -266,7 +267,7 @@ export const resetCreateProject = () => {
 
 export const createProject = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('project/create', values);
+        const promise = BackendAPI.post(new Route('project/create'), values);
 
         dispatch(createProjectRequest());
 
@@ -291,7 +292,7 @@ export const createProject = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createProjectError(errors(error)));
+                dispatch(createProjectError(error));
             }
         );
     };
@@ -495,7 +496,7 @@ export const resetProjectToken = (projectId: $TSFixMe) => {
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(resetProjectTokenError(errors(error)));
+                    dispatch(resetProjectTokenError(error));
                 }
             )
             .then(function () {
@@ -557,7 +558,7 @@ export const renameProject = (projectId: $TSFixMe, projectName: $TSFixMe) => {
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(renameProjectError(errors(error)));
+                    dispatch(renameProjectError(error));
                 }
             )
             .then(function () {
@@ -617,7 +618,7 @@ export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteProjectError(errors(error)));
+                dispatch(deleteProjectError(error));
             }
         );
 
@@ -684,7 +685,7 @@ export function changePlan(
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(changePlanError(errors(error)));
+                    dispatch(changePlanError(error));
                 }
             )
             .then(function () {
@@ -781,7 +782,7 @@ export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(exitProjectError(errors(error)));
+                dispatch(exitProjectError(error));
             }
         );
 
@@ -845,7 +846,7 @@ export const markProjectForDelete = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(markProjectForDeleteError(errors(error)));
+                dispatch(markProjectForDeleteError(error));
             }
         );
 
@@ -900,7 +901,7 @@ export const alertOptionsUpdate = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(alertOptionsUpdateError(errors(error)));
+                dispatch(alertOptionsUpdateError(error));
             }
         );
         return promise;
@@ -948,7 +949,7 @@ export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(addBalanceError(errors(error)));
+                dispatch(addBalanceError(error));
             }
         );
         return promise;
@@ -1022,7 +1023,7 @@ export const checkCardSuccess = (card: $TSFixMe) => {
 
 export const checkCard = (data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('stripe/checkCard', data);
+        const promise = BackendAPI.post(new Route('stripe/checkCard'), data);
 
         dispatch(checkCardRequest(promise));
 
@@ -1503,7 +1504,7 @@ export const fetchTrial = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchTrialError(errors(error)));
+                dispatch(fetchTrialError(error));
             }
         );
 

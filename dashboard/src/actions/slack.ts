@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/slack';
-import errors from '../errors';
 
 // UNLINK a new SLACK LINK
 
@@ -55,7 +54,7 @@ export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteSlackLinkError(errors(error)));
+                dispatch(deleteSlackLinkError(error));
             }
         );
     };
@@ -119,7 +118,7 @@ export function getSlackTeams(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(getSlackTeamsError(errors(error)));
+                dispatch(getSlackTeamsError(error));
             }
         );
 

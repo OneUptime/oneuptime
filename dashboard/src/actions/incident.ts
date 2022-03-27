@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incident';
-import errors from '../errors';
 
 //Array of Incidents
 
@@ -69,7 +68,7 @@ export function getProjectIncidents(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(projectIncidentsError(errors(error)));
+                dispatch(projectIncidentsError(error));
             }
         );
     };
@@ -119,7 +118,7 @@ export function getProjectComponentIncidents(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(projectIncidentsError(errors(error)));
+                dispatch(projectIncidentsError(error));
             }
         );
     };
@@ -175,7 +174,7 @@ export const getIncidents = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(incidentsError(errors(error)));
+                dispatch(incidentsError(error));
             }
         );
     };
@@ -206,7 +205,7 @@ export function getComponentIncidents(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(incidentsError(errors(error)));
+                dispatch(incidentsError(error));
             }
         );
     };
@@ -299,7 +298,7 @@ export function createNewIncident(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createIncidentError(errors(error)));
+                dispatch(createIncidentError(error));
             }
         );
 
@@ -389,7 +388,7 @@ export const getIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(incidentError(errors(error)));
+                dispatch(incidentError(error));
             }
         );
 
@@ -431,7 +430,7 @@ export function getIncidentTimeline(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(incidentTimelineError(errors(error)));
+                dispatch(incidentTimelineError(error));
             }
         );
     };
@@ -556,14 +555,14 @@ export function acknowledgeIncident(
                     dispatch(
                         incidentError({
                             multiple: true,
-                            error: errors(error),
+                            error: error,
                         })
                     );
                 } else {
                     dispatch(
                         incidentError({
                             multiple: false,
-                            error: errors(error),
+                            error: error,
                         })
                     );
                 }
@@ -664,14 +663,14 @@ export function resolveIncident(
                     dispatch(
                         incidentError({
                             multiple: true,
-                            error: errors(error),
+                            error: error,
                         })
                     );
                 } else {
                     dispatch(
                         incidentError({
                             multiple: false,
-                            error: errors(error),
+                            error: error,
                         })
                     );
                 }
@@ -726,7 +725,7 @@ export const closeIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(closeIncidentError(errors(error)));
+                dispatch(closeIncidentError(error));
             }
         );
     };
@@ -791,7 +790,7 @@ export const fetchUnresolvedIncidents = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(UnresolvedIncidentsError(errors(error)));
+                dispatch(UnresolvedIncidentsError(error));
             }
         );
     };
@@ -863,7 +862,7 @@ export function setInvestigationNote(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(investigationNoteError(errors(error), isUpdate));
+                dispatch(investigationNoteError(error, isUpdate));
             }
         );
         return promise;
@@ -938,7 +937,7 @@ export function setInternalNote(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(internalNoteError(errors(error), isUpdate));
+                dispatch(internalNoteError(error, isUpdate));
             }
         );
         return promise;
@@ -994,9 +993,7 @@ export const deleteIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    deleteIncidentFailure({ error: errors(error), incidentId })
-                );
+                dispatch(deleteIncidentFailure({ error: error, incidentId }));
             }
         );
 
@@ -1040,9 +1037,7 @@ export const hideIncident = (data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    hideIncidentFailure({ error: errors(error), incidentId })
-                );
+                dispatch(hideIncidentFailure({ error: error, incidentId }));
             }
         );
 
@@ -1101,7 +1096,7 @@ export function fetchIncidentMessages(
                 dispatch(
                     fetchIncidentMessagesFailure({
                         incidentId: incidentSlug,
-                        error: errors(error),
+                        error: error,
                         incidentSlug,
                     })
                 );
@@ -1190,7 +1185,7 @@ export function deleteIncidentMessage(
                 }
                 dispatch(
                     deleteIncidentMessageFailure({
-                        error: errors(error),
+                        error: error,
                         incidentMessageId,
                     })
                 );
@@ -1259,7 +1254,7 @@ export function updateIncident(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateIncidentFailure(errors(error)));
+                dispatch(updateIncidentFailure(error));
             }
         );
         return promise;

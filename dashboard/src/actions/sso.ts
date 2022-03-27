@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/sso';
-import errors from '../errors';
 
 export const createSsoRequest = () => ({
     type: types.CREATE_SSO_REQUEST,
@@ -34,7 +33,7 @@ export const createSso = ({ data }: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createSsoFailure(errors(error)));
+                dispatch(createSsoFailure(error));
             }
         );
         return promise;
@@ -77,7 +76,7 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchSsosFailure(errors(error)));
+                dispatch(fetchSsosFailure(error));
             }
         );
         return promise;
@@ -115,7 +114,7 @@ export const fetchSso = (ssoId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchSsoFailure(errors(error)));
+                dispatch(fetchSsoFailure(error));
             }
         );
         return promise;
@@ -153,7 +152,7 @@ export const updateSso = ({ id, data }: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateSsoFailure(errors(error)));
+                dispatch(updateSsoFailure(error));
             }
         );
         return promise;
@@ -191,7 +190,7 @@ export const deleteSso = (ssoId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteSsoFailure(errors(error)));
+                dispatch(deleteSsoFailure(error));
             }
         );
         return promise;

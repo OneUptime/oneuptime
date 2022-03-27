@@ -1,8 +1,8 @@
-import BackendAPI from '../utils/backendApi';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import { masterAdminExistsSuccess, loginSuccess } from './login';
 import * as types from '../constants/register';
-import errors from '../errors';
+import Route from 'common/types/api/route';
 import { IS_SAAS_SERVICE } from '../config';
 import Cookies from 'universal-cookie';
 
@@ -112,7 +112,7 @@ export const signupUser = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(signupError(errors(error)));
+                dispatch(signupError(error));
             }
         );
         return promise;
@@ -178,7 +178,7 @@ export const resetIsUserInvited = () => {
 // Calls the API to register a user.
 export const isUserInvited = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/isInvited', values);
+        const promise = BackendAPI.post(new Route('user/isInvited'), values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
             function (response) {
@@ -195,7 +195,7 @@ export const isUserInvited = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(isUserInvitedError(errors(error)));
+                dispatch(isUserInvitedError(error));
             }
         );
 
@@ -226,7 +226,7 @@ export const addCardSuccess = (card: $TSFixMe) => {
 
 export const addCard = (data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('stripe/checkCard', data);
+        const promise = BackendAPI.post(new Route('stripe/checkCard'), data);
 
         dispatch(addCardRequest(promise));
 

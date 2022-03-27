@@ -1,8 +1,7 @@
-import BackendAPI from '../utils/backendApi';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resendToken';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 export const resendTokenRequest = (promise: $TSFixMe) => {
     return {
         type: types.RESENDTOKEN_REQUEST,
@@ -34,7 +33,7 @@ export const resendTokenReset = () => {
 
 export const resendToken = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/resend', values);
+        const promise = BackendAPI.post(new Route('user/resend'), values);
         dispatch(resendTokenRequest(promise));
 
         promise.then(
@@ -52,7 +51,7 @@ export const resendToken = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resendTokenError(errors(error)));
+                dispatch(resendTokenError(error));
             }
         );
     };

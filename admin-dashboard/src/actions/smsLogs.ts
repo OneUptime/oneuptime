@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/smsLogs';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 // Fetch All Sms Logs
 export const fetchSmsLogsRequest = () => {
     return {
@@ -53,7 +52,7 @@ export const fetchSmsLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchSmsLogsError(errors(errorMsg)));
+            dispatch(fetchSmsLogsError(errorMsg));
         }
     };
 
@@ -109,7 +108,7 @@ export const searchSmsLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(searchSmsLogsError(errors(errorMsg)));
+            dispatch(searchSmsLogsError(errorMsg));
         }
     };
 
@@ -155,7 +154,7 @@ export const deleteSmsLogs = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(deleteSmsLogsError(errors(errorMsg)));
+        dispatch(deleteSmsLogsError(errorMsg));
     }
 };
 
@@ -211,7 +210,7 @@ export const fetchSmsLogStatus = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchSmsLogStatusError(errors(errorMsg)));
+        dispatch(fetchSmsLogStatusError(errorMsg));
         return 'error';
     }
 };
@@ -251,7 +250,7 @@ export const smsLogStatusChange =
         dispatch(changeSmsLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post('globalConfig/', [
+            const response = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'smsLogMonitoringStatus', value: values.status },
             ]);
 
@@ -270,7 +269,7 @@ export const smsLogStatusChange =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(changeSmsLogStatusError(errors(errorMsg)));
+            dispatch(changeSmsLogStatusError(errorMsg));
             return 'error';
         }
     };

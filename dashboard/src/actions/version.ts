@@ -1,7 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/version';
-
+import Route from 'common/types/api/route';
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_VERSION_REQUEST,
@@ -32,7 +32,7 @@ export const resetGetVersion = () => {
 export const getVersion = () => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = BackendAPI.get('version');
+        promise = BackendAPI.get(new Route('version'));
 
         dispatch(getVersionRequest(promise));
 

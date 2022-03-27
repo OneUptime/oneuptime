@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
-import errors from '../errors';
 
 // create status page category
 export const createStatusPageCategoryRequest = () => ({
@@ -44,7 +43,7 @@ export const createStatusPageCategory =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createStatusPageCategoryFailure(errors(error)));
+                dispatch(createStatusPageCategoryFailure(error));
             }
         );
         return promise;
@@ -91,7 +90,7 @@ export const updateStatusPageCategory =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageCategoryFailure(errors(error)));
+                dispatch(updateStatusPageCategoryFailure(error));
             }
         );
         return promise;
@@ -141,7 +140,7 @@ export const fetchStatusPageCategories =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchStatusPageCategoriesFailure(errors(error)));
+                dispatch(fetchStatusPageCategoriesFailure(error));
             }
         );
         return promise;
@@ -191,7 +190,7 @@ export const fetchAllStatusPageCategories =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchAllStatusPageCategoriesFailure(errors(error)));
+                dispatch(fetchAllStatusPageCategoriesFailure(error));
             }
         );
         return promise;
@@ -234,7 +233,7 @@ export const deleteStatusPageCategory =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageCategoryFailure(errors(error)));
+                dispatch(updateStatusPageCategoryFailure(error));
             }
         );
         return promise;

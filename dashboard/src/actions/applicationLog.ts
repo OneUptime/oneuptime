@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/applicationLog';
-import errors from '../errors';
 
 //Create new log container
 //props -> {name: '', type, data -> { data.url}}
@@ -33,7 +32,7 @@ export function createApplicationLog(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createApplicationLogFailure(errors(error)));
+                dispatch(createApplicationLogFailure(error));
             }
         );
 
@@ -95,7 +94,7 @@ export function fetchApplicationLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchApplicationLogsFailure(errors(error)));
+                dispatch(fetchApplicationLogsFailure(error));
             }
         );
 
@@ -162,7 +161,7 @@ export function deleteApplicationLog(
                 }
                 dispatch(
                     deleteApplicationLogFailure({
-                        error: errors(error),
+                        error: error,
                         applicationLogId,
                     })
                 );
@@ -255,9 +254,7 @@ export function fetchLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    fetchLogsFailure({ applicationLogId, error: errors(error) })
-                );
+                dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
 
@@ -317,7 +314,7 @@ export function resetApplicationLogKey(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetApplicationLogKeyFailure(errors(error)));
+                dispatch(resetApplicationLogKeyFailure(error));
             }
         );
 
@@ -386,7 +383,7 @@ export function editApplicationLog(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editApplicationLogFailure(errors(error)));
+                dispatch(editApplicationLogFailure(error));
             }
         );
 
@@ -450,7 +447,7 @@ export function fetchStats(
                 dispatch(
                     fetchStatsFailure({
                         applicationLogId,
-                        error: errors(error),
+                        error: error,
                     })
                 );
             }
@@ -527,9 +524,7 @@ export function searchLog(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    fetchLogsFailure({ applicationLogId, error: errors(error) })
-                );
+                dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
         return promise;

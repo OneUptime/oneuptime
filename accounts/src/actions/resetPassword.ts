@@ -1,8 +1,7 @@
-import BackendAPI from '../utils/backendApi';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resetPassword';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 // There are three possible states for our resetPassword
 // process and we need actions for each of them
 
@@ -35,7 +34,10 @@ export const resetResetPassword = () => {
 
 export const resetPassword = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/forgot-password', values);
+        const promise = BackendAPI.post(
+            new Route('user/forgot-password'),
+            values
+        );
         dispatch(resetPasswordRequest(promise));
 
         promise.then(
@@ -53,7 +55,7 @@ export const resetPassword = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetPasswordError(errors(error)));
+                dispatch(resetPasswordError(error));
             }
         );
     };

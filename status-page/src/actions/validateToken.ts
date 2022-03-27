@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/validateToken';
-import errors from '../errors';
 
 /*
  * There are three possible states for our validateToken
@@ -60,7 +59,7 @@ export const validateToken = (token: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(validateTokenError(errors(error)));
+                dispatch(validateTokenError(error));
             }
         );
 

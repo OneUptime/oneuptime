@@ -2,7 +2,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/errorTracker';
-import errors from '../errors';
 
 //Create new error tracker
 //props -> {name: '', type, data -> { data.url}}
@@ -34,7 +33,7 @@ export function createErrorTracker(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createErrorTrackerFailure(errors(error)));
+                dispatch(createErrorTrackerFailure(error));
             }
         );
 
@@ -91,7 +90,7 @@ export const fetchErrorTrackersByProject = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchErrorTrackersFailure(errors(error)));
+                dispatch(fetchErrorTrackersFailure(error));
             }
         );
 
@@ -127,7 +126,7 @@ export function fetchErrorTrackers(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchErrorTrackersFailure(errors(error)));
+                dispatch(fetchErrorTrackersFailure(error));
             }
         );
 
@@ -206,7 +205,7 @@ export function fetchErrorTrackerIssues(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchErrorTrackerIssuesFailure(errors(error)));
+                dispatch(fetchErrorTrackerIssuesFailure(error));
             }
         );
 
@@ -281,7 +280,7 @@ export function fetchErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchErrorEventFailure(errors(error)));
+                dispatch(fetchErrorEventFailure(error));
             }
         );
 
@@ -355,7 +354,7 @@ export function deleteErrorTracker(
                 }
                 dispatch(
                     deleteErrorTrackerFailure({
-                        error: errors(error),
+                        error: error,
                         errorTrackerId,
                     })
                 );
@@ -423,7 +422,7 @@ export function editErrorTracker(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editErrorTrackerFailure(errors(error)));
+                dispatch(editErrorTrackerFailure(error));
             }
         );
 
@@ -477,7 +476,7 @@ export function resetErrorTrackerKey(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetErrorTrackerKeyFailure(errors(error)));
+                dispatch(resetErrorTrackerKeyFailure(error));
             }
         );
 
@@ -546,9 +545,7 @@ export function ignoreErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    ignoreErrorEventFailure(errors(error, errorTrackerId))
-                );
+                dispatch(ignoreErrorEventFailure(error));
             }
         );
 
@@ -621,9 +618,7 @@ export function unresolveErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    unresolveErrorEventFailure(errors(error, errorTrackerId))
-                );
+                dispatch(unresolveErrorEventFailure(error));
             }
         );
 
@@ -696,9 +691,7 @@ export function resolveErrorEvent(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    resolveErrorEventFailure(errors(error, errorTrackerId))
-                );
+                dispatch(resolveErrorEventFailure(error));
             }
         );
 
@@ -779,7 +772,7 @@ export function updateErrorEventMember(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateErrorEventMemberFailure(errors(error)));
+                dispatch(updateErrorEventMemberFailure(error));
             }
         );
 
@@ -850,7 +843,7 @@ export function deleteErrorTrackerIssue(
                 }
                 dispatch(
                     deleteErrorTrackerIssueFailure({
-                        error: errors(error),
+                        error: error,
                         issueId,
                     })
                 );

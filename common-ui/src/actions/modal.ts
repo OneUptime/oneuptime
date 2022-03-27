@@ -1,10 +1,8 @@
 import ModalConstants from '../constants/modal';
-import { PayloadTypes } from '../payloads/modal';
 import {
     OpenModalActionPayload,
     CloseModalActionPayload,
-} from '../payloads/modal';
-import Action from '../types/action';
+} from '../payload-types/modal';
 
 export const openModal = function (payload: OpenModalActionPayload) {
     return {
@@ -19,7 +17,3 @@ export const closeModal = function (payload: CloseModalActionPayload) {
         payload: payload,
     };
 };
-
-export interface ModalAction extends Action {
-    payload: PayloadTypes;
-}

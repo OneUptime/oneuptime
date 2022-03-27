@@ -1,8 +1,8 @@
-import BackendAPI from '../utils/backendApi';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/login';
 import { User, DASHBOARD_URL, ADMIN_DASHBOARD_URL } from '../config.js';
-import errors from '../errors';
+import Route from 'common/types/api/route';
 import { getQueryVar } from '../config';
 import { resendToken } from './resendToken';
 import Cookies from 'universal-cookie';
@@ -104,7 +104,7 @@ export const loginUser = (values: $TSFixMe) => {
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/login', values);
+        const promise = BackendAPI.post(new Route('user/login'), values);
         dispatch(loginRequest(promise));
 
         promise.then(
@@ -129,7 +129,7 @@ export const loginUser = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(loginError(errors(error)));
+                dispatch(loginError(error));
             }
         );
         return promise;
@@ -157,7 +157,7 @@ export const loginUserSso =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(loginError(errors(errorMsg)));
+            dispatch(loginError(errorMsg));
         }
     };
 
@@ -169,7 +169,10 @@ export const verifyAuthToken = (values: $TSFixMe) => {
     const email = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/totp/verifyToken', values);
+        const promise = BackendAPI.post(
+            new Route('user/totp/verifyToken'),
+            values
+        );
         dispatch(verifyTokenRequest(promise));
 
         promise.then(
@@ -187,7 +190,7 @@ export const verifyAuthToken = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(verifyTokenError(errors(error)));
+                dispatch(verifyTokenError(error));
             }
         );
         return promise;
@@ -223,7 +226,10 @@ export const verifyBackupCode = (values: $TSFixMe) => {
     const email = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/verify/backupCode', values);
+        const promise = BackendAPI.post(
+            new Route('user/verify/backupCode'),
+            values
+        );
         dispatch(useBackupCodeRequest(promise));
 
         promise.then(
@@ -241,7 +247,7 @@ export const verifyBackupCode = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(useBackupCodeError(errors(error)));
+                dispatch(useBackupCodeError(error));
             }
         );
         return promise;
@@ -302,7 +308,7 @@ export const checkIfMasterAdminExists = (values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(masterAdminExistsError(errors(error)));
+                dispatch(masterAdminExistsError(error));
             }
         );
 

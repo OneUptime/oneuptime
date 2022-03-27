@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/emailLogs';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 // Fetch All Email Logs
 export const fetchEmailLogsRequest = () => {
     return {
@@ -53,7 +52,7 @@ export const fetchEmailLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchEmailLogsError(errors(errorMsg)));
+            dispatch(fetchEmailLogsError(errorMsg));
         }
     };
 
@@ -109,7 +108,7 @@ export const searchEmailLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(searchEmailLogsError(errors(errorMsg)));
+            dispatch(searchEmailLogsError(errorMsg));
         }
     };
 
@@ -155,7 +154,7 @@ export const deleteEmailLogs = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(deleteEmailLogsError(errors(errorMsg)));
+        dispatch(deleteEmailLogsError(errorMsg));
     }
 };
 
@@ -211,7 +210,7 @@ export const fetchEmailLogStatus = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchEmailLogStatusError(errors(errorMsg)));
+        dispatch(fetchEmailLogStatusError(errorMsg));
         return 'error';
     }
 };
@@ -251,7 +250,7 @@ export const emailLogStatusChange =
         dispatch(changeEmailLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post('globalConfig/', [
+            const response = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'emailLogMonitoringStatus', value: values.status },
             ]);
 
@@ -270,7 +269,7 @@ export const emailLogStatusChange =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(changeEmailLogStatusError(errors(errorMsg)));
+            dispatch(changeEmailLogStatusError(errorMsg));
             return 'error';
         }
     };

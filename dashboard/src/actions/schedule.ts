@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/schedule';
-import errors from '../errors';
 
 // Get a payload of Schedules
 export const resetSchedule = () => {
@@ -58,7 +57,7 @@ export function fetchSchedules(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(scheduleError(errors(error)));
+                dispatch(scheduleError(error));
             }
         );
 
@@ -118,7 +117,7 @@ export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(subProjectScheduleError(errors(error)));
+                dispatch(subProjectScheduleError(error));
             }
         );
 
@@ -182,7 +181,7 @@ export function fetchProjectSchedule(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(projectScheduleError(errors(error)));
+                dispatch(projectScheduleError(error));
             }
         );
 
@@ -235,7 +234,7 @@ export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createScheduleError(errors(error)));
+                dispatch(createScheduleError(error));
             }
         );
         return promise;
@@ -299,7 +298,7 @@ export function renameSchedule(
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(renameScheduleError(errors(error)));
+                    dispatch(renameScheduleError(error));
                 }
             )
             .then(function () {
@@ -376,7 +375,7 @@ export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(deleteScheduleError(errors(error)));
+                    dispatch(deleteScheduleError(error));
                 }
             )
             .then(function () {
@@ -445,7 +444,7 @@ export function addMonitors(
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(addMonitorError(errors(error)));
+                    dispatch(addMonitorError(error));
                 }
             )
             .then(function () {
@@ -514,7 +513,7 @@ export function addUsers(
                     } else {
                         error = 'Network Error';
                     }
-                    dispatch(addUserError(errors(error)));
+                    dispatch(addUserError(error));
                 }
             )
             .then(function () {
@@ -584,7 +583,7 @@ export function addEscalation(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(escalationError(errors(error)));
+                dispatch(escalationError(error));
             }
         );
 
@@ -615,7 +614,7 @@ export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(escalationError(errors(error)));
+                dispatch(escalationError(error));
             }
         );
 
@@ -700,7 +699,7 @@ export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(userScheduleError(errors(error)));
+                dispatch(userScheduleError(error));
             }
         );
 

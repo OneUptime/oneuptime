@@ -1,5 +1,5 @@
 import * as types from '../constants/sso';
-import errors from '../errors';
+
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
@@ -46,7 +46,7 @@ export const fetchSsos =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchSsosError(errors(errorMsg)));
+            dispatch(fetchSsosError(errorMsg));
         }
     };
 
@@ -88,7 +88,7 @@ export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchSsoError(errors(errorMsg)));
+        dispatch(fetchSsoError(errorMsg));
     }
 };
 

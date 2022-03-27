@@ -1,5 +1,5 @@
 import * as types from '../constants/ssoDefaultRoles';
-import errors from '../errors';
+
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 
@@ -46,7 +46,7 @@ export const fetchSsoDefaultRoles =
             } else {
                 errorMsg = 'Network Error';
             }
-            return dispatch(fetchSsoDefaultRolesError(errors(errorMsg)));
+            return dispatch(fetchSsoDefaultRolesError(errorMsg));
         }
     };
 
@@ -91,7 +91,7 @@ export const fetchSsoDefaultRole =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchSsoDefaultRoleError(errors(errorMsg)));
+            dispatch(fetchSsoDefaultRoleError(errorMsg));
         }
     };
 

@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/callRouting';
-import errors from '../errors';
 
 export function getCallRoutingNumbers(
     projectId: $TSFixMe,
@@ -31,7 +30,7 @@ export function getCallRoutingNumbers(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(getCallRoutingNumbersFailure(errors(error)));
+                dispatch(getCallRoutingNumbersFailure(error));
             }
         );
 
@@ -88,7 +87,7 @@ export const getTeamAndSchedules = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(getTeamAndSchedulesFailure(errors(error)));
+                dispatch(getTeamAndSchedulesFailure(error));
             }
         );
 
@@ -140,7 +139,7 @@ export const addCallRoutingNumber = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(addCallRoutingNumberFailure(errors(error)));
+                dispatch(addCallRoutingNumberFailure(error));
             }
         );
 
@@ -212,7 +211,7 @@ export function uploadCallRoutingAudio(
                 }
                 dispatch(
                     uploadCallRoutingAudioFailure(
-                        errors(error),
+                        error,
                         callRoutingId,
                         audioFieldName
                     )
@@ -284,7 +283,7 @@ export function addCallRoutingSchedule(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(addCallRoutingScheduleFailure(errors(error)));
+                dispatch(addCallRoutingScheduleFailure(error));
             }
         );
 
@@ -338,7 +337,7 @@ export function fetchNumbers(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchNumbersFailure(errors(error)));
+                dispatch(fetchNumbersFailure(error));
             }
         );
 
@@ -395,7 +394,7 @@ export const removeNumbers = (projectId: $TSFixMe, callRoutingId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(removeNumbersFailure(errors(error)));
+                dispatch(removeNumbersFailure(error));
             }
         );
 
@@ -458,7 +457,7 @@ export function getCallRoutingLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(getCallRoutingLogsFailure(errors(error)));
+                dispatch(getCallRoutingLogsFailure(error));
             }
         );
 
@@ -521,7 +520,7 @@ export function removeIntroAudio(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(removeIntroAudioFailure(errors(error), backup));
+                dispatch(removeIntroAudioFailure(error, backup));
             }
         );
 

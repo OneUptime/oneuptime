@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/monitor';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 import { change, autofill } from 'redux-form';
 //import { PricingPlan } from '../config';
 //import { User } from '../config';
@@ -32,7 +31,7 @@ export const fetchMonitors = (projectId: $TSFixMe, skip = 0, limit = 0) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorsFailure(errors(error)));
+                dispatch(fetchMonitorsFailure(error));
             }
         );
 
@@ -99,7 +98,7 @@ export function fetchPaginatedMonitors({
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchPaginatedMonitorsFailure(errors(error)));
+                dispatch(fetchPaginatedMonitorsFailure(error));
             }
         );
 
@@ -154,7 +153,7 @@ export const createMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createMonitorFailure(errors(error)));
+                dispatch(createMonitorFailure(error));
             }
         );
 
@@ -357,7 +356,7 @@ export const editMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editMonitorFailure(errors(error)));
+                dispatch(editMonitorFailure(error));
             }
         );
 
@@ -433,7 +432,7 @@ export function addSiteUrl(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editMonitorFailure(errors(error)));
+                dispatch(editMonitorFailure(error));
             }
         );
 
@@ -469,7 +468,7 @@ export function deleteSiteUrl(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editMonitorFailure(errors(error)));
+                dispatch(editMonitorFailure(error));
             }
         );
 
@@ -499,9 +498,7 @@ export const deleteMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    deleteMonitorFailure({ error: errors(error), monitorId })
-                );
+                dispatch(deleteMonitorFailure({ error: error, monitorId }));
             }
         );
 
@@ -569,9 +566,7 @@ export const disableMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    disableMonitorFailure({ error: errors(error), monitorId })
-                );
+                dispatch(disableMonitorFailure({ error: error, monitorId }));
             }
         );
 
@@ -715,7 +710,7 @@ export function fetchMonitorsIncidents(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorsIncidentsFailure(errors(error)));
+                dispatch(fetchMonitorsIncidentsFailure(error));
             }
         );
 
@@ -783,7 +778,7 @@ export function fetchMonitorsSubscribers(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorsSubscribersFailure(errors(error)));
+                dispatch(fetchMonitorsSubscribersFailure(error));
             }
         );
 
@@ -850,7 +845,7 @@ export function fetchMonitorLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorLogsFailure(errors(error)));
+                dispatch(fetchMonitorLogsFailure(error));
             }
         );
 
@@ -923,7 +918,7 @@ export function fetchMonitorStatuses(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorStatusesFailure(errors(error)));
+                dispatch(fetchMonitorStatusesFailure(error));
             }
         );
 
@@ -954,7 +949,7 @@ export const fetchMonitorStatusesFailure = (error: $TSFixMe) => {
 // Fetch Monitor Criteria
 export const fetchMonitorCriteria = () => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.get('monitorCriteria');
+        const promise = BackendAPI.get(new Route('monitorCriteria'));
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(
@@ -973,7 +968,7 @@ export const fetchMonitorCriteria = () => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorCriteriaFailure(errors(error)));
+                dispatch(fetchMonitorCriteriaFailure(error));
             }
         );
 
@@ -1078,9 +1073,7 @@ export function getMonitorLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    getMonitorLogsFailure({ monitorId, error: errors(error) })
-                );
+                dispatch(getMonitorLogsFailure({ monitorId, error: error }));
             }
         );
         return promise;
@@ -1150,7 +1143,7 @@ export function fetchLighthouseLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchLighthouseLogsFailure(errors(error)));
+                dispatch(fetchLighthouseLogsFailure(error));
             }
         );
 
@@ -1201,7 +1194,7 @@ export const fetchMonitorIssue = (projectId: $TSFixMe, issueId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorIssueFailure(errors(error)));
+                dispatch(fetchMonitorIssueFailure(error));
             }
         );
 
@@ -1252,7 +1245,7 @@ export const addSeat = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(addSeatFailure(errors(error)));
+                dispatch(addSeatFailure(error));
             }
         );
 

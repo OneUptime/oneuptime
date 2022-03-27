@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/alert';
-import errors from '../errors';
 
 export const resetAlert = () => {
     return {
@@ -53,7 +52,7 @@ export const fetchAlert = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(alertError(errors(error)));
+                dispatch(alertError(error));
             }
         );
 
@@ -119,7 +118,7 @@ export function fetchProjectAlert(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(projectAlertError(errors(error)));
+                dispatch(projectAlertError(error));
             }
         );
 
@@ -185,7 +184,7 @@ export function fetchIncidentAlert(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(incidentAlertError(errors(error)));
+                dispatch(incidentAlertError(error));
             }
         );
 
@@ -263,7 +262,7 @@ export function fetchSubscriberAlert(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(subscriberAlertError(errors(error)));
+                dispatch(subscriberAlertError(error));
             }
         );
 

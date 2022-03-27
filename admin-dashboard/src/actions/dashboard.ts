@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/dashboard';
-import errors from '../errors';
 
 export const dashboardLoadRequest = function () {
     return {
@@ -50,6 +49,6 @@ export const loadDashboard = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(dashboardLoadFailed(errors(errorMsg)));
+        dispatch(dashboardLoadFailed(errorMsg));
     }
 };

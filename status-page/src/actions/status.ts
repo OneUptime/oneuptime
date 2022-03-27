@@ -1,7 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/status';
-import errors from '../errors';
+
 import { loginRequired, loginError } from '../actions/login';
 import { probeRequest } from './probe';
 
@@ -58,8 +58,8 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: URL) => {
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(statusPageFailure(errors(error)));
-                dispatch(loginError(errors(error)));
+                dispatch(statusPageFailure(error));
+                dispatch(loginError(error));
             }
         );
         return promise;
@@ -212,8 +212,8 @@ export const getAllStatusPageResource = (
                     error = 'Network Error';
                 }
 
-                dispatch(statusPageFailure(errors(error)));
-                dispatch(loginError(errors(error)));
+                dispatch(statusPageFailure(error));
+                dispatch(loginError(error));
             }
         );
     };
@@ -312,7 +312,7 @@ export const getStatusPageNote = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(statusPageNoteFailure(errors(error)));
+                dispatch(statusPageNoteFailure(error));
             }
         );
     };
@@ -359,7 +359,7 @@ export const getStatusPageIndividualNote = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(statusPageNoteFailure(errors(error)));
+                dispatch(statusPageNoteFailure(error));
             }
         );
     };
@@ -422,7 +422,7 @@ export const getScheduledEvent = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(scheduledEventFailure(errors(error)));
+                dispatch(scheduledEventFailure(error));
             }
         );
     };
@@ -486,7 +486,7 @@ export const getOngoingScheduledEvent = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(ongoingEventFailure(errors(error)));
+                dispatch(ongoingEventFailure(error));
             }
         );
     };
@@ -542,7 +542,7 @@ export const getIndividualEvent = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(individualEventsFailure(errors(error)));
+                dispatch(individualEventsFailure(error));
             }
         );
     };
@@ -702,7 +702,7 @@ export const getMoreNote = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(moreNoteFailure(errors(error)));
+                dispatch(moreNoteFailure(error));
             }
         );
     };
@@ -755,7 +755,7 @@ export const getMoreEvent = (
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(moreEventFailure(errors(error)));
+                dispatch(moreEventFailure(error));
             }
         );
     };
@@ -886,7 +886,7 @@ export function fetchMonitorStatuses(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorStatusesFailure(errors(error)));
+                dispatch(fetchMonitorStatusesFailure(error));
             }
         );
 
@@ -949,7 +949,7 @@ export function fetchMonitorLogs(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchMonitorLogsFailure(errors(error)));
+                dispatch(fetchMonitorLogsFailure(error));
             }
         );
         return promise;

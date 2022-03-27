@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
-import errors from '../errors';
 
 // Fetch Project Probes list
 export function getProbes(
@@ -42,7 +41,7 @@ export function getProbes(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(probeError(errors(error)));
+                dispatch(probeError(error));
             }
         );
 

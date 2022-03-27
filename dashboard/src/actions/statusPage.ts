@@ -2,7 +2,6 @@ import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
-import errors from '../errors';
 
 // handle whether to show domain input field
 export const addMoreDomain = () => {
@@ -193,7 +192,7 @@ export const updateStatusPageSetting = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageSettingError(errors(error)));
+                dispatch(updateStatusPageSettingError(error));
             }
         );
 
@@ -248,7 +247,7 @@ export function updateStatusPageMonitors(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageMonitorsError(errors(error)));
+                dispatch(updateStatusPageMonitorsError(error));
             }
         );
         return promise;
@@ -303,7 +302,7 @@ export const updatePrivateStatusPage = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updatePrivateStatusPageError(errors(error)));
+                dispatch(updatePrivateStatusPageError(error));
             }
         );
         return promise;
@@ -356,7 +355,7 @@ export function updateStatusPageLanguage(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageLanguageError(errors(error)));
+                dispatch(updateStatusPageLanguageError(error));
             }
         );
         return promise;
@@ -408,7 +407,7 @@ export const updateSubscriberOption = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateSubscriberOptionError(errors(error)));
+                dispatch(updateSubscriberOptionError(error));
             }
         );
         return promise;
@@ -532,7 +531,7 @@ export function updateStatusPageBranding(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageBrandingError(errors(error)));
+                dispatch(updateStatusPageBrandingError(error));
             }
         );
         return promise;
@@ -562,7 +561,7 @@ export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageThemeError(errors(error)));
+                dispatch(updateStatusPageThemeError(error));
             }
         );
         return promise;
@@ -591,7 +590,7 @@ export const updateStatusPageName = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageNameError(errors(error)));
+                dispatch(updateStatusPageNameError(error));
             }
         );
         return promise;
@@ -645,7 +644,7 @@ export const updateStatusPageLinks = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageLinksError(errors(error)));
+                dispatch(updateStatusPageLinksError(error));
             }
         );
         return promise;
@@ -699,7 +698,7 @@ export function updateStatusPageCustomHTML(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageCustomHTMLError(errors(error)));
+                dispatch(updateStatusPageCustomHTMLError(error));
             }
         );
         return promise;
@@ -764,7 +763,7 @@ export function fetchProjectStatusPage(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchProjectStatusPageError(errors(error)));
+                dispatch(fetchProjectStatusPageError(error));
             }
         );
         return promise;
@@ -824,7 +823,7 @@ export function fetchSubProjectStatusPages(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchSubProjectStatusPagesError(errors(error)));
+                dispatch(fetchSubProjectStatusPagesError(error));
             }
         );
         return promise;
@@ -887,7 +886,7 @@ export function fetchIncidentStatusPages(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchIncidentStatusPagesError(errors(error)));
+                dispatch(fetchIncidentStatusPagesError(error));
             }
         );
         return promise;
@@ -942,7 +941,7 @@ export function resetStatusBubbleId(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetStatusBubbleIdError(errors(error)));
+                dispatch(resetStatusBubbleIdError(error));
             }
         );
 
@@ -1001,7 +1000,7 @@ export function deleteStatusPage(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteStatusPageError(errors(error)));
+                dispatch(deleteStatusPageError(error));
             }
         );
         return promise;
@@ -1052,7 +1051,7 @@ export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(duplicateStatusPageError(errors(error)));
+                dispatch(duplicateStatusPageError(error));
             }
         );
         return promise;
@@ -1085,7 +1084,7 @@ export function createDuplicateStatusPage(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(duplicateStatusPageError(errors(error)));
+                dispatch(duplicateStatusPageError(error));
             }
         );
         return promise;
@@ -1114,7 +1113,7 @@ export const fetchStatusPage = (statusPageSlug: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(duplicateStatusPageError(errors(error)));
+                dispatch(duplicateStatusPageError(error));
             }
         );
         return promise;
@@ -1176,7 +1175,7 @@ export function updateStatusPageEmbeddedCss(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageEmbeddedCssError(errors(error)));
+                dispatch(updateStatusPageEmbeddedCssError(error));
             }
         );
 
@@ -1231,7 +1230,7 @@ export function resetBrandingColors(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetBrandingColorsError(errors(error)));
+                dispatch(resetBrandingColorsError(error));
             }
         );
 
@@ -1287,7 +1286,7 @@ export function resetStatusPageEmbeddedCss(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetStatusPageEmbeddedCssError(errors(error)));
+                dispatch(resetStatusPageEmbeddedCssError(error));
             }
         );
 
@@ -1338,7 +1337,7 @@ export const updateStatusPageLayout = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateStatusPageLayoutError(errors(error)));
+                dispatch(updateStatusPageLayoutError(error));
             }
         );
 
@@ -1392,7 +1391,7 @@ export function fetchStatusPageSubscribers(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchSubscriberFailure(errors(error)));
+                dispatch(fetchSubscriberFailure(error));
             }
         );
         return promise;

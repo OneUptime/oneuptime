@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/emailTemplates';
-import errors from '../errors';
 
 //Array of email templates
 
@@ -53,7 +52,7 @@ export const getEmailTemplates = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(emailTemplatesError(errors(error)));
+                dispatch(emailTemplatesError(error));
             }
         );
     };
@@ -107,7 +106,7 @@ export const editEmailTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editEmailTemplateError(errors(error)));
+                dispatch(editEmailTemplateError(error));
             }
         );
     };
@@ -162,7 +161,7 @@ export const resetEmailTemplates = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetEmailTemplatesError(errors(error)));
+                dispatch(resetEmailTemplatesError(error));
             }
         );
     };
@@ -222,7 +221,7 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(smtpConfigError(errors(error)));
+                dispatch(smtpConfigError(error));
             }
         );
     };
@@ -260,7 +259,7 @@ export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(smtpConfigError(errors(error)));
+                dispatch(smtpConfigError(error));
             }
         );
     };
@@ -323,7 +322,7 @@ export function deleteSmtpConfig(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteSmtpConfigError(errors(error)));
+                dispatch(deleteSmtpConfigError(error));
             }
         );
     };
@@ -368,7 +367,7 @@ export function updateSmtpConfig(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(smtpConfigError(errors(error)));
+                dispatch(smtpConfigError(error));
             }
         );
     };

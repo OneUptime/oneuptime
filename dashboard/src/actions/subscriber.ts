@@ -1,7 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/subscriber';
-import errors from '../errors';
+
 import { saveFile } from '../config';
 
 // Create a new subscriber
@@ -62,7 +62,7 @@ export function createSubscriber(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createSubscriberError(errors(error)));
+                dispatch(createSubscriberError(error));
             }
         );
 
@@ -131,7 +131,7 @@ export function exportCSV(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(exportCsvError(errors(error)));
+                dispatch(exportCsvError(error));
             }
         );
 
@@ -198,7 +198,7 @@ export const deleteSubscriber = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteSubscriberError(errors(error)));
+                dispatch(deleteSubscriberError(error));
             }
         );
 
@@ -277,7 +277,7 @@ export function importSubscribersFromCsvFile(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createSubscriberError(errors(error)));
+                dispatch(createSubscriberError(error));
             }
         );
 

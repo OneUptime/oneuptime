@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentBasicSettings';
-import errors from '../errors';
 
 const fetchBasicIncidentSettingsVariablesRequest = () => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
@@ -40,9 +39,7 @@ export const fetchBasicIncidentSettingsVariables = () => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    fetchBasicIncidentSettingsVariablesFailure(errors(error))
-                );
+                dispatch(fetchBasicIncidentSettingsVariablesFailure(error));
             }
         );
     };
@@ -95,7 +92,7 @@ export const fetchIncidentTemplates =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchIncidentTemplatesFailure(errors(error)));
+                dispatch(fetchIncidentTemplatesFailure(error));
             }
         );
 
@@ -141,7 +138,7 @@ export const createIncidentTemplate =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createIncidentTemplateFailure(errors(error)));
+                dispatch(createIncidentTemplateFailure(error));
             }
         );
 
@@ -187,7 +184,7 @@ export const updateIncidentTemplate =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateIncidentTemplateFailure(errors(error)));
+                dispatch(updateIncidentTemplateFailure(error));
             }
         );
 
@@ -233,7 +230,7 @@ export const deleteIncidentTemplate =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteIncidentTemplateFailure(errors(error)));
+                dispatch(deleteIncidentTemplateFailure(error));
             }
         );
 
@@ -277,7 +274,7 @@ export const setDefaultTemplate =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(setDefaultTemplateFailure(errors(error)));
+                dispatch(setDefaultTemplateFailure(error));
             }
         );
 
@@ -329,7 +326,7 @@ export const fetchDefaultTemplate =
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchDefaultTemplateFailure(errors(error)));
+                dispatch(fetchDefaultTemplateFailure(error));
             }
         );
 

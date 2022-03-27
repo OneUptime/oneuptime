@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentPriorities';
-import errors from '../errors';
 
 function fetchIncidentPrioritiesRequest() {
     return {
@@ -52,7 +51,7 @@ export function fetchIncidentPriorities(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchIncidentPrioritiesFailure(errors(error)));
+                dispatch(fetchIncidentPrioritiesFailure(error));
             }
         );
     };
@@ -80,7 +79,7 @@ export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createIncidentPriorityFailure(errors(error)));
+                dispatch(createIncidentPriorityFailure(error));
             }
         );
         return promise;
@@ -126,7 +125,7 @@ export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateIncidentPriorityFailure(errors(error)));
+                dispatch(updateIncidentPriorityFailure(error));
             }
         );
         return promise;
@@ -172,7 +171,7 @@ export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteIncidentPriorityFailure(errors(error)));
+                dispatch(deleteIncidentPriorityFailure(error));
             }
         );
         return promise;

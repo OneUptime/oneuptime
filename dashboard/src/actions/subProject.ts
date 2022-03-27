@@ -1,7 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/subProject';
-import errors from '../errors';
+
 import { User } from '../config';
 
 export const subProjectsRequest = (promise: $TSFixMe) => {
@@ -60,7 +60,7 @@ export const getSubProjects = (projectId: $TSFixMe, skip = 0, limit = 10) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(subProjectsError(errors(error)));
+                dispatch(subProjectsError(error));
             }
         );
 
@@ -134,7 +134,7 @@ export function createSubProject(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createSubProjectError(errors(error)));
+                dispatch(createSubProjectError(error));
                 return { error };
             }
         );
@@ -194,7 +194,7 @@ export const resetSubProjectToken = (subProjectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(resetSubProjectTokenError(errors(error)));
+                dispatch(resetSubProjectTokenError(error));
             }
         );
 
@@ -262,7 +262,7 @@ export function renameSubProject(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(renameSubProjectError(errors(error)));
+                dispatch(renameSubProjectError(error));
                 return { error };
             }
         );
@@ -331,7 +331,7 @@ export const deleteSubProject = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(deleteSubProjectError(errors(error)));
+                dispatch(deleteSubProjectError(error));
                 return { error };
             }
         );
@@ -388,7 +388,7 @@ export function exitSubProject(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(exitSubProjectError(errors(error)));
+                dispatch(exitSubProjectError(error));
             }
         );
 
@@ -451,7 +451,7 @@ export function markSubProjectForDelete(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(markSubProjectForDeleteError(errors(error)));
+                dispatch(markSubProjectForDeleteError(error));
             }
         );
 

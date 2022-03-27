@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/settings';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 export const requestingSettings = () => {
     return {
         type: types.REQUESTING_SETTINGS,
@@ -59,7 +58,10 @@ export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(testSmtpRequest());
 
     try {
-        const response = await BackendAPI.post('emailSmtp/test', payload);
+        const response = await BackendAPI.post(
+            new Route('emailSmtp/test'),
+            payload
+        );
         dispatch(testSmtpSuccess(response));
         return response;
     } catch (error) {
@@ -81,7 +83,10 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     dispatch(testTwilioRequest());
 
     try {
-        const response = await BackendAPI.post('twilio/sms/test', payload);
+        const response = await BackendAPI.post(
+            new Route('twilio/sms/test'),
+            payload
+        );
         dispatch(testTwilioSuccess(response));
         return response;
     } catch (error) {
@@ -130,7 +135,7 @@ export const fetchSettings = (type: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(requestingSettingsFailed(errors(errorMsg)));
+        dispatch(requestingSettingsFailed(errorMsg));
     }
 };
 
@@ -158,6 +163,6 @@ export const saveSettings =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(requestingSettingsFailed(errors(errorMsg)));
+            dispatch(requestingSettingsFailed(errorMsg));
         }
     };

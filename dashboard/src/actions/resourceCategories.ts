@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resourceCategories';
-import errors from '../errors';
 
 export function fetchResourceCategories(
     projectId: $TSFixMe,
@@ -40,7 +39,7 @@ export function fetchResourceCategories(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchResourceCategoriesFailure(errors(error)));
+                dispatch(fetchResourceCategoriesFailure(error));
             }
         );
         return promise;
@@ -96,7 +95,7 @@ export const createResourceCategory = (
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createResourceCategoryFailure(errors(error)));
+                dispatch(createResourceCategoryFailure(error));
             }
         );
         return promise;
@@ -133,7 +132,7 @@ export function updateResourceCategory(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(updateResourceCategoryFailure(errors(error)));
+                dispatch(updateResourceCategoryFailure(error));
             }
         );
         return promise;
@@ -210,9 +209,7 @@ export function deleteResourceCategory(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    deleteResourceCategoryFailure({ error: errors(error) })
-                );
+                dispatch(deleteResourceCategoryFailure({ error: error }));
             }
         );
         return promise;
@@ -266,9 +263,7 @@ export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    fetchResourceCategoriesForNewResourceFailure(errors(error))
-                );
+                dispatch(fetchResourceCategoriesForNewResourceFailure(error));
             }
         );
         return promise;

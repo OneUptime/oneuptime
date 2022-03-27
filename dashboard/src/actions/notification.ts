@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/notification';
-import errors from '../errors';
 
 import { User } from '../config';
 
@@ -90,7 +89,7 @@ export const fetchNotifications = (projectId: $TSFixMe) => {
                 payload = 'Network Error';
             }
 
-            dispatch(fetchNotificationsError(errors(payload)));
+            dispatch(fetchNotificationsError(payload));
         }
     };
 };
@@ -133,7 +132,7 @@ export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
                 payload = 'Network Error';
             }
 
-            dispatch(fetchNotificationsError(errors(payload)));
+            dispatch(fetchNotificationsError(payload));
         }
     };
 };
@@ -169,7 +168,7 @@ export function closeNotification(
                 payload = 'Network Error';
             }
 
-            dispatch(fetchNotificationsError(errors(payload)));
+            dispatch(fetchNotificationsError(payload));
         }
     };
 }
@@ -195,7 +194,7 @@ export const markAllAsRead = (projectId: $TSFixMe) => {
                 payload = 'Network Error';
             }
 
-            dispatch(fetchNotificationsError(errors(payload)));
+            dispatch(fetchNotificationsError(payload));
         }
     };
 };
@@ -226,7 +225,7 @@ export function billingActionTaken(
                 payload = 'Network Error';
             }
 
-            dispatch(fetchNotificationsError(errors(payload)));
+            dispatch(fetchNotificationsError(payload));
         }
     };
 }

@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/license';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 // fetch license
 
 export const fetchLicenseRequest = (promise: $TSFixMe) => {
@@ -38,11 +37,10 @@ export const fetchLicense = () => async (dispatch: Dispatch) => {
     dispatch(resetConfirmLicense());
 
     try {
-        const response = await BackendAPI.post('globalConfig/configs', [
-            'licenseKey',
-            'licenseEmail',
-            'licenseToken',
-        ]);
+        const response = await BackendAPI.post(
+            new Route('globalConfig/configs'),
+            ['licenseKey', 'licenseEmail', 'licenseToken']
+        );
 
         const data = response.data;
         dispatch(fetchLicenseSuccess(data));
@@ -59,7 +57,7 @@ export const fetchLicense = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchLicenseError(errors(errorMsg)));
+        dispatch(fetchLicenseError(errorMsg));
         return 'error';
     }
 };
@@ -107,11 +105,14 @@ export const confirmLicense =
 
             let data = response.data;
             if (data.token) {
-                const response = await BackendAPI.post('globalConfig/', [
-                    { name: 'licenseKey', value: values.license },
-                    { name: 'licenseEmail', value: values.email },
-                    { name: 'licenseToken', value: data.token },
-                ]);
+                const response = await BackendAPI.post(
+                    new Route('globalConfig/'),
+                    [
+                        { name: 'licenseKey', value: values.license },
+                        { name: 'licenseEmail', value: values.email },
+                        { name: 'licenseToken', value: data.token },
+                    ]
+                );
 
                 data = response.data;
             }
@@ -129,7 +130,7 @@ export const confirmLicense =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(confirmLicenseError(errors(errorMsg)));
+            dispatch(confirmLicenseError(errorMsg));
             return 'error';
         }
     };

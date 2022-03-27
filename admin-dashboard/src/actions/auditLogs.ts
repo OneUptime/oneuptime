@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/auditLogs';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 // Fetch All Audit Logs
 export const fetchAuditLogsRequest = () => {
     return {
@@ -53,7 +52,7 @@ export const fetchAuditLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchAuditLogsError(errors(errorMsg)));
+            dispatch(fetchAuditLogsError(errorMsg));
         }
     };
 
@@ -109,7 +108,7 @@ export const searchAuditLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(searchAuditLogsError(errors(errorMsg)));
+            dispatch(searchAuditLogsError(errorMsg));
         }
     };
 
@@ -155,7 +154,7 @@ export const deleteAuditLogs = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(deleteAuditLogsError(errors(errorMsg)));
+        dispatch(deleteAuditLogsError(errorMsg));
     }
 };
 
@@ -211,7 +210,7 @@ export const fetchAuditLogStatus = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchAuditLogStatusError(errors(errorMsg)));
+        dispatch(fetchAuditLogStatusError(errorMsg));
         return 'error';
     }
 };
@@ -251,7 +250,7 @@ export const auditLogStatusChange =
         dispatch(changeAuditLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post('globalConfig/', [
+            const response = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'auditLogMonitoringStatus', value: values.status },
             ]);
 
@@ -270,7 +269,7 @@ export const auditLogStatusChange =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(changeAuditLogStatusError(errors(errorMsg)));
+            dispatch(changeAuditLogStatusError(errorMsg));
             return 'error';
         }
     };

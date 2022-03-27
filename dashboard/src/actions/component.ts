@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/component';
-import errors from '../errors';
 
 export const showDeleteModal = () => {
     return {
@@ -43,7 +42,7 @@ export const fetchComponents = ({
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchComponentsFailure(errors(error)));
+                dispatch(fetchComponentsFailure(error));
             }
         );
 
@@ -105,9 +104,7 @@ export function fetchPaginatedComponents({
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(
-                    fetchPaginatedComponentsFailure(errors(error), projectId)
-                );
+                dispatch(fetchPaginatedComponentsFailure(error, projectId));
             }
         );
 
@@ -161,7 +158,7 @@ export const createComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createComponentFailure(errors(error)));
+                dispatch(createComponentFailure(error));
             }
         );
 
@@ -221,7 +218,7 @@ export const editComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(editComponentFailure(errors(error)));
+                dispatch(editComponentFailure(error));
             }
         );
 
@@ -289,7 +286,7 @@ export const deleteComponent = (componentId: $TSFixMe, projectId: $TSFixMe) => {
                 }
                 dispatch(
                     deleteComponentFailure({
-                        error: errors(error),
+                        error: error,
                         componentId,
                     })
                 );
@@ -351,7 +348,7 @@ export const addSeat = (projectId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(addSeatFailure(errors(error)));
+                dispatch(addSeatFailure(error));
             }
         );
 
@@ -414,7 +411,7 @@ export function fetchComponentResources(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchComponentResourcesFailure(errors(error)));
+                dispatch(fetchComponentResourcesFailure(error));
             }
         );
 
@@ -478,7 +475,7 @@ export function fetchComponentSummary(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchComponentSummaryFailure(errors(error)));
+                dispatch(fetchComponentSummaryFailure(error));
             }
         );
 
@@ -560,7 +557,7 @@ export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchComponentFailure(errors(error)));
+                dispatch(fetchComponentFailure(error));
             }
         );
 

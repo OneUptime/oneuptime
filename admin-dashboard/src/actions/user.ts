@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/user';
-import errors from '../errors';
 
 export const fetchUsersRequest = () => {
     return {
@@ -51,7 +50,7 @@ export const fetchUsers =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchUsersError(errors(errorMsg)));
+            dispatch(fetchUsersError(errorMsg));
         }
     };
 
@@ -98,7 +97,7 @@ export const fetchUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchUserError(errors(errorMsg)));
+        dispatch(fetchUserError(errorMsg));
     }
 };
 
@@ -155,7 +154,7 @@ export const addUser = (user: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(addUserError(errors(errorMsg)));
+        dispatch(addUserError(errorMsg));
     }
 };
 
@@ -221,7 +220,7 @@ export const updateUserSetting =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(updateUserSettingError(errors(errorMsg)));
+            dispatch(updateUserSettingError(errorMsg));
         }
     };
 
@@ -287,7 +286,7 @@ export const deleteUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(deleteUserError(errors(errorMsg)));
+        dispatch(deleteUserError(errorMsg));
     }
 };
 
@@ -341,7 +340,7 @@ export const restoreUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(restoreUserError(errors(errorMsg)));
+        dispatch(restoreUserError(errorMsg));
     }
 };
 
@@ -395,7 +394,7 @@ export const blockUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(blockUserError(errors(errorMsg)));
+        dispatch(blockUserError(errorMsg));
     }
 };
 
@@ -453,7 +452,7 @@ export const enableAdminMode =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(enableAdminModeError(errors(errorMsg)));
+            dispatch(enableAdminModeError(errorMsg));
         }
     };
 
@@ -510,7 +509,7 @@ export const disableAdminMode =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(disableAdminModeError(errors(errorMsg)));
+            dispatch(disableAdminModeError(errorMsg));
         }
     };
 
@@ -564,7 +563,7 @@ export const unblockUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(unblockUserError(errors(errorMsg)));
+        dispatch(unblockUserError(errorMsg));
     }
 };
 
@@ -622,7 +621,7 @@ export const addUserNote =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(addUserNoteError(errors(errorMsg)));
+            dispatch(addUserNoteError(errorMsg));
         }
     };
 
@@ -687,7 +686,7 @@ export const searchUsers =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(searchUsersError(errors(errorMsg)));
+            dispatch(searchUsersError(errorMsg));
         }
     };
 
@@ -733,7 +732,7 @@ export const updateTwoFactorAuthToken = (userId: $TSFixMe, data: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(twoFactorAuthTokenError(errors(error)));
+                dispatch(twoFactorAuthTokenError(error));
             }
         );
 
@@ -797,7 +796,7 @@ export function fetchUserloginHistory(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchUserHistoryError(errors(error)));
+                dispatch(fetchUserHistoryError(error));
             }
         );
 

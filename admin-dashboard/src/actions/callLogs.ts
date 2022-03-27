@@ -1,8 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/callLogs';
-import errors from '../errors';
-
+import Route from 'common/types/api/route';
 // Fetch All Call Logs
 export const fetchCallLogsRequest = () => {
     return {
@@ -53,7 +52,7 @@ export const fetchCallLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchCallLogsError(errors(errorMsg)));
+            dispatch(fetchCallLogsError(errorMsg));
         }
     };
 
@@ -109,7 +108,7 @@ export const searchCallLogs =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(searchCallLogsError(errors(errorMsg)));
+            dispatch(searchCallLogsError(errorMsg));
         }
     };
 
@@ -155,7 +154,7 @@ export const deleteCallLogs = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(deleteCallLogsError(errors(errorMsg)));
+        dispatch(deleteCallLogsError(errorMsg));
     }
 };
 
@@ -211,7 +210,7 @@ export const fetchCallLogStatus = () => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchCallLogStatusError(errors(errorMsg)));
+        dispatch(fetchCallLogStatusError(errorMsg));
         return 'error';
     }
 };
@@ -251,7 +250,7 @@ export const callLogStatusChange =
         dispatch(changeCallLogStatusRequest());
 
         try {
-            const response = await BackendAPI.post('globalConfig/', [
+            const response = await BackendAPI.post(new Route('globalConfig/'), [
                 { name: 'callLogMonitoringStatus', value: values.status },
             ]);
 
@@ -270,7 +269,7 @@ export const callLogStatusChange =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(changeCallLogStatusError(errors(errorMsg)));
+            dispatch(changeCallLogStatusError(errorMsg));
             return 'error';
         }
     };

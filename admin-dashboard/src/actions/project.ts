@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
-import errors from '../errors';
 
 // Fetch Projects
 
@@ -52,7 +51,7 @@ export const fetchProjects =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchProjectsError(errors(errorMsg)));
+            dispatch(fetchProjectsError(errorMsg));
         }
     };
 
@@ -99,7 +98,7 @@ export const fetchProject = (slug: $TSFixMe) => async (dispatch: Dispatch) => {
         } else {
             errorMsg = 'Network Error';
         }
-        dispatch(fetchProjectError(errors(errorMsg)));
+        dispatch(fetchProjectError(errorMsg));
     }
 };
 
@@ -148,7 +147,7 @@ export const userCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(userCreateError(errors(error)));
+                dispatch(userCreateError(error));
             }
         );
 
@@ -203,7 +202,7 @@ export const fetchProjectTeam =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchProjectTeamError(errors(errorMsg)));
+            dispatch(fetchProjectTeamError(errorMsg));
         }
     };
 
@@ -281,7 +280,7 @@ export const userUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(userUpdateRoleError(errors(error)));
+                dispatch(userUpdateRoleError(error));
             }
         );
 
@@ -338,7 +337,7 @@ export const updateBalance =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(updateProjectBalanceError(errors(errorMsg)));
+            dispatch(updateProjectBalanceError(errorMsg));
         }
     };
 
@@ -387,7 +386,7 @@ export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(teamDeleteError(errors(error)));
+                dispatch(teamDeleteError(error));
                 return { error };
             }
         );
@@ -457,7 +456,7 @@ export const fetchUserProjects =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(fetchUserProjectsError(errors(errorMsg)));
+            dispatch(fetchUserProjectsError(errorMsg));
         }
     };
 
@@ -512,7 +511,7 @@ export const deleteProject =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(deleteProjectError(errors(errorMsg)));
+            dispatch(deleteProjectError(errorMsg));
         }
     };
 
@@ -569,7 +568,7 @@ export const blockProject =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(blockProjectError(errors(errorMsg)));
+            dispatch(blockProjectError(errorMsg));
         }
     };
 
@@ -630,7 +629,7 @@ export const renewAlertLimit =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(renewAlertLimitError(errors(errorMsg)));
+            dispatch(renewAlertLimitError(errorMsg));
         }
     };
 
@@ -687,7 +686,7 @@ export const restoreProject =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(restoreProjectError(errors(errorMsg)));
+            dispatch(restoreProjectError(errorMsg));
         }
     };
 
@@ -744,7 +743,7 @@ export const unblockProject =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(unblockProjectError(errors(errorMsg)));
+            dispatch(unblockProjectError(errorMsg));
         }
     };
 
@@ -802,7 +801,7 @@ export const addProjectNote =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(addProjectNoteError(errors(errorMsg)));
+            dispatch(addProjectNoteError(errorMsg));
         }
     };
 
@@ -865,7 +864,7 @@ export const searchProjects =
             } else {
                 errorMsg = 'Network Error';
             }
-            dispatch(searchProjectsError(errors(errorMsg)));
+            dispatch(searchProjectsError(errorMsg));
         }
     };
 

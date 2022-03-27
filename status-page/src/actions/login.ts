@@ -1,6 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
-import errors from '../errors';
+import Route from 'common/types/api/route';
 import * as types from '../constants/login';
 import { User } from '../config';
 
@@ -44,7 +44,7 @@ export const resetLogin = () => {
 // Calls the API to register a user.
 export const loginUser = (values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.post('user/login', values);
+        const promise = BackendAPI.post(new Route('user/login'), values);
         dispatch(loginRequest(promise));
 
         promise.then(
@@ -63,7 +63,7 @@ export const loginUser = (values: $TSFixMe) => {
                 if (error.length > 100) {
                     error = 'Network Error';
                 }
-                dispatch(loginError(errors(error)));
+                dispatch(loginError(error));
             }
         );
         return promise;

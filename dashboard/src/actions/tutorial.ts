@@ -1,6 +1,7 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/tutorial';
+import Route from 'common/types/api/route';
 
 export const fetchTutorialRequest = (promise: $TSFixMe) => {
     return {
@@ -59,7 +60,7 @@ export const resetCloseTutorial = () => {
 export const fetchTutorial = () => {
     return function (dispatch: Dispatch) {
         let promise = null;
-        promise = BackendAPI.get('tutorial');
+        promise = BackendAPI.get(new Route('tutorial'));
 
         dispatch(fetchTutorialRequest(promise));
 

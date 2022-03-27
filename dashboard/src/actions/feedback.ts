@@ -1,7 +1,6 @@
 import BackendAPI from '../api';
 import { Dispatch } from 'redux';
 import * as types from '../constants/feedback';
-import errors from '../errors';
 
 export const openFeedbackModal = function () {
     return {
@@ -72,7 +71,7 @@ export function createFeedback(
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(createFeedbackError(errors(error)));
+                dispatch(createFeedbackError(error));
             }
         );
     };
