@@ -1,19 +1,25 @@
-import Modal from '../types/constants/modal';
+import ModalConstants from '../constants/modal';
+import { PayloadTypes } from '../payloads/modal';
 import {
     OpenModalActionPayload,
     CloseModalActionPayload,
-} from '../types/payloads/modal';
+} from '../payloads/modal';
+import Action from '../types/action';
 
 export const openModal = function (payload: OpenModalActionPayload) {
     return {
-        type: Modal.OPEN_MODAL,
+        type: ModalConstants.OPEN_MODAL,
         payload: payload,
     };
 };
 
 export const closeModal = function (payload: CloseModalActionPayload) {
     return {
-        type: Modal.CLOSE_MODAL,
+        type: ModalConstants.CLOSE_MODAL,
         payload: payload,
     };
 };
+
+export interface ModalAction extends Action {
+    payload: PayloadTypes;
+}

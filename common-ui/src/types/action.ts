@@ -1,4 +1,4 @@
-import { JSONValue } from 'common/types/json';
+import ActionPayload from './action-payload';
 
 export default class Action {
     private _type: string = '';
@@ -9,11 +9,11 @@ export default class Action {
         this._type = v;
     }
 
-    private _payload: JSONValue = {};
-    public get payload(): JSONValue {
+    private _payload: ActionPayload = {};
+    public get payload(): ActionPayload {
         return this._payload;
     }
-    public set payload(v: JSONValue) {
+    public set payload(v: ActionPayload) {
         this._payload = v;
     }
 }
