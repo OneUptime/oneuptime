@@ -2,7 +2,7 @@ import Hostname from 'common/types/api/hostname';
 import Protocol from 'common/types/api/protocol';
 
 export const env = (key: string): string => {
-    return process.env[`REACT_APP_${key}`];
+    return process.env[`REACT_APP_${key}`] || '';
 };
 
 export const IS_SAAS_SERVICE = env('IS_SAAS_SERVICE') === 'true';
@@ -17,7 +17,9 @@ export const DASHBOARD_HOSTNAME = new Hostname(
 
 export const HELM_HOSTNAME = new Hostname(`${window.location.hostname}/charts`);
 
-export const API_DOCS = new Hostname(`${window.location.hostname}/docs`);
+export const API_DOCS_HOSTANME = new Hostname(
+    `${window.location.hostname}/docs`
+);
 
 export const ADMIN_DASHBOARD_HOSTNAME = new Hostname(
     `${window.location.hostname}/admin`

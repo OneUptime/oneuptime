@@ -12,7 +12,7 @@ class BackendAPI extends API {
         super(API_PROTOCOL, BACKEND_HOSTNAME);
     }
 
-    private static override getHeaders(): Headers {
+    protected static override getHeaders(): Headers {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
         const headers: Headers = {};
@@ -27,9 +27,9 @@ class BackendAPI extends API {
         return defaultHeaders;
     }
 
-    private static override handleError(
+    protected static override handleError(
         error: HTTPErrorResponse | APIException
-    ) {
+    ): HTTPErrorResponse | APIException {
         if (error instanceof HTTPErrorResponse && error.statusCode === 401) {
             const cookies = new Cookies();
             cookies.remove('admin-data', { path: '/' });
@@ -37,6 +37,8 @@ class BackendAPI extends API {
             User.clear();
             history.push('/login');
         }
+
+        return error;
     }
 }
 

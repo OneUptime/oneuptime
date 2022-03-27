@@ -11,7 +11,7 @@ export default class URL {
         this._route = v;
     }
 
-    private _hostname: Hostname = new Hostname();
+    private _hostname: Hostname = new Hostname('localhost');
     public get hostname(): Hostname {
         return this._hostname;
     }

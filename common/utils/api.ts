@@ -80,7 +80,7 @@ export default class API {
         );
     }
 
-    private static handleError(
+    protected static handleError(
         error: HTTPErrorResponse | APIException
     ): HTTPErrorResponse | APIException {
         return error;
@@ -96,7 +96,7 @@ export default class API {
         return defaultHeaders;
     }
 
-    public static getHeaders(headers?: Headers): Headers {
+    protected static getHeaders(headers?: Headers): Headers {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
         if (headers) {

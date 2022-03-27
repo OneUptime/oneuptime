@@ -19,6 +19,7 @@
         "common": "file:../common",
         "prop-types": "^15.8.1",
         "react": "^17.0.2",
+        "react-router": "^6.2.2",
         "universal-cookie": "^4.0.4"
     },
     "devDependencies": {

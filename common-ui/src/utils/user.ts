@@ -1,6 +1,7 @@
 import LocalStorage from './localstorage';
 import Email from 'common/types/email';
 import URL from 'common/types/api/url';
+import { JSONValue } from 'common/types/json';
 
 export default class User {
     public static getAccessToken() {
@@ -51,7 +52,8 @@ export default class User {
         LocalStorage.setItem('initialUrl', url);
     }
 
-    public static setProject(project: $TSFixMe) {
+    // TODO: Fix project type
+    public static setProject(project: JSONValue) {
         LocalStorage.setItem('project', project);
     }
 
