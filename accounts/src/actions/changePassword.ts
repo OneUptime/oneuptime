@@ -45,7 +45,6 @@ export const changePassword = (values: $TSFixMe) => {
                 dispatch(changePasswordSuccess(response.data));
             },
             function (error) {
-
                 dispatch(changePasswordError(error));
             }
         );

@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/automatedScript';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const resetScripts = (data: $TSFixMe) => {
     return {
         type: types.RESET_AUTOMATED_SCRIPT,
@@ -23,7 +23,7 @@ export const createAutomatedScriptSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const createAutomatedScriptFailure = (error: $TSFixMe) => {
+export const createAutomatedScriptFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -77,7 +77,7 @@ export const updateAutomatedScriptSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const updateAutomatedScriptFailure = (error: $TSFixMe) => {
+export const updateAutomatedScriptFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -189,7 +189,7 @@ export const fetchAutomatedScriptSuccess = (scripts: $TSFixMe) => {
         payload: scripts,
     };
 };
-export const fetchAutomatedScriptFailure = (error: $TSFixMe) => {
+export const fetchAutomatedScriptFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -211,7 +211,6 @@ export function fetchAutomatedScript(
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchAutomatedScriptFailure(error));
             }
         );
@@ -225,7 +224,7 @@ export const runAutomatedScriptRequest = () => {
         type: types.RUN_AUTOMATED_SCRIPT_REQUEST,
     };
 };
-export const runAutomatedScriptFailure = (error: $TSFixMe) => {
+export const runAutomatedScriptFailure = (error: ErrorPayload) => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -252,7 +251,6 @@ export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
                 return response.data;
             },
             function (error) {
-
                 dispatch(runAutomatedScriptFailure(error));
             }
         );
@@ -274,7 +272,7 @@ const deleteAutomatedScriptRequest = () => {
     };
 };
 
-const deleteAutomatedScriptFailure = (error: $TSFixMe) => {
+const deleteAutomatedScriptFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -296,7 +294,6 @@ export function deleteAutomatedScript(
                 return true;
             },
             function (error) {
-
                 dispatch(deleteAutomatedScriptFailure(error));
                 return false;
             }

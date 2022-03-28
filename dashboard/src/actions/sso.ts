@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/sso';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const createSsoRequest = () => ({
     type: types.CREATE_SSO_REQUEST,
 });
@@ -9,7 +9,7 @@ export const createSsoSuccess = (payload: $TSFixMe) => ({
     type: types.CREATE_SSO_SUCCESS,
     payload,
 });
-export const createSsoFailure = (error: $TSFixMe) => ({
+export const createSsoFailure = (error: ErrorPayload) => ({
     type: types.CREATE_SSO_FAILURE,
     payload: error,
 });
@@ -23,7 +23,6 @@ export const createSso = ({ data }: $TSFixMe) => {
                 dispatch(createSsoSuccess(response.data));
             },
             function (error) {
-
                 dispatch(createSsoFailure(error));
             }
         );
@@ -38,7 +37,7 @@ export const fetchSsosSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_SSOS_SUCCESS,
     payload,
 });
-export const fetchSsosFailure = (error: $TSFixMe) => ({
+export const fetchSsosFailure = (error: ErrorPayload) => ({
     type: types.FETCH_SSOS_FAILURE,
     payload: error,
 });
@@ -57,7 +56,6 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
                 dispatch(fetchSsosSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchSsosFailure(error));
             }
         );
@@ -72,7 +70,7 @@ export const fetchSsoSuccess = (payload: $TSFixMe) => ({
     type: types.FETCH_SSO_SUCCESS,
     payload,
 });
-export const fetchSsoFailure = (error: $TSFixMe) => ({
+export const fetchSsoFailure = (error: ErrorPayload) => ({
     type: types.FETCH_SSO_FAILURE,
     payload: error,
 });
@@ -86,7 +84,6 @@ export const fetchSso = (ssoId: $TSFixMe) => {
                 dispatch(fetchSsoSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchSsoFailure(error));
             }
         );
@@ -101,7 +98,7 @@ export const updateSsoSuccess = (payload: $TSFixMe) => ({
     type: types.UPDATE_SSO_SUCCESS,
     payload,
 });
-export const updateSsoFailure = (error: $TSFixMe) => ({
+export const updateSsoFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_SSO_FAILURE,
     payload: error,
 });
@@ -115,7 +112,6 @@ export const updateSso = ({ id, data }: $TSFixMe) => {
                 dispatch(updateSsoSuccess(response.data));
             },
             function (error) {
-
                 dispatch(updateSsoFailure(error));
             }
         );
@@ -130,7 +126,7 @@ export const deleteSsoSuccess = (payload: $TSFixMe) => ({
     type: types.DELETE_SSO_SUCCESS,
     payload,
 });
-export const deleteSsoFailure = (error: $TSFixMe) => ({
+export const deleteSsoFailure = (error: ErrorPayload) => ({
     type: types.DELETE_SSO_FAILURE,
     payload: error,
 });
@@ -144,7 +140,6 @@ export const deleteSso = (ssoId: $TSFixMe) => {
                 dispatch(deleteSsoSuccess(response.data));
             },
             function (error) {
-
                 dispatch(deleteSsoFailure(error));
             }
         );

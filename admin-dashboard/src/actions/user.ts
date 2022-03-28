@@ -1,4 +1,4 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/user';
 
@@ -655,40 +655,40 @@ export const searchUsersError = (error: $TSFixMe) => {
 // Calls the search users api
 export const searchUsers =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-        async (dispatch: Dispatch) => {
-            const values = {
-                filter,
-            };
-            skip = skip ? parseInt(skip) : 0;
-            limit = limit ? parseInt(limit) : 10;
-
-            dispatch(searchUsersRequest());
-
-            try {
-                const response = await BackendAPI.post(
-                    `user/users/search?skip=${skip}&limit=${limit}`,
-                    values
-                );
-
-                const data = response.data;
-
-                dispatch(searchUsersSuccess(data));
-                return response;
-            } catch (error) {
-                let errorMsg;
-                if (error && error.response && error.response.data)
-                    errorMsg = error.response.data;
-                if (error && error.data) {
-                    errorMsg = error.data;
-                }
-                if (error && error.message) {
-                    errorMsg = error.message;
-                } else {
-                    errorMsg = 'Network Error';
-                }
-                dispatch(searchUsersError(errorMsg));
-            }
+    async (dispatch: Dispatch) => {
+        const values = {
+            filter,
         };
+        skip = skip ? parseInt(skip) : 0;
+        limit = limit ? parseInt(limit) : 10;
+
+        dispatch(searchUsersRequest());
+
+        try {
+            const response = await BackendAPI.post(
+                `user/users/search?skip=${skip}&limit=${limit}`,
+                values
+            );
+
+            const data = response.data;
+
+            dispatch(searchUsersSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(searchUsersError(errorMsg));
+        }
+    };
 
 // Update user twoFactorAuthToken
 export const twoFactorAuthTokenRequest = () => {
@@ -722,7 +722,6 @@ export const updateTwoFactorAuthToken = (userId: $TSFixMe, data: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -777,7 +776,6 @@ export function fetchUserloginHistory(
                 return payload;
             },
             function (error) {
-
                 dispatch(fetchUserHistoryError(error));
             }
         );

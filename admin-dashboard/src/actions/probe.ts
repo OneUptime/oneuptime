@@ -1,4 +1,4 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
 import Route from 'common/types/api/route';
@@ -52,7 +52,6 @@ export const getProbes = (skip = 0, limit = 10) => {
                 dispatch(probeSuccess(probes.data));
             },
             function (error) {
-
                 dispatch(probeError(error));
             }
         );

@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/validateToken';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 /*
  * There are three possible states for our validateToken
  * process and we need actions for each of them
@@ -14,7 +14,7 @@ export const validateTokenRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const validateTokenError = (error: $TSFixMe) => {
+export const validateTokenError = (error: ErrorPayload) => {
     return {
         type: types.VALIDATE_TOKEN_FAILED,
         payload: error,
@@ -49,7 +49,6 @@ export const validateToken = (token: $TSFixMe) => {
                 dispatch(validateTokenSuccess(user.data.tokens.jwtAccessToken));
             },
             error => {
-
                 dispatch(validateTokenError(error));
             }
         );

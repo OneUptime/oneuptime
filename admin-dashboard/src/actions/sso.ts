@@ -1,6 +1,6 @@
 import * as types from '../constants/sso';
 
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
 export const fetchSsosRequest = () => {

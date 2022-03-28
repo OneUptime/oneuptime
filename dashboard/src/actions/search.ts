@@ -6,7 +6,7 @@ import {
     SHOW_SEARCH_BAR,
     CLOSE_SEARCH_BAR,
 } from '../constants/search';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
 export const showSearchBar = function () {
@@ -50,7 +50,6 @@ export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(searchSuccess(search.data));
             },
             function (error) {
-
                 dispatch(searchFailure(error));
             }
         );

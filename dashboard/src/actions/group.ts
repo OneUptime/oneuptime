@@ -1,8 +1,8 @@
 import * as types from '../constants/group';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import { User } from '../config.js';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // Add Group
 export const addGroupRequest = () => ({
     type: types.CREATE_GROUP_REQUEST,
@@ -13,7 +13,7 @@ export const addGroupSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const addGroupFailure = (error: $TSFixMe) => ({
+export const addGroupFailure = (error: ErrorPayload) => ({
     type: types.CREATE_GROUP_FAILURE,
     payload: error,
 });
@@ -53,7 +53,7 @@ export const updateGroupSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateGroupFailure = (error: $TSFixMe) => ({
+export const updateGroupFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_GROUP_FAILURE,
     payload: error,
 });
@@ -95,7 +95,7 @@ export const getGroupsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getGroupsFailure = (error: $TSFixMe) => ({
+export const getGroupsFailure = (error: ErrorPayload) => ({
     type: types.GET_GROUPS_FAILURE,
     payload: error,
 });
@@ -130,7 +130,7 @@ export const getProjectGroupsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getProjectGroupsFailure = (error: $TSFixMe) => ({
+export const getProjectGroupsFailure = (error: ErrorPayload) => ({
     type: types.GET_PROJECT_GROUPS_FAILURE,
     payload: error,
 });
@@ -168,7 +168,7 @@ export const deleteGroupSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteGroupFailure = (error: $TSFixMe) => ({
+export const deleteGroupFailure = (error: ErrorPayload) => ({
     type: types.DELETE_GROUP_FAILURE,
     payload: error,
 });

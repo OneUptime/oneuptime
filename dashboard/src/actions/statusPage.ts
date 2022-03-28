@@ -1,8 +1,8 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // handle whether to show domain input field
 export const addMoreDomain = () => {
     return {
@@ -30,7 +30,7 @@ export const uploadCertFileSuccess = (filename: $TSFixMe) => {
     };
 };
 
-export const uploadCertFileFailure = (error: $TSFixMe) => {
+export const uploadCertFileFailure = (error: ErrorPayload) => {
     return {
         type: 'CERT_FILE_ERROR',
         payload: error,
@@ -94,7 +94,7 @@ export const uploadPrivateKeySuccess = (filename: $TSFixMe) => {
     };
 };
 
-export const uploadPrivateKeyFailure = (error: $TSFixMe) => {
+export const uploadPrivateKeyFailure = (error: ErrorPayload) => {
     return {
         type: 'PRIVATE_KEY_ERROR',
         payload: error,
@@ -159,7 +159,7 @@ export const updateStatusPageSettingSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageSettingError = (error: $TSFixMe) => {
+export const updateStatusPageSettingError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_SETTING_FAILURE,
         payload: error,
@@ -182,7 +182,6 @@ export const updateStatusPageSetting = (
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
             function (error) {
-
                 dispatch(updateStatusPageSettingError(error));
             }
         );
@@ -206,7 +205,7 @@ export const updateStatusPageMonitorsSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageMonitorsError = (error: $TSFixMe) => {
+export const updateStatusPageMonitorsError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_MONITORS_FAILURE,
         payload: error,
@@ -228,7 +227,6 @@ export function updateStatusPageMonitors(
                 dispatch(updateStatusPageMonitorsSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageMonitorsError(error));
             }
         );
@@ -251,7 +249,7 @@ export const updatePrivateStatusPageSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updatePrivateStatusPageError = (error: $TSFixMe) => {
+export const updatePrivateStatusPageError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_PRIVATE_STATUSPAGE_FAILURE,
         payload: error,
@@ -274,7 +272,6 @@ export const updatePrivateStatusPage = (
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updatePrivateStatusPageError(error));
             }
         );
@@ -295,7 +292,7 @@ export const updateSubscriberOptionSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateSubscriberOptionError = (error: $TSFixMe) => {
+export const updateSubscriberOptionError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_SUBSCRIBER_OPTION_FAILURE,
         payload: error,
@@ -318,7 +315,6 @@ export function updateStatusPageLanguage(
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageLanguageError(error));
             }
         );
@@ -339,7 +335,7 @@ export const updateStatusPageLanguageSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageLanguageError = (error: $TSFixMe) => {
+export const updateStatusPageLanguageError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_MULTIPLE_LANGUAGE_FAILURE,
         payload: error,
@@ -361,7 +357,6 @@ export const updateSubscriberOption = (
                 dispatch(updateSubscriberOptionSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateSubscriberOptionError(error));
             }
         );
@@ -389,7 +384,7 @@ export const updateStatusPageBrandingSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageBrandingError = (error: $TSFixMe) => {
+export const updateStatusPageBrandingError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_BRANDING_FAILURE,
         payload: error,
@@ -410,7 +405,7 @@ export const updateStatusPageNameSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageNameError = (error: $TSFixMe) => {
+export const updateStatusPageNameError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_NAME_FAILURE,
         payload: error,
@@ -431,7 +426,7 @@ export const updateStatusPageThemeSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageThemeError = (error: $TSFixMe) => {
+export const updateStatusPageThemeError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_THEME_FAILURE,
         payload: error,
@@ -476,7 +471,6 @@ export function updateStatusPageBranding(
                 dispatch(updateStatusPageBrandingSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageBrandingError(error));
             }
         );
@@ -497,7 +491,6 @@ export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageThemeError(error));
             }
         );
@@ -517,7 +510,6 @@ export const updateStatusPageName = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(updateStatusPageNameSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageNameError(error));
             }
         );
@@ -540,7 +532,7 @@ export const updateStatusPageLinksSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageLinksError = (error: $TSFixMe) => {
+export const updateStatusPageLinksError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_LINKS_FAILURE,
         payload: error,
@@ -562,7 +554,6 @@ export const updateStatusPageLinks = (
                 dispatch(updateStatusPageLinksSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageLinksError(error));
             }
         );
@@ -585,7 +576,7 @@ export const updateStatusPageCustomHTMLSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageCustomHTMLError = (error: $TSFixMe) => {
+export const updateStatusPageCustomHTMLError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE,
         payload: error,
@@ -607,7 +598,6 @@ export function updateStatusPageCustomHTML(
                 dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageCustomHTMLError(error));
             }
         );
@@ -636,7 +626,7 @@ export const fetchProjectStatusPageSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const fetchProjectStatusPageError = (error: $TSFixMe) => {
+export const fetchProjectStatusPageError = (error: ErrorPayload) => {
     return {
         type: types.FETCH_PROJECT_STATUSPAGE_FAILURE,
         payload: error,
@@ -663,7 +653,6 @@ export function fetchProjectStatusPage(
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
             function (error) {
-
                 dispatch(fetchProjectStatusPageError(error));
             }
         );
@@ -692,7 +681,7 @@ export const fetchSubProjectStatusPagesSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const fetchSubProjectStatusPagesError = (error: $TSFixMe) => {
+export const fetchSubProjectStatusPagesError = (error: ErrorPayload) => {
     return {
         type: types.FETCH_SUBPROJECT_STATUSPAGE_FAILURE,
         payload: error,
@@ -714,7 +703,6 @@ export function fetchSubProjectStatusPages(
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
             function (error) {
-
                 dispatch(fetchSubProjectStatusPagesError(error));
             }
         );
@@ -744,7 +732,7 @@ export const fetchIncidentStatusPagesSuccess = (
     };
 };
 
-export const fetchIncidentStatusPagesError = (error: $TSFixMe) => {
+export const fetchIncidentStatusPagesError = (error: ErrorPayload) => {
     return {
         type: types.FETCH_INCIDENT_STATUSPAGE_FAILURE,
         payload: error,
@@ -768,7 +756,6 @@ export function fetchIncidentStatusPages(
                 dispatch(fetchIncidentStatusPagesSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchIncidentStatusPagesError(error));
             }
         );
@@ -790,7 +777,7 @@ export const resetStatusBubbleIdSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const resetStatusBubbleIdError = (error: $TSFixMe) => {
+export const resetStatusBubbleIdError = (error: ErrorPayload) => {
     return {
         type: types.RESET_STATUS_BUBBLE_ID_FAILURE,
         payload: error,
@@ -814,7 +801,6 @@ export function resetStatusBubbleId(
                 dispatch(resetStatusBubbleIdSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(resetStatusBubbleIdError(error));
             }
         );
@@ -842,7 +828,7 @@ export const deleteStatusPageSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const deleteStatusPageError = (error: $TSFixMe) => {
+export const deleteStatusPageError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_STATUSPAGE_FAILED,
         payload: error,
@@ -856,7 +842,7 @@ export function deleteStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const promise = delete (`status-page/${projectId}/${statusPageSlug}`,
-            null);
+        null);
         dispatch(deleteStatusPageRequest());
         promise.then(
             function (response) {
@@ -864,7 +850,6 @@ export function deleteStatusPage(
                 dispatch(deleteStatusPageSuccess(data));
             },
             function (error) {
-
                 dispatch(deleteStatusPageError(error));
             }
         );
@@ -886,7 +871,7 @@ export const duplicateStatusPageSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const duplicateStatusPageError = (error: $TSFixMe) => {
+export const duplicateStatusPageError = (error: ErrorPayload) => {
     return {
         type: types.DUPLICATE_STATUSPAGE_FAILURE,
         payload: error,
@@ -906,7 +891,6 @@ export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
                 return response;
             },
             function (error) {
-
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -930,7 +914,6 @@ export function createDuplicateStatusPage(
                 return response;
             },
             function (error) {
-
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -950,7 +933,6 @@ export const fetchStatusPage = (statusPageSlug: $TSFixMe) => {
                 );
             },
             function (error) {
-
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -979,7 +961,7 @@ export const updateStatusPageEmbeddedCssSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageEmbeddedCssError = (error: $TSFixMe) => {
+export const updateStatusPageEmbeddedCssError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUSPAGE_EMBEDDED_CSS_FAILURE,
         payload: error,
@@ -1003,7 +985,6 @@ export function updateStatusPageEmbeddedCss(
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageEmbeddedCssError(error));
             }
         );
@@ -1026,7 +1007,7 @@ export const resetBrandingColorsSuccess = (colors: $TSFixMe) => {
     };
 };
 
-export const resetBrandingColorsError = (error: $TSFixMe) => {
+export const resetBrandingColorsError = (error: ErrorPayload) => {
     return {
         type: types.RESET_BRANDING_COLORS_FAILURE,
         payload: error,
@@ -1049,7 +1030,6 @@ export function resetBrandingColors(
                 dispatch(resetBrandingColorsSuccess(colors));
             },
             function (error) {
-
                 dispatch(resetBrandingColorsError(error));
             }
         );
@@ -1073,7 +1053,7 @@ export const resetStatusPageEmbeddedCssSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const resetStatusPageEmbeddedCssError = (error: $TSFixMe) => {
+export const resetStatusPageEmbeddedCssError = (error: ErrorPayload) => {
     return {
         type: types.RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
         payload: error,
@@ -1096,7 +1076,6 @@ export function resetStatusPageEmbeddedCss(
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
             function (error) {
-
                 dispatch(resetStatusPageEmbeddedCssError(error));
             }
         );
@@ -1118,7 +1097,7 @@ export const updateStatusPageLayoutSuccess = (statusPage: $TSFixMe) => {
     };
 };
 
-export const updateStatusPageLayoutError = (error: $TSFixMe) => {
+export const updateStatusPageLayoutError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
         payload: error,
@@ -1138,7 +1117,6 @@ export const updateStatusPageLayout = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-
                 dispatch(updateStatusPageLayoutError(error));
             }
         );
@@ -1160,7 +1138,7 @@ export const fetchSubscriberSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const fetchSubscriberFailure = (error: $TSFixMe) => {
+export const fetchSubscriberFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_SUBSCRIBER_FAILURE,
         payload: error,
@@ -1183,7 +1161,6 @@ export function fetchStatusPageSubscribers(
                 dispatch(fetchSubscriberSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchSubscriberFailure(error));
             }
         );
@@ -1204,7 +1181,7 @@ export const createExternalStatusPageSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const createExternalStatusPageFailure = (error: $TSFixMe) => {
+export const createExternalStatusPageFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_EXTERNAL_STATUSPAGE_FAILURE,
         payload: error,
@@ -1229,7 +1206,6 @@ export function createExternalStatusPage(
                 return response.data;
             },
             function (error) {
-
                 dispatch(createExternalStatusPageFailure(error));
                 return error;
             }
@@ -1252,7 +1228,7 @@ export const updateExternalStatusPageSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const updateExternalStatusPageFailure = (error: $TSFixMe) => {
+export const updateExternalStatusPageFailure = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
         payload: error,
@@ -1277,7 +1253,6 @@ export function updateExternalStatusPage(
                 return response.data;
             },
             function (error) {
-
                 dispatch(updateExternalStatusPageFailure(error));
                 return error;
             }
@@ -1300,7 +1275,7 @@ export const fetchExternalStatusPagesSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const fetchExternalStatusPagesFailure = (error: $TSFixMe) => {
+export const fetchExternalStatusPagesFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
         payload: error,
@@ -1323,7 +1298,6 @@ export function fetchExternalStatusPages(
                 return response.data;
             },
             function (error) {
-
                 dispatch(fetchExternalStatusPagesFailure(error));
                 return error;
             }
@@ -1346,7 +1320,7 @@ export const deleteExternalStatusPageSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const deleteExternalStatusPageFailure = (error: $TSFixMe) => {
+export const deleteExternalStatusPageFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_EXTERNAL_STATUSPAGE_FAILURE,
         payload: error,
@@ -1369,7 +1343,6 @@ export function deleteExternalStatusPage(
                 return response.data;
             },
             function (error) {
-
                 dispatch(deleteExternalStatusPageFailure(error));
                 return error;
             }
@@ -1392,7 +1365,7 @@ export const createAnnouncementSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const createAnnouncementFailure = (error: $TSFixMe) => {
+export const createAnnouncementFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_ANNOUNCEMEMT_FAILURE,
         payload: error,
@@ -1417,7 +1390,6 @@ export function createAnnouncement(
                 return response.data;
             },
             function (error) {
-
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1446,7 +1418,6 @@ export function updateAnnouncement(
                 return response.data;
             },
             function (error) {
-
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1469,7 +1440,7 @@ export const fetchAnnouncementSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const fetchAnnouncementFailure = (error: $TSFixMe) => {
+export const fetchAnnouncementFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_ANNOUNCEMEMT_FAILURE,
         payload: error,
@@ -1492,7 +1463,6 @@ export function fetchAnnouncements(
                 dispatch(fetchAnnouncementSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchAnnouncementFailure(error));
             }
         );
@@ -1513,7 +1483,7 @@ export const fetchAnnouncementLogsSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const fetchAnnouncementLogsFailure = (error: $TSFixMe) => {
+export const fetchAnnouncementLogsFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
         payload: error,
@@ -1536,7 +1506,6 @@ export function fetchAnnouncementLogs(
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1551,7 +1520,7 @@ export const fetchSingleAnnouncementSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const fetchSingleAnnouncementFailure = (error: $TSFixMe) => {
+export const fetchSingleAnnouncementFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_SINCLE_ANNOUNCEMENT_FAILURE,
         payload: error,
@@ -1572,7 +1541,6 @@ export function fetchSingleAnnouncement(
                 dispatch(fetchSingleAnnouncementSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchSingleAnnouncementFailure(error));
             }
         );
@@ -1587,7 +1555,7 @@ export const handleAnnouncementSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const handleAnnouncementFailure = (error: $TSFixMe) => {
+export const handleAnnouncementFailure = (error: ErrorPayload) => {
     return {
         type: types.HANDLE_ANNOUNCEMENT_FAILURE,
         payload: error,
@@ -1619,7 +1587,7 @@ export const deleteAnnouncementSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const deleteAnnouncementFailure = (error: $TSFixMe) => {
+export const deleteAnnouncementFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_ANNOUNCEMENT_FAILURE,
         payload: error,
@@ -1639,7 +1607,6 @@ export function deleteAnnouncement(
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
             function (error) {
-
                 dispatch(deleteAnnouncementFailure(error));
             }
         );
@@ -1660,7 +1627,6 @@ export function deleteAnnouncementLog(
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
             function (error) {
-
                 dispatch(deleteAnnouncementFailure(error));
             }
         );

@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/smstemplates';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 //Array of sms templates
 
 export const smsTemplatesRequest = (promise: $TSFixMe) => {
@@ -11,7 +11,7 @@ export const smsTemplatesRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const smsTemplatesError = (error: $TSFixMe) => {
+export const smsTemplatesError = (error: ErrorPayload) => {
     return {
         type: types.SMS_TEMPLATES_FAILED,
         payload: error,
@@ -42,7 +42,6 @@ export const getSmsTemplates = (projectId: $TSFixMe) => {
                 dispatch(smsTemplatesSuccess(sms.data));
             },
             function (error) {
-
                 dispatch(smsTemplatesError(error));
             }
         );
@@ -70,7 +69,7 @@ export const editSmsTemplateSuccess = (smsTemplates: $TSFixMe) => {
     };
 };
 
-export const editSmsTemplateError = (error: $TSFixMe) => {
+export const editSmsTemplateError = (error: ErrorPayload) => {
     return {
         type: types.EDIT_SMS_TEMPLATES_FAILED,
         payload: error,
@@ -87,7 +86,6 @@ export const editSmsTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(editSmsTemplateSuccess(smsTemplate.data));
             },
             error => {
-
                 dispatch(editSmsTemplateError(error));
             }
         );
@@ -103,7 +101,7 @@ export const resetSmsTemplatesRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const resetSmsTemplatesError = (error: $TSFixMe) => {
+export const resetSmsTemplatesError = (error: ErrorPayload) => {
     return {
         type: types.RESET_SMS_TEMPLATES_FAILED,
         payload: error,
@@ -133,7 +131,6 @@ export const resetSmsTemplates = (
                 dispatch(resetSmsTemplatesSuccess(sms.data));
             },
             function (error) {
-
                 dispatch(resetSmsTemplatesError(error));
             }
         );
@@ -148,7 +145,7 @@ export const smtpConfigRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const smtpConfigError = (error: $TSFixMe) => {
+export const smtpConfigError = (error: ErrorPayload) => {
     return {
         type: types.SMTP_CONFIG_FAILED,
         payload: error,
@@ -185,7 +182,6 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
                 dispatch(smtpConfigSuccess(data.data));
             },
             function (error) {
-
                 dispatch(smtpConfigError(error));
             }
         );
@@ -214,7 +210,6 @@ export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
                 }
             },
             function (error) {
-
                 dispatch(smtpConfigError(error));
             }
         );
@@ -228,7 +223,7 @@ export const deleteSmtpConfigRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const deleteSmtpConfigError = (error: $TSFixMe) => {
+export const deleteSmtpConfigError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_SMTP_CONFIG_FAILED,
         payload: error,
@@ -264,7 +259,6 @@ export const deleteSmtpConfig = (projectId: $TSFixMe, smtpId: $TSFixMe) => {
                 }
             },
             function (error) {
-
                 dispatch(deleteSmtpConfigError(error));
             }
         );
@@ -297,7 +291,6 @@ export function updateSmtpConfig(
                 }
             },
             function (error) {
-
                 dispatch(smtpConfigError(error));
             }
         );

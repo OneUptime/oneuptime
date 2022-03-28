@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/subscriber';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 import { saveFile } from '../config';
 
 // Create a new subscriber
@@ -13,7 +13,7 @@ export const createSubscriberRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const createSubscriberError = (error: $TSFixMe) => {
+export const createSubscriberError = (error: ErrorPayload) => {
     return {
         type: types.CREATE_SUBSCRIBER_FAILED,
         payload: error,
@@ -52,7 +52,6 @@ export function createSubscriber(
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function (error) {
-
                 dispatch(createSubscriberError(error));
             }
         );
@@ -70,7 +69,7 @@ export const exportCsvRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const exportCsvError = (error: $TSFixMe) => {
+export const exportCsvError = (error: ErrorPayload) => {
     return {
         type: types.EXPORT_CSV_FAILED,
         payload: error,
@@ -112,7 +111,6 @@ export function exportCSV(
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
             function (error) {
-
                 dispatch(exportCsvError(error));
             }
         );
@@ -130,7 +128,7 @@ export const deleteSubscriberRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const deleteSubscriberError = (error: $TSFixMe) => {
+export const deleteSubscriberError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_SUBSCRIBER_FAILED,
         payload: error,
@@ -170,7 +168,6 @@ export const deleteSubscriber = (
                 });
             },
             function (error) {
-
                 dispatch(deleteSubscriberError(error));
             }
         );
@@ -186,7 +183,7 @@ export const downloadCsvTemplateRequest = () => {
     };
 };
 
-export const downloadCsvTemplateError = (error: $TSFixMe) => {
+export const downloadCsvTemplateError = (error: ErrorPayload) => {
     return {
         type: types.DOWNLOAD_CSV_TEMPLATE_FAILED,
         payload: error,
@@ -240,7 +237,6 @@ export function importSubscribersFromCsvFile(
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function (error) {
-
                 dispatch(createSubscriberError(error));
             }
         );

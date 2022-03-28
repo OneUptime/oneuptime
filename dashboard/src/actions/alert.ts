@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/alert';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const resetAlert = () => {
     return {
         type: types.ALERT_FETCH_RESET,
@@ -15,7 +15,7 @@ export const alertRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const alertError = (error: $TSFixMe) => {
+export const alertError = (error: ErrorPayload) => {
     return {
         type: types.ALERT_FETCH_FAILED,
         payload: error,
@@ -42,7 +42,6 @@ export const fetchAlert = (projectId: $TSFixMe) => {
                 dispatch(alertSuccess(payload.data));
             },
             function (error) {
-
                 dispatch(alertError(error));
             }
         );
@@ -64,7 +63,7 @@ export const projectAlertRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const projectAlertError = (error: $TSFixMe) => {
+export const projectAlertError = (error: ErrorPayload) => {
     return {
         type: types.PROJECT_ALERT_FETCH_FAILED,
         payload: error,
@@ -99,7 +98,6 @@ export function fetchProjectAlert(
                 dispatch(projectAlertSuccess(data));
             },
             function (error) {
-
                 dispatch(projectAlertError(error));
             }
         );
@@ -122,7 +120,7 @@ export const incidentAlertRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const incidentAlertError = (error: $TSFixMe) => {
+export const incidentAlertError = (error: ErrorPayload) => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_FAILED,
         payload: error,
@@ -156,7 +154,6 @@ export function fetchIncidentAlert(
                 dispatch(incidentAlertSuccess(alerts.data));
             },
             function (error) {
-
                 dispatch(incidentAlertError(error));
             }
         );
@@ -180,7 +177,7 @@ export const subscriberAlertRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const subscriberAlertError = (error: $TSFixMe) => {
+export const subscriberAlertError = (error: ErrorPayload) => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_FAILED,
         payload: error,
@@ -225,7 +222,6 @@ export function fetchSubscriberAlert(
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
             function (error) {
-
                 dispatch(subscriberAlertError(error));
             }
         );
@@ -241,7 +237,7 @@ export const fetchAlertChargesRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const fetchAlertChargesFailed = (error: $TSFixMe) => {
+export const fetchAlertChargesFailed = (error: ErrorPayload) => {
     return {
         type: types.FETCH_ALERT_CHARGES_FAILED,
         payload: error,
@@ -277,7 +273,6 @@ export function fetchAlertCharges(
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
             function (error) {
-
                 dispatch(fetchAlertChargesFailed(error));
             }
         );
@@ -292,7 +287,7 @@ export const downloadAlertChargesRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const downloadAlertChargesFailed = (error: $TSFixMe) => {
+export const downloadAlertChargesFailed = (error: ErrorPayload) => {
     return {
         type: types.DOWNLOAD_ALERT_CHARGES_FAILED,
         payload: error,
@@ -317,7 +312,6 @@ export const downloadAlertCharges = (projectId: $TSFixMe) => {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
             function (error) {
-
                 dispatch(downloadAlertChargesFailed(error));
             }
         );

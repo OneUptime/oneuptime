@@ -1,7 +1,8 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/version';
 import Route from 'common/types/api/route';
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {
         type: types.GET_VERSION_REQUEST,
@@ -9,7 +10,7 @@ export const getVersionRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const getVersionError = (error: $TSFixMe) => {
+export const getVersionError = (error: ErrorPayload) => {
     return {
         type: types.GET_VERSION_FAILED,
         payload: error,
@@ -41,7 +42,6 @@ export const getVersion = () => {
                 dispatch(getVersionSuccess(versions.data));
             },
             function (error) {
-
                 dispatch(getVersionError(error));
             }
         );

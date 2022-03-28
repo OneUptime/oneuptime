@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resourceCategories';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export function fetchResourceCategories(
     projectId: $TSFixMe,
     skip: $TSFixMe,
@@ -29,7 +29,6 @@ export function fetchResourceCategories(
                 );
             },
             function (error) {
-
                 dispatch(fetchResourceCategoriesFailure(error));
             }
         );
@@ -52,7 +51,7 @@ export const fetchResourceCategoriesRequest = () => {
     };
 };
 
-export const fetchResourceCategoriesFailure = (error: $TSFixMe) => {
+export const fetchResourceCategoriesFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FAILURE,
         payload: error,
@@ -145,7 +144,7 @@ export const createResourceCategoryRequest = () => {
     };
 };
 
-export const createResourceCategoryFailure = (error: $TSFixMe) => {
+export const createResourceCategoryFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
@@ -167,7 +166,7 @@ export function updateResourceCategorySuccess(
     };
 }
 
-export const updateResourceCategoryFailure = (error: $TSFixMe) => {
+export const updateResourceCategoryFailure = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
@@ -190,7 +189,6 @@ export function deleteResourceCategory(
                 );
             },
             function (error) {
-
                 dispatch(deleteResourceCategoryFailure({ error: error }));
             }
         );
@@ -214,7 +212,7 @@ export const deleteResourceCategoryRequest = (resourceCategoryId: $TSFixMe) => {
     };
 };
 
-export const deleteResourceCategoryFailure = (error: $TSFixMe) => {
+export const deleteResourceCategoryFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
@@ -235,7 +233,6 @@ export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
                 );
             },
             function (error) {
-
                 dispatch(fetchResourceCategoriesForNewResourceFailure(error));
             }
         );
@@ -259,7 +256,7 @@ export const fetchResourceCategoriesForNewResourceRequest = () => {
 };
 
 export const fetchResourceCategoriesForNewResourceFailure = (
-    error: $TSFixMe
+    error: ErrorPayload
 ) => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,

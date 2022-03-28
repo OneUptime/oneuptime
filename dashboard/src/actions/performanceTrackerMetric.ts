@@ -1,9 +1,9 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 import { encode } from 'js-base64';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // fetch performance tracker metrics - TIME
 export const fetchTimeMetricsRequest = () => ({
     type: types.FETCH_TIME_METRICS_REQUEST,
@@ -14,7 +14,7 @@ export const fetchTimeMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchTimeMetricsFailure = (error: $TSFixMe) => ({
+export const fetchTimeMetricsFailure = (error: ErrorPayload) => ({
     type: types.FETCH_TIME_METRICS_FAILURE,
     payload: error,
 });
@@ -61,7 +61,7 @@ export const fetchThroughputMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchThroughputMetricsFailure = (error: $TSFixMe) => ({
+export const fetchThroughputMetricsFailure = (error: ErrorPayload) => ({
     type: types.FETCH_THROUGHPUT_METRICS_FAILURE,
     payload: error,
 });
@@ -108,7 +108,7 @@ export const fetchErrorMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchErrorMetricsFailure = (error: $TSFixMe) => ({
+export const fetchErrorMetricsFailure = (error: ErrorPayload) => ({
     type: types.FETCH_ERROR_METRICS_FAILURE,
     payload: error,
 });
@@ -227,7 +227,7 @@ export const fetchIncomingMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchIncomingMetricsFailure = (error: $TSFixMe) => ({
+export const fetchIncomingMetricsFailure = (error: ErrorPayload) => ({
     type: types.FETCH_INCOMING_METRICS_FAILURE,
     payload: error,
 });
@@ -273,7 +273,7 @@ export const fetchOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchOutgoingMetricsFailing = (error: $TSFixMe) => ({
+export const fetchOutgoingMetricsFailing = (error: ErrorPayload) => ({
     type: types.FETCH_OUTGOING_METRICS_FAILURE,
     payload: error,
 });
@@ -340,7 +340,7 @@ export const deleteIncomingMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteIncomingMetricsFailure = (error: $TSFixMe) => ({
+export const deleteIncomingMetricsFailure = (error: ErrorPayload) => ({
     type: types.DELETE_INCOMING_METRICS_FAILURE,
     payload: error,
 });
@@ -386,7 +386,7 @@ export const deleteOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteOutgoingMetricsFailure = (error: $TSFixMe) => ({
+export const deleteOutgoingMetricsFailure = (error: ErrorPayload) => ({
     type: types.DELETE_OUTGOING_METRICS_FAILURE,
     payload: error,
 });

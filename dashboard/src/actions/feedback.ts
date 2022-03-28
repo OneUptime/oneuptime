@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/feedback';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const openFeedbackModal = function () {
     return {
         type: types.OPEN_FEEDBACK_MODAL,
@@ -21,7 +21,7 @@ export const createFeedbackRequest = () => {
     };
 };
 
-export const createFeedbackError = (error: $TSFixMe) => {
+export const createFeedbackError = (error: ErrorPayload) => {
     return {
         type: types.CREATE_FEEDBACK_FAILED,
         payload: error,
@@ -61,7 +61,6 @@ export function createFeedback(
                 return feedback;
             },
             function (error) {
-
                 dispatch(createFeedbackError(error));
             }
         );

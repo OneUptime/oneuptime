@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/callRouting';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export function getCallRoutingNumbers(
     projectId: $TSFixMe,
     skip: $TSFixMe,
@@ -20,7 +20,6 @@ export function getCallRoutingNumbers(
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
             function (error) {
-
                 dispatch(getCallRoutingNumbersFailure(error));
             }
         );
@@ -42,7 +41,7 @@ export const getCallRoutingNumbersRequest = () => {
     };
 };
 
-export const getCallRoutingNumbersFailure = (error: $TSFixMe) => {
+export const getCallRoutingNumbersFailure = (error: ErrorPayload) => {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_FAILURE,
         payload: error,
@@ -68,7 +67,6 @@ export const getTeamAndSchedules = (projectId: $TSFixMe) => {
                 dispatch(getTeamAndSchedulesSuccess(data));
             },
             function (error) {
-
                 dispatch(getTeamAndSchedulesFailure(error));
             }
         );
@@ -90,7 +88,7 @@ export const getTeamAndSchedulesRequest = () => {
     };
 };
 
-export const getTeamAndSchedulesFailure = (error: $TSFixMe) => {
+export const getTeamAndSchedulesFailure = (error: ErrorPayload) => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_FAILURE,
         payload: error,
@@ -142,7 +140,7 @@ export const addCallRoutingNumberRequest = () => {
     };
 };
 
-export const addCallRoutingNumberFailure = (error: $TSFixMe) => {
+export const addCallRoutingNumberFailure = (error: ErrorPayload) => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_FAILURE,
         payload: error,
@@ -227,7 +225,7 @@ export function uploadCallRoutingAudioRequest(
 }
 
 export function uploadCallRoutingAudioFailure(
-    error: $TSFixMe,
+    error: ErrorPayload,
     callRoutingId: $TSFixMe,
     audioFieldName: $TSFixMe
 ) {
@@ -286,7 +284,7 @@ export const addCallRoutingScheduleRequest = () => {
     };
 };
 
-export const addCallRoutingScheduleFailure = (error: $TSFixMe) => {
+export const addCallRoutingScheduleFailure = (error: ErrorPayload) => {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_FAILURE,
         payload: error,
@@ -309,7 +307,6 @@ export function fetchNumbers(
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
             function (error) {
-
                 dispatch(fetchNumbersFailure(error));
             }
         );
@@ -331,7 +328,7 @@ export const fetchNumbersRequest = () => {
     };
 };
 
-export const fetchNumbersFailure = (error: $TSFixMe) => {
+export const fetchNumbersFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_NUMBERS_FAILURE,
         payload: error,
@@ -357,7 +354,6 @@ export const removeNumbers = (projectId: $TSFixMe, callRoutingId: $TSFixMe) => {
                 dispatch(removeNumbersSuccess(numbers.data));
             },
             function (error) {
-
                 dispatch(removeNumbersFailure(error));
             }
         );
@@ -380,7 +376,7 @@ export const removeNumbersRequest = (callRoutingId: $TSFixMe) => {
     };
 };
 
-export const removeNumbersFailure = (error: $TSFixMe) => {
+export const removeNumbersFailure = (error: ErrorPayload) => {
     return {
         type: types.REMOVE_NUMBERS_FAILURE,
         payload: error,
@@ -411,7 +407,6 @@ export function getCallRoutingLogs(
                 );
             },
             function (error) {
-
                 dispatch(getCallRoutingLogsFailure(error));
             }
         );
@@ -433,7 +428,7 @@ export const getCallRoutingLogsRequest = () => {
     };
 };
 
-export const getCallRoutingLogsFailure = (error: $TSFixMe) => {
+export const getCallRoutingLogsFailure = (error: ErrorPayload) => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_FAILURE,
         payload: error,
@@ -465,7 +460,6 @@ export function removeIntroAudio(
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             function (error) {
-
                 dispatch(removeIntroAudioFailure(error, backup));
             }
         );
@@ -508,7 +502,10 @@ export function removeIntroAudioRequest(
     }
 }
 
-export const removeIntroAudioFailure = (error: $TSFixMe, backup: $TSFixMe) => {
+export const removeIntroAudioFailure = (
+    error: ErrorPayload,
+    backup: $TSFixMe
+) => {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE,

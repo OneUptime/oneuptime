@@ -171,7 +171,6 @@ export const verifyAuthToken = (values: $TSFixMe) => {
                 dispatch(loginSuccess(user.data));
             },
             function (error) {
-
                 dispatch(verifyTokenError(error));
             }
         );
@@ -219,7 +218,6 @@ export const verifyBackupCode = (values: $TSFixMe) => {
                 dispatch(loginSuccess(user.data));
             },
             function (error) {
-
                 dispatch(useBackupCodeError(error));
             }
         );
@@ -271,7 +269,6 @@ export const checkIfMasterAdminExists = (values: $TSFixMe) => {
                 dispatch(masterAdminExistsSuccess(response.data));
             },
             function (error) {
-
                 dispatch(masterAdminExistsError(error));
             }
         );

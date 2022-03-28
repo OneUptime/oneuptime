@@ -1,6 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import * as types from '../constants/domain';
 import { Dispatch } from 'redux';
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const resetDomain = () => {
     return {
         type: types.RESET_VERIFY_DOMAIN,
@@ -20,7 +21,7 @@ export const verifyDomainSuccess = (payload: $TSFixMe) => {
     };
 };
 
-export const verifyDomainFailure = (error: $TSFixMe) => {
+export const verifyDomainFailure = (error: ErrorPayload) => {
     return {
         type: types.VERIFY_DOMAIN_FAILURE,
         payload: error,

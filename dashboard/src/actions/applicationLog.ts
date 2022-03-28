@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/applicationLog';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 //Create new log container
 //props -> {name: '', type, data -> { data.url}}
 export function createApplicationLog(
@@ -53,7 +53,7 @@ export const createApplicationLogRequest = () => {
     };
 };
 
-export const createApplicationLogFailure = (error: $TSFixMe) => {
+export const createApplicationLogFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_APPLICATION_LOG_FAILURE,
         payload: error,
@@ -84,7 +84,6 @@ export function fetchApplicationLogs(
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
             function (error) {
-
                 dispatch(fetchApplicationLogsFailure(error));
             }
         );
@@ -107,7 +106,7 @@ export const fetchApplicationLogsRequest = (paginated: $TSFixMe) => {
     };
 };
 
-export const fetchApplicationLogsFailure = (error: $TSFixMe) => {
+export const fetchApplicationLogsFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_APPLICATION_LOGS_FAILURE,
         payload: error,
@@ -140,7 +139,6 @@ export function deleteApplicationLog(
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
             function (error) {
-
                 dispatch(
                     deleteApplicationLogFailure({
                         error: error,
@@ -170,7 +168,7 @@ export const deleteApplicationLogRequest = (applicationLogId: $TSFixMe) => {
     };
 };
 
-export const deleteApplicationLogFailure = (error: $TSFixMe) => {
+export const deleteApplicationLogFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_APPLICATION_LOG_FAILURE,
         payload: error,
@@ -226,7 +224,6 @@ export function fetchLogs(
                 );
             },
             function (error) {
-
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
@@ -249,7 +246,7 @@ export const fetchLogsRequest = (applicationLogId: $TSFixMe) => {
     };
 };
 
-export const fetchLogsFailure = (error: $TSFixMe) => {
+export const fetchLogsFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_LOGS_FAILURE,
         payload: error,
@@ -277,7 +274,6 @@ export function resetApplicationLogKey(
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
             function (error) {
-
                 dispatch(resetApplicationLogKeyFailure(error));
             }
         );
@@ -299,7 +295,7 @@ export const resetApplicationLogKeyRequest = () => {
     };
 };
 
-export const resetApplicationLogKeyFailure = (error: $TSFixMe) => {
+export const resetApplicationLogKeyFailure = (error: ErrorPayload) => {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_FAILURE,
         payload: error,
@@ -368,7 +364,7 @@ export const editApplicationLogRequest = () => {
     };
 };
 
-export const editApplicationLogFailure = (error: $TSFixMe) => {
+export const editApplicationLogFailure = (error: ErrorPayload) => {
     return {
         type: types.EDIT_APPLICATION_LOG_FAILURE,
         payload: error,
@@ -398,7 +394,6 @@ export function fetchStats(
                 );
             },
             function (error) {
-
                 dispatch(
                     fetchStatsFailure({
                         applicationLogId,
@@ -426,7 +421,7 @@ export const fetchStatsRequest = (applicationLogId: $TSFixMe) => {
     };
 };
 
-export const fetchStatsFailure = (error: $TSFixMe) => {
+export const fetchStatsFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_LOG_STAT_FAILURE,
         payload: error,
@@ -469,7 +464,6 @@ export function searchLog(
                 );
             },
             function (error) {
-
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );

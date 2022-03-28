@@ -1,9 +1,9 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import Route from 'common/types/api/route';
 import * as types from '../constants/login';
 import { User } from '../config';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const loginRequired = () => {
     return {
         type: types.LOGIN_REQUIRED,
@@ -17,7 +17,7 @@ export const loginRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const loginError = (error: $TSFixMe) => {
+export const loginError = (error: ErrorPayload) => {
     return {
         type: types.LOGIN_FAILED,
         payload: error,

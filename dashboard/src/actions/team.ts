@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/team';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const teamLoadingRequest = () => {
     return {
         type: types.TEAM_LOADING_REQUEST,
@@ -15,7 +15,7 @@ export const teamLoadingSuccess = (team: $TSFixMe) => {
     };
 };
 
-export const teamLoadingError = (error: $TSFixMe) => {
+export const teamLoadingError = (error: ErrorPayload) => {
     return {
         type: types.TEAM_LOADING_FAILURE,
         payload: error,
@@ -33,7 +33,6 @@ export const teamLoading = (projectId: $TSFixMe) => {
                 dispatch(teamLoadingSuccess(team));
             },
             function (error) {
-
                 dispatch(teamLoadingError(error));
             }
         );
@@ -55,7 +54,7 @@ export const subProjectTeamLoadingSuccess = (team: $TSFixMe) => {
     };
 };
 
-export const subProjectTeamLoadingError = (error: $TSFixMe) => {
+export const subProjectTeamLoadingError = (error: ErrorPayload) => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_FAILURE,
         payload: error,
@@ -72,7 +71,6 @@ export const subProjectTeamLoading = (projectId: $TSFixMe) => {
                 dispatch(subProjectTeamLoadingSuccess(team));
             },
             function (error) {
-
                 dispatch(subProjectTeamLoadingError(error));
             }
         );
@@ -95,7 +93,7 @@ export const teamCreateSuccess = (team: $TSFixMe) => {
     };
 };
 
-export const teamCreateError = (error: $TSFixMe) => {
+export const teamCreateError = (error: ErrorPayload) => {
     return {
         type: types.TEAM_CREATE_FAILURE,
         payload: error,
@@ -114,7 +112,6 @@ export const teamCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(teamCreateSuccess(team));
             },
             function (error) {
-
                 dispatch(teamCreateError(error));
             }
         );
@@ -137,7 +134,7 @@ export const teamDeleteSuccess = (team: $TSFixMe) => {
     };
 };
 
-export const teamDeleteError = (error: $TSFixMe) => {
+export const teamDeleteError = (error: ErrorPayload) => {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
@@ -169,7 +166,6 @@ export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 return { team };
             },
             function (error) {
-
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -193,7 +189,7 @@ export const teamMemberSuccess = (teamMember: $TSFixMe) => {
     };
 };
 
-export const teamMemberError = (error: $TSFixMe) => {
+export const teamMemberError = (error: ErrorPayload) => {
     return {
         type: types.TEAM_MEMBER_FAILURE,
         payload: error,
@@ -211,7 +207,6 @@ export const getTeamMember = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 dispatch(teamMemberSuccess(response.data));
             },
             function (error) {
-
                 dispatch(teamMemberError(error));
             }
         );
@@ -234,7 +229,7 @@ export const teamUpdateRoleSuccess = (team: $TSFixMe) => {
     };
 };
 
-export const teamUpdateRoleError = (error: $TSFixMe) => {
+export const teamUpdateRoleError = (error: ErrorPayload) => {
     return {
         type: types.TEAM_UPDATE_ROLE_FAILURE,
         payload: error,
@@ -256,7 +251,6 @@ export const teamUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(teamUpdateRoleSuccess(team));
             },
             function (error) {
-
                 dispatch(teamUpdateRoleError(error));
             }
         );

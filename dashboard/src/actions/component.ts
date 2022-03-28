@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/component';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const showDeleteModal = () => {
     return {
         type: types.SHOW_DELETE_MODAL,
@@ -32,7 +32,6 @@ export const fetchComponents = ({
                 dispatch(fetchComponentsSuccess(components.data));
             },
             function (error) {
-
                 dispatch(fetchComponentsFailure(error));
             }
         );
@@ -54,7 +53,7 @@ export const fetchComponentsRequest = () => {
     };
 };
 
-export const fetchComponentsFailure = (error: $TSFixMe) => {
+export const fetchComponentsFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_COMPONENTS_FAILURE,
         payload: error,
@@ -85,7 +84,6 @@ export function fetchPaginatedComponents({
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
             function (error) {
-
                 dispatch(fetchPaginatedComponentsFailure(error, projectId));
             }
         );
@@ -109,7 +107,7 @@ export const fetchPaginatedComponentsRequest = (projectId: $TSFixMe) => {
 };
 
 export function fetchPaginatedComponentsFailure(
-    error: $TSFixMe,
+    error: ErrorPayload,
     projectId: $TSFixMe
 ) {
     return {
@@ -161,7 +159,7 @@ export const createComponentRequest = () => {
     };
 };
 
-export const createComponentFailure = (error: $TSFixMe) => {
+export const createComponentFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_COMPONENT_FAILURE,
         payload: error,
@@ -221,7 +219,7 @@ export const editComponentRequest = () => {
     };
 };
 
-export const editComponentFailure = (error: $TSFixMe) => {
+export const editComponentFailure = (error: ErrorPayload) => {
     return {
         type: types.EDIT_COMPONENT_FAILURE,
         payload: error,
@@ -256,7 +254,6 @@ export const deleteComponent = (componentId: $TSFixMe, projectId: $TSFixMe) => {
                 dispatch(deleteComponentSuccess(component.data._id));
             },
             function (error) {
-
                 dispatch(
                     deleteComponentFailure({
                         error: error,
@@ -284,7 +281,7 @@ export const deleteComponentRequest = (componentId: $TSFixMe) => {
     };
 };
 
-export const deleteComponentFailure = (error: $TSFixMe) => {
+export const deleteComponentFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_COMPONENT_FAILURE,
         payload: error,
@@ -342,7 +339,7 @@ export const addSeatRequest = () => {
     };
 };
 
-export const addSeatFailure = (error: $TSFixMe) => {
+export const addSeatFailure = (error: ErrorPayload) => {
     return {
         type: types.ADD_SEAT_FAILURE,
         payload: error,
@@ -374,7 +371,6 @@ export function fetchComponentResources(
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
             function (error) {
-
                 dispatch(fetchComponentResourcesFailure(error));
             }
         );
@@ -397,7 +393,7 @@ export const fetchComponentResourcesRequest = (componentId: $TSFixMe) => {
     };
 };
 
-export const fetchComponentResourcesFailure = (error: $TSFixMe) => {
+export const fetchComponentResourcesFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_FAILURE,
         payload: error,
@@ -429,7 +425,6 @@ export function fetchComponentSummary(
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
             function (error) {
-
                 dispatch(fetchComponentSummaryFailure(error));
             }
         );
@@ -452,7 +447,7 @@ export const fetchComponentSummaryRequest = (componentId: $TSFixMe) => {
     };
 };
 
-export const fetchComponentSummaryFailure = (error: $TSFixMe) => {
+export const fetchComponentSummaryFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_FAILURE,
         payload: error,
@@ -485,7 +480,7 @@ export const fetchComponentSuccess = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchComponentFailure = (error: $TSFixMe) => {
+export const fetchComponentFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_COMPONENT_FAILURE,
         payload: error,
@@ -502,7 +497,6 @@ export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
                 dispatch(fetchComponentSuccess(component.data));
             },
             function (error) {
-
                 dispatch(fetchComponentFailure(error));
             }
         );

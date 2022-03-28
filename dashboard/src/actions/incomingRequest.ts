@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incomingRequest';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const createIncomingRequestRequest = () => ({
     type: types.CREATE_INCOMING_REQUEST_REQUEST,
 });
@@ -11,7 +11,7 @@ export const createIncomingRequestSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createIncomingRequestFailure = (error: $TSFixMe) => ({
+export const createIncomingRequestFailure = (error: ErrorPayload) => ({
     type: types.CREATE_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -49,7 +49,7 @@ export const editIncomingRequestSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const editIncomingRequestFailure = (error: $TSFixMe) => ({
+export const editIncomingRequestFailure = (error: ErrorPayload) => ({
     type: types.EDIT_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -88,7 +88,7 @@ export const deleteIncomingRequestSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteIncomingRequestFailure = (error: $TSFixMe) => ({
+export const deleteIncomingRequestFailure = (error: ErrorPayload) => ({
     type: types.DELETE_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -125,7 +125,7 @@ export const fetchAllIncomingRequestSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchAllIncomingRequestFailure = (error: $TSFixMe) => ({
+export const fetchAllIncomingRequestFailure = (error: ErrorPayload) => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
     payload: error,
 });

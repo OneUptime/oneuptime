@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/slack';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // UNLINK a new SLACK LINK
 
 export const deleteSlackLinkRequest = () => {
@@ -10,7 +10,7 @@ export const deleteSlackLinkRequest = () => {
     };
 };
 
-export const deleteSlackLinkError = (error: $TSFixMe) => {
+export const deleteSlackLinkError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_SLACK_LINK_FAILED,
         payload: error,
@@ -44,7 +44,6 @@ export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
                 return teams.data;
             },
             function (error) {
-
                 dispatch(deleteSlackLinkError(error));
             }
         );
@@ -58,7 +57,7 @@ export const getSlackTeamsRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const getSlackTeamsError = (error: $TSFixMe) => {
+export const getSlackTeamsError = (error: ErrorPayload) => {
     return {
         type: types.GET_SLACK_TEAM_FAILED,
         payload: error,
@@ -99,7 +98,6 @@ export function getSlackTeams(
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
             function (error) {
-
                 dispatch(getSlackTeamsError(error));
             }
         );

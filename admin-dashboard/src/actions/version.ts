@@ -66,7 +66,6 @@ export const getVersion = () => {
                 dispatch(getVersionSuccess(versionsObject));
             },
             function (error) {
-
                 dispatch(getVersionError(error));
             }
         );

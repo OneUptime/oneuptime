@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/invoice';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // Array of invoices
 
 export const getInvoiceRequest = (promise: $TSFixMe) => {
@@ -11,7 +11,7 @@ export const getInvoiceRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const getInvoiceError = (error: $TSFixMe) => {
+export const getInvoiceError = (error: ErrorPayload) => {
     return {
         type: types.GET_INVOICE_FAILED,
         payload: error,
@@ -81,7 +81,6 @@ export function getInvoice(
                 }
             },
             function (error) {
-
                 dispatch(getInvoiceError(error));
             }
         );

@@ -1,14 +1,14 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/msteams';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const deleteMsTeamsRequest = () => {
     return {
         type: types.DELETE_MS_TEAMS_REQUEST,
     };
 };
 
-export const deleteMsTeamsError = (error: $TSFixMe) => {
+export const deleteMsTeamsError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_MS_TEAMS_FAILED,
         payload: error,
@@ -32,7 +32,7 @@ export const resetDeleteMsTeams = () => {
 export const deleteMsTeams = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
-            null);
+        null);
 
         dispatch(deleteMsTeamsRequest());
 
@@ -43,7 +43,6 @@ export const deleteMsTeams = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
                 return msTeams.data;
             },
             function (error) {
-
                 dispatch(deleteMsTeamsError(error));
             }
         );
@@ -57,7 +56,7 @@ export const getMsTeamsRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const getMsTeamsError = (error: $TSFixMe) => {
+export const getMsTeamsError = (error: ErrorPayload) => {
     return {
         type: types.GET_MS_TEAMS_FAILED,
         payload: error,
@@ -85,7 +84,8 @@ export function getMsTeams(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -95,7 +95,6 @@ export function getMsTeams(
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function (error) {
-
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -113,7 +112,8 @@ export function getMsTeamsMonitor(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -123,7 +123,6 @@ export function getMsTeamsMonitor(
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function (error) {
-
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -138,7 +137,7 @@ export const createMsTeamsRequest = () => {
     };
 };
 
-export const createMsTeamsError = (error: $TSFixMe) => {
+export const createMsTeamsError = (error: ErrorPayload) => {
     return {
         type: types.CREATE_MS_TEAMS_FAILED,
         payload: error,
@@ -171,7 +170,6 @@ export const createMsTeams = (projectId: $TSFixMe, data: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(createMsTeamsError(error));
             }
         );
@@ -184,7 +182,7 @@ export const updateMsTeamsRequest = () => {
     };
 };
 
-export const updateMsTeamsError = (error: $TSFixMe) => {
+export const updateMsTeamsError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_MS_TEAMS_FAILED,
         payload: error,
@@ -225,7 +223,6 @@ export function updateMsTeams(
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(updateMsTeamsError(error));
             }
         );

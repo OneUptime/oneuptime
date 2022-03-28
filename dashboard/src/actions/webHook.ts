@@ -1,14 +1,14 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/webHook';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const deleteWebHookRequest = () => {
     return {
         type: types.DELETE_WEB_HOOK_REQUEST,
     };
 };
 
-export const deleteWebHookError = (error: $TSFixMe) => {
+export const deleteWebHookError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_WEB_HOOK_FAILED,
         payload: error,
@@ -32,7 +32,7 @@ export const resetDeleteWebHook = () => {
 export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${webhookId}`,
-            null);
+        null);
 
         dispatch(deleteWebHookRequest());
 
@@ -43,7 +43,6 @@ export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(deleteWebHookError(error));
             }
         );
@@ -57,7 +56,7 @@ export const getWebHookRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const getWebHookError = (error: $TSFixMe) => {
+export const getWebHookError = (error: ErrorPayload) => {
     return {
         type: types.GET_WEB_HOOK_FAILED,
         payload: error,
@@ -94,7 +93,6 @@ export function getWebHook(
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function (error) {
-
                 dispatch(getWebHookError(error));
             }
         );
@@ -112,7 +110,8 @@ export function getWebHookMonitor(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
             }`
         );
         dispatch(getWebHookRequest(promise));
@@ -122,7 +121,6 @@ export function getWebHookMonitor(
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function (error) {
-
                 dispatch(getWebHookError(error));
             }
         );
@@ -137,7 +135,7 @@ export const createWebHookRequest = () => {
     };
 };
 
-export const createWebHookError = (error: $TSFixMe) => {
+export const createWebHookError = (error: ErrorPayload) => {
     return {
         type: types.CREATE_WEB_HOOK_FAILED,
         payload: error,
@@ -171,7 +169,6 @@ export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(createWebHookError(error));
             }
         );
@@ -184,7 +181,7 @@ export const updateWebHookRequest = () => {
     };
 };
 
-export const updateWebHookError = (error: $TSFixMe) => {
+export const updateWebHookError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_WEB_HOOK_FAILED,
         payload: error,
@@ -225,7 +222,6 @@ export function updateWebHook(
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(updateWebHookError(error));
             }
         );

@@ -1,7 +1,7 @@
 import * as types from '../constants/incidentNoteTemplate';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // CREATE INCIDENT NOTE TEMPLATE
 export const createIncidentNoteTemplateRequest = () => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_REQUEST,
@@ -12,7 +12,7 @@ export const createIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
+export const createIncidentNoteTemplateFailure = (error: ErrorPayload) => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -56,7 +56,7 @@ export const fetchIncidentNoteTemplatesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchIncidentNoteTemplatesFailure = (error: $TSFixMe) => ({
+export const fetchIncidentNoteTemplatesFailure = (error: ErrorPayload) => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_FAILURE,
     payload: error,
 });
@@ -99,7 +99,7 @@ export const updateIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
+export const updateIncidentNoteTemplateFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -143,7 +143,7 @@ export const deleteIncidentNoteTemplateSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteIncidentNoteTemplateFailure = (error: $TSFixMe) => ({
+export const deleteIncidentNoteTemplateFailure = (error: ErrorPayload) => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_FAILURE,
     payload: error,
 });

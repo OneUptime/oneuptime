@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // create status page category
 export const createStatusPageCategoryRequest = () => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,
@@ -12,33 +12,32 @@ export const createStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createStatusPageCategoryFailure = (error: $TSFixMe) => ({
+export const createStatusPageCategoryFailure = (error: ErrorPayload) => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_FAILURE,
     payload: error,
 });
 
 export const createStatusPageCategory =
     ({ projectId, statusPageId, statusPageCategoryName }: $TSFixMe) =>
-        (dispatch: Dispatch) => {
-            const promise = BackendAPI.post(
-                `statusPageCategory/${projectId}/${statusPageId}`,
-                {
-                    statusPageCategoryName,
-                }
-            );
-            dispatch(createStatusPageCategoryRequest());
+    (dispatch: Dispatch) => {
+        const promise = BackendAPI.post(
+            `statusPageCategory/${projectId}/${statusPageId}`,
+            {
+                statusPageCategoryName,
+            }
+        );
+        dispatch(createStatusPageCategoryRequest());
 
-            promise.then(
-                function (response) {
-                    dispatch(createStatusPageCategorySuccess(response.data));
-                },
-                function (error) {
-
-                    dispatch(createStatusPageCategoryFailure(error));
-                }
-            );
-            return promise;
-        };
+        promise.then(
+            function (response) {
+                dispatch(createStatusPageCategorySuccess(response.data));
+            },
+            function (error) {
+                dispatch(createStatusPageCategoryFailure(error));
+            }
+        );
+        return promise;
+    };
 
 // update status page category
 export const updateStatusPageCategoryRequest = () => ({
@@ -50,33 +49,32 @@ export const updateStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateStatusPageCategoryFailure = (error: $TSFixMe) => ({
+export const updateStatusPageCategoryFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_FAILURE,
     payload: error,
 });
 
 export const updateStatusPageCategory =
     ({ projectId, statusPageCategoryId, statusPageCategoryName }: $TSFixMe) =>
-        (dispatch: Dispatch) => {
-            const promise = BackendAPI.put(
-                `statusPageCategory/${projectId}/${statusPageCategoryId}`,
-                {
-                    statusPageCategoryName,
-                }
-            );
-            dispatch(updateStatusPageCategoryRequest());
+    (dispatch: Dispatch) => {
+        const promise = BackendAPI.put(
+            `statusPageCategory/${projectId}/${statusPageCategoryId}`,
+            {
+                statusPageCategoryName,
+            }
+        );
+        dispatch(updateStatusPageCategoryRequest());
 
-            promise.then(
-                function (response) {
-                    dispatch(updateStatusPageCategorySuccess(response.data));
-                },
-                function (error) {
-
-                    dispatch(updateStatusPageCategoryFailure(error));
-                }
-            );
-            return promise;
-        };
+        promise.then(
+            function (response) {
+                dispatch(updateStatusPageCategorySuccess(response.data));
+            },
+            function (error) {
+                dispatch(updateStatusPageCategoryFailure(error));
+            }
+        );
+        return promise;
+    };
 
 // fetch status page categories
 export const fetchStatusPageCategoriesRequest = () => ({
@@ -88,36 +86,35 @@ export const fetchStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchStatusPageCategoriesFailure = (error: $TSFixMe) => ({
+export const fetchStatusPageCategoriesFailure = (error: ErrorPayload) => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_FAILURE,
     payload: error,
 });
 
 export const fetchStatusPageCategories =
     ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
-        (dispatch: Dispatch) => {
-            if (!skip) {
-                skip = 0;
-            }
-            if (!limit) {
-                limit = 0;
-            }
-            const promise = BackendAPI.get(
-                `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
-            );
-            dispatch(fetchStatusPageCategoriesRequest());
+    (dispatch: Dispatch) => {
+        if (!skip) {
+            skip = 0;
+        }
+        if (!limit) {
+            limit = 0;
+        }
+        const promise = BackendAPI.get(
+            `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchStatusPageCategoriesRequest());
 
-            promise.then(
-                function (response) {
-                    dispatch(fetchStatusPageCategoriesSuccess(response.data));
-                },
-                function (error) {
-
-                    dispatch(fetchStatusPageCategoriesFailure(error));
-                }
-            );
-            return promise;
-        };
+        promise.then(
+            function (response) {
+                dispatch(fetchStatusPageCategoriesSuccess(response.data));
+            },
+            function (error) {
+                dispatch(fetchStatusPageCategoriesFailure(error));
+            }
+        );
+        return promise;
+    };
 
 // fetch  status page categories
 export const fetchAllStatusPageCategoriesRequest = () => ({
@@ -129,36 +126,35 @@ export const fetchAllStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchAllStatusPageCategoriesFailure = (error: $TSFixMe) => ({
+export const fetchAllStatusPageCategoriesFailure = (error: ErrorPayload) => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE,
     payload: error,
 });
 
 export const fetchAllStatusPageCategories =
     ({ projectId, statusPageId, skip, limit }: $TSFixMe) =>
-        (dispatch: Dispatch) => {
-            if (!skip) {
-                skip = 0;
-            }
-            if (!limit) {
-                limit = 0;
-            }
-            const promise = BackendAPI.get(
-                `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
-            );
-            dispatch(fetchAllStatusPageCategoriesRequest());
+    (dispatch: Dispatch) => {
+        if (!skip) {
+            skip = 0;
+        }
+        if (!limit) {
+            limit = 0;
+        }
+        const promise = BackendAPI.get(
+            `statusPageCategory/${projectId}/${statusPageId}?skip=${skip}&limit=${limit}`
+        );
+        dispatch(fetchAllStatusPageCategoriesRequest());
 
-            promise.then(
-                function (response) {
-                    dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
-                },
-                function (error) {
-
-                    dispatch(fetchAllStatusPageCategoriesFailure(error));
-                }
-            );
-            return promise;
-        };
+        promise.then(
+            function (response) {
+                dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
+            },
+            function (error) {
+                dispatch(fetchAllStatusPageCategoriesFailure(error));
+            }
+        );
+        return promise;
+    };
 
 // delete status page category
 export const deleteStatusPageCategoryRequest = () => ({
@@ -170,26 +166,25 @@ export const deleteStatusPageCategorySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteStatusPageCategoryFailure = (error: $TSFixMe) => ({
+export const deleteStatusPageCategoryFailure = (error: ErrorPayload) => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_FAILURE,
     payload: error,
 });
 
 export const deleteStatusPageCategory =
     ({ projectId, statusPageCategoryId }: $TSFixMe) =>
-        (dispatch: Dispatch) => {
-            const promise =
-                delete `statusPageCategory/${projectId}/${statusPageCategoryId}`;
-            dispatch(updateStatusPageCategoryRequest());
+    (dispatch: Dispatch) => {
+        const promise =
+            delete `statusPageCategory/${projectId}/${statusPageCategoryId}`;
+        dispatch(updateStatusPageCategoryRequest());
 
-            promise.then(
-                function (response) {
-                    dispatch(updateStatusPageCategorySuccess(response.data));
-                },
-                function (error) {
-
-                    dispatch(updateStatusPageCategoryFailure(error));
-                }
-            );
-            return promise;
-        };
+        promise.then(
+            function (response) {
+                dispatch(updateStatusPageCategorySuccess(response.data));
+            },
+            function (error) {
+                dispatch(updateStatusPageCategoryFailure(error));
+            }
+        );
+        return promise;
+    };

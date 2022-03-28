@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/schedule';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // Get a payload of Schedules
 export const resetSchedule = () => {
     return {
@@ -16,7 +16,7 @@ export const scheduleRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const scheduleError = (error: $TSFixMe) => {
+export const scheduleError = (error: ErrorPayload) => {
     return {
         type: types.SCHEDULE_FETCH_FAILED,
         payload: error,
@@ -47,7 +47,6 @@ export function fetchSchedules(
                 dispatch(scheduleSuccess(schedule.data));
             },
             function (error) {
-
                 dispatch(scheduleError(error));
             }
         );
@@ -71,7 +70,7 @@ export const subProjectScheduleRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const subProjectScheduleError = (error: $TSFixMe) => {
+export const subProjectScheduleError = (error: ErrorPayload) => {
     return {
         type: types.SUBPROJECT_SCHEDULE_FETCH_FAILED,
         payload: error,
@@ -98,7 +97,6 @@ export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
             function (error) {
-
                 dispatch(subProjectScheduleError(error));
             }
         );
@@ -120,7 +118,7 @@ export const projectScheduleRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const projectScheduleError = (error: $TSFixMe) => {
+export const projectScheduleError = (error: ErrorPayload) => {
     return {
         type: types.PROJECT_SCHEDULE_FETCH_FAILED,
         payload: error,
@@ -153,7 +151,6 @@ export function fetchProjectSchedule(
                 dispatch(projectScheduleSuccess(data));
             },
             function (error) {
-
                 dispatch(projectScheduleError(error));
             }
         );
@@ -170,7 +167,7 @@ export const createScheduleRequest = () => {
     };
 };
 
-export const createScheduleError = (error: $TSFixMe) => {
+export const createScheduleError = (error: ErrorPayload) => {
     return {
         type: types.CREATE_SCHEDULE_FAILED,
         payload: error,
@@ -197,7 +194,6 @@ export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(createScheduleSuccess(schedule.data));
             },
             function (error) {
-
                 dispatch(createScheduleError(error));
             }
         );
@@ -227,7 +223,7 @@ export const renameScheduleSuccess = (schedule: $TSFixMe) => {
     };
 };
 
-export const renameScheduleError = (error: $TSFixMe) => {
+export const renameScheduleError = (error: ErrorPayload) => {
     return {
         type: types.RENAME_SCHEDULE_FAILED,
         payload: error,
@@ -302,7 +298,7 @@ export const deleteProjectSchedules = (projectId: $TSFixMe) => {
     };
 };
 
-export const deleteScheduleError = (error: $TSFixMe) => {
+export const deleteScheduleError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_SCHEDULE_FAILED,
         payload: error,
@@ -372,7 +368,7 @@ export const addMonitorSuccess = (schedule: $TSFixMe) => {
     };
 };
 
-export const addMonitorError = (error: $TSFixMe) => {
+export const addMonitorError = (error: ErrorPayload) => {
     return {
         type: types.ADD_MONITOR_FAILED,
         payload: error,
@@ -441,7 +437,7 @@ export const addUserSuccess = (schedule: $TSFixMe) => {
     };
 };
 
-export const addUserError = (error: $TSFixMe) => {
+export const addUserError = (error: ErrorPayload) => {
     return {
         type: types.ADD_USER_FAILED,
         payload: error,
@@ -510,7 +506,7 @@ export const escalationSuccess = (escalation: $TSFixMe) => {
     };
 };
 
-export const escalationError = (error: $TSFixMe) => {
+export const escalationError = (error: ErrorPayload) => {
     return {
         type: types.ESCALATION_FAILED,
         payload: error,
@@ -537,7 +533,6 @@ export function addEscalation(
                 dispatch(escalationSuccess(escalation));
             },
             function (error) {
-
                 dispatch(escalationError(error));
             }
         );
@@ -559,7 +554,6 @@ export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
                 dispatch(escalationSuccess(escalation.data));
             },
             function (error) {
-
                 dispatch(escalationError(error));
             }
         );
@@ -615,7 +609,7 @@ export const userScheduleSuccess = (userSchedule: $TSFixMe) => {
     };
 };
 
-export const userScheduleError = (error: $TSFixMe) => {
+export const userScheduleError = (error: ErrorPayload) => {
     return {
         type: types.USER_SCHEDULE_FAILED,
         payload: error,
@@ -635,7 +629,6 @@ export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
                 dispatch(userScheduleSuccess(schedule.data));
             },
             function (error) {
-
                 dispatch(userScheduleError(error));
             }
         );

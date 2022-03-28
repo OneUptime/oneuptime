@@ -1,8 +1,8 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/tutorial';
 import Route from 'common/types/api/route';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const fetchTutorialRequest = (promise: $TSFixMe) => {
     return {
         type: types.FETCH_TUTORIAL_REQUEST,
@@ -17,7 +17,7 @@ export const fetchTutorialSuccess = (tutorial: $TSFixMe) => {
     };
 };
 
-export const fetchTutorialError = (error: $TSFixMe) => {
+export const fetchTutorialError = (error: ErrorPayload) => {
     return {
         type: types.FETCH_TUTORIAL_FAILURE,
         payload: error,
@@ -44,7 +44,7 @@ export const closeTutorialSuccess = (tutorial: $TSFixMe) => {
     };
 };
 
-export const closeTutorialError = (error: $TSFixMe) => {
+export const closeTutorialError = (error: ErrorPayload) => {
     return {
         type: types.CLOSE_TUTORIAL_FAILURE,
         payload: error,
@@ -69,7 +69,6 @@ export const fetchTutorial = () => {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
             function (error) {
-
                 dispatch(fetchTutorialError(error));
             }
         );
@@ -90,7 +89,6 @@ export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
             function (error) {
-
                 dispatch(closeTutorialError(error));
             }
         );

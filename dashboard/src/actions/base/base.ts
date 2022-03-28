@@ -1,6 +1,7 @@
 import BackendAPI from '../../api';
 import { getErrorMessageFromResponse } from '../../utils/error';
 import { Dispatch } from 'redux';
+import ErrorPayload from 'common-ui/src/payload-types/error';
 class BaseAction {
     actionKeys: $TSFixMe;
     actionType: $TSFixMe;
@@ -103,7 +104,7 @@ class BaseAction {
             };
         };
 
-        actions[this.actionKeys.failure] = function (error: $TSFixMe) {
+        actions[this.actionKeys.failure] = function (error: ErrorPayload) {
             return {
                 type: constants[this.constantKeys.failure],
                 payload: error,

@@ -1,7 +1,7 @@
 import * as types from '../constants/credential';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // Add Git Credential
 export const addGitCredentialRequest = () => ({
     type: types.ADD_GIT_CREDENTIAL_REQUEST,
@@ -12,7 +12,7 @@ export const addGitCredentialSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const addGitCredentialFailure = (error: $TSFixMe) => ({
+export const addGitCredentialFailure = (error: ErrorPayload) => ({
     type: types.ADD_GIT_CREDENTIAL_FAILURE,
     payload: error,
 });
@@ -52,7 +52,7 @@ export const updateGitCredentialSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateGitCredentialFailure = (error: $TSFixMe) => ({
+export const updateGitCredentialFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_GIT_CREDENTIAL_FAILURE,
     payload: error,
 });
@@ -92,7 +92,7 @@ export const getGitCredentialsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getGitCredentialsFailure = (error: $TSFixMe) => ({
+export const getGitCredentialsFailure = (error: ErrorPayload) => ({
     type: types.GET_GIT_CREDENTIALS_FAILURE,
     payload: error,
 });
@@ -131,7 +131,7 @@ export const deleteGitCredentialSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteGitCredentialFailure = (error: $TSFixMe) => ({
+export const deleteGitCredentialFailure = (error: ErrorPayload) => ({
     type: types.DELETE_GIT_CREDENTIAL_FAILURE,
     payload: error,
 });
@@ -170,7 +170,7 @@ export const getGitSecuritiesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getGitSecuritiesFailure = (error: $TSFixMe) => ({
+export const getGitSecuritiesFailure = (error: ErrorPayload) => ({
     type: types.GET_GIT_SECURITIES_FAILURE,
     payload: error,
 });
@@ -210,7 +210,7 @@ export const addDockerCredentialSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const addDockerCredentialFailure = (error: $TSFixMe) => ({
+export const addDockerCredentialFailure = (error: ErrorPayload) => ({
     type: types.ADD_DOCKER_CREDENTIAL_FAILURE,
     payload: error,
 });
@@ -250,7 +250,7 @@ export const updateDockerCredentialSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateDockerCredentialFailure = (error: $TSFixMe) => ({
+export const updateDockerCredentialFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_DOCKER_CREDENTIAL_FAILURE,
     payload: error,
 });
@@ -290,7 +290,7 @@ export const getDockerCredentialsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getDockerCredentialsFailure = (error: $TSFixMe) => ({
+export const getDockerCredentialsFailure = (error: ErrorPayload) => ({
     type: types.GET_DOCKER_CREDENTIALS_FAILURE,
     payload: error,
 });
@@ -329,7 +329,7 @@ export const deleteDockerCredentialSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteDockerCredentialFailure = (error: $TSFixMe) => ({
+export const deleteDockerCredentialFailure = (error: ErrorPayload) => ({
     type: types.DELETE_DOCKER_CREDENTIAL_FAILURE,
     payload: error,
 });
@@ -368,7 +368,7 @@ export const getDockerSecuritiesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getDockerSecuritiesFailure = (error: $TSFixMe) => ({
+export const getDockerSecuritiesFailure = (error: ErrorPayload) => ({
     type: types.GET_DOCKER_SECURITIES_FAILURE,
     payload: error,
 });

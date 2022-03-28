@@ -1,14 +1,14 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/slackWebhooks';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const deleteSlackRequest = () => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_REQUEST,
     };
 };
 
-export const deleteSlackError = (error: $TSFixMe) => {
+export const deleteSlackError = (error: ErrorPayload) => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_FAILED,
         payload: error,
@@ -32,7 +32,7 @@ export const resetDeleteSlack = () => {
 export const deleteSlack = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
-            null);
+        null);
 
         dispatch(deleteSlackRequest());
 
@@ -43,7 +43,6 @@ export const deleteSlack = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
                 return msTeams.data;
             },
             function (error) {
-
                 dispatch(deleteSlackError(error));
             }
         );
@@ -57,7 +56,7 @@ export const getSlackRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const getSlackError = (error: $TSFixMe) => {
+export const getSlackError = (error: ErrorPayload) => {
     return {
         type: types.GET_SLACK_WEBHOOK_FAILED,
         payload: error,
@@ -85,7 +84,8 @@ export const getSlack = (
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=slack`
         );
         dispatch(getSlackRequest(promise));
@@ -95,7 +95,6 @@ export const getSlack = (
                 dispatch(getSlackSuccess(webhooks.data));
             },
             function (error) {
-
                 dispatch(getSlackError(error));
             }
         );
@@ -113,7 +112,8 @@ export function getSlackMonitor(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
+                limit || 10
             }&type=slack`
         );
         dispatch(getSlackRequest(promise));
@@ -123,7 +123,6 @@ export function getSlackMonitor(
                 dispatch(getSlackSuccess(webhooks.data));
             },
             function (error) {
-
                 dispatch(getSlackError(error));
             }
         );
@@ -138,7 +137,7 @@ export const createSlackRequest = () => {
     };
 };
 
-export const createSlackError = (error: $TSFixMe) => {
+export const createSlackError = (error: ErrorPayload) => {
     return {
         type: types.CREATE_SLACK_WEBHOOK_FAILED,
         payload: error,
@@ -171,7 +170,6 @@ export const createSlack = (projectId: $TSFixMe, data: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(createSlackError(error));
             }
         );
@@ -184,7 +182,7 @@ export const updateSlackRequest = () => {
     };
 };
 
-export const updateSlackError = (error: $TSFixMe) => {
+export const updateSlackError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_SLACK_WEBHOOK_FAILED,
         payload: error,
@@ -225,7 +223,6 @@ export function updateSlack(
                 return webhook.data;
             },
             function (error) {
-
                 dispatch(updateSlackError(error));
             }
         );

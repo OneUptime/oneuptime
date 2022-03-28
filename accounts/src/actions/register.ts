@@ -103,7 +103,6 @@ export const signupUser = (values: $TSFixMe) => {
                 }
             },
             function (error) {
-
                 dispatch(signupError(error));
             }
         );
@@ -177,7 +176,6 @@ export const isUserInvited = (values: $TSFixMe) => {
                 dispatch(isUserInvitedSuccess(response.data));
             },
             function (error) {
-
                 dispatch(isUserInvitedError(error));
             }
         );
@@ -218,7 +216,6 @@ export const addCard = (data: $TSFixMe) => {
                 dispatch(addCardSuccess(card.data));
             },
             function (error) {
-
                 dispatch(addCardFailed(error));
             }
         );
@@ -241,7 +238,6 @@ export const getEmailFromToken = (token: $TSFixMe) => {
                 dispatch(getEmailSuccess(response.data));
             },
             function (error) {
-
                 dispatch(getEmailSuccess(error));
             }
         );

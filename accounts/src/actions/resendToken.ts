@@ -43,7 +43,6 @@ export const resendToken = (values: $TSFixMe) => {
                 dispatch(resendTokenSuccess(data));
             },
             function (error) {
-
                 dispatch(resendTokenError(error));
             }
         );

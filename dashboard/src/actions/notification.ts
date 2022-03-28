@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/notification';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 import { User } from '../config';
 
 export const openNotificationMenu = function (position: $TSFixMe) {
@@ -10,7 +10,7 @@ export const openNotificationMenu = function (position: $TSFixMe) {
         payload: position,
     };
 };
-export const closeNotificationMenu = function (error: $TSFixMe) {
+export const closeNotificationMenu = function (error: ErrorPayload) {
     return {
         type: types.CLOSE_NOTIFICATION_MENU,
         payload: error,
@@ -24,7 +24,7 @@ export const fetchNotificationsRequest = () => {
     };
 };
 
-export const fetchNotificationsError = (error: $TSFixMe) => {
+export const fetchNotificationsError = (error: ErrorPayload) => {
     return {
         type: types.FETCH_NOTIFICATIONS_FAILED,
         payload: error,

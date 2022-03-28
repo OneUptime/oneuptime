@@ -1,6 +1,7 @@
 import * as types from '../constants/monitorSla';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ErrorPayload from 'common-ui/src/payload-types/error';
 
 export const createMonitorSlaRequest = () => ({
     type: types.CREATE_MONITOR_SLA_REQUEST,
@@ -11,7 +12,7 @@ export const createMonitorSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createMonitorSlaFailure = (error: $TSFixMe) => ({
+export const createMonitorSlaFailure = (error: ErrorPayload) => ({
     type: types.CREATE_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -49,7 +50,7 @@ export const updateMonitorSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateMonitorSlaFailure = (error: $TSFixMe) => ({
+export const updateMonitorSlaFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -94,7 +95,7 @@ export const fetchMonitorSlasSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchMonitorSlasFailure = (error: $TSFixMe) => ({
+export const fetchMonitorSlasFailure = (error: ErrorPayload) => ({
     type: types.FETCH_MONITOR_SLAS_FAILURE,
     payload: error,
 });
@@ -132,7 +133,7 @@ export const deleteMonitorSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteMonitorSlaFailure = (error: $TSFixMe) => ({
+export const deleteMonitorSlaFailure = (error: ErrorPayload) => ({
     type: types.DELETE_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -175,7 +176,7 @@ export const fetchDefaultMonitorSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchDefaultMonitorSlaFailure = (error: $TSFixMe) => ({
+export const fetchDefaultMonitorSlaFailure = (error: ErrorPayload) => ({
     type: types.FETCH_DEFAULT_MONITOR_SLA_FAILURE,
     payload: error,
 });

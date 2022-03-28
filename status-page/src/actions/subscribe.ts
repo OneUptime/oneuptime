@@ -1,6 +1,6 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
 export const SELECTED_MENU = 'SELECTED_MENU';
 export const USER_DATA = 'USER_DATA';
@@ -62,7 +62,7 @@ export const subscribeFailure = (data: $TSFixMe) => {
     };
 };
 
-export const validationError = (error: $TSFixMe) => {
+export const validationError = (error: ErrorPayload) => {
     return {
         type: VALIDATION_ERROR,
         payload: error,

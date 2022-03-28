@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 //Array of Incidents
 
 export const probeRequest = (promise: $TSFixMe) => {
@@ -11,7 +11,7 @@ export const probeRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const probeError = (error: $TSFixMe) => {
+export const probeError = (error: ErrorPayload) => {
     return {
         type: types.PROBE_FAILED,
         payload: error,
@@ -60,7 +60,6 @@ export function getProbes(
                 dispatch(probeSuccess(probes.data));
             },
             function (error) {
-
                 dispatch(probeError(error));
             }
         );

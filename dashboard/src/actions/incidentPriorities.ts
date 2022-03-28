@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentPriorities';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 function fetchIncidentPrioritiesRequest() {
     return {
         type: types.FETCH_INCIDENT_PRIORITIES_REQUEST,
@@ -15,7 +15,7 @@ function fetchIncidentPrioritiesSuccess(payload: $TSFixMe) {
     };
 }
 
-function fetchIncidentPrioritiesFailure(error: $TSFixMe) {
+function fetchIncidentPrioritiesFailure(error: ErrorPayload) {
     return {
         type: types.FETCH_INCIDENT_PRIORITIES_FAILURE,
         payload: error,
@@ -29,7 +29,8 @@ export function fetchIncidentPriorities(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit || 10
+            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
+                limit || 10
             }`
         );
         dispatch(fetchIncidentPrioritiesRequest());
@@ -40,7 +41,6 @@ export function fetchIncidentPriorities(
                 );
             },
             function (error) {
-
                 dispatch(fetchIncidentPrioritiesFailure(error));
             }
         );
@@ -59,7 +59,6 @@ export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
             function (error) {
-
                 dispatch(createIncidentPriorityFailure(error));
             }
         );
@@ -96,7 +95,6 @@ export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
             function (error) {
-
                 dispatch(updateIncidentPriorityFailure(error));
             }
         );
@@ -133,7 +131,6 @@ export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
             function (error) {
-
                 dispatch(deleteIncidentPriorityFailure(error));
             }
         );

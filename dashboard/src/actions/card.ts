@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/card';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const addCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.ADD_CARD_REQUEST,
@@ -9,7 +9,7 @@ export const addCardRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const addCardFailed = (error: $TSFixMe) => {
+export const addCardFailed = (error: ErrorPayload) => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
@@ -34,7 +34,6 @@ export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
                 dispatch(addCardSuccess(card.data));
             },
             function (error) {
-
                 dispatch(addCardFailed(error));
             }
         );
@@ -48,7 +47,7 @@ export const fetchCardsRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const fetchCardsFailed = (error: $TSFixMe) => {
+export const fetchCardsFailed = (error: ErrorPayload) => {
     return {
         type: types.FETCH_CARDS_FAILED,
         payload: error,
@@ -73,7 +72,6 @@ export const fetchCards = (userId: $TSFixMe) => {
                 dispatch(fetchCardsSuccess(cards.data.data));
             },
             function (error) {
-
                 dispatch(fetchCardsFailed(error));
             }
         );
@@ -88,7 +86,7 @@ export const deleteCardRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const deleteCardFailed = (error: $TSFixMe) => {
+export const deleteCardFailed = (error: ErrorPayload) => {
     return {
         type: types.DELETE_CARD_FAILED,
         payload: error,
@@ -113,7 +111,6 @@ export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
                 dispatch(deleteCardSuccess(card.data));
             },
             function (error) {
-
                 dispatch(deleteCardFailed(error));
             }
         );
@@ -131,7 +128,7 @@ export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe) => {
     };
 };
 
-export const setDefaultCardFailed = (error: $TSFixMe) => {
+export const setDefaultCardFailed = (error: ErrorPayload) => {
     return {
         type: types.SET_DEFAULT_CARD_FAILED,
         payload: error,
@@ -157,7 +154,6 @@ export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
                 dispatch(fetchCards(userId));
             },
             function (error) {
-
                 dispatch(setDefaultCardFailed(error));
             }
         );

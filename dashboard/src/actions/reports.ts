@@ -1,7 +1,7 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/report';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // Incident Reports Section
 
 export const getActiveMembersRequest = (promise: $TSFixMe) => {
@@ -18,7 +18,7 @@ export const getActiveMembersSuccess = (members: $TSFixMe) => {
     };
 };
 
-export const getActiveMembersError = (error: $TSFixMe) => {
+export const getActiveMembersError = (error: ErrorPayload) => {
     return {
         type: types.GET_ACTIVE_MEMBERS_FAILED,
         payload: error,
@@ -72,7 +72,7 @@ export const getActiveMonitorsSuccess = (monitors: $TSFixMe) => {
     };
 };
 
-export const getActiveMonitorsError = (error: $TSFixMe) => {
+export const getActiveMonitorsError = (error: ErrorPayload) => {
     return {
         type: types.GET_ACTIVE_MONITORS_FAILED,
         payload: error,
@@ -128,7 +128,7 @@ export const getIncidentsSuccess = (reports: $TSFixMe) => {
     };
 };
 
-export const getIncidentsError = (error: $TSFixMe) => {
+export const getIncidentsError = (error: ErrorPayload) => {
     return {
         type: types.GET_INCIDENTS_FAILED,
         payload: error,
@@ -181,7 +181,7 @@ export const getResolveTimeSuccess = (reports: $TSFixMe) => {
     };
 };
 
-export const getResolveTimeError = (error: $TSFixMe) => {
+export const getResolveTimeError = (error: ErrorPayload) => {
     return {
         type: types.GET_RESOLVE_TIME_FAILED,
         payload: error,

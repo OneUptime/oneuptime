@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/errorTracker';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 //Create new error tracker
 //props -> {name: '', type, data -> { data.url}}
 export function createErrorTracker(
@@ -54,7 +54,7 @@ export const createErrorTrackerRequest = () => {
     };
 };
 
-export const createErrorTrackerFailure = (error: $TSFixMe) => {
+export const createErrorTrackerFailure = (error: ErrorPayload) => {
     return {
         type: types.CREATE_ERROR_TRACKER_FAILURE,
         payload: error,
@@ -80,7 +80,6 @@ export const fetchErrorTrackersByProject = (projectId: $TSFixMe) => {
                 );
             },
             function (error) {
-
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -107,7 +106,6 @@ export function fetchErrorTrackers(
                 dispatch(fetchErrorTrackersSuccess(errorTrackers.data));
             },
             function (error) {
-
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -130,7 +128,7 @@ export const fetchErrorTrackersRequest = (fetchingPage: $TSFixMe) => {
     };
 };
 
-export const fetchErrorTrackersFailure = (error: $TSFixMe) => {
+export const fetchErrorTrackersFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_ERROR_TRACKERS_FAILURE,
         payload: error,
@@ -177,7 +175,6 @@ export function fetchErrorTrackerIssues(
                 );
             },
             function (error) {
-
                 dispatch(fetchErrorTrackerIssuesFailure(error));
             }
         );
@@ -200,7 +197,7 @@ export const fetchErrorTrackerIssuesRequest = (errorTrackerId: $TSFixMe) => {
     };
 };
 
-export const fetchErrorTrackerIssuesFailure = (error: $TSFixMe) => {
+export const fetchErrorTrackerIssuesFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_ISSUES_FAILURE,
         payload: error,
@@ -243,7 +240,6 @@ export function fetchErrorEvent(
                 );
             },
             function (error) {
-
                 dispatch(fetchErrorEventFailure(error));
             }
         );
@@ -269,7 +265,7 @@ export function fetchErrorEventRequest(
     };
 }
 
-export const fetchErrorEventFailure = (error: $TSFixMe) => {
+export const fetchErrorEventFailure = (error: ErrorPayload) => {
     return {
         type: types.FETCH_ERROR_EVENT_FAILURE,
         payload: error,
@@ -306,7 +302,6 @@ export function deleteErrorTracker(
                 dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
             },
             function (error) {
-
                 dispatch(
                     deleteErrorTrackerFailure({
                         error: error,
@@ -334,7 +329,7 @@ export const deleteErrorTrackerRequest = (errorTrackerId: $TSFixMe) => {
     };
 };
 
-export const deleteErrorTrackerFailure = (error: $TSFixMe) => {
+export const deleteErrorTrackerFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_ERROR_TRACKER_FAILURE,
         payload: error,
@@ -398,7 +393,7 @@ export const editErrorTrackerRequest = () => {
     };
 };
 
-export const editErrorTrackerFailure = (error: $TSFixMe) => {
+export const editErrorTrackerFailure = (error: ErrorPayload) => {
     return {
         type: types.EDIT_ERROR_TRACKER_FAILURE,
         payload: error,
@@ -421,7 +416,6 @@ export function resetErrorTrackerKey(
                 dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
             },
             function (error) {
-
                 dispatch(resetErrorTrackerKeyFailure(error));
             }
         );
@@ -443,7 +437,7 @@ export const resetErrorTrackerKeyRequest = () => {
     };
 };
 
-export const resetErrorTrackerKeyFailure = (error: $TSFixMe) => {
+export const resetErrorTrackerKeyFailure = (error: ErrorPayload) => {
     return {
         type: types.RESET_ERROR_TRACKER_KEY_FAILURE,
         payload: error,
@@ -481,7 +475,6 @@ export function ignoreErrorEvent(
                 );
             },
             function (error) {
-
                 dispatch(ignoreErrorEventFailure(error));
             }
         );
@@ -506,7 +499,7 @@ export function ignoreErrorEventRequest(
     };
 }
 export function ignoreErrorEventFailure(
-    error: $TSFixMe,
+    error: ErrorPayload,
     errorTrackerId: $TSFixMe
 ) {
     return {
@@ -545,7 +538,6 @@ export function unresolveErrorEvent(
                 );
             },
             function (error) {
-
                 dispatch(unresolveErrorEventFailure(error));
             }
         );
@@ -570,7 +562,7 @@ export function unresolveErrorEventRequest(
     };
 }
 export function unresolveErrorEventFailure(
-    error: $TSFixMe,
+    error: ErrorPayload,
     errorTrackerId: $TSFixMe
 ) {
     return {
@@ -609,7 +601,6 @@ export function resolveErrorEvent(
                 );
             },
             function (error) {
-
                 dispatch(resolveErrorEventFailure(error));
             }
         );
@@ -634,7 +625,7 @@ export function resolveErrorEventRequest(
     };
 }
 export function resolveErrorEventFailure(
-    error: $TSFixMe,
+    error: ErrorPayload,
     errorTrackerId: $TSFixMe
 ) {
     return {
@@ -681,7 +672,6 @@ export function updateErrorEventMember(
                 );
             },
             function (error) {
-
                 dispatch(updateErrorEventMemberFailure(error));
             }
         );
@@ -704,7 +694,7 @@ export function updateErrorEventMemberRequest(
         payload: errorTrackerIssueMembers,
     };
 }
-export const updateErrorEventMemberFailure = (error: $TSFixMe) => {
+export const updateErrorEventMemberFailure = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_ERROR_EVENT_MEMBER_FAILURE,
         payload: error,
@@ -741,7 +731,6 @@ export function deleteErrorTrackerIssue(
                 dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
             },
             function (error) {
-
                 dispatch(
                     deleteErrorTrackerIssueFailure({
                         error: error,
@@ -773,7 +762,7 @@ export const deleteErrorTrackerIssueRequest = (
     };
 };
 
-export const deleteErrorTrackerIssueFailure = (error: $TSFixMe) => {
+export const deleteErrorTrackerIssueFailure = (error: ErrorPayload) => {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_FAILURE,
         payload: error,

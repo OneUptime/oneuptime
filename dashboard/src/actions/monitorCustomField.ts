@@ -1,7 +1,7 @@
 import * as types from '../constants/monitorCustomField';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const createCustomFieldRequest = () => ({
     type: types.CREATE_CUSTOM_FIELD_REQUEST,
 });
@@ -11,7 +11,7 @@ export const createCustomFieldSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createCustomFieldFailure = (error: $TSFixMe) => ({
+export const createCustomFieldFailure = (error: ErrorPayload) => ({
     type: types.CREATE_CUSTOM_FIELD_FAILURE,
     payload: error,
 });
@@ -49,7 +49,7 @@ export const updateCustomFieldSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateCustomFieldFailure = (error: $TSFixMe) => ({
+export const updateCustomFieldFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_CUSTOM_FIELD_FAILURE,
     payload: error,
 });
@@ -88,7 +88,7 @@ export const fetchCustomFieldsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchCustomFieldsFailure = (error: $TSFixMe) => ({
+export const fetchCustomFieldsFailure = (error: ErrorPayload) => ({
     type: types.FETCH_CUSTOM_FIELDS_FAILURE,
     payload: error,
 });
@@ -133,7 +133,7 @@ export const deleteCustomFieldSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteCustomFieldFailure = (error: $TSFixMe) => ({
+export const deleteCustomFieldFailure = (error: ErrorPayload) => ({
     type: types.DELETE_CUSTOM_FIELD_FAILURE,
     payload: error,
 });

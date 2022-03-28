@@ -1,9 +1,9 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import Route from 'common/types/api/route';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 import Action from 'common-ui/src/types/action';
 //Update profile setting
 
@@ -20,7 +20,7 @@ export const updateProfileSettingSuccess = (profileSetting: $TSFixMe) => {
     };
 };
 
-export const updateProfileSettingError = (error: $TSFixMe) => {
+export const updateProfileSettingError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_PROFILE_SETTING_FAILURE,
         payload: error,
@@ -33,7 +33,7 @@ export const updatePushNotificationRequest = () => {
     };
 };
 
-export const updatePushNotificationError = (error: $TSFixMe) => {
+export const updatePushNotificationError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_ERROR,
         payload: error,
@@ -86,7 +86,6 @@ export const updateProfileSetting = (values: $TSFixMe) => {
                 return profileSettings;
             },
             function (error) {
-
                 dispatch(updateProfileSettingError(error));
             }
         );
@@ -107,7 +106,6 @@ export const updatePushNotification = (data: $TSFixMe) => {
                 return profileSettings;
             },
             function (error) {
-
                 dispatch(updatePushNotificationError(error));
             }
         );
@@ -130,7 +128,7 @@ export const twoFactorAuthTokenSuccess = (payload: $TSFixMe) => {
     };
 };
 
-export const twoFactorAuthTokenError = (error: $TSFixMe) => {
+export const twoFactorAuthTokenError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
@@ -151,7 +149,6 @@ export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -174,7 +171,7 @@ export const generateTwoFactorQRCodeSuccess = (payload: $TSFixMe) => {
     };
 };
 
-export const generateTwoFactorQRCodeError = (error: $TSFixMe) => {
+export const generateTwoFactorQRCodeError = (error: ErrorPayload) => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_FAILURE,
         payload: error,
@@ -192,7 +189,6 @@ export const generateTwoFactorQRCode = (userId: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-
                 dispatch(generateTwoFactorQRCodeError(error));
             }
         );
@@ -214,7 +210,6 @@ export const updateTwoFactorAuthToken = (data: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -237,7 +232,7 @@ export const updateChangePasswordSettingSuccess = () => {
     };
 };
 
-export const updateChangePasswordSettingError = (error: $TSFixMe) => {
+export const updateChangePasswordSettingError = (error: ErrorPayload) => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_FAILURE,
         payload: error,
@@ -256,7 +251,6 @@ export const updateChangePasswordSetting = (data: $TSFixMe) => {
                 return {};
             },
             function (error) {
-
                 dispatch(updateChangePasswordSettingError(error));
             }
         );
@@ -271,7 +265,7 @@ export const showProfileMenu = (position: $TSFixMe) => {
     };
 };
 
-export const hideProfileMenu = (error: $TSFixMe) => {
+export const hideProfileMenu = (error: ErrorPayload) => {
     return {
         type: types.HIDE_PROFILE_MENU,
         payload: error,
@@ -293,7 +287,7 @@ export const userSettingsSuccess = (settings: $TSFixMe) => {
     };
 };
 
-export const userSettingsError = (error: $TSFixMe) => {
+export const userSettingsError = (error: ErrorPayload) => {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
@@ -313,7 +307,6 @@ export const userSettings = () => {
                 return settings;
             },
             function (error) {
-
                 dispatch(userSettingsError(error));
             }
         );
@@ -347,7 +340,7 @@ export const sendVerificationSMSSuccess = (verificationAction: Action) => {
     };
 };
 
-export const sendVerificationSMSError = (error: $TSFixMe) => {
+export const sendVerificationSMSError = (error: ErrorPayload) => {
     return {
         type: types.SEND_VERIFICATION_SMS_FAILURE,
         payload: error,
@@ -373,7 +366,7 @@ export const sendEmailVerificationSuccess = (payload: $TSFixMe) => {
     };
 };
 
-export const sendEmailVerificationError = (error: $TSFixMe) => {
+export const sendEmailVerificationError = (error: ErrorPayload) => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_FAILURE,
         payload: error,
@@ -391,7 +384,6 @@ export const sendEmailVerificationLink = (values: $TSFixMe) => {
                 return data;
             },
             function (error) {
-
                 dispatch(sendEmailVerificationError(error));
             }
         );
@@ -413,7 +405,6 @@ export const sendVerificationSMS = (projectId: $TSFixMe, values: $TSFixMe) => {
                 return vericationAction;
             },
             function (error) {
-
                 dispatch(sendVerificationSMSError(error));
             }
         );
@@ -434,7 +425,7 @@ export const verifySMSCodeSuccess = (verificationResult: $TSFixMe) => {
     };
 };
 
-export const verifySMSCodeError = (error: $TSFixMe) => {
+export const verifySMSCodeError = (error: ErrorPayload) => {
     return {
         type: types.VERIFY_SMS_CODE_FAILURE,
         payload: error,
@@ -462,7 +453,6 @@ export const verifySMSCode = (projectId: $TSFixMe, values: $TSFixMe) => {
                 return verificationResult;
             },
             function (error) {
-
                 dispatch(verifySMSCodeError(error));
             }
         );
@@ -576,7 +566,7 @@ export const deleteAccountSuccess = (promise: $TSFixMe) => {
     };
 };
 
-export const deleteAccountFailure = (error: $TSFixMe) => {
+export const deleteAccountFailure = (error: ErrorPayload) => {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
@@ -594,7 +584,6 @@ export const deleteAccount = (userId: $TSFixMe, confirmation: $TSFixMe) => {
                 return response;
             },
             function (error) {
-
                 dispatch(deleteAccountFailure(error));
             }
         );
@@ -629,7 +618,6 @@ export const generateBackupCodes = () => {
                 return response;
             },
             function (error) {
-
                 dispatch(generateBackupCodesFailure(error));
             }
         );

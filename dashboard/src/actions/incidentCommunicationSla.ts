@@ -1,7 +1,7 @@
 import * as types from '../constants/incidentCommunicationSla';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const createCommunicationSlaRequest = () => ({
     type: types.CREATE_COMMUNICATION_SLA_REQUEST,
 });
@@ -11,7 +11,7 @@ export const createCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createCommunicationSlaFailure = (error: $TSFixMe) => ({
+export const createCommunicationSlaFailure = (error: ErrorPayload) => ({
     type: types.CREATE_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });
@@ -49,7 +49,7 @@ export const updateCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updateCommunicationSlaFailure = (error: $TSFixMe) => ({
+export const updateCommunicationSlaFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });
@@ -94,7 +94,7 @@ export const fetchCommunicationSlasSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchCommunicationSlasFailure = (error: $TSFixMe) => ({
+export const fetchCommunicationSlasFailure = (error: ErrorPayload) => ({
     type: types.FETCH_COMMUNICATION_SLAS_FAILURE,
     payload: error,
 });
@@ -137,7 +137,7 @@ export const deleteCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteCommunicationSlaFailure = (error: $TSFixMe) => ({
+export const deleteCommunicationSlaFailure = (error: ErrorPayload) => ({
     type: types.DELETE_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });
@@ -180,7 +180,7 @@ export const fetchDefaultCommunicationSlaSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchDefaultCommunicationSlaFailure = (error: $TSFixMe) => ({
+export const fetchDefaultCommunicationSlaFailure = (error: ErrorPayload) => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });

@@ -1,8 +1,8 @@
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 export const setStartDate = (date: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         dispatch({
@@ -31,7 +31,7 @@ export const createPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const createPerformanceTrackerFailure = (error: $TSFixMe) => ({
+export const createPerformanceTrackerFailure = (error: ErrorPayload) => ({
     type: types.CREATE_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
@@ -79,7 +79,7 @@ export const fetchPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchPerformanceTrackerFailure = (error: $TSFixMe) => ({
+export const fetchPerformanceTrackerFailure = (error: ErrorPayload) => ({
     type: types.FETCH_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
@@ -127,7 +127,7 @@ export const fetchPerformanceTrackersSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchPerformanceTrackersFailure = (error: $TSFixMe) => ({
+export const fetchPerformanceTrackersFailure = (error: ErrorPayload) => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_FAILURE,
     payload: error,
 });
@@ -180,7 +180,7 @@ export const updatePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const updatePerformanceTrackerFailure = (error: $TSFixMe) => ({
+export const updatePerformanceTrackerFailure = (error: ErrorPayload) => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
@@ -228,7 +228,7 @@ export const deletePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deletePerformanceTrackerFailure = (error: $TSFixMe) => ({
+export const deletePerformanceTrackerFailure = (error: ErrorPayload) => ({
     type: types.DELETE_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
@@ -275,7 +275,7 @@ export const resetPerformanceTrackerKeySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const resetPerformanceTrackerKeyFailure = (error: $TSFixMe) => ({
+export const resetPerformanceTrackerKeyFailure = (error: ErrorPayload) => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE,
     payload: error,
 });
@@ -323,7 +323,7 @@ export const removeQuickStartSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const removeQuickStartFailure = (error: $TSFixMe) => ({
+export const removeQuickStartFailure = (error: ErrorPayload) => ({
     type: types.REMOVE_QUICK_START_FAILURE,
     payload: error,
 });
@@ -367,7 +367,7 @@ export const fetchLastMetricsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchLastMetricsFailure = (error: $TSFixMe) => ({
+export const fetchLastMetricsFailure = (error: ErrorPayload) => ({
     type: types.FETCH_LAST_METRICS_FAILURE,
     payload: error,
 });

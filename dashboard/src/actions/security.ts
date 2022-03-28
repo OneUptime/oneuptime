@@ -1,7 +1,7 @@
 import * as types from '../constants/security';
-import BackendAPI from '../api';
+import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // Add Container Security
 export const addContainerSecurityRequest = () => ({
     type: types.ADD_CONTAINER_SECURITY_REQUEST,
@@ -12,7 +12,7 @@ export const addContainerSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const addContainerSecurityFailure = (error: $TSFixMe) => ({
+export const addContainerSecurityFailure = (error: ErrorPayload) => ({
     type: types.ADD_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -52,7 +52,7 @@ export const getContainerSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getContainerSecurityFailure = (error: $TSFixMe) => ({
+export const getContainerSecurityFailure = (error: ErrorPayload) => ({
     type: types.GET_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -116,7 +116,7 @@ export const getContainerSecuritiesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getContainerSecuritiesFailure = (error: $TSFixMe) => ({
+export const getContainerSecuritiesFailure = (error: ErrorPayload) => ({
     type: types.GET_CONTAINER_SECURITIES_FAILURE,
     payload: error,
 });
@@ -161,7 +161,7 @@ export const deleteContainerSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteContainerSecurityFailure = (error: $TSFixMe) => ({
+export const deleteContainerSecurityFailure = (error: ErrorPayload) => ({
     type: types.DELETE_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -202,7 +202,7 @@ export const scanContainerSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const scanContainerSecurityFailure = (error: $TSFixMe) => ({
+export const scanContainerSecurityFailure = (error: ErrorPayload) => ({
     type: types.SCAN_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -240,7 +240,7 @@ export const getContainerSecurityLogSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getContainerSecurityLogFailure = (error: $TSFixMe) => ({
+export const getContainerSecurityLogFailure = (error: ErrorPayload) => ({
     type: types.GET_CONTAINER_SECURITY_LOG_FAILURE,
     payload: error,
 });
@@ -303,7 +303,7 @@ export const getContainerSecurityLogsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getContainerSecurityLogsFailure = (error: $TSFixMe) => ({
+export const getContainerSecurityLogsFailure = (error: ErrorPayload) => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_FAILURE,
     payload: error,
 });
@@ -342,7 +342,7 @@ export const editContainerSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const editContainerSecurityFailure = (error: $TSFixMe) => ({
+export const editContainerSecurityFailure = (error: ErrorPayload) => ({
     type: types.EDIT_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -391,7 +391,7 @@ export const addApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const addApplicationSecurityFailure = (error: $TSFixMe) => ({
+export const addApplicationSecurityFailure = (error: ErrorPayload) => ({
     type: types.ADD_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -431,7 +431,7 @@ export const getApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getApplicationSecurityFailure = (error: $TSFixMe) => ({
+export const getApplicationSecurityFailure = (error: ErrorPayload) => ({
     type: types.GET_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -495,7 +495,7 @@ export const getApplicationSecuritiesSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getApplicationSecuritiesFailure = (error: $TSFixMe) => ({
+export const getApplicationSecuritiesFailure = (error: ErrorPayload) => ({
     type: types.GET_APPLICATION_SECURITIES_FAILURE,
     payload: error,
 });
@@ -540,7 +540,7 @@ export const deleteApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const deleteApplicationSecurityFailure = (error: $TSFixMe) => ({
+export const deleteApplicationSecurityFailure = (error: ErrorPayload) => ({
     type: types.DELETE_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -581,7 +581,7 @@ export const scanApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const scanApplicationSecurityFailure = (error: $TSFixMe) => ({
+export const scanApplicationSecurityFailure = (error: ErrorPayload) => ({
     type: types.SCAN_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -618,7 +618,7 @@ export const getApplicationSecurityLogSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getApplicationSecurityLogFailure = (error: $TSFixMe) => ({
+export const getApplicationSecurityLogFailure = (error: ErrorPayload) => ({
     type: types.GET_APPLICATION_SECURITY_LOG_FAILURE,
     payload: error,
 });
@@ -681,7 +681,7 @@ export const getApplicationSecurityLogsSuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const getApplicationSecurityLogsFailure = (error: $TSFixMe) => ({
+export const getApplicationSecurityLogsFailure = (error: ErrorPayload) => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_FAILURE,
     payload: error,
 });
@@ -720,7 +720,7 @@ export const editApplicationSecuritySuccess = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const editApplicationSecurityFailure = (error: $TSFixMe) => ({
+export const editApplicationSecurityFailure = (error: ErrorPayload) => ({
     type: types.EDIT_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
