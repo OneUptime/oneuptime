@@ -5,13 +5,14 @@ import * as types from '../constants/register';
 import Route from 'common/types/api/route';
 import { IS_SAAS_SERVICE } from '../config';
 import Cookies from 'universal-cookie';
+import ErrorPayload from 'common-ui/src/payload-types/error';
 
 // There are three possible states for our login
 // process and we need actions for each of them
 
 const cookies = new Cookies();
 
-export const signupError = (error: $TSFixMe) => {
+export const signupError = (error: ErrorPayload) => {
     return {
         type: types.SIGNUP_FAILED,
         payload: error,
@@ -102,16 +103,7 @@ export const signupUser = (values: $TSFixMe) => {
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(signupError(error));
             }
         );
@@ -155,7 +147,7 @@ export const isUserInvitedReset = () => {
     };
 };
 
-export const isUserInvitedError = (error: $TSFixMe) => {
+export const isUserInvitedError = (error: ErrorPayload) => {
     return {
         type: types.IS_USER_INVITED_RESET,
         payload: error,
@@ -185,16 +177,7 @@ export const isUserInvited = (values: $TSFixMe) => {
                 dispatch(isUserInvitedSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(isUserInvitedError(error));
             }
         );
@@ -210,7 +193,7 @@ export const addCardRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const addCardFailed = (error: $TSFixMe) => {
+export const addCardFailed = (error: ErrorPayload) => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
@@ -235,16 +218,7 @@ export const addCard = (data: $TSFixMe) => {
                 dispatch(addCardSuccess(card.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(addCardFailed(error));
             }
         );
@@ -267,16 +241,7 @@ export const getEmailFromToken = (token: $TSFixMe) => {
                 dispatch(getEmailSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getEmailSuccess(error));
             }
         );

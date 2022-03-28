@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import Route from 'common/types/api/route';
 import * as types from '../constants/changePassword';
+import ErrorPayload from 'common-ui/src/payload-types/error';
 
 export const changePasswordRequest = (promise: $TSFixMe) => {
     return {
@@ -10,7 +11,7 @@ export const changePasswordRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const changePasswordError = (error: $TSFixMe) => {
+export const changePasswordError = (error: ErrorPayload) => {
     return {
         type: types.CHANGEPASSWORD_FAILED,
         payload: error,
@@ -44,16 +45,7 @@ export const changePassword = (values: $TSFixMe) => {
                 dispatch(changePasswordSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(changePasswordError(error));
             }
         );

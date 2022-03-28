@@ -21,16 +21,7 @@ export const fetchMonitors = (projectId: $TSFixMe, skip = 0, limit = 0) => {
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchMonitorsFailure(error));
             }
         );
@@ -88,16 +79,7 @@ export function fetchPaginatedMonitors({
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchPaginatedMonitorsFailure(error));
             }
         );
@@ -488,16 +470,7 @@ export const deleteMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteMonitorFailure({ error: error, monitorId }));
             }
         );
@@ -556,16 +529,7 @@ export const disableMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(disableMonitorFailure({ error: error, monitorId }));
             }
         );
@@ -700,16 +664,7 @@ export function fetchMonitorsIncidents(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchMonitorsIncidentsFailure(error));
             }
         );
@@ -768,16 +723,7 @@ export function fetchMonitorsSubscribers(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchMonitorsSubscribersFailure(error));
             }
         );
@@ -1063,16 +1009,7 @@ export function getMonitorLogs(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getMonitorLogsFailure({ monitorId, error: error }));
             }
         );
@@ -1133,16 +1070,7 @@ export function fetchLighthouseLogs(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchLighthouseLogsFailure(error));
             }
         );
@@ -1184,16 +1112,7 @@ export const fetchMonitorIssue = (projectId: $TSFixMe, issueId: $TSFixMe) => {
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchMonitorIssueFailure(error));
             }
         );
@@ -1333,27 +1252,27 @@ export const closeBreachedMonitorSlaFailure = (error: $TSFixMe) => ({
 
 export const closeBreachedMonitorSla =
     (projectId: $TSFixMe, monitorId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
-        try {
-            dispatch(closeBreachedMonitorSlaRequest());
+        async (dispatch: Dispatch) => {
+            try {
+                dispatch(closeBreachedMonitorSlaRequest());
 
-            const response = await BackendAPI.post(
-                `monitor/${projectId}/closeSla/${monitorId}`
-            );
+                const response = await BackendAPI.post(
+                    `monitor/${projectId}/closeSla/${monitorId}`
+                );
 
-            dispatch(closeBreachedMonitorSlaSuccess(response.data));
-        } catch (error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(closeBreachedMonitorSlaFailure(errorMsg));
-        }
-    };
+                dispatch(closeBreachedMonitorSlaSuccess(response.data));
+            } catch (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
+                dispatch(closeBreachedMonitorSlaFailure(errorMsg));
+            }
+        };
 
 export const fetchBreachedMonitorSlaRequest = () => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
@@ -1384,10 +1303,10 @@ export const fetchBreachedMonitorSla =
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(fetchBreachedMonitorSlaFailure(errorMsg));
         }
     };

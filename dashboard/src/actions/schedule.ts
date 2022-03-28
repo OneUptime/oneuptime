@@ -47,16 +47,7 @@ export function fetchSchedules(
                 dispatch(scheduleSuccess(schedule.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(scheduleError(error));
             }
         );
@@ -107,16 +98,7 @@ export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(subProjectScheduleError(error));
             }
         );
@@ -171,16 +153,7 @@ export function fetchProjectSchedule(
                 dispatch(projectScheduleSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(projectScheduleError(error));
             }
         );
@@ -224,16 +197,7 @@ export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(createScheduleSuccess(schedule.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createScheduleError(error));
             }
         );
@@ -573,16 +537,7 @@ export function addEscalation(
                 dispatch(escalationSuccess(escalation));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(escalationError(error));
             }
         );
@@ -604,16 +559,7 @@ export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
                 dispatch(escalationSuccess(escalation.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(escalationError(error));
             }
         );
@@ -689,16 +635,7 @@ export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
                 dispatch(userScheduleSuccess(schedule.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(userScheduleError(error));
             }
         );

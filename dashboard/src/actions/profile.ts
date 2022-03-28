@@ -86,16 +86,7 @@ export const updateProfileSetting = (values: $TSFixMe) => {
                 return profileSettings;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateProfileSettingError(error));
             }
         );
@@ -116,16 +107,7 @@ export const updatePushNotification = (data: $TSFixMe) => {
                 return profileSettings;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updatePushNotificationError(error));
             }
         );
@@ -169,16 +151,7 @@ export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -219,16 +192,7 @@ export const generateTwoFactorQRCode = (userId: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(generateTwoFactorQRCodeError(error));
             }
         );
@@ -250,16 +214,7 @@ export const updateTwoFactorAuthToken = (data: $TSFixMe) => {
                 return payload;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -301,16 +256,7 @@ export const updateChangePasswordSetting = (data: $TSFixMe) => {
                 return {};
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateChangePasswordSettingError(error));
             }
         );
@@ -367,16 +313,7 @@ export const userSettings = () => {
                 return settings;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(userSettingsError(error));
             }
         );
@@ -454,16 +391,7 @@ export const sendEmailVerificationLink = (values: $TSFixMe) => {
                 return data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(sendEmailVerificationError(error));
             }
         );
@@ -485,16 +413,7 @@ export const sendVerificationSMS = (projectId: $TSFixMe, values: $TSFixMe) => {
                 return vericationAction;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(sendVerificationSMSError(error));
             }
         );
@@ -543,16 +462,7 @@ export const verifySMSCode = (projectId: $TSFixMe, values: $TSFixMe) => {
                 return verificationResult;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(verifySMSCodeError(error));
             }
         );
@@ -684,16 +594,7 @@ export const deleteAccount = (userId: $TSFixMe, confirmation: $TSFixMe) => {
                 return response;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteAccountFailure(error));
             }
         );
@@ -728,16 +629,7 @@ export const generateBackupCodes = () => {
                 return response;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(generateBackupCodesFailure(error));
             }
         );

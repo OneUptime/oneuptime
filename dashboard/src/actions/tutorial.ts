@@ -69,16 +69,7 @@ export const fetchTutorial = () => {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchTutorialError(error));
             }
         );
@@ -99,16 +90,7 @@ export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(closeTutorialError(error));
             }
         );

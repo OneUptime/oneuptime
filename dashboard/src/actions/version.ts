@@ -41,16 +41,7 @@ export const getVersion = () => {
                 dispatch(getVersionSuccess(versions.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getVersionError(error));
             }
         );

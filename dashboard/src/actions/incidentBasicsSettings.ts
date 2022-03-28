@@ -29,16 +29,7 @@ export const fetchBasicIncidentSettingsVariables = () => {
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchBasicIncidentSettingsVariablesFailure(error));
             }
         );
@@ -70,34 +61,25 @@ export const fetchIncidentTemplatesFailure = (error: $TSFixMe) => ({
 
 export const fetchIncidentTemplates =
     ({ projectId, skip, limit }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
+        (dispatch: Dispatch) => {
+            const url = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
 
-        const promise = BackendAPI.get(url);
-        dispatch(fetchIncidentTemplatesRequest());
-        promise.then(
-            function (incidentBasicSettings) {
-                dispatch(
-                    fetchIncidentTemplatesSuccess(incidentBasicSettings.data)
-                );
-            },
-            function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(fetchIncidentTemplatesFailure(error));
-            }
-        );
+            const promise = BackendAPI.get(url);
+            dispatch(fetchIncidentTemplatesRequest());
+            promise.then(
+                function (incidentBasicSettings) {
+                    dispatch(
+                        fetchIncidentTemplatesSuccess(incidentBasicSettings.data)
+                    );
+                },
+                function (error) {
 
-        return promise;
-    };
+                    dispatch(fetchIncidentTemplatesFailure(error));
+                }
+            );
+
+            return promise;
+        };
 
 // CREATE TEMPLATE IN A PROJECT
 export const createIncidentTemplateRequest = () => ({
@@ -116,34 +98,25 @@ export const createIncidentTemplateFailure = (error: $TSFixMe) => ({
 
 export const createIncidentTemplate =
     ({ projectId, data }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}`;
+        (dispatch: Dispatch) => {
+            const url = `incidentSettings/${projectId}`;
 
-        const promise = BackendAPI.post(url, data);
-        dispatch(createIncidentTemplateRequest());
-        promise.then(
-            function (incidentBasicSettings) {
-                dispatch(
-                    createIncidentTemplateSuccess(incidentBasicSettings.data)
-                );
-            },
-            function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(createIncidentTemplateFailure(error));
-            }
-        );
+            const promise = BackendAPI.post(url, data);
+            dispatch(createIncidentTemplateRequest());
+            promise.then(
+                function (incidentBasicSettings) {
+                    dispatch(
+                        createIncidentTemplateSuccess(incidentBasicSettings.data)
+                    );
+                },
+                function (error) {
 
-        return promise;
-    };
+                    dispatch(createIncidentTemplateFailure(error));
+                }
+            );
+
+            return promise;
+        };
 
 // UPDATE A TEMPLATE IN A PROJECT
 export const updateIncidentTemplateRequest = () => ({
@@ -162,34 +135,25 @@ export const updateIncidentTemplateFailure = (error: $TSFixMe) => ({
 
 export const updateIncidentTemplate =
     ({ projectId, templateId, data }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/${templateId}`;
+        (dispatch: Dispatch) => {
+            const url = `incidentSettings/${projectId}/${templateId}`;
 
-        const promise = BackendAPI.put(url, data);
-        dispatch(updateIncidentTemplateRequest());
-        promise.then(
-            function (incidentBasicSettings) {
-                dispatch(
-                    updateIncidentTemplateSuccess(incidentBasicSettings.data)
-                );
-            },
-            function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(updateIncidentTemplateFailure(error));
-            }
-        );
+            const promise = BackendAPI.put(url, data);
+            dispatch(updateIncidentTemplateRequest());
+            promise.then(
+                function (incidentBasicSettings) {
+                    dispatch(
+                        updateIncidentTemplateSuccess(incidentBasicSettings.data)
+                    );
+                },
+                function (error) {
 
-        return promise;
-    };
+                    dispatch(updateIncidentTemplateFailure(error));
+                }
+            );
+
+            return promise;
+        };
 
 // DELETE A TEMPLATE IN A PROJECT
 export const deleteIncidentTemplateRequest = () => ({
@@ -208,34 +172,25 @@ export const deleteIncidentTemplateFailure = (error: $TSFixMe) => ({
 
 export const deleteIncidentTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/${templateId}`;
+        (dispatch: Dispatch) => {
+            const url = `incidentSettings/${projectId}/${templateId}`;
 
-        const promise = BackendAPI.delete(url);
-        dispatch(deleteIncidentTemplateRequest());
-        promise.then(
-            function (incidentBasicSettings) {
-                dispatch(
-                    deleteIncidentTemplateSuccess(incidentBasicSettings.data)
-                );
-            },
-            function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(deleteIncidentTemplateFailure(error));
-            }
-        );
+            const promise = BackendAPI.delete(url);
+            dispatch(deleteIncidentTemplateRequest());
+            promise.then(
+                function (incidentBasicSettings) {
+                    dispatch(
+                        deleteIncidentTemplateSuccess(incidentBasicSettings.data)
+                    );
+                },
+                function (error) {
 
-        return promise;
-    };
+                    dispatch(deleteIncidentTemplateFailure(error));
+                }
+            );
+
+            return promise;
+        };
 
 // SET DEFAULT INCIDENT TEMPLATE
 export const setDefaultTemplateRequest = () => ({
@@ -254,32 +209,23 @@ export const setDefaultTemplateFailure = (error: $TSFixMe) => ({
 
 export const setDefaultTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/${templateId}/setDefault`;
+        (dispatch: Dispatch) => {
+            const url = `incidentSettings/${projectId}/${templateId}/setDefault`;
 
-        const promise = BackendAPI.put(url, {});
-        dispatch(setDefaultTemplateRequest());
-        promise.then(
-            function (incidentBasicSettings) {
-                dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
-            },
-            function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(setDefaultTemplateFailure(error));
-            }
-        );
+            const promise = BackendAPI.put(url, {});
+            dispatch(setDefaultTemplateRequest());
+            promise.then(
+                function (incidentBasicSettings) {
+                    dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
+                },
+                function (error) {
 
-        return promise;
-    };
+                    dispatch(setDefaultTemplateFailure(error));
+                }
+            );
+
+            return promise;
+        };
 
 // SET ACTIVE TEMPLATE
 export const setActiveTemplate = (id: $TSFixMe) => ({
@@ -304,31 +250,22 @@ export const fetchDefaultTemplateFailure = (error: $TSFixMe) => ({
 
 export const fetchDefaultTemplate =
     ({ projectId }: $TSFixMe) =>
-    (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/default`;
+        (dispatch: Dispatch) => {
+            const url = `incidentSettings/${projectId}/default`;
 
-        const promise = BackendAPI.get(url);
-        dispatch(fetchDefaultTemplateRequest());
-        promise.then(
-            function (incidentBasicSettings) {
-                dispatch(
-                    fetchDefaultTemplateSuccess(incidentBasicSettings.data)
-                );
-            },
-            function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(fetchDefaultTemplateFailure(error));
-            }
-        );
+            const promise = BackendAPI.get(url);
+            dispatch(fetchDefaultTemplateRequest());
+            promise.then(
+                function (incidentBasicSettings) {
+                    dispatch(
+                        fetchDefaultTemplateSuccess(incidentBasicSettings.data)
+                    );
+                },
+                function (error) {
 
-        return promise;
-    };
+                    dispatch(fetchDefaultTemplateFailure(error));
+                }
+            );
+
+            return promise;
+        };

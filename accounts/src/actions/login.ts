@@ -7,7 +7,7 @@ import { getQueryVar } from '../config';
 import { resendToken } from './resendToken';
 import Cookies from 'universal-cookie';
 import store from '../store';
-
+import ErrorPayload from 'common-ui/src/payload-types/error';
 // There are three possible states for our login
 // process and we need actions for each of them
 
@@ -18,7 +18,7 @@ export const loginRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const loginError = (error: $TSFixMe) => {
+export const loginError = (error: ErrorPayload) => {
     return {
         type: types.LOGIN_FAILED,
         payload: error,
@@ -91,7 +91,7 @@ export const verifyTokenRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const verifyTokenError = (error: $TSFixMe) => {
+export const verifyTokenError = (error: ErrorPayload) => {
     return {
         type: types.AUTH_VERIFICATION_FAILED,
         payload: error,
@@ -119,16 +119,7 @@ export const loginUser = (values: $TSFixMe) => {
                         payload: values,
                     });
                 }
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(loginError(error));
             }
         );
@@ -180,16 +171,7 @@ export const verifyAuthToken = (values: $TSFixMe) => {
                 dispatch(loginSuccess(user.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(verifyTokenError(error));
             }
         );
@@ -212,7 +194,7 @@ export const useBackupCodeRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const useBackupCodeError = (error: $TSFixMe) => {
+export const useBackupCodeError = (error: ErrorPayload) => {
     return {
         type: types.BACKUP_CODE_VERIFICATION_FAILED,
         payload: error,
@@ -237,16 +219,7 @@ export const verifyBackupCode = (values: $TSFixMe) => {
                 dispatch(loginSuccess(user.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(useBackupCodeError(error));
             }
         );
@@ -268,7 +241,7 @@ export const masterAdminExistsRequest = (promise: $TSFixMe) => {
     };
 };
 
-export const masterAdminExistsError = (error: $TSFixMe) => {
+export const masterAdminExistsError = (error: ErrorPayload) => {
     return {
         type: types.MASTER_ADMIN_EXISTS_FAILED,
         payload: error,
@@ -298,16 +271,7 @@ export const checkIfMasterAdminExists = (values: $TSFixMe) => {
                 dispatch(masterAdminExistsSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(masterAdminExistsError(error));
             }
         );

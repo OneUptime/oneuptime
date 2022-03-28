@@ -42,16 +42,7 @@ export const fetchAlert = (projectId: $TSFixMe) => {
                 dispatch(alertSuccess(payload.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(alertError(error));
             }
         );
@@ -108,16 +99,7 @@ export function fetchProjectAlert(
                 dispatch(projectAlertSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(projectAlertError(error));
             }
         );
@@ -174,16 +156,7 @@ export function fetchIncidentAlert(
                 dispatch(incidentAlertSuccess(alerts.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(incidentAlertError(error));
             }
         );
@@ -252,16 +225,7 @@ export function fetchSubscriberAlert(
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(subscriberAlertError(error));
             }
         );
@@ -313,16 +277,7 @@ export function fetchAlertCharges(
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchAlertChargesFailed(error));
             }
         );
@@ -362,16 +317,7 @@ export const downloadAlertCharges = (projectId: $TSFixMe) => {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(downloadAlertChargesFailed(error));
             }
         );

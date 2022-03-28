@@ -23,16 +23,7 @@ export const createSso = ({ data }: $TSFixMe) => {
                 dispatch(createSsoSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createSsoFailure(error));
             }
         );
@@ -66,16 +57,7 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe) => {
                 dispatch(fetchSsosSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchSsosFailure(error));
             }
         );
@@ -104,16 +86,7 @@ export const fetchSso = (ssoId: $TSFixMe) => {
                 dispatch(fetchSsoSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchSsoFailure(error));
             }
         );
@@ -142,16 +115,7 @@ export const updateSso = ({ id, data }: $TSFixMe) => {
                 dispatch(updateSsoSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateSsoFailure(error));
             }
         );
@@ -180,16 +144,7 @@ export const deleteSso = (ssoId: $TSFixMe) => {
                 dispatch(deleteSsoSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteSsoFailure(error));
             }
         );

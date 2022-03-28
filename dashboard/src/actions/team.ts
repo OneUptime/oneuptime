@@ -33,16 +33,7 @@ export const teamLoading = (projectId: $TSFixMe) => {
                 dispatch(teamLoadingSuccess(team));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(teamLoadingError(error));
             }
         );
@@ -81,16 +72,7 @@ export const subProjectTeamLoading = (projectId: $TSFixMe) => {
                 dispatch(subProjectTeamLoadingSuccess(team));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(subProjectTeamLoadingError(error));
             }
         );
@@ -132,16 +114,7 @@ export const teamCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(teamCreateSuccess(team));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(teamCreateError(error));
             }
         );
@@ -196,16 +169,7 @@ export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 return { team };
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -247,16 +211,7 @@ export const getTeamMember = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 dispatch(teamMemberSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(teamMemberError(error));
             }
         );
@@ -301,16 +256,7 @@ export const teamUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(teamUpdateRoleSuccess(team));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(teamUpdateRoleError(error));
             }
         );

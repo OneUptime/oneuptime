@@ -32,16 +32,7 @@ export const fetchComponents = ({
                 dispatch(fetchComponentsSuccess(components.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchComponentsFailure(error));
             }
         );
@@ -94,16 +85,7 @@ export function fetchPaginatedComponents({
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchPaginatedComponentsFailure(error, projectId));
             }
         );
@@ -274,16 +256,7 @@ export const deleteComponent = (componentId: $TSFixMe, projectId: $TSFixMe) => {
                 dispatch(deleteComponentSuccess(component.data._id));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     deleteComponentFailure({
                         error: error,
@@ -401,16 +374,7 @@ export function fetchComponentResources(
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchComponentResourcesFailure(error));
             }
         );
@@ -465,16 +429,7 @@ export function fetchComponentSummary(
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchComponentSummaryFailure(error));
             }
         );
@@ -547,16 +502,7 @@ export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
                 dispatch(fetchComponentSuccess(component.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchComponentFailure(error));
             }
         );

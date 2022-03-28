@@ -211,16 +211,7 @@ export function fetchAutomatedScript(
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchAutomatedScriptFailure(error));
             }
         );
@@ -261,16 +252,7 @@ export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(runAutomatedScriptFailure(error));
             }
         );
@@ -314,16 +296,7 @@ export function deleteAutomatedScript(
                 return true;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteAutomatedScriptFailure(error));
                 return false;
             }

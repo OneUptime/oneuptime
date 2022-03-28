@@ -42,16 +42,7 @@ export const getEmailTemplates = (projectId: $TSFixMe) => {
                 dispatch(emailTemplatesSuccess(emails.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(emailTemplatesError(error));
             }
         );
@@ -96,16 +87,7 @@ export const editEmailTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(editEmailTemplateSuccess(emailTemplate.data));
             },
             error => {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(editEmailTemplateError(error));
             }
         );
@@ -151,16 +133,7 @@ export const resetEmailTemplates = (
                 dispatch(resetEmailTemplatesSuccess(emails.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetEmailTemplatesError(error));
             }
         );
@@ -211,16 +184,7 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
                 dispatch(smtpConfigSuccess(data.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(smtpConfigError(error));
             }
         );
@@ -249,16 +213,7 @@ export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(smtpConfigError(error));
             }
         );
@@ -312,16 +267,7 @@ export function deleteSmtpConfig(
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteSmtpConfigError(error));
             }
         );
@@ -357,16 +303,7 @@ export function updateSmtpConfig(
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(smtpConfigError(error));
             }
         );

@@ -80,16 +80,7 @@ export const fetchErrorTrackersByProject = (projectId: $TSFixMe) => {
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -116,16 +107,7 @@ export function fetchErrorTrackers(
                 dispatch(fetchErrorTrackersSuccess(errorTrackers.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -195,16 +177,7 @@ export function fetchErrorTrackerIssues(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchErrorTrackerIssuesFailure(error));
             }
         );
@@ -270,16 +243,7 @@ export function fetchErrorEvent(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchErrorEventFailure(error));
             }
         );
@@ -342,16 +306,7 @@ export function deleteErrorTracker(
                 dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     deleteErrorTrackerFailure({
                         error: error,
@@ -466,16 +421,7 @@ export function resetErrorTrackerKey(
                 dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetErrorTrackerKeyFailure(error));
             }
         );
@@ -535,16 +481,7 @@ export function ignoreErrorEvent(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(ignoreErrorEventFailure(error));
             }
         );
@@ -608,16 +545,7 @@ export function unresolveErrorEvent(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(unresolveErrorEventFailure(error));
             }
         );
@@ -681,16 +609,7 @@ export function resolveErrorEvent(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resolveErrorEventFailure(error));
             }
         );
@@ -762,16 +681,7 @@ export function updateErrorEventMember(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateErrorEventMemberFailure(error));
             }
         );
@@ -831,16 +741,7 @@ export function deleteErrorTrackerIssue(
                 dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     deleteErrorTrackerIssueFailure({
                         error: error,

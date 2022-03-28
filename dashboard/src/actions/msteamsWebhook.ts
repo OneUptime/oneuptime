@@ -32,7 +32,7 @@ export const resetDeleteMsTeams = () => {
 export const deleteMsTeams = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
-        null);
+            null);
 
         dispatch(deleteMsTeamsRequest());
 
@@ -43,16 +43,7 @@ export const deleteMsTeams = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
                 return msTeams.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteMsTeamsError(error));
             }
         );
@@ -94,8 +85,7 @@ export function getMsTeams(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -105,16 +95,7 @@ export function getMsTeams(
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -132,8 +113,7 @@ export function getMsTeamsMonitor(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
             }&type=msteams`
         );
         dispatch(getMsTeamsRequest(promise));
@@ -143,16 +123,7 @@ export function getMsTeamsMonitor(
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -200,16 +171,7 @@ export const createMsTeams = (projectId: $TSFixMe, data: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createMsTeamsError(error));
             }
         );
@@ -263,16 +225,7 @@ export function updateMsTeams(
                 return webhook.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateMsTeamsError(error));
             }
         );

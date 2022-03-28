@@ -52,16 +52,7 @@ export function createSubscriber(
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createSubscriberError(error));
             }
         );
@@ -121,16 +112,7 @@ export function exportCSV(
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(exportCsvError(error));
             }
         );
@@ -188,16 +170,7 @@ export const deleteSubscriber = (
                 });
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteSubscriberError(error));
             }
         );
@@ -267,16 +240,7 @@ export function importSubscribersFromCsvFile(
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createSubscriberError(error));
             }
         );

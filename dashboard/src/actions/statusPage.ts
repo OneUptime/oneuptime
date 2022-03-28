@@ -182,16 +182,7 @@ export const updateStatusPageSetting = (
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageSettingError(error));
             }
         );
@@ -237,16 +228,7 @@ export function updateStatusPageMonitors(
                 dispatch(updateStatusPageMonitorsSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageMonitorsError(error));
             }
         );
@@ -292,16 +274,7 @@ export const updatePrivateStatusPage = (
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updatePrivateStatusPageError(error));
             }
         );
@@ -345,16 +318,7 @@ export function updateStatusPageLanguage(
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageLanguageError(error));
             }
         );
@@ -397,16 +361,7 @@ export const updateSubscriberOption = (
                 dispatch(updateSubscriberOptionSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateSubscriberOptionError(error));
             }
         );
@@ -521,16 +476,7 @@ export function updateStatusPageBranding(
                 dispatch(updateStatusPageBrandingSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageBrandingError(error));
             }
         );
@@ -551,16 +497,7 @@ export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageThemeError(error));
             }
         );
@@ -580,16 +517,7 @@ export const updateStatusPageName = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(updateStatusPageNameSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageNameError(error));
             }
         );
@@ -634,16 +562,7 @@ export const updateStatusPageLinks = (
                 dispatch(updateStatusPageLinksSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageLinksError(error));
             }
         );
@@ -688,16 +607,7 @@ export function updateStatusPageCustomHTML(
                 dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageCustomHTMLError(error));
             }
         );
@@ -753,16 +663,7 @@ export function fetchProjectStatusPage(
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchProjectStatusPageError(error));
             }
         );
@@ -813,16 +714,7 @@ export function fetchSubProjectStatusPages(
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchSubProjectStatusPagesError(error));
             }
         );
@@ -876,16 +768,7 @@ export function fetchIncidentStatusPages(
                 dispatch(fetchIncidentStatusPagesSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchIncidentStatusPagesError(error));
             }
         );
@@ -931,16 +814,7 @@ export function resetStatusBubbleId(
                 dispatch(resetStatusBubbleIdSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetStatusBubbleIdError(error));
             }
         );
@@ -982,7 +856,7 @@ export function deleteStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const promise = delete (`status-page/${projectId}/${statusPageSlug}`,
-        null);
+            null);
         dispatch(deleteStatusPageRequest());
         promise.then(
             function (response) {
@@ -990,16 +864,7 @@ export function deleteStatusPage(
                 dispatch(deleteStatusPageSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteStatusPageError(error));
             }
         );
@@ -1041,16 +906,7 @@ export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
                 return response;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -1074,16 +930,7 @@ export function createDuplicateStatusPage(
                 return response;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -1103,16 +950,7 @@ export const fetchStatusPage = (statusPageSlug: $TSFixMe) => {
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -1165,16 +1003,7 @@ export function updateStatusPageEmbeddedCss(
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageEmbeddedCssError(error));
             }
         );
@@ -1220,16 +1049,7 @@ export function resetBrandingColors(
                 dispatch(resetBrandingColorsSuccess(colors));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetBrandingColorsError(error));
             }
         );
@@ -1276,16 +1096,7 @@ export function resetStatusPageEmbeddedCss(
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetStatusPageEmbeddedCssError(error));
             }
         );
@@ -1327,16 +1138,7 @@ export const updateStatusPageLayout = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(updateStatusSuccess(statusPage));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateStatusPageLayoutError(error));
             }
         );
@@ -1381,16 +1183,7 @@ export function fetchStatusPageSubscribers(
                 dispatch(fetchSubscriberSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchSubscriberFailure(error));
             }
         );
@@ -1436,16 +1229,7 @@ export function createExternalStatusPage(
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createExternalStatusPageFailure(error));
                 return error;
             }
@@ -1493,16 +1277,7 @@ export function updateExternalStatusPage(
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateExternalStatusPageFailure(error));
                 return error;
             }
@@ -1548,16 +1323,7 @@ export function fetchExternalStatusPages(
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchExternalStatusPagesFailure(error));
                 return error;
             }
@@ -1603,16 +1369,7 @@ export function deleteExternalStatusPage(
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteExternalStatusPageFailure(error));
                 return error;
             }
@@ -1660,16 +1417,7 @@ export function createAnnouncement(
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1698,16 +1446,7 @@ export function updateAnnouncement(
                 return response.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1753,16 +1492,7 @@ export function fetchAnnouncements(
                 dispatch(fetchAnnouncementSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchAnnouncementFailure(error));
             }
         );
@@ -1806,16 +1536,7 @@ export function fetchAnnouncementLogs(
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1851,16 +1572,7 @@ export function fetchSingleAnnouncement(
                 dispatch(fetchSingleAnnouncementSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchSingleAnnouncementFailure(error));
             }
         );
@@ -1927,16 +1639,7 @@ export function deleteAnnouncement(
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteAnnouncementFailure(error));
             }
         );
@@ -1957,16 +1660,7 @@ export function deleteAnnouncementLog(
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteAnnouncementFailure(error));
             }
         );

@@ -20,16 +20,7 @@ export function getCallRoutingNumbers(
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getCallRoutingNumbersFailure(error));
             }
         );
@@ -77,16 +68,7 @@ export const getTeamAndSchedules = (projectId: $TSFixMe) => {
                 dispatch(getTeamAndSchedulesSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getTeamAndSchedulesFailure(error));
             }
         );
@@ -327,16 +309,7 @@ export function fetchNumbers(
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchNumbersFailure(error));
             }
         );
@@ -384,16 +357,7 @@ export const removeNumbers = (projectId: $TSFixMe, callRoutingId: $TSFixMe) => {
                 dispatch(removeNumbersSuccess(numbers.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(removeNumbersFailure(error));
             }
         );
@@ -447,16 +411,7 @@ export function getCallRoutingLogs(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getCallRoutingLogsFailure(error));
             }
         );
@@ -510,16 +465,7 @@ export function removeIntroAudio(
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(removeIntroAudioFailure(error, backup));
             }
         );

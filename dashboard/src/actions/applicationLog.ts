@@ -84,16 +84,7 @@ export function fetchApplicationLogs(
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchApplicationLogsFailure(error));
             }
         );
@@ -149,16 +140,7 @@ export function deleteApplicationLog(
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     deleteApplicationLogFailure({
                         error: error,
@@ -244,16 +226,7 @@ export function fetchLogs(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
@@ -304,16 +277,7 @@ export function resetApplicationLogKey(
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetApplicationLogKeyFailure(error));
             }
         );
@@ -434,16 +398,7 @@ export function fetchStats(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     fetchStatsFailure({
                         applicationLogId,
@@ -514,16 +469,7 @@ export function searchLog(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );

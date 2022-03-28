@@ -177,16 +177,7 @@ export const getProjects = (switchToProjectId: $TSFixMe) => {
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(projectsError(error));
             }
         );
@@ -224,16 +215,7 @@ export const getProjectBalance = (projectId: $TSFixMe) => {
                 dispatch(getProjectBalanceSuccess(balance.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getprojectError(error));
             }
         );
@@ -282,16 +264,7 @@ export const createProject = (values: $TSFixMe) => {
                 return project.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createProjectError(error));
             }
         );
@@ -608,16 +581,7 @@ export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
                 dispatch(deleteProjectStatusPages(projectId));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteProjectError(error));
             }
         );
@@ -772,16 +736,7 @@ export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
                 dispatch(exitProjectSuccess({ projectId, userId }));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(exitProjectError(error));
             }
         );
@@ -836,16 +791,7 @@ export const markProjectForDelete = (
                 dispatch(markProjectForDeleteSuccess(projectId));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(markProjectForDeleteError(error));
             }
         );
@@ -891,16 +837,7 @@ export const alertOptionsUpdate = (
                 dispatch(alertOptionsUpdateSuccess(project));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(alertOptionsUpdateError(error));
             }
         );
@@ -939,16 +876,7 @@ export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(addBalanceSuccess(pi));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(addBalanceError(error));
             }
         );
@@ -978,27 +906,27 @@ export const updateProjectBalanceFailure = (error: $TSFixMe) => {
 
 export const updateProjectBalance =
     ({ projectId, intentId }: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
-        dispatch(updateProjectBalanceRequest());
+        async (dispatch: Dispatch) => {
+            dispatch(updateProjectBalanceRequest());
 
-        try {
-            const response = await BackendAPI.get(
-                `stripe/${projectId}/updateBalance/${intentId}`
-            );
+            try {
+                const response = await BackendAPI.get(
+                    `stripe/${projectId}/updateBalance/${intentId}`
+                );
 
-            dispatch(updateProjectBalanceSuccess(response.data));
-        } catch (error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(updateProjectBalanceFailure(errorMsg));
-        }
-    };
+                dispatch(updateProjectBalanceSuccess(response.data));
+            } catch (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
+                dispatch(updateProjectBalanceFailure(errorMsg));
+            }
+        };
 
 export const checkCardRequest = (promise: $TSFixMe) => {
     return {
@@ -1032,16 +960,7 @@ export const checkCard = (data: $TSFixMe) => {
                 dispatch(checkCardSuccess(card.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(checkCardFailed(error));
             }
         );
@@ -1085,10 +1004,10 @@ export const setEmailNotification = ({ projectId, data }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(setEmailNotificationFailure(errorMsg));
         }
     };
@@ -1130,10 +1049,10 @@ export const setSmsNotification = ({ projectId, data }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(setSmsNotificationFailure(errorMsg));
         }
     };
@@ -1179,10 +1098,10 @@ export const setWebhookNotificationSettings = ({
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(setWebhookNotificationSettingsFailure(errorMessage));
         }
     };
@@ -1233,10 +1152,10 @@ export const createProjectDomain = ({ projectId, data }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(createProjectDomainFailure(errorMessage));
         }
     };
@@ -1283,10 +1202,10 @@ export const fetchProjectDomains = (
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(fetchProjectDomainsFailure(errorMessage));
         }
     };
@@ -1340,10 +1259,10 @@ export const updateProjectDomain = ({
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(updateProjectDomainFailure(errorMessage));
         }
     };
@@ -1397,10 +1316,10 @@ export const verifyProjectDomain = ({
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(verifyProjectDomainFailure(errorMessage));
         }
     };
@@ -1448,10 +1367,10 @@ export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(deleteProjectDomainFailure(errorMessage));
         }
     };
@@ -1494,16 +1413,7 @@ export const fetchTrial = (projectId: $TSFixMe) => {
                 dispatch(fetchTrialSuccess(response));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchTrialError(error));
             }
         );
@@ -1547,10 +1457,10 @@ export const fetchProjectSlug = (slug: $TSFixMe) => {
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                        ? error.data
-                        : error.message
-                        ? error.message
-                        : 'Network Error';
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
                 dispatch(fetchProjectSlugFailure(errorMsg));
             }
         );

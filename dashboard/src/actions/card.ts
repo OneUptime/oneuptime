@@ -34,16 +34,7 @@ export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
                 dispatch(addCardSuccess(card.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(addCardFailed(error));
             }
         );
@@ -82,16 +73,7 @@ export const fetchCards = (userId: $TSFixMe) => {
                 dispatch(fetchCardsSuccess(cards.data.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchCardsFailed(error));
             }
         );
@@ -131,16 +113,7 @@ export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
                 dispatch(deleteCardSuccess(card.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteCardFailed(error));
             }
         );
@@ -184,16 +157,7 @@ export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
                 dispatch(fetchCards(userId));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(setDefaultCardFailed(error));
             }
         );

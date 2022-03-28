@@ -50,16 +50,7 @@ export const getSubProjects = (projectId: $TSFixMe, skip = 0, limit = 10) => {
                 dispatch(subProjectsSuccess(subData));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(subProjectsError(error));
             }
         );
@@ -124,16 +115,7 @@ export function createSubProject(
                 return subProject.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createSubProjectError(error));
                 return { error };
             }
@@ -184,16 +166,7 @@ export const resetSubProjectToken = (subProjectId: $TSFixMe) => {
                 dispatch(resetSubProjectTokenSuccess(subProject));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(resetSubProjectTokenError(error));
             }
         );
@@ -252,16 +225,7 @@ export function renameSubProject(
                 return project;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(renameSubProjectError(error));
                 return { error };
             }
@@ -321,16 +285,7 @@ export const deleteSubProject = (
                 return subProjectId;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteSubProjectError(error));
                 return { error };
             }
@@ -370,7 +325,7 @@ export function exitSubProject(
     return function (dispatch: Dispatch) {
         const promise =
             delete (`subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
-            null);
+                null);
         dispatch(exitSubProjectRequest());
 
         promise.then(
@@ -378,16 +333,7 @@ export function exitSubProject(
                 dispatch(exitSubProjectSuccess({ projectId, userId }));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(exitSubProjectError(error));
             }
         );
@@ -432,7 +378,7 @@ export function markSubProjectForDelete(
     return function (dispatch: Dispatch) {
         const promise =
             delete (`subProject/${projectId}/${subProjectId}/deleteProject`,
-            { subProjectId, feedback });
+                { subProjectId, feedback });
 
         dispatch(markSubProjectForDeleteRequest());
 
@@ -441,16 +387,7 @@ export function markSubProjectForDelete(
                 dispatch(markSubProjectForDeleteSuccess(projectId));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(markSubProjectForDeleteError(error));
             }
         );

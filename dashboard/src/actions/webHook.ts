@@ -32,7 +32,7 @@ export const resetDeleteWebHook = () => {
 export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${webhookId}`,
-        null);
+            null);
 
         dispatch(deleteWebHookRequest());
 
@@ -43,16 +43,7 @@ export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteWebHookError(error));
             }
         );
@@ -103,16 +94,7 @@ export function getWebHook(
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getWebHookError(error));
             }
         );
@@ -130,8 +112,7 @@ export function getWebHookMonitor(
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(
-            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${limit || 10
             }`
         );
         dispatch(getWebHookRequest(promise));
@@ -141,16 +122,7 @@ export function getWebHookMonitor(
                 dispatch(getWebHookSuccess(webhooks.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getWebHookError(error));
             }
         );
@@ -199,16 +171,7 @@ export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
                 return webhook.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createWebHookError(error));
             }
         );
@@ -262,16 +225,7 @@ export function updateWebHook(
                 return webhook.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateWebHookError(error));
             }
         );

@@ -137,16 +137,7 @@ export const userCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(userCreateSuccess(projectUsers.team));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(userCreateError(error));
             }
         );
@@ -270,16 +261,7 @@ export const userUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
                 dispatch(userUpdateRoleSuccess(projectUsers));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(userUpdateRoleError(error));
             }
         );
@@ -311,35 +293,35 @@ export const paginate = (type: $TSFixMe) => {
 //Add Balance to a project
 export const updateBalance =
     (projectId: $TSFixMe, rechargeBalanceAmount: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
-        dispatch(updateProjectBalanceRequest());
+        async (dispatch: Dispatch) => {
+            dispatch(updateProjectBalanceRequest());
 
-        try {
-            const response = await BackendAPI.put(
-                `project/${projectId}/updateBalance`,
-                {
-                    rechargeBalanceAmount,
+            try {
+                const response = await BackendAPI.put(
+                    `project/${projectId}/updateBalance`,
+                    {
+                        rechargeBalanceAmount,
+                    }
+                );
+
+                const data = response.data;
+                dispatch(updateProjectBalanceSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
                 }
-            );
-
-            const data = response.data;
-            dispatch(updateProjectBalanceSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(updateProjectBalanceError(errorMsg));
             }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(updateProjectBalanceError(errorMsg));
-        }
-    };
+        };
 
 export const updateProjectBalanceRequest = () => {
     return {
@@ -376,16 +358,7 @@ export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
                 return { team };
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -429,36 +402,36 @@ export const resetTeamDelete = () => {
 // Calls the API to fetch all user projects.
 export const fetchUserProjects =
     (userId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
-        skip = skip ? parseInt(skip) : 0;
-        limit = limit ? parseInt(limit) : 10;
+        async (dispatch: Dispatch) => {
+            skip = skip ? parseInt(skip) : 0;
+            limit = limit ? parseInt(limit) : 10;
 
-        dispatch(fetchUserProjectsRequest());
+            dispatch(fetchUserProjectsRequest());
 
-        try {
-            const response = await BackendAPI.get(
-                `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
-            );
+            try {
+                const response = await BackendAPI.get(
+                    `project/projects/user/${userId}?skip=${skip}&limit=${limit}`
+                );
 
-            const users = response.data;
+                const users = response.data;
 
-            dispatch(fetchUserProjectsSuccess(users));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
+                dispatch(fetchUserProjectsSuccess(users));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
+                }
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(fetchUserProjectsError(errorMsg));
             }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(fetchUserProjectsError(errorMsg));
-        }
-    };
+        };
 
 //Delete project
 export const deleteProjectRequest = () => {
@@ -602,36 +575,36 @@ export const renewAlertLimitError = (error: $TSFixMe) => {
 // Calls the API to block a project
 export const renewAlertLimit =
     (projectId: $TSFixMe, alertLimit: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
-        dispatch(renewAlertLimitRequest());
+        async (dispatch: Dispatch) => {
+            dispatch(renewAlertLimitRequest());
 
-        try {
-            const response = await BackendAPI.put(
-                `project/${projectId}/renewAlertLimit`,
-                {
-                    alertLimit,
+            try {
+                const response = await BackendAPI.put(
+                    `project/${projectId}/renewAlertLimit`,
+                    {
+                        alertLimit,
+                    }
+                );
+
+                const data = response.data;
+
+                dispatch(renewAlertLimitSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
                 }
-            );
-
-            const data = response.data;
-
-            dispatch(renewAlertLimitSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(renewAlertLimitError(errorMsg));
             }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(renewAlertLimitError(errorMsg));
-        }
-    };
+        };
 
 //Restore project
 export const restoreProjectRequest = () => {
@@ -835,38 +808,38 @@ export const searchProjectsError = (error: $TSFixMe) => {
 // Calls the search projects api
 export const searchProjects =
     (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
-        const values = {
-            filter,
+        async (dispatch: Dispatch) => {
+            const values = {
+                filter,
+            };
+
+            dispatch(searchProjectsRequest());
+
+            try {
+                const response = await BackendAPI.post(
+                    `project/projects/search?skip=${skip}&limit=${limit}`,
+                    values
+                );
+
+                const data = response.data;
+
+                dispatch(searchProjectsSuccess(data));
+                return response;
+            } catch (error) {
+                let errorMsg;
+                if (error && error.response && error.response.data)
+                    errorMsg = error.response.data;
+                if (error && error.data) {
+                    errorMsg = error.data;
+                }
+                if (error && error.message) {
+                    errorMsg = error.message;
+                } else {
+                    errorMsg = 'Network Error';
+                }
+                dispatch(searchProjectsError(errorMsg));
+            }
         };
-
-        dispatch(searchProjectsRequest());
-
-        try {
-            const response = await BackendAPI.post(
-                `project/projects/search?skip=${skip}&limit=${limit}`,
-                values
-            );
-
-            const data = response.data;
-
-            dispatch(searchProjectsSuccess(data));
-            return response;
-        } catch (error) {
-            let errorMsg;
-            if (error && error.response && error.response.data)
-                errorMsg = error.response.data;
-            if (error && error.data) {
-                errorMsg = error.data;
-            }
-            if (error && error.message) {
-                errorMsg = error.message;
-            } else {
-                errorMsg = 'Network Error';
-            }
-            dispatch(searchProjectsError(errorMsg));
-        }
-    };
 
 // Upgrade a Project
 export const changePlanRequest = () => {
@@ -897,33 +870,33 @@ export const changePlan =
         oldPlan: $TSFixMe,
         newPlan: $TSFixMe
     ) =>
-    async (dispatch: Dispatch) => {
-        dispatch(changePlanRequest());
+        async (dispatch: Dispatch) => {
+            dispatch(changePlanRequest());
 
-        try {
-            const response = await BackendAPI.put(
-                `project/${projectId}/admin/changePlan`,
-                {
-                    projectName,
-                    planId,
-                    oldPlan,
-                    newPlan,
-                }
-            );
+            try {
+                const response = await BackendAPI.put(
+                    `project/${projectId}/admin/changePlan`,
+                    {
+                        projectName,
+                        planId,
+                        oldPlan,
+                        newPlan,
+                    }
+                );
 
-            dispatch(changePlanSuccess(response.data));
-        } catch (error) {
-            const errorMsg =
-                error.response && error.response.data
-                    ? error.response.data
-                    : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
-            dispatch(changePlanFailure(errorMsg));
-        }
-    };
+                dispatch(changePlanSuccess(response.data));
+            } catch (error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
+                dispatch(changePlanFailure(errorMsg));
+            }
+        };
 
 export const fetchProjectDomainsRequest = () => {
     return {
@@ -966,10 +939,10 @@ export const fetchProjectDomains = (
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(fetchProjectDomainsFailure(errorMessage));
         }
     };
@@ -1018,10 +991,10 @@ export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                        ? error.data
-                        : error.message
-                        ? error.message
-                        : 'Network Error';
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
                 dispatch(deleteProjectDomainFailure(errorMessage));
             }
         );
@@ -1072,10 +1045,10 @@ export const verifyProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
                 error.response && error.response.data
                     ? error.response.data
                     : error.data
-                    ? error.data
-                    : error.message
-                    ? error.message
-                    : 'Network Error';
+                        ? error.data
+                        : error.message
+                            ? error.message
+                            : 'Network Error';
             dispatch(verifyProjectDomainFailure(errorMessage));
         }
     };
@@ -1126,10 +1099,10 @@ export const unVerifyProjectDomain = (
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                        ? error.data
-                        : error.message
-                        ? error.message
-                        : 'Network Error';
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
                 dispatch(unVerifyProjectDomainFailure(errorMessage));
             }
         );
@@ -1179,10 +1152,10 @@ export const resetProjectDomain = (projectId: $TSFixMe, domainId: $TSFixMe) => {
                     error.response && error.response.data
                         ? error.response.data
                         : error.data
-                        ? error.data
-                        : error.message
-                        ? error.message
-                        : 'Network Error';
+                            ? error.data
+                            : error.message
+                                ? error.message
+                                : 'Network Error';
                 dispatch(resetProjectDomainFailure(errorMessage));
             }
         );

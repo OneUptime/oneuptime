@@ -58,16 +58,7 @@ export function getProjectIncidents(
                 dispatch(projectIncidentsSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(projectIncidentsError(error));
             }
         );
@@ -108,16 +99,7 @@ export function getProjectComponentIncidents(
                 dispatch(projectIncidentsSuccess(data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(projectIncidentsError(error));
             }
         );
@@ -164,16 +146,7 @@ export const getIncidents = (projectId: $TSFixMe) => {
                 dispatch(incidentsSuccess(incidents.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(incidentsError(error));
             }
         );
@@ -195,16 +168,7 @@ export function getComponentIncidents(
                 dispatch(incidentsSuccess(incidents.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(incidentsError(error));
             }
         );
@@ -288,16 +252,7 @@ export function createNewIncident(
                 dispatch(createIncidentSuccess(createIncident.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createIncidentError(error));
             }
         );
@@ -378,16 +333,7 @@ export const getIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
                 dispatch(incidentSuccess(incident.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(incidentError(error));
             }
         );
@@ -420,16 +366,7 @@ export function getIncidentTimeline(
                 dispatch(incidentTimelineSuccess(timeline.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(incidentTimelineError(error));
             }
         );
@@ -541,16 +478,7 @@ export function acknowledgeIncident(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 if (multiple) {
                     dispatch(
                         incidentError({
@@ -649,16 +577,7 @@ export function resolveIncident(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 if (multiple) {
                     dispatch(
                         incidentError({
@@ -715,16 +634,7 @@ export const closeIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
                 dispatch(closeIncidentSuccess(incident.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(closeIncidentError(error));
             }
         );
@@ -780,16 +690,7 @@ export const fetchUnresolvedIncidents = (
                 dispatch(UnresolvedIncidentsSuccess(incidents.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(UnresolvedIncidentsError(error));
             }
         );
@@ -852,16 +753,7 @@ export function setInvestigationNote(
                 dispatch(investigationNoteSuccess(incidents.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(investigationNoteError(error, isUpdate));
             }
         );
@@ -927,16 +819,7 @@ export function setInternalNote(
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(internalNoteError(error, isUpdate));
             }
         );
@@ -983,16 +866,7 @@ export const deleteIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
                 dispatch(deleteIncidentSuccess(incident.data._id));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteIncidentFailure({ error: error, incidentId }));
             }
         );
@@ -1027,16 +901,7 @@ export const hideIncident = (data: $TSFixMe) => {
                 dispatch(hideIncidentSuccess(incident));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(hideIncidentFailure({ error: error, incidentId }));
             }
         );
@@ -1083,16 +948,7 @@ export function fetchIncidentMessages(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     fetchIncidentMessagesFailure({
                         incidentId: incidentSlug,
@@ -1173,16 +1029,7 @@ export function deleteIncidentMessage(
                 }
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(
                     deleteIncidentMessageFailure({
                         error: error,
@@ -1244,16 +1091,7 @@ export function updateIncident(
                 dispatch(updateIncidentSuccess(incident.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateIncidentFailure(error));
             }
         );

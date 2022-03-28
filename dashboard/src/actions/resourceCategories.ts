@@ -29,16 +29,7 @@ export function fetchResourceCategories(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchResourceCategoriesFailure(error));
             }
         );
@@ -199,16 +190,7 @@ export function deleteResourceCategory(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteResourceCategoryFailure({ error: error }));
             }
         );
@@ -253,16 +235,7 @@ export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchResourceCategoriesForNewResourceFailure(error));
             }
         );

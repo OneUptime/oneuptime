@@ -29,8 +29,7 @@ export function fetchIncidentPriorities(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${
-                limit || 10
+            `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${limit || 10
             }`
         );
         dispatch(fetchIncidentPrioritiesRequest());
@@ -41,16 +40,7 @@ export function fetchIncidentPriorities(
                 );
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(fetchIncidentPrioritiesFailure(error));
             }
         );
@@ -69,16 +59,7 @@ export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(createIncidentPriorityFailure(error));
             }
         );
@@ -115,16 +96,7 @@ export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(updateIncidentPriorityFailure(error));
             }
         );
@@ -161,16 +133,7 @@ export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteIncidentPriorityFailure(error));
             }
         );

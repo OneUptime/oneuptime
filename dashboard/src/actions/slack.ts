@@ -44,16 +44,7 @@ export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
                 return teams.data;
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(deleteSlackLinkError(error));
             }
         );
@@ -108,16 +99,7 @@ export function getSlackTeams(
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
             function (error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
+
                 dispatch(getSlackTeamsError(error));
             }
         );
