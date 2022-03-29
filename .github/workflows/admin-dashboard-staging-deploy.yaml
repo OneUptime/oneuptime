@@ -2,7 +2,7 @@ name: Admin Dashboard Staging Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - "staging-release"
 
 jobs:
@@ -34,8 +34,11 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/admin-dashboard:4.0.$CI_PIPELINE_ID-staging --push -f ./admin-dashboard/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/admin-dashboard:staging --push -f ./admin-dashboard/Dockerfile .
+      - run: chmod +x ./ci/scripts/deployment-setup.sh
+      - run: bash ./ci/scripts/deployment-setup.sh
+      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
+      - run: bash ./ci/scripts/deployment-production-setup.sh
       - run: sudo kubectl set image deployment/fi-admin fi-admin=oneuptime/admin-dashboard:4.0.$CI_PIPELINE_ID-staging
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
-

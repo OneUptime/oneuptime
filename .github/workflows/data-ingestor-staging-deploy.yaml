@@ -2,7 +2,7 @@ name: Data Ingestor Staging Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - "staging-release"
 
 jobs:
@@ -34,8 +34,11 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/data-ingestor:4.0.$CI_PIPELINE_ID-staging --push -f ./data-ingestor/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/data-ingestor:staging --push -f ./data-ingestor/Dockerfile .
+      - run: chmod +x ./ci/scripts/deployment-setup.sh
+      - run: bash ./ci/scripts/deployment-setup.sh
+      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
+      - run: bash ./ci/scripts/deployment-production-setup.sh
       - run: sudo kubectl set image deployment/fi-ingestor fi-ingestor=oneuptime/data-ingestor:4.0.$CI_PIPELINE_ID-staging
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
-

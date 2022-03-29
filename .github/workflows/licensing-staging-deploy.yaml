@@ -2,7 +2,7 @@ name: Licensing Staging Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - "staging-release"
 
 jobs:
@@ -35,8 +35,11 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:4.0.$CI_PIPELINE_ID-staging --push -f ./licensing/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/licensing:staging --push -f ./licensing/Dockerfile .
+      - run: chmod +x ./ci/scripts/deployment-setup.sh
+      - run: bash ./ci/scripts/deployment-setup.sh
+      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
+      - run: bash ./ci/scripts/deployment-production-setup.sh
       - run: sudo kubectl set image deployment/fi-licensing fi-licensing=oneuptime/licensing:4.0.$CI_PIPELINE_ID-staging
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
-

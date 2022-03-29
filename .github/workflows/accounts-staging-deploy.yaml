@@ -2,7 +2,7 @@ name: Accounts Staging Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - "staging-release"
 
 jobs:
@@ -36,8 +36,12 @@ jobs:
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/accounts:staging --push -f ./accounts/Dockerfile .
       - run: sudo kubectl config get-contexts
       - run: kubectl config get-contexts
+      - run: chmod +x ./ci/scripts/deployment-setup.sh
+      - run: bash ./ci/scripts/deployment-setup.sh
+      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
+      - run: bash ./ci/scripts/deployment-production-setup.sh
       - run: sudo kubectl set image deployment/fi-accounts fi-accounts=oneuptime/accounts:4.0.$CI_PIPELINE_ID-staging
-        # Publish to GitHub registry. 
+        # Publish to GitHub registry.
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -48,4 +52,3 @@ jobs:
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
-

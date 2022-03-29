@@ -2,7 +2,7 @@ name: Container Scanner Staging Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - "staging-release"
 
 jobs:
@@ -34,8 +34,11 @@ jobs:
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/container-scanner:4.0.$CI_PIPELINE_ID-staging --push -f ./container-scanner/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/container-scanner:staging --push -f ./container-scanner/Dockerfile .
+      - run: chmod +x ./ci/scripts/deployment-setup.sh
+      - run: bash ./ci/scripts/deployment-setup.sh
+      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
+      - run: bash ./ci/scripts/deployment-production-setup.sh
       - run: sudo kubectl set image deployment/fi-cont-scan fi-cont-scan=oneuptime/container-scanner:4.0.$CI_PIPELINE_ID-staging
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
-
