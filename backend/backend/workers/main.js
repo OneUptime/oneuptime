@@ -44,7 +44,7 @@ cron.schedule('* * * * *', () => {
 });
 
 // check and request for cert every 6th hour
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('0 */6 * * *', () => {
     setTimeout(() => {
         certOrder();
     }, certOrderCronMinuteStartTime * 1000);
