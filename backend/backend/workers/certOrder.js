@@ -41,21 +41,17 @@ async function handleFetchingDomains() {
 module.exports = async function() {
     try {
         const greenlock = global.greenlock;
-        try {
-            const results = await greenlock.renew({});
-            console.log("Greenlock Results");
-        } catch (e) {
-            console.log("Greenlock renew error");
-            console.log(e);
-        }
+        
         const domains = await handleFetchingDomains();
         
         if (greenlock) {
             for (const domain of domains) {
-                await greenlock.add({
+                const result = await greenlock.add({
                     subject: domain,
                     altnames: [domain],
                 });
+                console.log("Add domain " + domain);
+                console.log(result);
             }
         }
     } catch (error) {
