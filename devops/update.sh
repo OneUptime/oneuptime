@@ -11,7 +11,7 @@ function update {
     # $1 - target deployment
     # $2 - target image
     echo "Updating $1 with $2"
-    sudo kubectl set image $1 $2
+    kubectl set image $1 $2
 }
 
 # $1 - image tag

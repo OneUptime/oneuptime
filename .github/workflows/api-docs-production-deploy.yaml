@@ -2,7 +2,7 @@ name: API Docs Production Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - release
   release:
     types: [published]
@@ -15,6 +15,7 @@ jobs:
       DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
       CI_PIPELINE_ID: ${{github.run_number}}
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+      DIGITAL_OCEAN_API_KEY: ${{secrets.DIGITAL_OCEAN_API_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
       AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
     steps:
@@ -26,17 +27,18 @@ jobs:
       - run: ./ci/scripts/version-setup.sh
       - run: chmod +x ./ci/scripts/version-setup.sh
       - run: ./ci/scripts/version-setup.sh
-      - run: chmod +x ./ci/scripts/deployment-setup.sh
-      - run: bash ./ci/scripts/deployment-setup.sh
-      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
-      - run: bash ./ci/scripts/deployment-production-setup.sh
+
       - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy api-docs.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:4.0.$CI_PIPELINE_ID --push -f ./api-docs/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/api-docs:latest --push -f ./api-docs/Dockerfile .
-      - run: sudo kubectl set image deployment/fi-api-docs fi-api-docs=oneuptime/api-docs:4.0.$CI_PIPELINE_ID
+      - run: chmod +x ./ci/scripts/deployment-setup.sh
+      - run: bash ./ci/scripts/deployment-setup.sh
+      - run: chmod +x ./ci/scripts/deployment-production-setup.sh
+      - run: bash ./ci/scripts/deployment-production-setup.sh
+      - run: kubectl set image deployment/fi-api-docs fi-api-docs=oneuptime/api-docs:4.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
