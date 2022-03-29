@@ -404,11 +404,9 @@ mongoose.connection.on('connected', async () => {
                 maintainerEmail: 'certs@oneuptime.com',
                 staging: false,
                 notify: function(event, details) {
-                    if ('error' === event) {
-                        // `details` is an error object in this case
-                        // eslint-disable-next-line no-console
-                        console.error('Greenlock Notify: ', details);
-                    }
+                    logger.info("Grenlock notify - ");
+                    logger.info(event);
+                    logger.info(details);
                 },
                 challenges: {
                     'http-01': {

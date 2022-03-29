@@ -1,7 +1,7 @@
 const ErrorService = require('../services/errorService');
 const StatusPageService = require('../services/statusPageService');
 const CertificateStoreService = require('../services/certificateStoreService');
-
+const logger = require('../config/logger');
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];
 
@@ -46,12 +46,10 @@ module.exports = async function() {
         
         if (greenlock) {
             for (const domain of domains) {
-                const result = await greenlock.add({
-                    subject: domain,
-                    altnames: [domain],
-                });
-                console.log("Add domain " + domain);
-                console.log(result);
+                    const result = await greenlock.add({
+                        subject: domain,
+                        altnames: [domain],
+                    });
             }
         }
     } catch (error) {
