@@ -32,8 +32,8 @@ sudo apt --fix-broken install -y -y
 
 # Install doctl.
 wget https://github.com/digitalocean/doctl/releases/download/v1.71.0/doctl-1.71.0-linux-amd64.tar.gz
-tar xf ~/doctl-1.71.0-linux-amd64.tar.gz
-sudo mv ~/doctl /usr/local/bin
+tar xf doctl-1.71.0-linux-amd64.tar.gz
+sudo mv doctl /usr/local/bin
 
 # Setup access token
 doctl auth init --access-token $DIGITAL_OCEAN_API_KEY
