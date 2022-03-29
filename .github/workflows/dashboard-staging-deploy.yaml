@@ -39,7 +39,7 @@ jobs:
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
       - run: bash ./ci/scripts/deployment-production-setup.sh
-      - run: sudo kubectl set image deployment/fi-dashboard fi-dashboard=oneuptime/dashboard:4.0.$CI_PIPELINE_ID-staging
+      - run: kubectl set image deployment/fi-dashboard fi-dashboard=oneuptime/dashboard:4.0.$CI_PIPELINE_ID-staging
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh
