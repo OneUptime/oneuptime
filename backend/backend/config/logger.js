@@ -62,10 +62,6 @@ const consoleTransport = new winston.transports.Console({
     ),
     handleExceptions: true,
 });
-const logstashTransport = new logstash.LogstashTransport({
-    host: process.env.LOGSTASH_HOST,
-    port: process.env.LOGSTASH_PORT,
-});
 
 const envTag = logEntry => {
     const tag = {
@@ -82,7 +78,6 @@ const transports = [];
 
 // configure transports (defined above)
 transports.push(consoleTransport);
-transports.push(logstashTransport);
 
 const logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',

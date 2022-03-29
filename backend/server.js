@@ -419,10 +419,14 @@ mongoose.connection.on('connected', async () => {
                     module: 'oneuptime-le-store',
                 },
             });
+
+
             await greenlock.manager.defaults({
                 agreeToTerms: true,
                 subscriberEmail: 'certs@oneuptime.com',
             });
+            
+
             global.greenlock = greenlock;
         }
     } catch (error) {
