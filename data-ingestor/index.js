@@ -114,7 +114,7 @@ app.get(['/data-ingestor/status', '/status'], function(req, res) {
     );
 });
 
-app.use(['/probe', '/api/probe'], require('./api/probe'));
+app.use(['/data-ingestor/probe', '/probe'], require('./api/probe'));
 
 app.set('port', process.env.PORT || 3200);
 
