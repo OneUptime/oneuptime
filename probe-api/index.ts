@@ -20,6 +20,6 @@ app.get(
     }
 );
 
-app.use(['/probe', '/api/probe'], require('./api/probe'));
+app.use(['/probe-api/probe', '/probe'], require('./api/probe'));
 
 export default app;

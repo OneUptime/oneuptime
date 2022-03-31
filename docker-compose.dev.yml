@@ -64,7 +64,7 @@ services:
     data-ingestor:
         ports:
             - '3200:3200'
-            - '9239:9229' # Debugging port.
+            - '9338:9229' # Debugging port.
         build:
             network: host
             context: .
