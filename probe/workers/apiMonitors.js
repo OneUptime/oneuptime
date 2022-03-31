@@ -27,12 +27,16 @@ module.exports = {
                     let retry = true;
                     let retryCount = 0;
                     while (retry || retryCount > 2) {
+                        logger.info(`Ping Fetch Start: ${monitor.method} ${monitor.data.url}`);
+
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url,
                             monitor.method,
                             body,
                             headers
                         );
+
+                        logger.info(`Ping Fetch End: ${monitor.method} ${monitor.data.url}`);
 
                         logger.info(
                             `Monitor ID ${monitor._id}: Start saving data to ingestor.`
@@ -52,8 +56,10 @@ module.exports = {
                         );
 
                         if (response && !response.retry) {
+                            logger.info(`No Retry: ${monitor.method} ${monitor.data.url}`);
                             retry = false;
                         } else {
+                            logger.info(`Retry (${retryCount}): ${monitor.method} ${monitor.data.url}`);
                             retryCount++;
                         }
                     }

@@ -24,35 +24,40 @@ module.exports = {
         readstream.pipe(res);
     },
 
-    sendErrorResponse: function(req, res, error) {
-        //log error to the console.
-        // eslint-disable-next-line no-console
-        console.error(error);
+    sendErrorResponse: function (req, res, error) {
+        try {
+            //log error to the console.
+            // eslint-disable-next-line no-console
+            console.error(error);
 
-        if (error.statusCode && error.message) {
-            res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
-            return res
-                .status(error.statusCode)
-                .send({ message: error.message });
-        } else if (
-            error.code &&
-            error.message &&
-            typeof error.code === 'number'
-        ) {
-            let status = error.code;
-            if (
+            if (error.statusCode && error.message) {
+                res.resBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
+                return res
+                    .status(error.statusCode)
+                    .send({ message: error.message });
+            } else if (
                 error.code &&
-                error.status &&
-                typeof error.code === 'number' &&
-                typeof error.status === 'number' &&
-                error.code > 600
+                error.message &&
+                typeof error.code === 'number'
             ) {
-                status = error.status;
+                let status = error.code;
+                if (
+                    error.code &&
+                    error.status &&
+                    typeof error.code === 'number' &&
+                    typeof error.status === 'number' &&
+                    error.code > 600
+                ) {
+                    status = error.status;
+                }
+                res.resBody = { message: error.message };
+                return res.status(status).send({ message: error.message });
+            } else {
+                res.resBody = { message: 'Server Error.' };
+                return res.status(500).send({ message: 'Server Error.' });
             }
-            res.resBody = { message: error.message };
-            return res.status(status).send({ message: error.message });
-        } else {
-            res.resBody = { message: 'Server Error.' };
+        } catch (e) {
+            console.error(e);
             return res.status(500).send({ message: 'Server Error.' });
         }
     },

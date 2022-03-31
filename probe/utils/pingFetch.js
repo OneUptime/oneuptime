@@ -111,6 +111,8 @@ const pingfetch = async (url, method, body, headers) => {
         resp = { status: 408, body: error };
     }
 
+
+    logger.info(`Ping Return: ${method} ${url}`);
     return {
         res,
         resp,

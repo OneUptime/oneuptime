@@ -93,6 +93,7 @@ const _this = {
                     }
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
+                    continue;
                 }
             }
         } catch (error) {
