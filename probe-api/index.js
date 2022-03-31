@@ -116,7 +116,7 @@ app.get(['/probe-api/status', '/status'], function(req, res) {
     );
 });
 
-app.use(['/probe', '/api/probe'], require('./api/probe'));
+app.use(['/probe-api/probe', '/probe'], require('./api/probe'));
 
 app.set('port', process.env.PORT || 3400);
 
