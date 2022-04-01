@@ -4,11 +4,11 @@ import ReactGA from 'react-ga';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 
 import { render } from 'react-dom';
-import store, { history, isServer } from './store';
+import store, { history, isApiServer } from './store';
 import App from './App';
 import './index.css';
 
-if (!isServer) {
+if (!isApiServer) {
     ReactGA.initialize('UA-115085157-1');
 }
 const target = document.getElementById('root');

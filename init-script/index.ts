@@ -1,15 +1,11 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
+import { ExpressRequest, ExpressResponse } from 'common-server/utils/express';
+
+import app from 'common-server/utils/start-server';
+
 import logger from 'common-server/utils/logger';
 import fs from 'fs';
 import util from './util/db';
 import scripts from './scripts';
-
-import express, {
-    ExpressRequest,
-    ExpressResponse,
-} from 'common-server/utils/express';
-const app = express.getExpressApp();
 
 import { find, save, update, removeMany } from './util/db';
 

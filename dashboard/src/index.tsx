@@ -8,12 +8,12 @@ import { ThroughProvider } from 'react-through';
 
 import { render } from 'react-dom';
 import * as serviceWorker from './serviceWorker';
-import store, { history, isServer } from './store';
+import store, { history, isApiServer } from './store';
 import App from './App';
 import './index.css';
 import ErrorBoundary from './components/basic/ErrorBoundary';
 
-if (!isServer) {
+if (!isApiServer) {
     ReactGA.initialize('UA-115085157-1');
 }
 

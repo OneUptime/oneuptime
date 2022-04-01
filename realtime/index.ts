@@ -1,11 +1,10 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express.getExpressApp();
+
+import app from 'common-server/utils/start-server';
 
 import http from 'http';
 http.createServer(app);
@@ -88,11 +87,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
     return next();
 });
-
-// Add limit of 10 MB to avoid "Request Entity too large error"
-// https://stackoverflow.com/questions/19917401/error-request-entity-too-large
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.json({ limit: '50mb' }));
 
 app.get(
     ['/realtime/status', '/status'],

@@ -6,14 +6,14 @@ import { createBrowserHistory, createMemoryHistory } from 'history';
 import rootReducer from './reducers';
 
 // A nice helper to tell us if we're on the server
-export const isServer = !(
+export const isApiServer = !(
     typeof window !== 'undefined' &&
     window.document &&
     window.document.createElement
 );
 
 const url = '/';
-export const history = isServer
+export const history = isApiServer
     ? createMemoryHistory({ initialEntries: [url] })
     : createBrowserHistory();
 
@@ -24,7 +24,7 @@ const middleware = [thunk, routerMiddleware(history)];
 
 if (process.env['NODE_ENV'] === 'development') {
     let devToolsExtension;
-    if (!isServer) {
+    if (!isApiServer) {
         devToolsExtension = window.devToolsExtension;
     }
     middleware.push(logger);

@@ -1,13 +1,14 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-import logger from 'common-server/utils/logger';
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     ExpressStatic,
 } from 'common-server/utils/express';
-const app = express.getExpressApp();
+
+import logger from 'common-server/utils/logger';
+
+import app from 'common-server/utils/start-server';
+
 import path from 'path';
 import version from './api/version';
 

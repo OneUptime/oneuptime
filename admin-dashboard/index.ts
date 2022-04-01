@@ -1,13 +1,10 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'common-server/utils/express';
 import path from 'path';
-const app = express.getExpressApp();
+import app from 'common-server/utils/start-server';
 
 app.get(
     ['/env.js', '/admin/env.js'],

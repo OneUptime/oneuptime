@@ -1,11 +1,6 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
+import { ExpressRequest, ExpressResponse } from 'common-server/utils/express';
 
-import express, {
-    ExpressRequest,
-    ExpressResponse,
-} from 'common-server/utils/express';
-const app = express.getExpressApp();
+import app from 'common-server/utils/start-server';
 
 import http from 'http';
 http.createServer(app);

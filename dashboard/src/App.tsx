@@ -2,7 +2,7 @@ import React, { Suspense, useEffect } from 'react';
 
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import store, { history, isServer } from './store';
+import store, { history, isApiServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import NotFound from './components/404';
@@ -19,7 +19,7 @@ import { LoadingState } from './components/basic/Loader';
 import 'react-big-calendar/lib/sass/styles.scss';
 import isSubProjectViewer from './utils/isSubProjectViewer';
 
-if (!isServer) {
+if (!isApiServer) {
     history.listen((location: $TSFixMe) => {
         ReactGA.set({ page: location.pathname });
         ReactGA.pageview(location.pathname);

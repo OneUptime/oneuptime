@@ -1,17 +1,13 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     ExpressStatic,
 } from 'common-server/utils/express';
 import logger from 'common-server/utils/logger';
+import app from 'common-server/utils/start-server';
 
 import expressRequestId from 'express-request-id';
-
-const app = express.getExpressApp();
 
 app.use(expressRequestId);
 

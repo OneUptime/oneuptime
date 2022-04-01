@@ -1,11 +1,11 @@
-import asyncSleep from 'await-sleep';
-
 import 'common-server/utils/env';
 import 'common-server/utils/process';
 
+import asyncSleep from 'await-sleep';
+
 import Main from './workers/main';
 import config from './utils/config';
-import logger from '../common-server/utils/logger';
+import logger from 'common-server/utils/logger';
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 

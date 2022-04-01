@@ -1,15 +1,14 @@
 import logger from 'common-server/utils/logger';
 
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
     NextFunction,
 } from 'common-server/utils/express';
-const app = express.getExpressApp();
+
+import app from 'common-server/utils/start-server';
+
 import path from 'path';
 
 import bodyParser from 'body-parser';

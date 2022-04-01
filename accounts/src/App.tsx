@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
-import { history, isServer } from './store';
+import { history, isApiServer } from './store';
 import { connect } from 'react-redux';
 import { allRoutes } from './routes';
 import BackboneModals from './containers/BackboneModals';
@@ -24,7 +24,7 @@ import { LoadingState } from './components/basic/Loader';
 
 const cookies = new Cookies();
 
-if (!isServer) {
+if (!isApiServer) {
     history.listen((location: $TSFixMe) => {
         ReactGA.set({ page: location.pathname });
         ReactGA.pageview(location.pathname);

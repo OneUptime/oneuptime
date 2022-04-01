@@ -9,7 +9,7 @@ import queryString from 'query-string';
 import rootReducer from './reducers';
 
 // A nice helper to tell us if we're on the server
-export const isServer = !(
+export const isApiServer = !(
     typeof window !== 'undefined' &&
     window.document &&
     window.document.createElement
@@ -34,7 +34,7 @@ const middleware = [thunk, routerMiddleware(history)];
 
 if (process.env['NODE_ENV'] === 'development') {
     let devToolsExtension;
-    if (!isServer) {
+    if (!isApiServer) {
         devToolsExtension = window.devToolsExtension;
     }
     middleware.push(logger);

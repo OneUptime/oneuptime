@@ -1,13 +1,12 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-import logger from 'common-server/utils/logger';
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'common-server/utils/express';
+import logger from 'common-server/utils/logger';
+import app from 'common-server/utils/start-server';
+
 import path from 'path';
-const app = express.getExpressApp();
 
 import compression from 'compression';
 

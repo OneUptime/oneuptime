@@ -1,15 +1,12 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'common-server/utils/express';
 
-import path from 'path';
+import app from 'common-server/utils/start-server';
 
-const app = express.getExpressApp();
+import path from 'path';
 
 app.get(
     ['/env.js', '/dashboard/env.js'],
@@ -77,7 +74,7 @@ app.get(
 //APP VERSION
 app.use(
     ['/dashboard/api/version', '/dashboard/version'],
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.json({ dashboardVersion: process.env['npm_package_version'] });
     }
@@ -85,7 +82,7 @@ app.use(
 
 app.get(
     ['/dashboard/status', '/status'],
-    (req: ExpressRequest, res: ExpressResponse) => {
+    (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(
             JSON.stringify({
@@ -137,6 +134,6 @@ app.use('/dashboard', ExpressStatic(path.join(__dirname, 'build')));
 //     }
 // });
 
-app.get('/*', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });

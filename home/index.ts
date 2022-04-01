@@ -1,14 +1,11 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
-import logger from 'common-server/utils/logger';
-import Express, {
+import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
 } from 'common-server/utils/express';
-const app = Express.getExpressApp();
 
-import bodyParser from 'body-parser';
+import app from 'common-server/utils/start-server';
+
 import path from 'path';
 
 import compression from 'compression';
@@ -19,9 +16,6 @@ import tryToCatch from 'try-to-catch';
 import productCompare from './config/product-compare';
 import axios from 'axios';
 import builder from 'xmlbuilder2';
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
 if (process.env['NODE_ENV'] === 'production') {
     app.use(compression());
@@ -927,10 +921,4 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
         blackLogo: false,
         requestDemoCta: false,
     });
-});
-
-app.set('port', process.env['PORT'] || 1444);
-
-app.listen(app.get('port'), function () {
-    logger.info('Server running on port : ' + app.get('port'));
 });

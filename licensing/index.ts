@@ -1,13 +1,11 @@
-import express, {
+import {
     ExpressRequest,
     ExpressResponse,
-    ExpressStatic,
     NextFunction,
+    ExpressStatic,
 } from 'common-server/utils/express';
-const app = express.getExpressApp();
 
-import 'common-server/utils/env';
-import 'common-server/utils/process';
+import app from 'common-server/utils/start-server';
 
 import path from 'path';
 
@@ -16,10 +14,6 @@ import http from 'http';
 http.createServer(app);
 
 import bodyParser from 'body-parser';
-
-import cors from 'cors';
-
-app.use(cors());
 
 app.use((req: Request, res: Response, next: NextFunction) => {
     if (typeof req.body === 'string') {
