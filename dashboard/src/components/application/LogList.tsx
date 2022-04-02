@@ -27,13 +27,13 @@ class LogList extends Component<ComponentProps> {
         super(props);
         this.state = { viewJsonModalId: uuidv4() };
     }
-    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
-    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);

@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 import PerformanceTrackerModel from '../models/performanceTracker';
 import ErrorService from 'common-server/utils/error';
 import ComponentService from './componentService';
@@ -146,8 +147,8 @@ export default {
 
     getPerformanceTrackerByComponentId: async function (
         componentId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         const _this = this;
 

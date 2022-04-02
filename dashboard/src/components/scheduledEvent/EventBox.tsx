@@ -44,7 +44,7 @@ interface EventBoxProps {
 }
 
 class EventBox extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor(props: $TSFixMe) {
         super(props);
         this.state = {

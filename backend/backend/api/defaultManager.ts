@@ -6,6 +6,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import DefaultManagerService from '../services/defaultManagerService';
 
@@ -56,7 +57,7 @@ router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
         );
         return sendItemResponse(req, res, defaultManager);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -69,7 +70,7 @@ router.get('/default', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, defaultManager);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

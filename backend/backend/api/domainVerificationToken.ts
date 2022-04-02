@@ -12,6 +12,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import DomainVerificationService from '../services/domainVerificationService';
 
@@ -65,7 +66,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -84,7 +85,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -104,7 +105,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -138,7 +139,7 @@ router.get(
 
             return sendListResponse(req, res, domains, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -194,7 +195,7 @@ router.post(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -214,7 +215,7 @@ router.put(
             );
             return sendItemResponse(req, res, domain);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -287,7 +288,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -311,7 +312,7 @@ router.delete(
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

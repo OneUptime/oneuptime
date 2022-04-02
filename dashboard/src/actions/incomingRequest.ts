@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incomingRequest';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 export const createIncomingRequestRequest = () => ({
     type: types.CREATE_INCOMING_REQUEST_REQUEST,
 });
@@ -131,7 +132,7 @@ export const fetchAllIncomingRequestFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchAllIncomingRequest =
-    (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchAllIncomingRequestRequest());

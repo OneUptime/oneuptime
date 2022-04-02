@@ -83,7 +83,7 @@ export class OnCall extends Component<OnCallProps>{
         this.props.paginate('reset');
     }
 
-    prevClicked = (subProjectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (subProjectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { fetchProjectSchedule, paginate } = this.props;
 
@@ -97,7 +97,7 @@ export class OnCall extends Component<OnCallProps>{
         paginate('prev');
     };
 
-    nextClicked = (subProjectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (subProjectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { fetchProjectSchedule, paginate } = this.props;
 

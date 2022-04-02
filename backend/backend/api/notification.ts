@@ -14,6 +14,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.get(
     '/:projectId',
@@ -57,7 +58,7 @@ router.get(
             ]);
             return sendListResponse(req, res, notifications, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -86,7 +87,7 @@ router.put(
 
             return sendItemResponse(req, res, notifications);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -110,10 +111,10 @@ router.put(
                 const error = new Error('Notification not found.');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -144,10 +145,10 @@ router.put(
                 const error = new Error('No notification found.');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -170,10 +171,10 @@ router.put(
                 const error = new Error('Notification not found.');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -197,7 +198,7 @@ router.post(
             );
             return sendItemResponse(req, res, notification);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -2,7 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/status';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-
+import PositiveNumber from 'common/types/positive-number';
 import { loginRequired, loginError } from '../actions/login';
 import { probeRequest } from './probe';
 
@@ -282,7 +282,7 @@ export const individualNoteDisable = () => {
 export const getStatusPageNote = (
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe,
-    skip: $TSFixMe,
+    skip: PositiveNumber,
     limit = 10,
     days = 14,
     newTheme = false
@@ -396,7 +396,7 @@ export const scheduledEventReset = () => {
 export const getScheduledEvent = (
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe,
-    skip: $TSFixMe,
+    skip: PositiveNumber,
     theme: $TSFixMe,
     days: $TSFixMe
 ) => {
@@ -459,9 +459,9 @@ export const ongoingEventReset = () => {
 export const getOngoingScheduledEvent = (
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe,
-    skip: $TSFixMe,
+    skip: PositiveNumber,
     theme: $TSFixMe,
-    limit: $TSFixMe
+    limit: PositiveNumber
 ) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -567,9 +567,9 @@ export const fetchFutureEvents =
     (
         projectId: $TSFixMe,
         statusPageSlug: $TSFixMe,
-        skip: $TSFixMe,
+        skip: PositiveNumber,
         theme: $TSFixMe,
-        limit: $TSFixMe
+        limit: PositiveNumber
     ) =>
     async (dispatch: Dispatch) => {
         try {
@@ -610,9 +610,9 @@ export const fetchPastEvents =
     (
         projectId: $TSFixMe,
         statusPageSlug: $TSFixMe,
-        skip: $TSFixMe,
+        skip: PositiveNumber,
         theme: $TSFixMe,
-        limit: $TSFixMe
+        limit: PositiveNumber
     ) =>
     async (dispatch: Dispatch) => {
         try {
@@ -679,7 +679,7 @@ export const moreNoteFailure = (error: ErrorPayload) => {
 export const getMoreNote = (
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe,
-    skip: $TSFixMe
+    skip: PositiveNumber
 ) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -732,7 +732,7 @@ export const moreEventFailure = (error: ErrorPayload) => {
 export const getMoreEvent = (
     projectId: $TSFixMe,
     statusPageSlug: $TSFixMe,
-    skip: $TSFixMe
+    skip: PositiveNumber
 ) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -780,8 +780,8 @@ export const fetchMoreFutureEvents =
     (
         projectId: $TSFixMe,
         statusPageSlug: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) =>
     async (dispatch: Dispatch) => {
         try {
@@ -819,7 +819,7 @@ export const morePastEventsFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchMorePastEvents =
-    (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: $TSFixMe) =>
+    (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(morePastEventsRequest());
@@ -1096,7 +1096,7 @@ export function moreEventNote(
     projectId: $TSFixMe,
     scheduledEventId: $TSFixMe,
     type: $TSFixMe,
-    skip: $TSFixMe
+    skip: PositiveNumber
 ) {
     return async function (dispatch: Dispatch) {
         try {
@@ -1237,7 +1237,7 @@ export function moreIncidentNotes(
     projectId: $TSFixMe,
     incidentSlug: $TSFixMe,
     postOnStatusPage: $TSFixMe,
-    skip: $TSFixMe
+    skip: PositiveNumber
 ) {
     return async function (dispatch: Dispatch) {
         try {
@@ -1388,7 +1388,7 @@ export function getAnnouncements(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe,
     skip = 0,
-    limit: $TSFixMe
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -1489,7 +1489,7 @@ export function fetchAnnouncementLogs(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe,
     skip = 0,
-    limit: $TSFixMe
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(

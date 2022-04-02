@@ -11,6 +11,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendEmptyResponse } from 'common-server/utils/response';
 
@@ -26,7 +27,7 @@ router.get(
             const response = await ZapierService.test(projectId, apiKey);
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -60,7 +61,7 @@ router.get(
                 return sendItemResponse(req, res, []);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -74,7 +75,7 @@ router.post(
             const incident = await ZapierService.createIncident(monitors);
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -90,7 +91,7 @@ router.get(
             // zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -106,7 +107,7 @@ router.get(
             // zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -120,7 +121,7 @@ router.post(
             const incidentNote = await ZapierService.createIncidentNote(data);
             return sendItemResponse(req, res, incidentNote);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -139,7 +140,7 @@ router.get(
             if (incidents) return sendItemResponse(req, res, incidents);
             else return sendItemResponse(req, res, []);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -154,7 +155,7 @@ router.post(
             if (incident) return sendItemResponse(req, res, incident);
             else return sendItemResponse(req, res, {});
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -170,7 +171,7 @@ router.post(
             if (incidents) return sendItemResponse(req, res, incidents);
             else return sendItemResponse(req, res, {});
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -189,7 +190,7 @@ router.post(
                 return sendItemResponse(req, res, resolvedIncidents);
             else return sendItemResponse(req, res, {});
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -211,7 +212,7 @@ router.get(
             if (incidents) return sendItemResponse(req, res, incidents);
             else return sendItemResponse(req, res, []);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -228,7 +229,7 @@ router.post(
             if (incident) return sendItemResponse(req, res, incident);
             else return sendItemResponse(req, res, {});
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -246,7 +247,7 @@ router.post(
             if (incidents) return sendItemResponse(req, res, incidents);
             else return sendItemResponse(req, res, {});
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -264,7 +265,7 @@ router.post(
                 return sendItemResponse(req, res, acknowledgedIncidents);
             else return sendItemResponse(req, res, {});
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -304,7 +305,7 @@ router.post(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -318,7 +319,7 @@ router.delete(
             await ZapierService.unsubscribe(id);
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

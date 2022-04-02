@@ -1,4 +1,5 @@
 import ProbeService from '../services/probeService';
+import BadDataException from 'common/types/exception/badDataException';
 const sendErrorResponse = require('./response').sendErrorResponse;
 import ErrorService from '../services/errorService';
 import {
@@ -31,10 +32,11 @@ export const isAuthorizedProbe = async function (
         } else if (req.body && req.body.probeKey) {
             probeKey = req.body.probeKey;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Probe Key not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Probe Key not found.')
+            );
         }
 
         if (req.params && req.params.probeName) {
@@ -50,10 +52,11 @@ export const isAuthorizedProbe = async function (
         } else if (req.body && req.body.probeName) {
             probeName = req.body.probeName;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Probe Name not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Probe Name not found.')
+            );
         }
 
         if (req.params && req.params.clusterKey) {
@@ -129,10 +132,11 @@ export const isAuthorizedProbe = async function (
         }
 
         if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Probe key and probe name do not match.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Probe key and probe name do not match.')
+            );
         }
 
         if (!probeId) {

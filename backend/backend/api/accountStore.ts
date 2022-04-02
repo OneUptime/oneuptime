@@ -6,6 +6,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import AccountStoreService from '../services/accountStoreService';
 
@@ -19,7 +20,7 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
         const account = await AccountStoreService.create(data);
         return sendItemResponse(req, res, account);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -31,7 +32,7 @@ router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, account);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -46,7 +47,7 @@ router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, account);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -60,7 +61,7 @@ router.delete(
             const account = await AccountStoreService.deleteBy({ id });
             return sendItemResponse(req, res, account);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/automatedScript';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 export const resetScripts = (data: $TSFixMe) => {
     return {
         type: types.RESET_AUTOMATED_SCRIPT,
@@ -148,8 +149,8 @@ export const fetchSingleAutomatedScriptFailure = (data: $TSFixMe) => {
 export function fetchSingleAutomatedScript(
     projectId: $TSFixMe,
     automatedSlug: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -198,8 +199,8 @@ export const fetchAutomatedScriptFailure = (error: ErrorPayload) => {
 
 export function fetchAutomatedScript(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(

@@ -4,6 +4,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'common-server/utils/express';
+import BadDataException from 'common/types/exception/badDataException';
 import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
@@ -124,10 +125,11 @@ export default {
             return next();
         } catch (error) {
             ErrorService.log('auditLogs.log', error);
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Error while logging the request.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Error while logging the request.')
+            );
         }
     },
 };

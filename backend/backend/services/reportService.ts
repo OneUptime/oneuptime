@@ -1,3 +1,5 @@
+import PositiveNumber from 'common/types/positive-number';
+
 export default {
     /**
      * @method getMostActiveMembers
@@ -10,8 +12,8 @@ export default {
         subProjectIds: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();
@@ -102,8 +104,8 @@ export default {
         subProjectIds: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const format = 'ddd MMM DD YYYY H:m:s GMT';
         const start = moment(startDate, format).toDate();

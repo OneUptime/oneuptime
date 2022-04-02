@@ -12,6 +12,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.get(
     '/:userId',
@@ -37,7 +38,7 @@ router.get(
 
             return sendItemResponse(req, res, historyLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

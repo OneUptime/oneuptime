@@ -10,6 +10,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const {
@@ -41,7 +42,7 @@ router.get(
                 monitors.length
             );
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

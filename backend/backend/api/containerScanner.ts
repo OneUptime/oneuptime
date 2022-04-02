@@ -11,6 +11,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import RealTimeService from '../services/realTimeService';
 import MailService from '../services/mailService';
@@ -27,7 +28,7 @@ router.get(
                 await ContainerSecurityService.getSecuritiesToScan();
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -52,7 +53,7 @@ router.post(
             }
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -72,7 +73,7 @@ router.post(
                 );
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -162,7 +163,7 @@ router.post(
 
             return sendItemResponse(req, res, findLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -178,7 +179,7 @@ router.post(
             });
             return sendItemResponse(req, res, updatedTime);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

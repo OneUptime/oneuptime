@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
-
+import BadDataException from 'common/types/exception/badDataException';
 import request from 'request';
 import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
@@ -18,6 +18,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 const router = express.getRouter();
 
@@ -57,7 +58,7 @@ router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
 
     request(options, (error: $TSFixMe, response: $TSFixMe) => {
         if (error || response.statusCode === 400) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         } else {
             return res.redirect(
                 `${APP_ROUTE}/project/${projectId}/integrations`
@@ -78,17 +79,21 @@ router.post(
         const slug = req.body.slug;
 
         if (!slug) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'projectId missing in query, must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'projectId missing in query, must be present'
+                )
+            );
         }
 
         if (!code) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'code missing in query, must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('code missing in query, must be present')
+            );
         }
 
         const options = {
@@ -132,7 +137,7 @@ router.post(
                         );
                         return sendItemResponse(req, res, slack);
                     } catch (error) {
-                        return sendErrorResponse(req, res, error);
+                        return sendErrorResponse(req, res, error as Exception);
                     }
                 }
             }
@@ -164,7 +169,7 @@ router.delete(
             );
             return sendItemResponse(req, res, data);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -207,7 +212,7 @@ router.get(
             ]);
             return sendListResponse(req, res, integrations, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

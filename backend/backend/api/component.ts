@@ -29,6 +29,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import moment from 'moment';
@@ -98,7 +99,7 @@ router.post(
             }
             return sendItemResponse(req, res, component);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -130,7 +131,7 @@ router.put(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -155,7 +156,7 @@ router.get(
                 );
             return sendItemResponse(req, res, components);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -179,7 +180,7 @@ router.get(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -206,7 +207,7 @@ router.get(
 
             return sendItemResponse(req, res, component);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -249,7 +250,7 @@ router.get(
             ]);
             return sendListResponse(req, res, components, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -285,7 +286,7 @@ router.get(
             });
             return sendItemResponse(req, res, component);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -385,7 +386,7 @@ router.post(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -696,7 +697,7 @@ router.get(
                 componentId,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -760,7 +761,7 @@ router.get(
                 errorTrackers,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -797,7 +798,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

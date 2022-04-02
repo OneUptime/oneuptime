@@ -7,6 +7,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendEmptyResponse } from 'common-server/utils/response';
 
@@ -64,7 +65,7 @@ router.post('/events', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendEmptyResponse(req, res);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -83,7 +84,7 @@ router.get(
             error.code = 400;
             throw error;
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -108,7 +109,7 @@ router.post(
             error.code = 400;
             throw error;
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -133,7 +134,7 @@ router.put(
             error.code = 400;
             throw error;
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -158,7 +159,7 @@ router.delete(
             error.code = 400;
             throw error;
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -178,7 +179,7 @@ router.get(
             error.code = 400;
             throw error;
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -200,7 +201,7 @@ router.get(
             error.code = 400;
             throw error;
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -230,7 +231,7 @@ router.post(
             );
             return sendItemResponse(req, res, item);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -245,7 +246,7 @@ router.post('/checkCard', async (req: ExpressRequest, res: ExpressResponse) => {
         );
         return sendItemResponse(req, res, paymentIntent);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -274,7 +275,7 @@ router.get(
 
             return sendItemResponse(req, res, updatedProject);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -306,7 +307,7 @@ router.post(
 
             return sendItemResponse(req, res, trialDetails);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

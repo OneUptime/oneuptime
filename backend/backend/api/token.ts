@@ -2,6 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
+import BadDataException from 'common/types/exception/badDataException';
 
 const router = express.getRouter();
 import UserService from '../services/userService';
@@ -9,6 +10,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 // Route
 // Description: reset refresh token and access token.
@@ -23,10 +25,11 @@ router.post('/new', async (req: ExpressRequest, res: ExpressResponse) => {
         const jwtRefreshToken = req.body.refreshToken;
 
         if (!jwtRefreshToken) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Refresh Token not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Refresh Token not found.')
+            );
         }
         const token = await UserService.getNewToken(jwtRefreshToken);
         const tokenData = {
@@ -36,7 +39,7 @@ router.post('/new', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, tokenData);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

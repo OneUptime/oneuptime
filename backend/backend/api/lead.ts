@@ -8,6 +8,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 //Public API to capture leads. Type is Demo or Whitepaper.
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
@@ -43,7 +44,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
         const lead = await LeadService.create(data);
         return sendItemResponse(req, res, lead);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

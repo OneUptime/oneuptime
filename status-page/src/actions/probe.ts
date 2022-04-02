@@ -2,11 +2,12 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 // Fetch Project Probes list
 export function getProbes(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);

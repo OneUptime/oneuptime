@@ -1,7 +1,7 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
-
+import PositiveNumber from 'common/types/positive-number';
 // Fetch Projects
 
 export const fetchProjectsRequest = () => {
@@ -26,7 +26,8 @@ export const fetchProjectsError = (error: $TSFixMe) => {
 
 // Calls the API to fetch all projects.
 export const fetchProjects =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
+    (skip: PositiveNumber, limit: PositiveNumber) =>
+    async (dispatch: Dispatch) => {
         skip = skip || 0;
         limit = limit || 10;
 
@@ -398,7 +399,7 @@ export const resetTeamDelete = () => {
 
 // Calls the API to fetch all user projects.
 export const fetchUserProjects =
-    (userId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (userId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
@@ -571,7 +572,7 @@ export const renewAlertLimitError = (error: $TSFixMe) => {
 
 // Calls the API to block a project
 export const renewAlertLimit =
-    (projectId: $TSFixMe, alertLimit: $TSFixMe) =>
+    (projectId: $TSFixMe, alertLimit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         dispatch(renewAlertLimitRequest());
 
@@ -804,7 +805,7 @@ export const searchProjectsError = (error: $TSFixMe) => {
 
 // Calls the search projects api
 export const searchProjects =
-    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values = {
             filter,

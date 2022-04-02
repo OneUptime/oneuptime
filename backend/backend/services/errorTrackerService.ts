@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -122,8 +123,8 @@ export default {
     // get all error trackers by component ID
     async getErrorTrackersByComponentId(
         componentId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         // Check if component exists
         const componentCount = await ComponentService.countBy({

@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import ContainerSecurityLogService from '../services/containerSecurityLogService';
 
@@ -40,7 +41,7 @@ router.get(
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -71,7 +72,7 @@ router.get(
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -101,7 +102,7 @@ router.get(
             });
             return sendItemResponse(req, res, securityLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

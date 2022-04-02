@@ -6,6 +6,7 @@ import MonitorService from '../services/monitorService';
 const router = express.getRouter();
 import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 
@@ -27,7 +28,7 @@ router.get(
                 monitors.length
             );
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import GitCredentialService from '../services/gitCredentialService';
 
@@ -45,7 +46,7 @@ router.post(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -71,7 +72,7 @@ router.get(
             });
             return sendItemResponse(req, res, gitCredentials);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -109,7 +110,7 @@ router.put(
             );
             return sendItemResponse(req, res, gitCredential);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -128,7 +129,7 @@ router.delete(
 
             return sendItemResponse(req, res, deletedGitCredential);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

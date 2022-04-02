@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/subscriber';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 import { saveFile } from '../config';
 
 // Create a new subscriber
@@ -93,8 +94,8 @@ export const resetExportCsv = () => {
 export function exportCSV(
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber,
     csv: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {

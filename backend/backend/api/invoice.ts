@@ -5,6 +5,7 @@ import express, {
 const router = express.getRouter();
 import InvoiceService from '../services/invoiceService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 
@@ -28,7 +29,7 @@ router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendListResponse(req, res, invoices, invoices.data.length);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

@@ -7,6 +7,7 @@ import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
 import { sendListResponse } from 'common-server/utils/response';
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import MonitorService from '../services/monitorService';
 import statusPageService from '../services/statusPageService';
@@ -95,7 +96,7 @@ router.post(
 
             return sendListResponse(req, res, searchResponse);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
-
+import BadDataException from 'common/types/exception/badDataException';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 
@@ -13,6 +13,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
@@ -104,7 +105,7 @@ router.post(
             }
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -133,7 +134,7 @@ router.get(
                 );
             return sendItemResponse(req, res, errorTrackers);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -164,7 +165,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -208,7 +209,7 @@ router.post(
             );
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -232,10 +233,11 @@ router.put(
 
         data.createdById = req.user ? req.user.id : null;
         if (!data.name && data.showQuickStart === undefined) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'New Error Tracker Name is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('New Error Tracker Name is required.')
+            );
         }
         const select =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
@@ -282,10 +284,13 @@ router.put(
             data.resourceCategory != '' &&
             data.showQuickStart === undefined
         ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Error Tracker with that name already exists.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Error Tracker with that name already exists.'
+                )
+            );
         }
 
         // Error Tracker is valid
@@ -322,7 +327,7 @@ router.put(
             );
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -388,7 +393,7 @@ router.post(
             }
             return sendItemResponse(req, res, errorEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -445,7 +450,7 @@ router.post(
                 count: errorTrackerIssues.count,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -496,7 +501,7 @@ router.post(
 
             return sendItemResponse(req, res, errorEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -539,7 +544,7 @@ router.post(
 
             return sendItemResponse(req, res, issue);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -725,7 +730,7 @@ router.post(
 
             return sendItemResponse(req, res, { issues });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -783,7 +788,7 @@ router.post(
 
             return sendItemResponse(req, res, errorEvents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -861,7 +866,7 @@ router.post(
             });
             return sendItemResponse(req, res, { issueId, issueMembers });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1009,7 +1014,7 @@ router.post(
             });
             return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1142,7 +1147,7 @@ router.post(
             });
             return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1211,7 +1216,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

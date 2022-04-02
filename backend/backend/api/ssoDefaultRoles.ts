@@ -9,6 +9,7 @@ import { sendListResponse } from 'common-server/utils/response';
 import { sendItemResponse } from 'common-server/utils/response';
 
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 
@@ -41,7 +42,7 @@ router.get(
             ]);
             return sendListResponse(req, res, ssos, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -58,7 +59,7 @@ router.delete(
             });
             return sendItemResponse(req, res, sso);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -73,7 +74,7 @@ router.post(
             const ssoDefaultRole = await SsoDefaultRolesService.create(data);
             return sendItemResponse(req, res, ssoDefaultRole);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -104,7 +105,7 @@ router.get(
             }
             return sendItemResponse(req, res, sso);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -122,7 +123,7 @@ router.put(
             );
             return sendItemResponse(req, res, ssoDefaultRole);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

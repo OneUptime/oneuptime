@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import IncidentCommunicationSlaService from '../services/incidentCommunicationSlaService';
@@ -47,7 +48,7 @@ router.get(
 
             return sendListResponse(req, res, incidentSlas, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -65,7 +66,7 @@ router.post(
                 const error = new Error('SLA name is required');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (duration && isNaN(duration)) {
@@ -74,14 +75,14 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!alertTime || !alertTime.trim()) {
                 const error = new Error('Please set alert time for this SLA');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (isNaN(alertTime)) {
@@ -90,7 +91,7 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (Number(alertTime) >= Number(duration)) {
@@ -99,7 +100,7 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             const data = { ...req.body };
@@ -109,7 +110,7 @@ router.post(
             );
             return sendItemResponse(req, res, incidentSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -127,7 +128,7 @@ router.put(
                 const error = new Error('SLA name is required');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && duration && isNaN(duration)) {
@@ -136,14 +137,14 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && (!alertTime || !alertTime.trim())) {
                 const error = new Error('Please set alert time for this SLA');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && isNaN(alertTime)) {
@@ -152,7 +153,7 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && Number(alertTime) >= Number(duration)) {
@@ -161,7 +162,7 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             const data = { ...req.body };
@@ -172,7 +173,7 @@ router.put(
                 );
             return sendItemResponse(req, res, incidentSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -192,7 +193,7 @@ router.delete(
                 });
             return sendItemResponse(req, res, deletedIncidentSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -219,7 +220,7 @@ router.get(
 
             return sendItemResponse(req, res, defaultSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

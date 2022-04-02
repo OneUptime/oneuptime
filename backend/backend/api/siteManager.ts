@@ -6,6 +6,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import SiteManagerService from '../services/siteManagerService';
 
@@ -19,7 +20,7 @@ router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {
         const site = await SiteManagerService.create(data);
         return sendItemResponse(req, res, site);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -34,7 +35,7 @@ router.put('/site', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, site);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -49,7 +50,7 @@ router.get('/site', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, site);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -62,7 +63,7 @@ router.get('/sites', async (req: ExpressRequest, res: ExpressResponse) => {
         });
         return sendItemResponse(req, res, sites);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -78,7 +79,7 @@ router.post(
             });
             return sendItemResponse(req, res, sites);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -118,7 +119,7 @@ router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
         });
         return sendItemResponse(req, res, sites);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -142,7 +143,7 @@ router.delete('/site', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, site);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

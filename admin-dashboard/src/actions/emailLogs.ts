@@ -2,6 +2,8 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/emailLogs';
 import Route from 'common/types/api/route';
+import PositiveNumber from 'common/types/positive-number';
+
 // Fetch All Email Logs
 export const fetchEmailLogsRequest = () => {
     return {
@@ -24,7 +26,8 @@ export const fetchEmailLogsError = (error: $TSFixMe) => {
 };
 
 export const fetchEmailLogs =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
+    (skip: PositiveNumber, limit: PositiveNumber) =>
+    async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -78,7 +81,7 @@ export const searchEmailLogsError = (error: $TSFixMe) => {
 };
 
 export const searchEmailLogs =
-    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values = {
             filter,

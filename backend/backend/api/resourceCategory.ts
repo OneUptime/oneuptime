@@ -17,6 +17,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 // Route
 // Description: Creating Resource Category.
@@ -71,7 +72,7 @@ router.post(
             });
             return sendItemResponse(req, res, resourceCategory);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -126,7 +127,7 @@ router.delete(
                 );
             return sendItemResponse(req, res, deletedResourceCategory);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -179,7 +180,7 @@ router.put(
                 );
             return sendItemResponse(req, res, updatedResourceCategory);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -219,7 +220,7 @@ router.get(
             ]);
             return sendListResponse(req, res, resourceCategories, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

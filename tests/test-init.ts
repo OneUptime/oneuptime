@@ -1,6 +1,7 @@
 import utils from './test-utils';
 import chai from 'chai';
 import chaihttp from 'chai-http';
+import PositiveNumber from 'common/types/positive-number';
 chai.use(chaihttp);
 
 const request = chai.request(utils.BACKEND_URL);
@@ -2166,7 +2167,7 @@ const _this = {
         accountSid: $TSFixMe,
         authToken: $TSFixMe,
         phoneNumber: $TSFixMe,
-        alertLimit: $TSFixMe,
+        alertLimit: PositiveNumber,
         page: $TSFixMe
     ) {
         await page.goto(utils.ADMIN_DASHBOARD_URL, {

@@ -4,6 +4,7 @@ import express, {
 } from 'common-server/utils/express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
+import BadDataException from 'common/types/exception/badDataException';
 import IncidentService from '../services/incidentService';
 import IncidentTimelineService from '../services/incidentTimelineService';
 import MonitorStatusService from '../services/monitorStatusService';
@@ -27,6 +28,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 import subscriberAlertService from '../services/subscriberAlertService';
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
 import Services from '../utils/services';
@@ -48,7 +50,7 @@ router.post(
             const incident = await IncidentService.create(data);
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -70,7 +72,7 @@ router.post(
             );
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -92,7 +94,7 @@ router.post(
             );
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -109,7 +111,7 @@ router.post(
 
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -230,7 +232,7 @@ router.post(
             }
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -300,7 +302,7 @@ router.post(
             ]);
             return sendListResponse(req, res, incidents, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -322,7 +324,7 @@ router.get(
             );
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -342,7 +344,7 @@ router.get(
             );
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -368,7 +370,7 @@ router.get(
             );
             return sendListResponse(req, res, incident); // frontend expects sendListResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -427,7 +429,7 @@ router.get(
             ]);
             return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -478,7 +480,7 @@ router.get(
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -512,7 +514,7 @@ router.get(
             ]);
             return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -539,7 +541,7 @@ router.get(
             );
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -700,7 +702,7 @@ router.post(
             };
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -867,7 +869,7 @@ router.post(
 
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -884,7 +886,7 @@ router.post(
             const incident = await IncidentService.close(incidentId, userId);
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -907,10 +909,11 @@ router.put(
         };
 
         if (!incidentId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'incidentId must be set.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('incidentId must be set.')
+            );
         }
         try {
             const incident = await IncidentService.updateOneBy(
@@ -922,7 +925,7 @@ router.put(
             );
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1299,7 +1302,7 @@ router.post(
             }
             return sendItemResponse(req, res, incidentMessage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1332,7 +1335,7 @@ router.get(
                 return sendListResponse(req, res, [], 0);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1516,7 +1519,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1686,7 +1689,7 @@ router.get(
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1717,7 +1720,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1741,7 +1744,7 @@ router.put(
             };
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1786,7 +1789,7 @@ router.get(
                 apiUrl: global.apiHost,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1831,7 +1834,7 @@ router.get(
                 apiUrl: global.apiHost,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 export default {
     findBy: async function ({
         query,
@@ -950,7 +951,7 @@ export default {
         }
     },
 
-    getAllUsers: async function (skip: $TSFixMe, limit: $TSFixMe) {
+    getAllUsers: async function (skip: PositiveNumber, limit: PositiveNumber) {
         const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
@@ -1060,8 +1061,8 @@ export default {
 
     searchUsers: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
         const select =

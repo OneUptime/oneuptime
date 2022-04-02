@@ -1,4 +1,5 @@
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/badDataException';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -20,10 +21,11 @@ export default {
         if (masterAdmin) {
             return next();
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Not master-admin',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Not master-admin')
+            );
         }
     },
 };

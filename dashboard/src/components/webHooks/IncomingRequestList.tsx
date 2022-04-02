@@ -99,7 +99,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
         }
     };
 
-    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { fetchAllIncomingRequest } = this.props;
 
@@ -111,7 +111,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { fetchAllIncomingRequest } = this.props;
 

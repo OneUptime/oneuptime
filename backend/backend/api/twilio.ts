@@ -17,6 +17,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 const router = express.getRouter();
 import SmsCountService from '../services/smsCountService';
@@ -102,7 +103,7 @@ router.get(
                     });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -235,7 +236,7 @@ router.post(
             testResult = { message: 'SMS sent successfully' };
             return sendItemResponse(req, res, testResult);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

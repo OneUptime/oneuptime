@@ -250,7 +250,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
             );
         }
     };
-    handleNavigationButtonClick = (skip: $TSFixMe, limit: $TSFixMe) => {
+    handleNavigationButtonClick = (skip: PositiveNumber, limit: PositiveNumber) => {
         const {
 
             fetchErrorTrackerIssues,

@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 const getUser = require('../middlewares/user').getUser;
 
@@ -36,7 +37,7 @@ router.post(
             );
             return sendItemResponse(req, res, feedback);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

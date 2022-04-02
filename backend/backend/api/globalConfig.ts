@@ -10,6 +10,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';
@@ -101,7 +102,7 @@ router.post(
                 return sendItemResponse(req, res, globalConfigs[0]);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -133,7 +134,7 @@ router.post(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -200,7 +201,7 @@ router.get(
                 return sendItemResponse(req, res, {});
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

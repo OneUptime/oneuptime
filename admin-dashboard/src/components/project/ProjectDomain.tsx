@@ -19,7 +19,7 @@ class ProjectDomain extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor() {
 
         super();
@@ -50,7 +50,7 @@ class ProjectDomain extends Component<ComponentProps> {
         }
     }
 
-    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
 
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(
@@ -60,7 +60,7 @@ class ProjectDomain extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
 
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(

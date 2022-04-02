@@ -1,6 +1,6 @@
 import ScriptModel from '../models/automatedScripts';
 import ScriptModelLog from '../models/automationScriptsLog';
-
+import PositiveNumber from 'common/types/positive-number';
 import BackendAPI from '../utils/api';
 import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
@@ -120,8 +120,8 @@ export default {
 
     findAllLogs: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         if (!skip) skip = 0;
 
@@ -162,8 +162,8 @@ export default {
 
     getAutomatedLogs: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
         const response = await _this.findAllLogs(query, skip, limit);

@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 export default {
     findBy: async function ({
         query,
@@ -1238,8 +1239,8 @@ export default {
     getProjectComponentIncidents: async function (
         projectId: $TSFixMe,
         componentId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         const _this = this;
         const monitors = await MonitorService.findBy({

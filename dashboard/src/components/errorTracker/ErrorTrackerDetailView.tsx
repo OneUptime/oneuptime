@@ -101,13 +101,13 @@ class ErrorTrackerDetailView extends Component<ComponentProps> {
         const promise = this.props.resolveErrorEvent([issueId]).then();
         return promise;
     };
-    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) - 10 : 10, limit);
     };
 
-    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { handleNavigationButtonClick } = this.props;
         handleNavigationButtonClick(skip ? parseInt(skip, 10) + 10 : 10, limit);

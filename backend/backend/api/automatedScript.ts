@@ -6,6 +6,7 @@ const router = express.getRouter();
 
 import AutomatedScriptService from '../services/automatedScriptService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 
@@ -36,7 +37,7 @@ router.get(
             ]);
             return sendListResponse(req, res, scripts, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -86,7 +87,7 @@ router.get(
 
             return sendListResponse(req, res, response, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -151,7 +152,7 @@ router.post(
             const response = await AutomatedScriptService.createScript(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -221,7 +222,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -242,7 +243,7 @@ router.put(
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -279,7 +280,7 @@ router.delete(
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

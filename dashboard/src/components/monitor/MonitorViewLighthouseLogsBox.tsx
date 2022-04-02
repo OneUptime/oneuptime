@@ -50,7 +50,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
         }
     }
 
-    prevClicked = (monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { currentProject, fetchLighthouseLogs } = this.props;
         fetchLighthouseLogs(
@@ -61,7 +61,7 @@ export class MonitorViewLighthouseLogsBox extends Component<MonitorViewLighthous
         );
     };
 
-    nextClicked = (monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { currentProject, fetchLighthouseLogs } = this.props;
         fetchLighthouseLogs(

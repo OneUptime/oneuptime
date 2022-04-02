@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incident';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 //Array of Incidents
 
 export const projectIncidentsRequest = (promise: $TSFixMe) => {
@@ -34,8 +35,8 @@ export const resetProjectIncidents = () => {
 // Gets project Incidents
 export function getProjectIncidents(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
@@ -68,8 +69,8 @@ export function getProjectIncidents(
 export function getProjectComponentIncidents(
     projectId: $TSFixMe,
     componentId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
@@ -345,8 +346,8 @@ export const addIncident = (incident: $TSFixMe) => {
 export function getIncidentTimeline(
     projectId: $TSFixMe,
     incidentId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
@@ -901,8 +902,8 @@ export const hideIncident = (data: $TSFixMe) => {
 export function fetchIncidentMessages(
     projectId: $TSFixMe,
     incidentSlug: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber,
     type = 'investigation'
 ) {
     skip = parseInt(skip);

@@ -27,7 +27,7 @@ interface DomainsProps {
 }
 
 class Domains extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor() {
 
         super();
@@ -59,7 +59,7 @@ class Domains extends Component<ComponentProps> {
         }
     }
 
-    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
 
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(
@@ -69,7 +69,7 @@ class Domains extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
 
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(

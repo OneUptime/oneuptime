@@ -11,6 +11,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
@@ -26,7 +27,7 @@ router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, tutorialObj);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -59,7 +60,7 @@ router.put('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, tutorialObj);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

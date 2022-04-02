@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/component';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 export const showDeleteModal = () => {
     return {
         type: types.SHOW_DELETE_MODAL,
@@ -357,8 +358,8 @@ export const addSeatReset = () => {
 export function fetchComponentResources(
     projectId: $TSFixMe,
     componentId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(

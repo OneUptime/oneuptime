@@ -2,6 +2,7 @@ import * as types from '../constants/monitorSla';
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 
 export const createMonitorSlaRequest = () => ({
     type: types.CREATE_MONITOR_SLA_REQUEST,
@@ -101,7 +102,7 @@ export const fetchMonitorSlasFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchMonitorSlas =
-    (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchMonitorSlasRequest());

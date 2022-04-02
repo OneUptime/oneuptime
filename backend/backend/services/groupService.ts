@@ -1,7 +1,12 @@
 import GroupModel from '../models/groups';
+import PositiveNumber from 'common/types/positive-number';
 
 export default {
-    findBy: async function (query: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    findBy: async function (
+        query: $TSFixMe,
+        limit: PositiveNumber,
+        skip: PositiveNumber
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;

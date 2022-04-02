@@ -6,6 +6,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import CertificateStoreService from '../services/certificateStoreService';
 import StatusPageService from '../services/statusPageService';
@@ -21,7 +22,7 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
         const certificate = await CertificateStoreService.create(data);
         return sendItemResponse(req, res, certificate);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -36,7 +37,7 @@ router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, certificate);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -51,7 +52,7 @@ router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
 
         return sendItemResponse(req, res, certificate);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -69,7 +70,7 @@ router.get(
 
             return sendItemResponse(req, res, certificate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -84,7 +85,7 @@ router.delete(
             const certificate = await CertificateStoreService.deleteBy({ id });
             return sendItemResponse(req, res, certificate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -168,7 +169,7 @@ router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -195,7 +196,7 @@ router.delete(
                 `Certificate deleted and cert order removed from queue`
             );
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

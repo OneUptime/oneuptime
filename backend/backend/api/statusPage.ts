@@ -2,6 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
+import PositiveNumber from 'common/types/positive-number';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
@@ -9,6 +10,7 @@ import UtilService from '../services/utilService';
 import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
+import BadDataException from 'common/types/exception/badDataException';
 
 const router = express.getRouter();
 
@@ -33,6 +35,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import uuid from 'uuid';
 import defaultStatusPageColors from '../config/statusPageColors';
@@ -98,7 +101,7 @@ router.post(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -154,7 +157,7 @@ router.put(
             }
             return sendItemResponse(req, res, updatedStatusPage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -209,7 +212,7 @@ router.put(
             }
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -232,17 +235,19 @@ router.put(
         } = req.body;
 
         if (typeof subDomain !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not of type string.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Domain is not of type string.')
+            );
         }
 
         if (!UtilService.isDomainValid(subDomain)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not valid.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Domain is not valid.')
+            );
         }
 
         try {
@@ -281,7 +286,7 @@ router.put(
             );
             return sendItemResponse(req, res, resp);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -305,7 +310,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -331,17 +336,19 @@ router.put(
         } = req.body;
 
         if (typeof newDomain !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not of type string.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Domain is not of type string.')
+            );
         }
 
         if (!UtilService.isDomainValid(newDomain)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Domain is not valid.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Domain is not valid.')
+            );
         }
 
         try {
@@ -358,7 +365,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -378,7 +385,7 @@ router.post(
             upload(req, res, async function (error: $TSFixMe) {
                 let cert;
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
 
                 if (req.files && req.files.cert && req.files.cert[0].filename) {
@@ -387,7 +394,7 @@ router.post(
                 return sendItemResponse(req, res, { cert });
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -407,7 +414,7 @@ router.post(
             upload(req, res, async function (error: $TSFixMe) {
                 let privateKey;
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
                 if (
                     req.files &&
@@ -419,7 +426,7 @@ router.post(
                 return sendItemResponse(req, res, { privateKey });
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -474,7 +481,7 @@ router.get(
                 domain: domainObj.domain,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -500,7 +507,7 @@ router.delete(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -592,7 +599,7 @@ router.put(
             data.subProjectId = req.params.subProjectId;
             if (error) {
                 ErrorService.log(error);
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             let statusPage;
@@ -704,7 +711,7 @@ router.put(
 
                 return sendItemResponse(req, res, statusPage);
             } catch (error) {
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
         });
     }
@@ -781,7 +788,7 @@ router.get(
             );
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -836,7 +843,7 @@ router.get(
             ]);
             return sendListResponse(req, res, statusPages, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -855,7 +862,7 @@ router.get(
                 });
             return sendListResponse(req, res, data, count); // frontend expects sendItemResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -903,7 +910,7 @@ router.get(
             ]);
             return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -974,7 +981,7 @@ router.get(
                 return sendItemResponse(req, res, statusPage);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1012,7 +1019,7 @@ router.post(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1119,7 +1126,7 @@ router.get(
                 return sendItemResponse(req, res, finalFeed);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1174,7 +1181,7 @@ router.get(
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1196,7 +1203,7 @@ router.get(
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1222,7 +1229,7 @@ router.get(
             const { message, count } = response;
             return sendListResponse(req, res, message, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1300,7 +1307,7 @@ router.get(
             const count = response.count;
             return sendListResponse(req, res, notes, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1332,7 +1339,7 @@ router.get(
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1357,7 +1364,7 @@ router.get(
             const { events, count } = response;
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1384,12 +1391,12 @@ router.get(
 
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
 
-const fetchNotes = async (events: $TSFixMe, limit: $TSFixMe) => {
+const fetchNotes = async (events: $TSFixMe, limit: PositiveNumber) => {
     const updatedEvents = [];
     if (events.length > 0) {
         for (const event of events) {
@@ -1431,7 +1438,7 @@ router.get(
             const { notes, count } = response;
             return sendListResponse(req, res, notes, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1487,7 +1494,7 @@ router.get(
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1505,7 +1512,7 @@ router.get(
             });
             return sendListResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1525,7 +1532,7 @@ router.post(
             );
             return sendListResponse(req, res, monitorStatuses);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1571,7 +1578,7 @@ router.post(
             );
             return sendListResponse(req, res, monitorLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1596,7 +1603,7 @@ router.get(
             ]);
             return sendListResponse(req, res, probes, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1618,7 +1625,7 @@ router.delete(
             );
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1656,7 +1663,7 @@ router.get(
             });
             return sendItemResponse(req, res, timeline);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1678,7 +1685,7 @@ router.get(
                 );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1736,7 +1743,7 @@ router.get(
                 count,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1849,7 +1856,7 @@ router.post(
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1943,7 +1950,7 @@ router.post(
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1977,7 +1984,7 @@ router.get(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2014,7 +2021,7 @@ router.post(
             const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2064,7 +2071,7 @@ router.post(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2150,7 +2157,7 @@ router.put(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2193,7 +2200,7 @@ router.get(
                 count,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2221,7 +2228,7 @@ router.get(
                 count,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2244,7 +2251,7 @@ router.get(
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2266,7 +2273,7 @@ router.delete(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2287,7 +2294,7 @@ router.delete(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2384,7 +2391,7 @@ router.get(
 
             return sendItemResponse(req, res, ongoingEvents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2408,7 +2415,7 @@ router.get(
 
             return sendItemResponse(req, res, futureEvents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2432,7 +2439,7 @@ router.get(
 
             return sendItemResponse(req, res, pastEvents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2456,7 +2463,7 @@ router.get(
 
             return sendItemResponse(req, res, probes);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2480,7 +2487,7 @@ router.get(
 
             return sendItemResponse(req, res, monitorLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2510,7 +2517,7 @@ router.get(
 
             return sendItemResponse(req, res, announcements);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2534,7 +2541,7 @@ router.get(
 
             return sendItemResponse(req, res, announcementLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2558,7 +2565,7 @@ router.get(
 
             return sendItemResponse(req, res, timelines);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2588,7 +2595,7 @@ router.get(
 
             return sendItemResponse(req, res, statusPageNote);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2634,7 +2641,7 @@ router.get(
             response.time = time || {};
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -2684,10 +2691,7 @@ async function getStatusPage(req: ExpressRequest, statusPageSlug: $TSFixMe) {
     } else {
         return {
             error: true,
-            data: {
-                code: 400,
-                message: 'StatusPage Slug or Url required',
-            },
+            data: new BadDataException('StatusPage Slug or Url required'),
         };
     }
 

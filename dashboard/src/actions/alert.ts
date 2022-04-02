@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/alert';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 export const resetAlert = () => {
     return {
         type: types.ALERT_FETCH_RESET,
@@ -81,8 +82,8 @@ export const projectAlertSuccess = (alert: $TSFixMe) => {
 
 export function fetchProjectAlert(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -139,8 +140,8 @@ export const incidentAlertSuccess = (alert: $TSFixMe) => {
 export function fetchIncidentAlert(
     projectId: $TSFixMe,
     incidentSlug: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -196,8 +197,8 @@ export const subscriberAlertSuccess = (alert: $TSFixMe) => {
 export function fetchSubscriberAlert(
     projectId: $TSFixMe,
     incidentSlug: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
@@ -253,8 +254,8 @@ export const fetchAlertChargesSuccess = (alertCharges: $TSFixMe) => {
 
 export function fetchAlertCharges(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     let promise;
     return function (dispatch: Dispatch) {

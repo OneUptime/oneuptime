@@ -39,7 +39,7 @@ interface ScheduledEventNoteProps {
 export class ScheduledEventNote extends Component<ScheduledEventNoteProps>{
     public static displayName = '';
     public static propTypes = {};
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor(props: $TSFixMe) {
         super(props);
         this.limit = 10;

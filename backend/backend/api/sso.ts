@@ -11,6 +11,7 @@ import { sendListResponse } from 'common-server/utils/response';
 import { sendItemResponse } from 'common-server/utils/response';
 
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import SsoService from '../services/ssoService';
 
@@ -38,7 +39,7 @@ router.get(
 
             return sendListResponse(req, res, ssos, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -51,7 +52,7 @@ router.delete(
             const sso = await SsoService.deleteBy({ _id: req.params.id });
             return sendItemResponse(req, res, sso);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -66,7 +67,7 @@ router.post(
             const sso = await SsoService.create(data);
             return sendItemResponse(req, res, sso);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -85,7 +86,7 @@ router.get(
             });
             return sendItemResponse(req, res, sso);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -99,7 +100,7 @@ router.put(
             const sso = await SsoService.updateBy({ _id: req.params.id }, data);
             return sendItemResponse(req, res, sso);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -129,7 +130,7 @@ router.get(
 
             return sendListResponse(req, res, ssos, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -11,6 +11,7 @@ import {
     sendItemResponse,
     sendListResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import CustomFieldService from '../services/customFieldService';
 
@@ -64,7 +65,7 @@ router.post(
             });
             return sendItemResponse(req, res, customField);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -97,7 +98,7 @@ router.get(
 
             return sendListResponse(req, res, customFields, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -155,7 +156,7 @@ router.put(
             );
             return sendItemResponse(req, res, customField);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -175,7 +176,7 @@ router.delete(
 
             return sendItemResponse(req, res, deletedCustomField);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

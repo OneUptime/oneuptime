@@ -1,7 +1,7 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/user';
-
+import PositiveNumber from 'common/types/positive-number';
 export const fetchUsersRequest = () => {
     return {
         type: types.FETCH_USERS_REQUEST,
@@ -24,7 +24,8 @@ export const fetchUsersError = (error: $TSFixMe) => {
 
 // Calls the API to fetch all users.
 export const fetchUsers =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
+    (skip: PositiveNumber, limit: PositiveNumber) =>
+    async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchUsersRequest());
@@ -654,7 +655,7 @@ export const searchUsersError = (error: $TSFixMe) => {
 
 // Calls the search users api
 export const searchUsers =
-    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values = {
             filter,
@@ -761,7 +762,7 @@ export const fetchUserHistoryError = (error: $TSFixMe) => {
 
 export function fetchUserloginHistory(
     userId: $TSFixMe,
-    skip: $TSFixMe,
+    skip: PositiveNumber,
     limit = 10
 ) {
     return function (dispatch: Dispatch) {

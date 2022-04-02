@@ -1,3 +1,38 @@
+import MonitorModel from '../models/monitor';
+import ProbeService from './probeService';
+import MonitorStatusService from './monitorStatusService';
+import MonitorLogService from './monitorLogService';
+import MonitorLogByHourService from './monitorLogByHourService';
+import MonitorLogByDayService from './monitorLogByDayService';
+import MonitorLogByWeekService from './monitorLogByWeekService';
+import ResourceCategoryService from './resourceCategoryService';
+import MonitorCriteriaService from './monitorCriteriaService';
+import Plans from './../config/plans';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import ProjectService from './projectService';
+import PaymentService from './paymentService';
+import IncidentService from './incidentService';
+import AlertService from './alertService';
+import StatusPageService from './statusPageService';
+import ScheduleService from './scheduleService';
+import IntegrationService from './integrationService';
+import TeamService from './teamService';
+import ErrorService from 'common-server/utils/error';
+import moment from 'moment';
+
+import _ from 'lodash';
+
+import { IS_SAAS_SERVICE } from '../config/server';
+import ScheduledEventService from './scheduledEventService';
+import MonitorSlaService from './monitorSlaService';
+import IncomingRequestService from './incomingRequestService';
+import componentService from './componentService';
+import getSlug from '../utils/getSlug';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';
+import PositiveNumber from 'common/types/positive-number';
+
 export default {
     //Description: Upsert function for monitor.
     //Params:
@@ -697,8 +732,8 @@ export default {
 
     async getMonitorsBySubprojects(
         subProjectIds: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
@@ -814,8 +849,8 @@ export default {
     async getMonitorsBySubprojectsPaginate(
         projectId: $TSFixMe,
         componentId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
@@ -2221,37 +2256,3 @@ export default {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 };
-
-import MonitorModel from '../models/monitor';
-import ProbeService from './probeService';
-import MonitorStatusService from './monitorStatusService';
-import MonitorLogService from './monitorLogService';
-import MonitorLogByHourService from './monitorLogByHourService';
-import MonitorLogByDayService from './monitorLogByDayService';
-import MonitorLogByWeekService from './monitorLogByWeekService';
-import ResourceCategoryService from './resourceCategoryService';
-import MonitorCriteriaService from './monitorCriteriaService';
-import Plans from './../config/plans';
-import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import ProjectService from './projectService';
-import PaymentService from './paymentService';
-import IncidentService from './incidentService';
-import AlertService from './alertService';
-import StatusPageService from './statusPageService';
-import ScheduleService from './scheduleService';
-import IntegrationService from './integrationService';
-import TeamService from './teamService';
-import ErrorService from 'common-server/utils/error';
-import moment from 'moment';
-
-import _ from 'lodash';
-
-import { IS_SAAS_SERVICE } from '../config/server';
-import ScheduledEventService from './scheduledEventService';
-import MonitorSlaService from './monitorSlaService';
-import IncomingRequestService from './incomingRequestService';
-import componentService from './componentService';
-import getSlug from '../utils/getSlug';
-import handlePopulate from '../utils/populate';
-import handleSelect from '../utils/select';

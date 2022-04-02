@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import MonitorSlaService from '../services/monitorSlaService';
@@ -45,7 +46,7 @@ router.get(
 
             return sendListResponse(req, res, monitorSlas, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -63,14 +64,14 @@ router.post(
                 const error = new Error('SLA name is required');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!monitorUptime || !monitorUptime.trim()) {
                 const error = new Error('Monitor uptime is required');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (frequency && isNaN(frequency)) {
@@ -79,14 +80,14 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (frequency && Number(frequency) < 1) {
                 const error = new Error('At lease a single day is needed');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (monitorUptime && isNaN(monitorUptime)) {
@@ -95,7 +96,7 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (monitorUptime && Number(monitorUptime) < 1) {
@@ -104,7 +105,7 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (monitorUptime && Number(monitorUptime) > 100) {
@@ -113,7 +114,7 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             const data = { ...req.body };
@@ -121,7 +122,7 @@ router.post(
             const monitorSla = await MonitorSlaService.create(data);
             return sendItemResponse(req, res, monitorSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -139,14 +140,14 @@ router.put(
                 const error = new Error('SLA name is required');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && (!monitorUptime || !monitorUptime.trim())) {
                 const error = new Error('Monitor uptime is required');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && frequency && isNaN(frequency)) {
@@ -155,14 +156,14 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && frequency && Number(frequency) < 1) {
                 const error = new Error('At lease a single day is needed');
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && monitorUptime && isNaN(monitorUptime)) {
@@ -171,7 +172,7 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (!handleDefault && monitorUptime && Number(monitorUptime) < 1) {
@@ -180,7 +181,7 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             if (
@@ -193,7 +194,7 @@ router.put(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             const data = { ...req.body };
@@ -203,7 +204,7 @@ router.put(
             );
             return sendItemResponse(req, res, monitorSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -222,7 +223,7 @@ router.delete(
             });
             return sendItemResponse(req, res, deletedMonitorSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -246,7 +247,7 @@ router.get(
 
             return sendItemResponse(req, res, defaultMonitorSla);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

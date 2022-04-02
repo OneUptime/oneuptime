@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
 
@@ -44,7 +45,7 @@ router.get(
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -79,7 +80,7 @@ router.get(
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -112,7 +113,7 @@ router.get(
             });
             return sendItemResponse(req, res, securityLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

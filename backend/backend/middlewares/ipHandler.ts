@@ -1,5 +1,6 @@
 import StatusPageService from '../services/statusPageService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/badDataException';
 import {
     ExpressResponse,
     ExpressRequest,
@@ -56,10 +57,11 @@ const _this = {
         // if ip whitelist is enabled and no ip is saved
         // block the access
         if (!ipWhitelist || ipWhitelist.length === 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'You are not allowed to view this page',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('You are not allowed to view this page')
+            );
         }
 
         let clientIp = _this.getClientIp(req); // returns client ip or null
@@ -68,10 +70,11 @@ const _this = {
         }
 
         if (!clientIp) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'You are not allowed to view this page',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('You are not allowed to view this page')
+            );
         }
 
         clientIp = clientIp.trim();

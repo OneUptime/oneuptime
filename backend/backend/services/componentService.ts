@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 export default {
     //Description: Upsert function for component.
     //Params:
@@ -361,8 +362,8 @@ export default {
 
     async getComponentsBySubprojects(
         subProjectIds: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
@@ -394,8 +395,8 @@ export default {
 
     async getComponentsByPaginate(
         projectId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);

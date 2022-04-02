@@ -29,7 +29,7 @@ interface ScheduledEventBoxProps {
 }
 
 class ScheduledEventBox extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor(props: $TSFixMe) {
         super(props);
         this.limit = 10;
@@ -62,7 +62,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
             this.props.fetchMonitors(this.props.projectId);
         }
     }
-    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
 
         const { fetchscheduledEvents } = this.props;
         fetchscheduledEvents(
@@ -78,7 +78,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
         this.props.prevPage(projectId);
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe) => {
+    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
 
         const { fetchscheduledEvents } = this.props;
         fetchscheduledEvents(

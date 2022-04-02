@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
-
+import BadDataException from 'common/types/exception/badDataException';
 const router = express.getRouter();
 import TeamService from '../services/teamService';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -16,6 +16,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import ErrorService from 'common-server/utils/error';
 
@@ -38,7 +39,7 @@ router.get(
             }); // frontend expects sendItemResponse
             return sendItemResponse(req, res, users);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -64,7 +65,7 @@ router.get(
             );
             return sendItemResponse(req, res, subProjectTeamMembers); // frontend expects sendItemResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -108,7 +109,7 @@ router.get(
             };
             return sendItemResponse(req, res, teamMemberObj);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -138,39 +139,48 @@ router.post(
         }
 
         if (typeof data.emails !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Emails is not of type text.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Emails is not of type text.')
+            );
         }
 
         if (!data.role) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Please select member role.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Please select member role.')
+            );
         }
 
         if (typeof data.role !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Role should be in the text format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Role should be in the text format.')
+            );
         }
 
         const emailArray = data.emails ? data.emails.split(',') : [];
         if (!TeamService.isValidBusinessEmails(emailArray)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Please enter business emails of the members.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Please enter business emails of the members.'
+                )
+            );
         }
 
         if (data.role !== 'Viewer' && emailArray.length > 100) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invited members should not exceed 100 on a project.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Invited members should not exceed 100 on a project.'
+                )
+            );
         }
 
         try {
@@ -216,7 +226,7 @@ router.post(
                 return sendItemResponse(req, res, users);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -261,7 +271,7 @@ router.delete(
             );
             return sendItemResponse(req, res, teamMembers);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -297,17 +307,19 @@ router.put(
         }
 
         if (!data.role) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Role must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Role must be present.')
+            );
         }
 
         if (typeof data.role !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Role is not in string type.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Role is not in string type.')
+            );
         }
 
         const userId = req.user ? req.user.id : null;
@@ -367,7 +379,7 @@ router.put(
                 return sendItemResponse(req, res, updatedTeamMembers);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

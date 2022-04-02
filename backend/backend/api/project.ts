@@ -22,6 +22,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 const isAuthorizedService =
     require('../middlewares/serviceAuthorization').isAuthorizedService;
 import ErrorService from 'common-server/utils/error';
@@ -216,7 +217,7 @@ router.post(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -290,7 +291,7 @@ router.get(
 
             return sendListResponse(req, res, response, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -314,7 +315,7 @@ router.get(
             const balance = await ProjectService.getBalance({ _id: projectId });
             return sendItemResponse(req, res, balance);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -340,7 +341,7 @@ router.get(
             const project = await ProjectService.resetApiKey(projectId);
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -567,7 +568,7 @@ router.delete(
 
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -611,7 +612,7 @@ router.delete(
 
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -689,7 +690,7 @@ router.post(
             }
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -778,7 +779,7 @@ router.put(
                 return sendItemResponse(req, res, updatedProject);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -840,7 +841,7 @@ router.post(
             }
             return sendItemResponse(req, res, 'Mail Sent Successfully!');
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -865,7 +866,7 @@ router.delete(
             );
             return sendItemResponse(req, res, teamMember);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -927,7 +928,7 @@ router.post(
             });
             return sendItemResponse(req, res, subProjects);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -956,7 +957,7 @@ router.delete(
             );
             return sendItemResponse(req, res, subProject);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -995,7 +996,7 @@ router.get(
             ]);
             return sendListResponse(req, res, subProjects, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1016,7 +1017,7 @@ router.get(
             );
             return sendListResponse(req, res, projects, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1038,7 +1039,7 @@ router.get(
             ]);
             return sendListResponse(req, res, projects, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1061,7 +1062,7 @@ router.get(
 
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1083,7 +1084,7 @@ router.get(
             });
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1101,7 +1102,7 @@ router.put(
             );
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1135,7 +1136,7 @@ router.put(
             );
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1153,7 +1154,7 @@ router.put(
             );
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1171,7 +1172,7 @@ router.put(
             });
             return sendItemResponse(req, res, project);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1219,7 +1220,7 @@ router.put(
             );
             return sendItemResponse(req, res, subProject);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1274,7 +1275,7 @@ router.post(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1307,7 +1308,7 @@ router.post(
 
             return sendListResponse(req, res, users, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1364,7 +1365,7 @@ router.put(
             );
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1413,7 +1414,7 @@ router.put(
             );
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1435,7 +1436,7 @@ router.put(
             );
             return sendItemResponse(req, res, updatedProject);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

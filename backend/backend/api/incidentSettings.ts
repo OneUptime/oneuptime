@@ -4,12 +4,13 @@ import express, {
 } from 'common-server/utils/express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
-
+import BadDataException from 'common/types/exception/badDataException';
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import IncidentSettingsService from '../services/incidentSettingsService';
@@ -21,7 +22,7 @@ router.get('/variables', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         return sendItemResponse(req, res, variables);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -50,7 +51,7 @@ router.get(
 
             return sendItemResponse(req, res, template);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -91,7 +92,7 @@ router.get(
 
             return sendListResponse(req, res, templates, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -103,10 +104,11 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, templateId } = req.params;
         if (!projectId)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Project Id must be present.')
+            );
 
         try {
             const defaultPrioritySetting =
@@ -121,7 +123,7 @@ router.put(
                 );
             return sendItemResponse(req, res, defaultPrioritySetting);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -135,35 +137,40 @@ router.put(
         const { title, description, incidentPriority, isDefault, name } =
             req.body;
         if (!projectId)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Project Id must be present.')
+            );
 
         if (!templateId)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Incident settings Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Incident settings Id must be present.')
+            );
 
         if (!name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Name must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Name must be present')
+            );
         }
 
         if (!title)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Title must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Title must be present.')
+            );
 
         if (!incidentPriority)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Incident priority must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Incident priority must be present.')
+            );
 
         try {
             //Update should not happen if the incident priority is remove and doesn't exist.
@@ -192,7 +199,7 @@ router.put(
             );
             return sendItemResponse(req, res, incidentSettings);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -226,7 +233,7 @@ router.delete(
             });
             return sendItemResponse(req, res, incidentSetting);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -295,7 +302,7 @@ router.post(
 
             return sendItemResponse(req, res, incidentSetting);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -11,6 +11,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { isValidAPIKey } from '../middlewares/performanceTracker';
 
@@ -42,7 +43,7 @@ router.post(
 
             return sendItemResponse(req, res, { message: 'Success' });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -110,7 +111,7 @@ router.get(
 
             return sendItemResponse(req, res, metrics);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -178,7 +179,7 @@ router.get(
 
             return sendItemResponse(req, res, metrics);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -245,7 +246,7 @@ router.get(
 
             return sendItemResponse(req, res, metrics);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -340,7 +341,7 @@ router.get(
 
             return sendItemResponse(req, res, performanceTrackerMetrics);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -358,7 +359,7 @@ router.delete(
                 });
             return sendItemResponse(req, res, deletedMetric);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

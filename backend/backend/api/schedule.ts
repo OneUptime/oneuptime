@@ -14,6 +14,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.post(
     '/:projectId',
@@ -37,7 +38,7 @@ router.post(
             const schedule = await ScheduleService.create(data);
             return sendItemResponse(req, res, schedule);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -89,7 +90,7 @@ router.get(
             ]);
             return sendListResponse(req, res, schedules, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -109,7 +110,7 @@ router.get(
             );
             return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -153,7 +154,7 @@ router.get(
             ]);
             return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -173,7 +174,7 @@ router.put(
             );
             return sendItemResponse(req, res, schedule);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -201,7 +202,7 @@ router.delete(
             );
             return sendItemResponse(req, res, schedule);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -223,7 +224,7 @@ router.get(
             );
             return sendListResponse(req, res, escalations);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -243,7 +244,7 @@ router.get(
                 response.count
             );
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -549,7 +550,7 @@ router.post(
             );
             return sendItemResponse(req, res, escalation);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

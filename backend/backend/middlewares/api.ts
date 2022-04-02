@@ -1,6 +1,7 @@
 import mongoose from '../config/db';
 import ProjectService from '../services/projectService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/badDataException';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -190,10 +191,11 @@ export default {
                 return next();
             }
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'No Monitor found with this ID.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('No Monitor found with this ID.')
+            );
         }
     },
 };

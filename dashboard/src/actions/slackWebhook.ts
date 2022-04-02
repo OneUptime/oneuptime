@@ -2,6 +2,8 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/slackWebhooks';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
+
 export const deleteSlackRequest = () => {
     return {
         type: types.DELETE_SLACK_WEBHOOK_REQUEST,
@@ -78,8 +80,8 @@ export const resetGetSlack = () => {
 
 export const getSlack = (
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) => {
     return function (dispatch: Dispatch) {
         let promise = null;
@@ -106,8 +108,8 @@ export const getSlack = (
 export function getSlackMonitor(
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;

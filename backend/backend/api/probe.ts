@@ -13,6 +13,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const getUser = require('../middlewares/user').getUser;
@@ -31,7 +32,7 @@ router.post(
             const probe = await ProbeService.create(data);
             return sendItemResponse(req, res, probe);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -57,7 +58,7 @@ router.get(
             ]);
             return sendListResponse(req, res, probe, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -75,7 +76,7 @@ router.put(
             );
             return sendItemResponse(req, res, probe);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -89,7 +90,7 @@ router.delete(
             const probe = await ProbeService.deleteBy({ _id: req.params.id });
             return sendItemResponse(req, res, probe);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -118,7 +119,7 @@ router.put(
                 const data = req.body;
 
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
                 if (
                     req.files &&
@@ -136,7 +137,7 @@ router.put(
                 return sendItemResponse(req, res, save);
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -158,7 +159,7 @@ router.get(
                 monitors.length
             );
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -832,7 +833,7 @@ router.post(
             const log = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -849,7 +850,7 @@ router.post(
             const log = await ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -875,7 +876,7 @@ router.get(
             ]);
             return sendListResponse(req, res, probe, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

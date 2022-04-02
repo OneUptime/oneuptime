@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import IncomingRequestService from '../services/incomingRequestService';
@@ -51,7 +52,7 @@ router.get(
 
             return sendListResponse(req, res, allIncomingRequest, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -108,7 +109,7 @@ router.post(
 
             return sendItemResponse(req, res, requestUrl);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -165,7 +166,7 @@ router.put(
             );
             return sendItemResponse(req, res, incomingRequest);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -184,7 +185,7 @@ router.delete(
             });
             return sendItemResponse(req, res, incomingRequest);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -208,7 +209,7 @@ router.post(
                 await IncomingRequestService.handleIncomingRequestAction(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -232,7 +233,7 @@ router.get(
                 await IncomingRequestService.handleIncomingRequestAction(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -280,7 +281,7 @@ router.post(
             );
             return sendItemResponse(req, res, incomingRequest);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

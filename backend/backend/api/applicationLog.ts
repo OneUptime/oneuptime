@@ -9,6 +9,7 @@ import RealTimeService from '../services/realTimeService';
 import LogService from '../services/logService';
 import ErrorService from 'common-server/utils/error';
 import NotificationService from '../services/notificationService';
+import BadDataException from 'common/types/exception/badDataException';
 
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
@@ -20,6 +21,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -101,7 +103,7 @@ router.post(
             }
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -130,7 +132,7 @@ router.get(
                 );
             return sendItemResponse(req, res, applicationLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -161,7 +163,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -196,7 +198,7 @@ router.post(
             }
             return sendItemResponse(req, res, log);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -256,7 +258,7 @@ router.post(
             ]);
             return sendListResponse(req, res, { logs, dateRange }, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -305,7 +307,7 @@ router.post(
 
             return sendListResponse(req, res, stat);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -342,7 +344,7 @@ router.post(
             );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -367,10 +369,11 @@ router.put(
         data.createdById = req.user ? req.user.id : null;
 
         if (!data.name && data.showQuickStart === undefined) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'New Application Log Name is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('New Application Log Name is required.')
+            );
         }
 
         const currentApplicationLog = await ApplicationLogService.findOneBy({
@@ -402,10 +405,13 @@ router.put(
             data.resourceCategory != '' &&
             data.showQuickStart === undefined
         ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Application Log with that name already exists.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Application Log with that name already exists.'
+                )
+            );
         }
 
         // application Log is valid
@@ -442,7 +448,7 @@ router.put(
             );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

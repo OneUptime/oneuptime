@@ -2,10 +2,11 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/callRouting';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 export function getCallRoutingNumbers(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     if (!skip) skip = 0;
     if (!limit) limit = 10;
@@ -385,8 +386,8 @@ export const removeNumbersFailure = (error: ErrorPayload) => {
 
 export function getCallRoutingLogs(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(

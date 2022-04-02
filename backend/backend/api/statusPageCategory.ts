@@ -13,6 +13,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.post(
     '/:projectId/:statusPageId',
@@ -61,7 +62,7 @@ router.post(
             });
             return sendItemResponse(req, res, statusPageCategory);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -100,7 +101,7 @@ router.delete(
                 );
             return sendItemResponse(req, res, deletedStatusPageCategory);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -154,7 +155,7 @@ router.put(
                 );
             return sendItemResponse(req, res, updatedStatusPageCategory);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -194,7 +195,7 @@ router.get(
             ]);
             return sendListResponse(req, res, statusPageCategories, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

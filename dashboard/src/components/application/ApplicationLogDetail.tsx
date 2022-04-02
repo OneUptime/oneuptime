@@ -223,7 +223,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
             filter
         );
     };
-    handleNavigationButtonClick = (skip: $TSFixMe, limit: $TSFixMe) => {
+    handleNavigationButtonClick = (skip: PositiveNumber, limit: PositiveNumber) => {
         const {
 
             applicationLog,

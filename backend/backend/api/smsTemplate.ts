@@ -19,6 +19,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.post(
     '/:projectId',
@@ -40,7 +41,7 @@ router.post(
             const smsTemplate = await SmsTemplateService.create(data);
             return sendItemResponse(req, res, smsTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -57,7 +58,7 @@ router.get(
             const templates = await SmsTemplateService.getTemplates(projectId);
             return sendItemResponse(req, res, templates);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -72,7 +73,7 @@ router.get(
             const templates = await SmsTemplateService.getTemplates(projectId);
             return sendItemResponse(req, res, templates);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -93,7 +94,7 @@ router.get(
             });
             return sendItemResponse(req, res, smsTemplates);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -114,7 +115,7 @@ router.put(
             );
             return sendItemResponse(req, res, smsTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -185,7 +186,7 @@ router.delete(
             );
             return sendItemResponse(req, res, smsTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

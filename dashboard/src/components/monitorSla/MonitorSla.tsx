@@ -35,7 +35,7 @@ interface MonitorSlaProps {
 }
 
 class MonitorSla extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor() {
 
         super();
@@ -65,7 +65,7 @@ class MonitorSla extends Component<ComponentProps> {
         }
     }
 
-    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { projectId, fetchMonitorSlas } = this.props;
         this.setState({
@@ -83,7 +83,7 @@ class MonitorSla extends Component<ComponentProps> {
         });
     };
 
-    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { projectId, fetchMonitorSlas } = this.props;
         this.setState({

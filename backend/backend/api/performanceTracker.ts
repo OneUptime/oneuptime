@@ -8,10 +8,12 @@ import ErrorService from 'common-server/utils/error';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import { decode } from 'js-base64';
+import BadDataException from 'common/types/exception/badDataException';
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const getUser = require('../middlewares/user').getUser;
@@ -72,7 +74,7 @@ router.post(
             // );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -102,7 +104,7 @@ router.get(
             ]);
             return sendListResponse(req, res, performanceTracker, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -150,7 +152,7 @@ router.get(
 
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -179,7 +181,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -227,7 +229,7 @@ router.put(
                 );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -264,7 +266,7 @@ router.put(
                 );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -287,10 +289,11 @@ router.put(
         }
 
         if (!data.name && data.showQuickStart === undefined) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Performance Tracker Name is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Performance Tracker Name is required.')
+            );
         }
 
         const currentPerformanceTracker =
@@ -317,10 +320,13 @@ router.put(
             existingPerformanceTracker.length > 0 &&
             data.showQuickStart === undefined
         ) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Performance Tracker with that name already exists.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Performance Tracker with that name already exists.'
+                )
+            );
         }
 
         const performanceTrackerData = {};
@@ -339,7 +345,7 @@ router.put(
                 );
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -394,7 +400,7 @@ router.get(
             };
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

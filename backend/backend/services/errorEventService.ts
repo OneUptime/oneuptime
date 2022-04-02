@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 export default {
     create: async function (data: $TSFixMe) {
         // prepare error event model
@@ -83,7 +84,11 @@ export default {
         return result;
     },
     // get all error events that matches the specified query
-    async findDistinct(query: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+    async findDistinct(
+        query: $TSFixMe,
+        limit: PositiveNumber,
+        skip: PositiveNumber
+    ) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;

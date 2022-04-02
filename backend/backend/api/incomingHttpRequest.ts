@@ -8,6 +8,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { isValidMonitor } from '../middlewares/api';
 
@@ -28,7 +29,7 @@ const incomingHttpRequest = async (
         });
         return sendItemResponse(req, res, response);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 };
 

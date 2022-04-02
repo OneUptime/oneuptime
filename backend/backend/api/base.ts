@@ -9,6 +9,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { getUser } from '../middlewares/user';
 
@@ -62,7 +63,7 @@ export default ({
 
             return sendItemResponse(req, res, item);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     };
 
@@ -144,7 +145,7 @@ export default ({
 
             return sendListResponse(req, res, list, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     };
 
@@ -163,7 +164,7 @@ export default ({
 
             return sendItemResponse(req, res, item);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     };
 
@@ -192,7 +193,7 @@ export default ({
                 deleted: true,
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     };
 
@@ -224,7 +225,7 @@ export default ({
 
             return next();
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     };
 

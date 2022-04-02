@@ -14,6 +14,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { getSubProjects } from '../middlewares/subProject';
 import ScheduledEventNoteService from '../services/scheduledEventNoteService';
@@ -103,7 +104,7 @@ router.post(
 
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -217,7 +218,7 @@ router.put(
 
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -264,7 +265,7 @@ router.put(
             );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -285,7 +286,7 @@ router.delete(
 
             return sendItemResponse(req, res, event);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -362,7 +363,7 @@ router.put(
 
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -420,7 +421,7 @@ router.get(
             ]);
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -452,7 +453,7 @@ router.get(
                 );
             return sendItemResponse(req, res, ongoingScheduledEvents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -516,7 +517,7 @@ router.get(
             });
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -572,7 +573,7 @@ router.get(
             ]);
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -596,7 +597,7 @@ router.get(
                 );
             return sendItemResponse(req, res, scheduledEvents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -672,7 +673,7 @@ router.get(
             ]);
             return sendListResponse(req, res, events, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -771,7 +772,7 @@ router.post(
 
             return sendItemResponse(req, res, scheduledEventMessage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -816,7 +817,7 @@ router.get(
 
             return sendListResponse(req, res, eventNotes, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -901,7 +902,7 @@ router.put(
 
             return sendItemResponse(req, res, scheduledEventMessage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -928,7 +929,7 @@ router.delete(
                 );
             return sendItemResponse(req, res, deletedEventMessage);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -964,7 +965,7 @@ router.get(
 
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

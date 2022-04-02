@@ -2,55 +2,65 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
+import PositiveNumber from 'common/types/positive-number';
 const router = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Email from 'common/types/email';
+import BadDataException from 'common/types/exception/badDataException';
 
 import LicenseService from '../services/licenseService';
+import Exception from 'common/types/exception';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
 
         if (!data.license) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'License must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('License must be present.')
+            );
         }
 
         if (typeof data.license !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'License is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('License is not in string format.')
+            );
         }
 
         if (!data.email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email must be present.')
+            );
         }
 
         if (typeof data.email !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email is not in string format.')
+            );
         }
 
-        const item = await LicenseService.confirm({
-            license: data.license,
-            email: data.email,
-            limit: req.query['limit'] || 100,
-        });
+        const limit = new PositiveNumber(parseInt(req.query['limit'] || '100'));
+
+        const item = await LicenseService.confirm(
+            data.license,
+            new Email(data.email),
+            limit
+        );
 
         return sendItemResponse(req, res, item);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

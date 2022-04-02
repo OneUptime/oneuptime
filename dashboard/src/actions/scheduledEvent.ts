@@ -2,6 +2,8 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/scheduledEvent';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
+
 export const fetchscheduledEvent =
     (projectId: $TSFixMe, scheduledEventId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
@@ -53,7 +55,7 @@ export const fetchscheduledEventFailure = (error: ErrorPayload) => {
 };
 
 export const fetchscheduledEvents =
-    (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = Number(skip);
         limit = Number(limit);
@@ -443,8 +445,8 @@ export const fetchScheduledEventNotesInternal =
     (
         projectId: $TSFixMe,
         scheduledEventId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe,
+        limit: PositiveNumber,
+        skip: PositiveNumber,
         type: $TSFixMe
     ) =>
     async (dispatch: Dispatch) => {

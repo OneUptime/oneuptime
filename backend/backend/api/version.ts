@@ -8,6 +8,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     try {
@@ -16,7 +17,7 @@ router.get('/', (req: ExpressRequest, res: ExpressResponse) => {
             client: '',
         });
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

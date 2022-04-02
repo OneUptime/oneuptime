@@ -25,6 +25,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import multer from 'multer';
@@ -59,10 +60,7 @@ router.post(
             data.createdById = req.user ? req.user.id : null;
 
             /* if (!data.componentId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Component ID is required.',
-            });
+            return sendErrorResponse(req, res, new BadDataException('Component ID is required.'));
         } */
 
             if (
@@ -278,7 +276,7 @@ router.post(
 
             return sendItemResponse(req, res, monitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -298,7 +296,7 @@ router.post(
             upload(req, res, async function (error: $TSFixMe) {
                 let identityFile;
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
                 if (
                     req.files &&
@@ -310,7 +308,7 @@ router.post(
                 return sendItemResponse(req, res, { identityFile });
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -330,7 +328,7 @@ router.post(
             upload(req, res, async function (error: $TSFixMe) {
                 let configurationFile;
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
                 if (
                     req.files &&
@@ -342,7 +340,7 @@ router.post(
                 return sendItemResponse(req, res, { configurationFile });
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -436,7 +434,7 @@ router.put(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -463,7 +461,7 @@ router.get(
             );
             return sendItemResponse(req, res, monitors);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -509,7 +507,7 @@ router.get(
                 );
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -554,7 +552,7 @@ router.get(
             ]);
             return sendListResponse(req, res, monitors, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -593,7 +591,7 @@ router.get(
             });
             return sendItemResponse(req, res, monitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -649,7 +647,7 @@ router.post(
             ]);
             return sendListResponse(req, res, monitorLogs, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -675,7 +673,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -771,7 +769,7 @@ router.post(
 
             return sendItemResponse(req, res, log);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -793,7 +791,7 @@ router.post(
             );
             return sendListResponse(req, res, monitorLogs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -815,7 +813,7 @@ router.post(
             );
             return sendListResponse(req, res, monitorStatuses);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -841,7 +839,7 @@ router.get(
 
             return sendListResponse(req, res, lighthouseLogs, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -869,7 +867,7 @@ router.get(
 
             return sendItemResponse(req, res, lighthouseIssue);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -928,7 +926,7 @@ const _updateDeviceMonitorPingTime = async function (
             });
         }
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 };
 
@@ -943,7 +941,7 @@ router.post(
             });
             return sendItemResponse(req, res, seatresponse);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -963,7 +961,7 @@ router.post(
             );
             return sendItemResponse(req, res, monitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -983,7 +981,7 @@ router.delete(
             );
             return sendItemResponse(req, res, monitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1003,7 +1001,7 @@ router.get(
             });
             return sendItemResponse(req, res, monitors);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1025,7 +1023,7 @@ router.post(
 
             return sendItemResponse(req, res, monitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1060,7 +1058,7 @@ router.post(
             });
             return sendItemResponse(req, res, updatedMonitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1080,7 +1078,7 @@ router.post(
             );
             return sendItemResponse(req, res, monitor);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1110,7 +1108,7 @@ router.post(
 
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

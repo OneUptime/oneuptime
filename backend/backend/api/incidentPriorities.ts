@@ -4,13 +4,14 @@ import express, {
 } from 'common-server/utils/express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
-
+import BadDataException from 'common/types/exception/badDataException';
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 router.get(
@@ -21,10 +22,11 @@ router.get(
         const { projectId } = req.params;
         const { skip = 0, limit = 10 } = req.query;
         if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project Id must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Project Id must be present')
+            );
         }
         try {
             const selectIncPriority =
@@ -40,7 +42,7 @@ router.get(
             ]);
             return sendListResponse(req, res, IncidentPriorities, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -53,22 +55,25 @@ router.post(
         const { projectId } = req.params;
         const { name, color } = req.body;
         if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Project Id must be present.')
+            );
         }
         if (!name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Name must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Name must be present')
+            );
         }
         if (!color) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Color must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Color must be present')
+            );
         }
 
         try {
@@ -79,7 +84,7 @@ router.post(
             });
             return sendItemResponse(req, res, IncidentPriorities);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -93,31 +98,35 @@ router.put(
         const { _id, name, color } = req.body;
 
         if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Project Id must be present.')
+            );
         }
 
         if (!_id) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Id must be present.')
+            );
         }
 
         if (!name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Name must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Name must be present')
+            );
         }
 
         if (!color) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Color must be present',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Color must be present')
+            );
         }
 
         try {
@@ -128,7 +137,7 @@ router.put(
                 );
             return sendItemResponse(req, res, IncidentPriorities);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -142,17 +151,19 @@ router.delete(
         const { _id } = req.body;
 
         if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Project Id must be present.')
+            );
         }
 
         if (!_id) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Id must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Id must be present.')
+            );
         }
 
         try {
@@ -168,7 +179,7 @@ router.delete(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

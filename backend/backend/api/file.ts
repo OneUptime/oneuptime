@@ -6,6 +6,7 @@ import express, {
 const router = express.getRouter();
 import FileService from '../services/fileService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendFileResponse } from 'common-server/utils/response';
 
@@ -21,7 +22,7 @@ router.get('/:filename', async (req: ExpressRequest, res: ExpressResponse) => {
         });
         return sendFileResponse(req, res, file);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 

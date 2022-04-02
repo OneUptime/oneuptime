@@ -2,6 +2,8 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/schedule';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
+
 // Get a payload of Schedules
 export const resetSchedule = () => {
     return {
@@ -34,8 +36,8 @@ export const scheduleSuccess = (schedule: $TSFixMe) => {
 
 export function fetchSchedules(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;
@@ -136,8 +138,8 @@ export const projectScheduleSuccess = (schedule: $TSFixMe) => {
 
 export function fetchProjectSchedule(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         let promise = null;

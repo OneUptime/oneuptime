@@ -1,11 +1,12 @@
 import ErrorService from './errorService';
 import moment from 'moment';
 import Database from 'common-server/utils/database';
+import PositiveNumber from 'common/types/positive-number';
 
 const monitorCollection = Database.getDatabase().collection('monitors');
 
 export default {
-    async getProbeMonitors(probeId: String, limit: Number = 10) {
+    async getProbeMonitors(probeId: String, limit: PositiveNumber = 10) {
         //get monitors that have not been pinged for the last minute.
         const date = new Date(new Date().getTime() - 60 * 1000);
 

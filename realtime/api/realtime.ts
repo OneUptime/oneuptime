@@ -7,6 +7,7 @@ import {
     sendErrorResponse,
     sendEmptyResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { isAuthorizedService } from '../middlewares/serviceAuthorization';
 import RealtimeService from '../services/realtimeService';
@@ -21,7 +22,7 @@ router.post(
             RealtimeService.sendCreatedIncident({ projectId, incident });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -36,7 +37,7 @@ router.post(
             RealtimeService.sendIncidentTimeline({ projectId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -55,7 +56,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -70,7 +71,7 @@ router.post(
             RealtimeService.deleteIncident({ projectId, incident });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -85,7 +86,7 @@ router.post(
             RealtimeService.addIncidentNote({ projectId, incidentNote });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -100,7 +101,7 @@ router.post(
             RealtimeService.updateIncidentNote({ projectId, incidentNote });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -118,7 +119,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -133,7 +134,7 @@ router.post(
             RealtimeService.updateIncident({ incident, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -148,7 +149,7 @@ router.post(
             RealtimeService.deleteIncidentNote({ incidentNote, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -163,7 +164,7 @@ router.post(
             RealtimeService.addScheduledEvent({ event, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -178,7 +179,7 @@ router.post(
             RealtimeService.deleteScheduledEvent({ event, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -193,7 +194,7 @@ router.post(
             RealtimeService.updateScheduledEvent({ event, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -208,7 +209,7 @@ router.post(
             RealtimeService.resolveScheduledEvent({ event, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -226,7 +227,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -245,7 +246,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -263,7 +264,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -282,7 +283,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -301,7 +302,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -319,7 +320,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -334,7 +335,7 @@ router.post(
             RealtimeService.sendComponentCreated({ component, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -349,7 +350,7 @@ router.post(
             RealtimeService.sendMonitorCreated({ monitor, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -364,7 +365,7 @@ router.post(
             RealtimeService.sendMonitorDelete({ monitor, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -379,7 +380,7 @@ router.post(
             RealtimeService.sendComponentDelete({ component, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -394,7 +395,7 @@ router.post(
             RealtimeService.incidentResolved({ incident, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -409,7 +410,7 @@ router.post(
             RealtimeService.incidentAcknowledged({ incident, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -424,7 +425,7 @@ router.post(
             RealtimeService.statusPageEdit({ projectId, statusPage });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -439,7 +440,7 @@ router.post(
             RealtimeService.componentEdit({ component, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -454,7 +455,7 @@ router.post(
             RealtimeService.monitorEdit({ monitor, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -476,7 +477,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -497,7 +498,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -517,7 +518,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -537,7 +538,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -552,7 +553,7 @@ router.post(
             RealtimeService.updateProbe({ data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -567,7 +568,7 @@ router.post(
             RealtimeService.sendNotification({ data, projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -582,7 +583,7 @@ router.post(
             RealtimeService.updateTeamMemberRole({ projectId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -597,7 +598,7 @@ router.post(
             RealtimeService.createTeamMember({ projectId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -612,7 +613,7 @@ router.post(
             RealtimeService.deleteTeamMember({ projectId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -630,7 +631,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -648,7 +649,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -663,7 +664,7 @@ router.post(
             RealtimeService.sendLogCreated({ contentLog, applicationLogId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -681,7 +682,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -699,7 +700,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -717,7 +718,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -735,7 +736,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -753,7 +754,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -768,7 +769,7 @@ router.post(
             RealtimeService.errorTrackerKeyReset({ errorTracker, componentId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -783,7 +784,7 @@ router.post(
             RealtimeService.sendErrorEventCreated({ data, errorTrackerId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -802,7 +803,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -820,7 +821,7 @@ router.post(
             });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -835,7 +836,7 @@ router.post(
             RealtimeService.sendTimeMetrics({ appId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -850,7 +851,7 @@ router.post(
             RealtimeService.sendThroughputMetrics({ appId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -865,7 +866,7 @@ router.post(
             RealtimeService.sendErrorMetrics({ appId, data });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -880,7 +881,7 @@ router.post(
             RealtimeService.handleScanning({ security });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -895,7 +896,7 @@ router.post(
             RealtimeService.handleLog({ securityId, securityLog });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -910,7 +911,7 @@ router.post(
             RealtimeService.updateTweets({ tweets, statusPageId, _projectId });
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

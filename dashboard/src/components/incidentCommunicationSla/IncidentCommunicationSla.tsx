@@ -34,7 +34,7 @@ interface IncidentCommunicationSlaProps {
 }
 
 class IncidentCommunicationSla extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor() {
 
         super();
@@ -51,7 +51,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
         fetchCommunicationSlas(projectId, 0, this.limit);
     }
 
-    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { projectId, fetchCommunicationSlas } = this.props;
         this.setState({
@@ -67,7 +67,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
-    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { projectId, fetchCommunicationSlas } = this.props;
         this.setState({

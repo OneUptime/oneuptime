@@ -240,7 +240,7 @@ class TableComponent extends Component<ComponentProps> {
         }
     };
 
-    handlePrev = (skip: $TSFixMe, limit: $TSFixMe) => {
+    handlePrev = (skip: PositiveNumber, limit: PositiveNumber) => {
         const {
 
             performanceTracker,
@@ -284,7 +284,7 @@ class TableComponent extends Component<ComponentProps> {
         }
     };
 
-    handleNext = (skip: $TSFixMe, limit: $TSFixMe) => {
+    handleNext = (skip: PositiveNumber, limit: PositiveNumber) => {
         const {
 
             performanceTracker,

@@ -10,6 +10,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import IncidentNoteTemplateService from '../services/incidentNoteTemplateService';
@@ -59,7 +60,7 @@ router.post(
 
             return sendItemResponse(req, res, incidentNoteTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -92,7 +93,7 @@ router.get(
 
             return sendListResponse(req, res, incidentNoteTemplates, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -146,7 +147,7 @@ router.put(
                 await IncidentNoteTemplateService.updateOneBy({ query, data });
             return sendItemResponse(req, res, incidentNoteTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -181,7 +182,7 @@ router.delete(
                 });
             return sendItemResponse(req, res, incidentNoteTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

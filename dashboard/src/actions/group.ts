@@ -3,6 +3,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import { User } from '../config.js';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 // Add Group
 export const addGroupRequest = () => ({
     type: types.CREATE_GROUP_REQUEST,
@@ -136,7 +137,7 @@ export const getProjectGroupsFailure = (error: ErrorPayload) => ({
 });
 
 export const getProjectGroups =
-    (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         dispatch(getProjectGroupsRequest());
         try {

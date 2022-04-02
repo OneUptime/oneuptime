@@ -14,6 +14,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 const router = express.getRouter();
 import multer from 'multer';
@@ -38,7 +39,7 @@ const callForward = async (req: ExpressRequest, res: ExpressResponse) => {
         res.set('Content-Type', 'text/xml');
         return res.send(response.toString());
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 };
 
@@ -61,7 +62,7 @@ const backupCallForward = async (req: ExpressRequest, res: ExpressResponse) => {
         res.set('Content-Type', 'text/xml');
         return res.send(response.toString());
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 };
 
@@ -81,7 +82,7 @@ const callStatus = async (req: ExpressRequest, res: ExpressResponse) => {
         );
         return res.send(response);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 };
 
@@ -126,7 +127,7 @@ router.get(
 
             return sendItemResponse(req, res, { numbers, count, skip, limit });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -141,7 +142,7 @@ router.get(
             const logs = await CallRoutingService.getCallRoutingLogs(projectId);
             return sendItemResponse(req, res, logs);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -172,7 +173,7 @@ router.get(
                     message: 'Requested resource not available.',
                 });
             } else {
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
         }
     }
@@ -192,7 +193,7 @@ router.post(
             );
             return sendItemResponse(req, res, CallRouting);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -211,7 +212,7 @@ router.put(
             );
             return sendItemResponse(req, res, CallRouting);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -233,7 +234,7 @@ router.put(
             ]);
             upload(req, res, async function (error: $TSFixMe) {
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
                 const data = {};
 
@@ -254,7 +255,7 @@ router.put(
                 return sendItemResponse(req, res, CallRouting);
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -283,7 +284,7 @@ router.delete(
             }
             return sendItemResponse(req, res, data);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -325,7 +326,7 @@ router.delete(
             ]);
             return sendItemResponse(req, res, data);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -1,5 +1,5 @@
 import * as types from '../constants/sso';
-
+import PositiveNumber from 'common/types/positive-number';
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
@@ -24,7 +24,8 @@ export const fetchSsosError = (payload: $TSFixMe) => {
 };
 
 export const fetchSsos =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
+    (skip: PositiveNumber, limit: PositiveNumber) =>
+    async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
         dispatch(fetchSsosRequest());

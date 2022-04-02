@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/report';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 // Incident Reports Section
 
 export const getActiveMembersRequest = (promise: $TSFixMe) => {
@@ -30,8 +31,8 @@ export const getActiveMembers =
         projectId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) =>
     async (dispatch: Dispatch) => {
         try {
@@ -84,8 +85,8 @@ export const getActiveMonitors =
         projectId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) =>
     async (dispatch: Dispatch) => {
         try {

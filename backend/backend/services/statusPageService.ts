@@ -1,3 +1,4 @@
+import PositiveNumber from 'common/types/positive-number';
 import ServiceBase from './base';
 const {
     schema: StatusPageModel,
@@ -760,8 +761,8 @@ export default {
 
     getNotes: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
 
@@ -888,8 +889,8 @@ export default {
 
     getIncidentNotes: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         if (!skip) skip = 0;
 
@@ -929,8 +930,8 @@ export default {
 
     getNotesByDate: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const populate = [
             {
@@ -974,8 +975,8 @@ export default {
 
     getEvents: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
 
@@ -1078,8 +1079,8 @@ export default {
 
     getFutureEvents: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
 
@@ -1184,8 +1185,8 @@ export default {
 
     getPastEvents: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
 
@@ -1312,8 +1313,8 @@ export default {
 
     getEventNotes: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         if (!skip) skip = 0;
 
@@ -1356,8 +1357,8 @@ export default {
 
     getEventsByDate: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
@@ -1674,8 +1675,8 @@ export default {
     // get status pages for this incident
     getStatusPagesForIncident: async (
         incidentId: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) => {
         // first get the monitor, then scan status page collection containing the monitor
         let { monitors } = await IncidentModel.findById(incidentId).select(
@@ -1775,8 +1776,8 @@ export default {
     },
     getExternalStatusPage: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         if (!skip) skip = 0;
 
@@ -1873,8 +1874,8 @@ export default {
 
     getAnnouncements: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         if (!skip) skip = 0;
 
@@ -2038,8 +2039,8 @@ export default {
 
     getAnnouncementLogs: async function (
         query: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         if (!skip) skip = 0;
 
@@ -2132,7 +2133,11 @@ export default {
 };
 
 // handle the unique pagination for scheduled events on status page
-function limitEvents(events: $TSFixMe, limit: $TSFixMe, skip: $TSFixMe) {
+function limitEvents(
+    events: $TSFixMe,
+    limit: PositiveNumber,
+    skip: PositiveNumber
+) {
     skip = skip * limit;
     if (skip !== 0) {
         limit += limit;

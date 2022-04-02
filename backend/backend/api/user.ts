@@ -5,6 +5,7 @@ import express, {
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
+import BadDataException from 'common/types/exception/badDataException';
 
 import jwt from 'jsonwebtoken';
 
@@ -19,6 +20,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const router = express.getRouter();
@@ -73,73 +75,87 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
         }
 
         if (!data.email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email must be present.')
+            );
         }
 
         if (typeof data.email !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email is not in string format.')
+            );
         }
 
         if (!emaildomains.test(data.email)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Business email address is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Business email address is required.')
+            );
         }
 
         if (!data.password) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Password must be present.')
+            );
         }
 
         if (typeof data.password !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Password is not in string format.')
+            );
         }
 
         if (!data.confirmPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Confirm password must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Confirm password must be present.')
+            );
         }
 
         if (typeof data.confirmPassword !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Confirm password is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Confirm password is not in string format.'
+                )
+            );
         }
 
         if (data.confirmPassword !== data.confirmPassword) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password and Confirm password are not same.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Password and Confirm password are not same.'
+                )
+            );
         }
 
         if (!data.name) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Name must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Name must be present.')
+            );
         }
 
         if (typeof data.name !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Name is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Name is not in string format.')
+            );
         }
         const [userData, token] = await Promise.all([
             UserService.findOneBy({
@@ -295,7 +311,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -314,7 +330,7 @@ router.get(
                 return sendItemResponse(req, res, { result: false });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -379,12 +395,13 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
             idp,
             {},
             function (error: $TSFixMe, login_url: URL) {
-                if (error != null) return sendErrorResponse(req, res, error);
+                if (error != null)
+                    return sendErrorResponse(req, res, error as Exception);
                 return sendItemResponse(req, res, { url: login_url });
             }
         );
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -406,10 +423,11 @@ router.post(
         const matchedTokens = email.toLocaleLowerCase().match(domainRegex);
 
         if (!matchedTokens) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Invalid email.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Invalid email.')
+            );
         }
 
         const domain = matchedTokens[1];
@@ -556,31 +574,35 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
         const data = req.body;
         const clientIP = Ip.getClientIp(req)[0];
         if (!data.email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email must be present.')
+            );
         }
 
         if (typeof data.email !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email is not in string format.')
+            );
         }
 
         if (!data.password) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Password must be present.')
+            );
         }
 
         if (typeof data.password !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Password is not in string format.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Password is not in string format.')
+            );
         }
 
         // Call the UserService
@@ -619,7 +641,7 @@ router.post('/login', async (req: ExpressRequest, res: ExpressResponse) => {
         }
         return sendItemResponse(req, res, authUserObj);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -687,7 +709,7 @@ router.post(
             };
             return sendItemResponse(req, res, userObj);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -774,7 +796,7 @@ router.post(
             };
             return sendItemResponse(req, res, userObj);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -794,23 +816,26 @@ router.post(
             select: 'twoFactorAuthEnabled twoFactorSecretCode backupCodes',
         });
         if (!user) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Provide a valid user Id',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Provide a valid user Id')
+            );
         }
         const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes } = user;
         if (!twoFactorAuthEnabled) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: '2FA is not enabled',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('2FA is not enabled')
+            );
         }
         if (!twoFactorSecretCode || !twoFactorSecretCode.trim()) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'SecretCode is not defined',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('SecretCode is not defined')
+            );
         }
         const numberOfCodes = 8;
         let firstCounter = 0;
@@ -829,7 +854,7 @@ router.post(
             );
             return sendItemResponse(req, res, newBackupCodes);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -863,7 +888,7 @@ router.post(
             const response = await UserService.generateTwoFactorSecret(userId);
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -908,7 +933,7 @@ router.post(
                 message: 'User received mail succcessfully.',
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -977,7 +1002,7 @@ router.post(
                 message: 'User password has been reset successfully.',
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -992,10 +1017,11 @@ router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
         const data = req.body;
 
         if (!data.email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Email must be present.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Email must be present.')
+            );
         }
         // Call the UserService
         const user = await UserService.findOneBy({
@@ -1008,7 +1034,7 @@ router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
             return sendItemResponse(req, res, false);
         }
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -1049,7 +1075,7 @@ router.put(
                 const data = req.body;
 
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
                 if (
                     req.files &&
@@ -1079,7 +1105,7 @@ router.put(
                 return sendItemResponse(req, res, user);
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1099,7 +1125,7 @@ router.put(
             const user = await UserService.updatePush({ userId, data });
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1130,7 +1156,7 @@ router.put(
             const user = await UserService.updateOneBy({ _id: userId }, data);
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1155,7 +1181,7 @@ router.put(
                 const data = req.body;
 
                 if (error) {
-                    return sendErrorResponse(req, res, error);
+                    return sendErrorResponse(req, res, error as Exception);
                 }
 
                 if (
@@ -1174,7 +1200,7 @@ router.put(
                 return sendItemResponse(req, res, user);
             });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1270,7 +1296,7 @@ router.put(
             };
             return sendItemResponse(req, res, userObj);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1336,7 +1362,7 @@ router.get(
             };
             return sendItemResponse(req, res, userObj);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1430,10 +1456,11 @@ router.post('/resend', async (req: ExpressRequest, res: ExpressResponse) => {
             }
         }
         if (user.isVerified && user.email === email) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'User has already been verified.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('User has already been verified.')
+            );
         }
         const token = await UserService.sendToken(user, email);
         if (token) {
@@ -1466,7 +1493,7 @@ router.get(
             ]);
             return sendListResponse(req, res, users, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1487,7 +1514,7 @@ router.get(
 
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1517,7 +1544,7 @@ router.delete(
             );
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1545,7 +1572,7 @@ router.put(
             });
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1573,7 +1600,7 @@ router.put(
             );
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1601,7 +1628,7 @@ router.put(
             );
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1635,7 +1662,7 @@ router.post(
             );
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1665,7 +1692,7 @@ router.post(
             const user = await UserService.exitAdminMode(userId);
             return sendItemResponse(req, res, user);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1714,7 +1741,7 @@ router.post(
                 });
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1766,7 +1793,7 @@ router.post(
 
             return sendListResponse(req, res, users, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1855,7 +1882,7 @@ router.delete(
             );
             return sendItemResponse(req, res, { user: deletedUser });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -1870,7 +1897,7 @@ router.get(
 
             return sendItemResponse(req, res, { token });
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

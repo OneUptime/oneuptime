@@ -9,6 +9,7 @@ const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 
@@ -38,7 +39,7 @@ router.get(
 
             return sendListResponse(req, res, emailLogs, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -102,7 +103,7 @@ router.post(
             const emailLog = await EmailLogsService.create(data);
             return sendItemResponse(req, res, emailLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -171,7 +172,7 @@ router.put(
             );
             return sendItemResponse(req, res, emailLog);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -196,7 +197,7 @@ router.post(
                 totalSearchCount
             );
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -213,7 +214,7 @@ router.delete(
 
             return sendItemResponse(req, res, msg);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

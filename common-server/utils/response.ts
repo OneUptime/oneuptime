@@ -1,7 +1,12 @@
 import JsonToCsv from './json-to-csv';
 import logger from './logger';
 import { GridFSBucket } from 'mongodb';
-import { OneUptimeRequest, OneUptimeResponse } from './express';
+import {
+    OneUptimeRequest,
+    ExpressResponse,
+    ExpressRequest,
+    OneUptimeResponse,
+} from './express';
 import { JSONObject, JSONArray, JSONValue } from 'common/types/json';
 import { File } from 'common/types/file';
 import Exception from 'common/types/exception';
@@ -9,25 +14,32 @@ import { ListData } from 'common/types/list';
 import Database from './database';
 
 function logResponse(
-    req: OneUptimeRequest,
-    res: OneUptimeResponse,
+    req: ExpressRequest,
+    res: ExpressResponse,
     responsebody?: JSONValue
 ) {
-    const requestEndedAt: Date = new Date();
-    const method = req.method;
-    const url = req.url;
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    const duration_info = `OUTGOING RESPONSE ID: ${req.id} -- POD NAME: ${
+    const requestEndedAt: Date = new Date();
+    const method = oneUptimeRequest.method;
+    const url = oneUptimeRequest.url;
+
+    const duration_info = `OUTGOING RESPONSE ID: ${
+        oneUptimeRequest.id
+    } -- POD NAME: ${
         process.env['POD_NAME'] || 'NONE'
     } -- METHOD: ${method} -- URL: ${url} -- DURATION: ${(
-        requestEndedAt.getTime() - req.requestStartedAt.getTime()
-    ).toString()}ms -- STATUS: ${res.statusCode}`;
+        requestEndedAt.getTime() - oneUptimeRequest.requestStartedAt.getTime()
+    ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
-    const body_info = `OUTGOING RESPONSE ID: ${req.id} -- RESPONSE BODY: ${
+    const body_info = `OUTGOING RESPONSE ID: ${
+        oneUptimeRequest.id
+    } -- RESPONSE BODY: ${
         responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
     }`;
 
-    if (res.statusCode > 299) {
+    if (oneUptimeResponse.statusCode > 299) {
         logger.error(duration_info);
         logger.error(body_info);
     } else {
@@ -37,23 +49,28 @@ function logResponse(
 }
 
 export const sendEmptyResponse = (
-    req: OneUptimeRequest,
-    res: OneUptimeResponse
+    req: ExpressRequest,
+    res: ExpressResponse
 ) => {
-    res.set('OneUptimeRequest-Id', req.id);
-    res.set('Pod-Id', process.env['POD_NAME']);
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    res.status(200).send();
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+    oneUptimeResponse.status(200).send();
 
     return logResponse(req, res, undefined);
 };
 
 export const sendFileResponse = async (
-    req: OneUptimeRequest,
-    res: OneUptimeResponse,
+    req: ExpressRequest | ExpressRequest,
+    res: ExpressResponse,
     file: File
 ) => {
     /** create read stream */
+
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     const gfs = new GridFSBucket(await Database.getDatabase(), {
         bucketName: 'uploads',
@@ -62,8 +79,8 @@ export const sendFileResponse = async (
     const readstream = gfs.openDownloadStreamByName(file.name);
 
     /** set the proper content type */
-    res.set('Content-Type', file.contentType);
-    res.status(200);
+    oneUptimeResponse.set('Content-Type', file.contentType);
+    oneUptimeResponse.status(200);
     /** return response */
     readstream.pipe(res);
 
@@ -71,31 +88,37 @@ export const sendFileResponse = async (
 };
 
 export const sendErrorResponse = (
-    req: OneUptimeRequest,
-    res: OneUptimeResponse,
+    req: ExpressRequest,
+    res: ExpressResponse,
     error: Exception
 ) => {
-    res.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log reponse data;
     const status: number = error.code || 500;
     const message: string = error.message || 'Server Error';
 
     logger.error(error);
 
-    res.set('OneUptimeRequest-Id', req.id);
-    res.set('Pod-Id', process.env['POD_NAME']);
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
-    res.status(status).send({ message });
+    oneUptimeResponse.status(status).send({ message });
     return logResponse(req, res, { message });
 };
 
 export const sendListResponse = async (
-    req: OneUptimeRequest,
-    res: OneUptimeResponse,
+    req: ExpressRequest,
+    res: ExpressResponse,
     list: JSONArray,
     count: number
 ) => {
-    res.set('OneUptimeRequest-Id', req.id);
-    res.set('Pod-Id', process.env['POD_NAME']);
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     const listData: ListData = new ListData({
         data: [],
@@ -118,41 +141,44 @@ export const sendListResponse = async (
         if (list) listData.count = list.length;
     }
 
-    if (req.query['skip']) {
-        listData.skip = parseInt(req.query['skip'].toString());
+    if (oneUptimeRequest.query['skip']) {
+        listData.skip = parseInt(oneUptimeRequest.query['skip'].toString());
     }
 
-    if (req.query['limit']) {
-        listData.limit = parseInt(req.query['limit'].toString());
+    if (oneUptimeRequest.query['limit']) {
+        listData.limit = parseInt(oneUptimeRequest.query['limit'].toString());
     }
 
-    if (req.query['output-type'] === 'csv') {
+    if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv = await JsonToCsv.ToCsv(listData.data);
-        res.status(200).send(csv);
+        oneUptimeResponse.status(200).send(csv);
     } else {
-        res.status(200).send(listData);
-        res.logBody = listData.toJSONValue(); // To be used in 'auditLog' middleware to log reponse data;
-        res.status(200).send(listData);
+        oneUptimeResponse.status(200).send(listData);
+        oneUptimeResponse.logBody = listData.toJSONValue(); // To be used in 'auditLog' middleware to log reponse data;
+        oneUptimeResponse.status(200).send(listData);
         return logResponse(req, res, listData.toJSONValue());
     }
 };
 
 export const sendItemResponse = async (
-    req: OneUptimeRequest,
-    res: OneUptimeResponse,
+    req: ExpressRequest,
+    res: ExpressResponse,
     item: JSONObject
 ) => {
-    res.set('OneUptimeRequest-Id', req.id);
-    res.set('Pod-Id', process.env['POD_NAME']);
+    const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    if (req.query['output-type'] === 'csv') {
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+    if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv = JsonToCsv.ToCsv([item]);
-        res.logBody = csv;
-        res.status(200).send(csv);
+        oneUptimeResponse.logBody = csv;
+        oneUptimeResponse.status(200).send(csv);
         return logResponse(req, res, csv);
     }
 
-    res.logBody = item;
-    res.status(200).send(item);
+    oneUptimeResponse.logBody = item;
+    oneUptimeResponse.status(200).send(item);
     return logResponse(req, res, item);
 };

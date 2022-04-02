@@ -14,6 +14,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 // Route Description: Adding / Updating subscriber to the project.
 // req.params->{projectId}; req.body -> {monitorIds, alertVia, contactEmail, contactPhone, }
@@ -163,7 +164,7 @@ router.post(
             );
             return sendItemResponse(req, res, subscriber);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -318,7 +319,7 @@ router.post(
                 return sendItemResponse(req, res, subscriber);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -340,7 +341,7 @@ router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
         ]);
         return sendListResponse(req, res, subscribers, count);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -373,7 +374,7 @@ router.get(
             ]);
             return sendListResponse(req, res, subscribers, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -429,7 +430,7 @@ router.get(
 
             return sendListResponse(req, res, filteredSubscriptions);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -456,7 +457,7 @@ router.get(
             });
             return sendItemResponse(req, res, subscriber);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -475,7 +476,7 @@ router.put(
             );
             return sendItemResponse(req, res, subscriber);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -496,7 +497,7 @@ router.delete(
             );
             return sendItemResponse(req, res, subscriber);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -518,7 +519,7 @@ router.post(
             const result = await SubscriberService.subscribeFromCSVFile(data);
             return sendItemResponse(req, res, result);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

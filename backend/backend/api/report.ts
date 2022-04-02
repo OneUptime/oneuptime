@@ -8,6 +8,7 @@ import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 import { sendErrorResponse } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const router = express.getRouter();
@@ -43,7 +44,7 @@ router.get(
 
             return sendListResponse(req, res, members.members, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -79,7 +80,7 @@ router.get(
 
             return sendListResponse(req, res, monitors.monitors, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -111,7 +112,7 @@ router.get(
             );
             return sendListResponse(req, res, resolveTime);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -143,7 +144,7 @@ router.get(
             );
             return sendListResponse(req, res, incidents);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -1,3 +1,23 @@
+import Email from 'common/types/email';
+import payment from '../config/payment';
+import Stripe from 'stripe';
+const stripe = Stripe(payment.paymentPrivateKey);
+import Plans from '../config/plans';
+import ErrorService from 'common-server/utils/error';
+import ProjectService from './projectService';
+import ProjectModel from '../models/project';
+import StripeService from './stripeService';
+import NotificationService from './notificationService';
+import {
+    getAlertChargeAmount,
+    getCountryType,
+    Call,
+} from '../config/alertType';
+// import getMutex from '../constants/mutexProvider'
+
+import { formatBalance } from '../utils/number';
+// import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'
+
 export default {
     /**
      * charges a project for an alert
@@ -211,7 +231,7 @@ export default {
     //Param 2: user: User details
     //Returns: promise
 
-    createCustomer: async function (email: string, companyName: string) {
+    createCustomer: async function (email: Email, companyName: string) {
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -476,22 +496,3 @@ export default {
         return subscription;
     },
 };
-
-import payment from '../config/payment';
-import Stripe from 'stripe';
-const stripe = Stripe(payment.paymentPrivateKey);
-import Plans from '../config/plans';
-import ErrorService from 'common-server/utils/error';
-import ProjectService from './projectService';
-import ProjectModel from '../models/project';
-import StripeService from './stripeService';
-import NotificationService from './notificationService';
-import {
-    getAlertChargeAmount,
-    getCountryType,
-    Call,
-} from '../config/alertType';
-// import getMutex from '../constants/mutexProvider'
-
-import { formatBalance } from '../utils/number';
-// import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'

@@ -24,7 +24,7 @@ interface IncidentNoteTemplatesProps {
 }
 
 class IncidentNoteTemplates extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor() {
 
         super();
@@ -66,7 +66,7 @@ class IncidentNoteTemplates extends Component<ComponentProps> {
         }
     }
 
-    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {
@@ -87,7 +87,7 @@ class IncidentNoteTemplates extends Component<ComponentProps> {
         }
     };
 
-    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { currentProject, fetchIncidentNoteTemplates } = this.props;
         if (currentProject) {

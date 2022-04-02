@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 import ContainerSecurityService from '../services/containerSecurityService';
@@ -83,7 +84,7 @@ router.post(
             }
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -148,7 +149,7 @@ router.put(
                 );
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -189,7 +190,7 @@ router.get(
 
             return sendListResponse(req, res, containerSecurities, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -230,7 +231,7 @@ router.get(
 
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -271,7 +272,7 @@ router.get(
 
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -294,7 +295,7 @@ router.delete(
                 });
             return sendItemResponse(req, res, deletedContainerSecurity);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -316,7 +317,7 @@ router.delete(
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -350,7 +351,7 @@ router.get(
 
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -377,7 +378,7 @@ router.post(
                 );
 
                 error.code = 400;
-                return sendErrorResponse(req, res, error);
+                return sendErrorResponse(req, res, error as Exception);
             }
 
             const updatedContainerSecurity =
@@ -394,7 +395,7 @@ router.post(
                 ErrorService.log('realtimeService.handleScanning', error);
             }
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -50,7 +50,7 @@ class Probes extends Component<ComponentProps> {
         }
     };
 
-    prevClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         this.props.getProbes(
             (skip || 0) > (limit || 10) ? skip - limit : 0,
@@ -60,7 +60,7 @@ class Probes extends Component<ComponentProps> {
         this.setState({ page: this.state.page > 1 ? this.state.page - 1 : 1 });
     };
 
-    nextClicked = (skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber, limit: PositiveNumber) => {
 
         this.props.getProbes(skip + limit, 10);
 

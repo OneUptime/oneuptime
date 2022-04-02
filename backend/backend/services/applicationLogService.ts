@@ -1,3 +1,16 @@
+import ApplicationLogModel from '../models/applicationLog';
+import ComponentService from './componentService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import ResourceCategoryService from './resourceCategoryService';
+
+import uuid from 'uuid';
+import getSlug from '../utils/getSlug';
+import handlePopulate from '../utils/populate';
+import handleSelect from '../utils/select';
+import errorService from 'common-server/utils/error';
+import PositiveNumber from 'common/types/positive-number';
+
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -107,8 +120,8 @@ export default {
 
     async getApplicationLogsByComponentId(
         componentId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         // check if component exists
         const componentCount = await ComponentService.countBy({
@@ -249,15 +262,3 @@ export default {
         return count;
     },
 };
-
-import ApplicationLogModel from '../models/applicationLog';
-import ComponentService from './componentService';
-import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import ResourceCategoryService from './resourceCategoryService';
-
-import uuid from 'uuid';
-import getSlug from '../utils/getSlug';
-import handlePopulate from '../utils/populate';
-import handleSelect from '../utils/select';
-import errorService from 'common-server/utils/error';

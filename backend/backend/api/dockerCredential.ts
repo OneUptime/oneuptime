@@ -9,6 +9,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import DockerCredentialService from '../services/dockerCredentialService';
 
@@ -58,7 +59,7 @@ router.post(
             });
             return sendItemResponse(req, res, response);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -81,7 +82,7 @@ router.get(
             });
             return sendItemResponse(req, res, dockerCredentials);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -113,7 +114,7 @@ router.put(
             );
             return sendItemResponse(req, res, dockerCredential);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -131,7 +132,7 @@ router.delete(
 
             return sendItemResponse(req, res, deletedDockerCredential);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

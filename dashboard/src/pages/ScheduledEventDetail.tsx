@@ -48,7 +48,7 @@ interface ScheduledEventDetailProps {
 }
 
 class ScheduledEventDetail extends Component<ComponentProps> {
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     type: $TSFixMe;
     constructor(props: $TSFixMe) {
         super(props);

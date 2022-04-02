@@ -4,6 +4,8 @@ import * as types from '../constants/monitor';
 import Route from 'common/types/api/route';
 import { change, autofill } from 'redux-form';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
+
 //import { PricingPlan } from '../config';
 //import { User } from '../config';
 //import { upgradePlanEmpty, upgradeToEnterpriseMail } from '../actions/project';
@@ -632,8 +634,8 @@ export const changeMonitorComponentFailure = (error: ErrorPayload) => {
 export function fetchMonitorsIncidents(
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
@@ -694,8 +696,8 @@ export const fetchMonitorsIncidentsFailure = (error: ErrorPayload) => {
 export function fetchMonitorsSubscribers(
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -966,8 +968,8 @@ export function setMonitorCriteria(
 export function getMonitorLogs(
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber,
     startDate: $TSFixMe,
     endDate: $TSFixMe,
     probeValue: $TSFixMe,
@@ -1036,8 +1038,8 @@ export const getMonitorLogsFailure = (error: ErrorPayload) => {
 export function fetchLighthouseLogs(
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe,
+    skip: PositiveNumber,
+    limit: PositiveNumber,
     url: URL
 ) {
     return function (dispatch: Dispatch) {

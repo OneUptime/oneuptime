@@ -1,3 +1,9 @@
+import LogModel from '../models/log';
+import ApplicationLogService from './applicationLogService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import PositiveNumber from 'common/types/positive-number';
+
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -91,8 +97,8 @@ export default {
     },
     async getLogsByApplicationLogId(
         applicationLogId: $TSFixMe,
-        limit: $TSFixMe,
-        skip: $TSFixMe
+        limit: PositiveNumber,
+        skip: PositiveNumber
     ) {
         // try to get the application log by the ID
 
@@ -137,8 +143,8 @@ export default {
     search: async function (
         query: $TSFixMe,
         filter: $TSFixMe,
-        skip: $TSFixMe,
-        limit: $TSFixMe
+        skip: PositiveNumber,
+        limit: PositiveNumber
     ) {
         const _this = this;
         query.stringifiedContent = {
@@ -228,8 +234,3 @@ export default {
         return dateRange;
     },
 };
-
-import LogModel from '../models/log';
-import ApplicationLogService from './applicationLogService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';

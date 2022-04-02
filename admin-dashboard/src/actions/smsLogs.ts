@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/smsLogs';
 import Route from 'common/types/api/route';
+import PositiveNumber from 'common/types/positive-number';
 // Fetch All Sms Logs
 export const fetchSmsLogsRequest = () => {
     return {
@@ -24,7 +25,8 @@ export const fetchSmsLogsError = (error: $TSFixMe) => {
 };
 
 export const fetchSmsLogs =
-    (skip: $TSFixMe, limit: $TSFixMe) => async (dispatch: Dispatch) => {
+    (skip: PositiveNumber, limit: PositiveNumber) =>
+    async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -78,7 +80,7 @@ export const searchSmsLogsError = (error: $TSFixMe) => {
 };
 
 export const searchSmsLogs =
-    (filter: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) =>
+    (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         const values = {
             filter,

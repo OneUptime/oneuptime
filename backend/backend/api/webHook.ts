@@ -10,6 +10,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 const router = express.getRouter();
 
@@ -139,7 +140,7 @@ router.post(
             );
             return sendItemResponse(req, res, webhook);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -257,7 +258,7 @@ router.put(
             );
             return sendItemResponse(req, res, webhook);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -279,7 +280,7 @@ router.delete(
             );
             return sendItemResponse(req, res, data);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -319,7 +320,7 @@ router.get(
             });
             return sendListResponse(req, res, integrations, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -361,7 +362,7 @@ router.get(
             });
             return sendListResponse(req, res, integrations, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

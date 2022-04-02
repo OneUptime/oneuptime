@@ -2,6 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentPriorities';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 function fetchIncidentPrioritiesRequest() {
     return {
         type: types.FETCH_INCIDENT_PRIORITIES_REQUEST,
@@ -24,8 +25,8 @@ function fetchIncidentPrioritiesFailure(error: ErrorPayload) {
 
 export function fetchIncidentPriorities(
     projectId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(

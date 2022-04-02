@@ -54,7 +54,7 @@ class AlertLog extends Component<ComponentProps> {
         this.props.fetchAlert(this.props.activeProjectId);
     };
 
-    prevClicked = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         this.props.fetchProjectAlert(
             projectId,
@@ -65,7 +65,7 @@ class AlertLog extends Component<ComponentProps> {
         this.setState({ [projectId]: this.state[projectId] - 1 });
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         this.props.fetchProjectAlert(projectId, skip + limit, 10);
         this.setState({

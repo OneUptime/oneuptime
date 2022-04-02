@@ -22,7 +22,7 @@ interface AnnouncementProps {
 class Announcement extends Component<ComponentProps> {
     announcement: $TSFixMe;
     counter: $TSFixMe;
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor(props: $TSFixMe) {
         super(props);
         this.limit = 2;

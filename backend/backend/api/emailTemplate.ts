@@ -19,6 +19,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.post(
     '/:projectId',
@@ -54,7 +55,7 @@ router.post(
             const emailTemplate = await EmailTemplateService.create(data);
             return sendItemResponse(req, res, emailTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -73,7 +74,7 @@ router.get(
             );
             return sendItemResponse(req, res, templates);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -90,7 +91,7 @@ router.get(
             );
             return sendItemResponse(req, res, templates);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -110,7 +111,7 @@ router.get(
             });
             return sendItemResponse(req, res, emailTemplates);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -130,7 +131,7 @@ router.put(
             );
             return sendItemResponse(req, res, emailTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -213,7 +214,7 @@ router.delete(
             );
             return sendItemResponse(req, res, emailTemplate);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

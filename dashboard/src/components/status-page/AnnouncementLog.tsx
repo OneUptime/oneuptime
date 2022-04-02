@@ -26,7 +26,7 @@ interface AnnouncementLogProps {
 
 class AnnouncementLog extends Component<ComponentProps> {
     deleteAnnouncement: $TSFixMe;
-    limit: $TSFixMe;
+    limit: PositiveNumber;
     constructor(props: $TSFixMe) {
         super(props);
         this.limit = 10;
@@ -58,7 +58,7 @@ class AnnouncementLog extends Component<ComponentProps> {
             } and ${monitors.length - 2} others`;
     };
 
-    prevClicked = (skip: $TSFixMe) => {
+    prevClicked = (skip: PositiveNumber) => {
 
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         fetchAnnouncementLogs(
@@ -69,7 +69,7 @@ class AnnouncementLog extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (skip: $TSFixMe) => {
+    nextClicked = (skip: PositiveNumber) => {
 
         const { fetchAnnouncementLogs, projectId, statusPage } = this.props;
         fetchAnnouncementLogs(

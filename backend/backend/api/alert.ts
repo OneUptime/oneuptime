@@ -20,6 +20,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 router.post(
     '/:projectId',
@@ -42,7 +43,7 @@ router.post(
             });
             return sendItemResponse(req, res, alert);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -63,7 +64,7 @@ router.get(
             );
             return sendItemResponse(req, res, alerts); // frontend expects sendItemResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -96,7 +97,7 @@ router.get(
             ]);
             return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -148,7 +149,7 @@ router.get(
             }
             return sendListResponse(req, res, alerts, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -178,7 +179,7 @@ router.get(
             res.status(200);
             res.end(img, 'binary');
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -204,7 +205,7 @@ router.delete(
             }
             return sendItemResponse(req, res, alert);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -241,7 +242,7 @@ router.get(
             ]);
             return sendListResponse(req, res, alertCharges, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

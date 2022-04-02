@@ -39,7 +39,7 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
         };
     }
 
-    prevClicked = (monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { currentProject, getMonitorLogs } = this.props;
 
@@ -65,7 +65,7 @@ export class MonitorViewLogsBox extends Component<MonitorViewLogsBoxProps>{
         this.setState({ page: this.state.page - 1 });
     };
 
-    nextClicked = (monitorId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (monitorId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { currentProject, getMonitorLogs } = this.props;
 

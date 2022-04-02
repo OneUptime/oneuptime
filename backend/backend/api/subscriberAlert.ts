@@ -13,6 +13,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 import IncidentService from '../services/incidentService';
 
 router.post(
@@ -39,7 +40,7 @@ router.post(
             const subscriberAlert = await SubscriberAlertService.create(data);
             return sendItemResponse(req, res, subscriberAlert);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -70,7 +71,7 @@ router.get(
             res.status(200);
             res.end(img, 'binary');
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -107,7 +108,7 @@ router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
         ]);
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -159,7 +160,7 @@ router.get(
             }
             return sendListResponse(req, res, subscriberAlerts, count);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

@@ -55,7 +55,7 @@ class Application extends Component<ComponentProps> {
         page: 1,
     };
 
-    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .getApplicationSecurities({
@@ -80,7 +80,7 @@ class Application extends Component<ComponentProps> {
             });
     };
 
-    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: $TSFixMe, limit: $TSFixMe) => {
+    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .getApplicationSecurities({

@@ -3,6 +3,7 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
 import ErrorPayload from 'common-ui/src/payload-types/error';
+import PositiveNumber from 'common/types/positive-number';
 // handle whether to show domain input field
 export const addMoreDomain = () => {
     return {
@@ -637,8 +638,8 @@ export const fetchProjectStatusPageError = (error: ErrorPayload) => {
 export function fetchProjectStatusPage(
     projectId: $TSFixMe,
     refresh: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -743,8 +744,8 @@ export const fetchIncidentStatusPagesError = (error: ErrorPayload) => {
 export function fetchIncidentStatusPages(
     projectId: $TSFixMe,
     incidentSlug: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -1148,8 +1149,8 @@ export const fetchSubscriberFailure = (error: ErrorPayload) => {
 export function fetchStatusPageSubscribers(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe,
-    skip: $TSFixMe,
-    limit: $TSFixMe
+    skip: PositiveNumber,
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -1451,7 +1452,7 @@ export function fetchAnnouncements(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe,
     skip = 0,
-    limit: $TSFixMe
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
@@ -1494,7 +1495,7 @@ export function fetchAnnouncementLogs(
     projectId: $TSFixMe,
     statusPageId: $TSFixMe,
     skip = 0,
-    limit: $TSFixMe
+    limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(

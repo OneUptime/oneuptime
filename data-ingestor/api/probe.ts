@@ -11,6 +11,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import { sendEmptyResponse } from 'common-server/utils/response';
 
@@ -677,7 +678,7 @@ router.post(
             const log = await ProbeService.saveMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -693,7 +694,7 @@ router.post(
             const log = await ProbeService.getMonitorLog(data);
             return sendItemResponse(req, res, log);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -708,7 +709,7 @@ router.post(
 
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -723,7 +724,7 @@ router.post(
 
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -738,7 +739,7 @@ router.post(
 
             return sendEmptyResponse(req, res);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

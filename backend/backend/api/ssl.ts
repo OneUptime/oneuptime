@@ -6,6 +6,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
+import Exception from 'common/types/exception';
 
 import SslService from '../services/sslService';
 
@@ -19,7 +20,7 @@ router.post('/challenge', async (req: ExpressRequest, res: ExpressResponse) => {
         const acmeChallenge = await SslService.create(data);
         return sendItemResponse(req, res, acmeChallenge);
     } catch (error) {
-        return sendErrorResponse(req, res, error);
+        return sendErrorResponse(req, res, error as Exception);
     }
 });
 
@@ -36,7 +37,7 @@ router.get(
 
             return sendItemResponse(req, res, acmeChallenge);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -57,7 +58,7 @@ router.get(
             }
             return sendItemResponse(req, res, acmeChallenge.keyAuthorization);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
@@ -72,7 +73,7 @@ router.delete(
             const acmeChallenge = await SslService.deleteBy({ token });
             return sendItemResponse(req, res, acmeChallenge);
         } catch (error) {
-            return sendErrorResponse(req, res, error);
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );
