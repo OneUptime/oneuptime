@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -18,7 +21,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { name, teams } = req.body;
             const { projectId } = req.params;
@@ -50,7 +53,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map((project: $TSFixMe) => {
                   return { id: project._id, name: project.name };
@@ -79,7 +82,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const { skip, limit } = req.query;
@@ -101,7 +104,7 @@ router.put(
     '/:projectId/:groupId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { groupId, projectId } = req.params;
             const { name, teams } = req.body;
@@ -130,7 +133,7 @@ router.delete(
     '/:projectId/:groupId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { groupId, projectId } = req.params;
 

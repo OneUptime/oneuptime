@@ -63,7 +63,7 @@ export class StatusPageForm extends React.Component<StatusPageFormProps> {
                 data.statusPageSlug,
                 { name }
             )
-            .then((res: Response) => {
+            .then((res: ExpressResponse) => {
 
                 this.props.closeModal({
 

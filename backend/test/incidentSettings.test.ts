@@ -55,7 +55,7 @@ describe('Incident Settings API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
@@ -76,7 +76,7 @@ describe('Incident Settings API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -100,7 +100,7 @@ describe('Incident Settings API', function () {
                                                     })
                                                     .end(async function (
                                                         err: $TSFixMe,
-                                                        res: Response
+                                                        res: $TSFixMe
                                                     ) {
                                                         monitorId =
                                                             res.body._id;

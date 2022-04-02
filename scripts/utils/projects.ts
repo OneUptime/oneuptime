@@ -56,7 +56,7 @@ class Project {
                 path: 'api-docs',
                 isReact: false,
                 isApiServer: false,
-                isTypeScript: false,
+                isTypeScript: true,
                 isDependency: false,
             },
             {

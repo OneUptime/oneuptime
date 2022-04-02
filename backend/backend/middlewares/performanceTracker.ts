@@ -1,11 +1,15 @@
 import ErrorService from 'common-server/utils/error';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import { sendErrorResponse } from 'common-server/utils/response';
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressResponse,
+    ExpressRequest,
+    NextFunction,
+} from 'common-server/utils/express';
 const _this = {
     isValidAPIKey: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {

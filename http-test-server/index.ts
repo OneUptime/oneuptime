@@ -27,12 +27,15 @@ global.httpServerResponse = {
     body: { status: 'ok' },
 };
 
-app.use('*', function (req: Request, res: Response, next: NextFunction) {
-    if (process.env && process.env.PRODUCTION) {
-        res.set('Cache-Control', 'public, max-age=86400');
-    } else res.set('Cache-Control', 'no-cache');
-    return next();
-});
+app.use(
+    '*',
+    function (req: ExpressRequest, res: ExpressResponse, next: NextFunction) {
+        if (process.env && process.env.PRODUCTION) {
+            res.set('Cache-Control', 'public, max-age=86400');
+        } else res.set('Cache-Control', 'no-cache');
+        return next();
+    }
+);
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

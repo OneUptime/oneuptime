@@ -36,7 +36,7 @@ describe('SSO API', function () {
             createUser(
                 request,
                 userData.adminUser,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
@@ -57,7 +57,7 @@ describe('SSO API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -94,14 +94,14 @@ describe('SSO API', function () {
 
     describe('should reject requests from an unauthenticated users', function () {
         it('should reject GET requests', function (done: $TSFixMe) {
-            request.get('/sso').end(function (err: $TSFixMe, res: Response) {
+            request.get('/sso').end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
         });
 
         it('should reject POST requests', function (done: $TSFixMe) {
-            request.post('/sso').end(function (err: $TSFixMe, res: Response) {
+            request.post('/sso').end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -110,7 +110,7 @@ describe('SSO API', function () {
         it('should reject PUT requests', function (done: $TSFixMe) {
             request
                 .put('/sso/5ea951228877984ea9f47660')
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(401);
                     done();
                 });
@@ -119,7 +119,7 @@ describe('SSO API', function () {
         it('should reject DELETE requests', function (done: $TSFixMe) {
             request
                 .delete('/sso/5ea951228877984ea9f47660')
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(401);
                     done();
                 });
@@ -132,7 +132,7 @@ describe('SSO API', function () {
             request
                 .get('/sso')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -146,7 +146,7 @@ describe('SSO API', function () {
             request
                 .get('/sso?limit=10&skip=0')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -165,7 +165,7 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(ssoObject)
-                .end(async function (err: $TSFixMe, res: Response) {
+                .end(async function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('_id');
@@ -198,7 +198,7 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -214,7 +214,7 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -230,7 +230,7 @@ describe('SSO API', function () {
                 .post('/sso')
                 .set('Authorization', authorization)
                 .send(payload)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -245,7 +245,7 @@ describe('SSO API', function () {
                 request
                     .delete(`/sso/${ssoId}`)
                     .set('Authorization', authorization)
-                    .end(async function (err: $TSFixMe, res: Response) {
+                    .end(async function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
                         expect(res.body).to.have.property('_id');
@@ -281,7 +281,7 @@ describe('SSO API', function () {
                     .put(`/sso/${ssoId}`)
                     .set('Authorization', authorization)
                     .send(updatedSsoObject)
-                    .end(async function (err: $TSFixMe, res: Response) {
+                    .end(async function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(200);
                         expect(res.body[0]).to.be.an('object');
                         expect(res.body[0].domain).to.equal(

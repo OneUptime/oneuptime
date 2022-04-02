@@ -64,7 +64,11 @@ global.io = io;
 
 app.use(cors());
 
-app.use(async function (req: Request, res: Response, next: NextFunction) {
+app.use(async function (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction
+) {
     const method = req.method;
     const url = req.url;
     const requestStartedAt = Date.now();
@@ -99,7 +103,7 @@ app.use(async function (req: Request, res: Response, next: NextFunction) {
     next();
 });
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

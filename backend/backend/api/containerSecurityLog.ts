@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -19,7 +22,7 @@ router.get(
     '/:projectId/:componentId/container/logs/:containerSecurityId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { containerSecurityId, componentId } = req.params;
 
@@ -50,7 +53,7 @@ router.get(
     '/:projectId/:componentId/containerSecuritySlug/logs/:containerSecuritySlug',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { containerSecuritySlug, componentId } = req.params;
 
@@ -81,7 +84,7 @@ router.get(
     '/:projectId/:componentId/container/logs',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId } = req.params;
             const selectContainerLog =

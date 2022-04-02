@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import ReportService from '../services/reportService';
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -20,7 +23,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate, skip, limit } = req.query;
 
@@ -56,7 +59,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate, skip, limit } = req.query;
 
@@ -92,7 +95,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate, filter } = req.query;
 
@@ -124,7 +127,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { startDate, endDate, filter } = req.query;
 

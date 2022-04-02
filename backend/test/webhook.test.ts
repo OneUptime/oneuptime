@@ -52,7 +52,7 @@ describe('Webhook API', function () {
             createUser(
                 request,
                 userData.user,
-                async function (err: $TSFixMe, res: Response) {
+                async function (err: $TSFixMe, res: $TSFixMe) {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
@@ -79,7 +79,7 @@ describe('Webhook API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -93,7 +93,7 @@ describe('Webhook API', function () {
                                                 .send(monitor)
                                                 .end(function (
                                                     err: $TSFixMe,
-                                                    res: Response
+                                                    res: $TSFixMe
                                                 ) {
                                                     monitorId = res.body._id;
                                                     msTeamsPayload.monitorId =
@@ -141,7 +141,7 @@ describe('Webhook API', function () {
     it('should prevent unauthenticated users from creating webhooks.', function (done: $TSFixMe) {
         request
             .post(`/webhook/${projectId}/create`)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -156,7 +156,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -171,7 +171,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -186,7 +186,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -198,7 +198,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -216,7 +216,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -230,7 +230,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -250,7 +250,7 @@ describe('Webhook API', function () {
             .put(`/webhook/${projectId}/${msTeamsId}`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -266,7 +266,7 @@ describe('Webhook API', function () {
         request
             .get(`/webhook/${projectId}/hooks?type=msteams`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -281,7 +281,7 @@ describe('Webhook API', function () {
         request
             .delete(`/webhook/${projectId}/delete/${msTeamsId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -300,7 +300,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(slackPayload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -318,7 +318,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(slackPayload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -332,7 +332,7 @@ describe('Webhook API', function () {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -352,7 +352,7 @@ describe('Webhook API', function () {
             .put(`/webhook/${projectId}/${slackId}`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -368,7 +368,7 @@ describe('Webhook API', function () {
         request
             .get(`/webhook/${projectId}/hooks?type=slack`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -383,7 +383,7 @@ describe('Webhook API', function () {
         request
             .delete(`/webhook/${projectId}/delete/${slackId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');

@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -24,7 +27,7 @@ router.post(
     '/:projectId/:componentId/application',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.componentId = req.params.componentId;
@@ -95,7 +98,7 @@ router.put(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId, applicationSecurityId } = req.params;
             const { name, gitRepositoryUrl, gitCredential, resourceCategory } =
@@ -150,7 +153,7 @@ router.get(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecurityId } = req.params;
 
@@ -198,7 +201,7 @@ router.get(
     '/:projectId/:componentId/applicationSecuritySlug/:applicationSecuritySlug',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecuritySlug } = req.params;
 
@@ -246,7 +249,7 @@ router.get(
     '/:projectId/:componentId/application',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId } = req.params;
             const { skip, limit } = req.query;
@@ -291,7 +294,7 @@ router.delete(
     '/:projectId/:componentId/application/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecurityId } = req.params;
 
@@ -314,7 +317,7 @@ router.delete(
     '/:projectId/:componentId/application',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId } = req.params;
 
@@ -336,7 +339,7 @@ router.get(
     '/:projectId/application/:credentialId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId } = req.params;
             const populateApplicationSecurity = [
@@ -376,7 +379,7 @@ router.post(
     '/:projectId/application/scan/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecurityId } = req.params;
             const applicationSecurity =

@@ -26,7 +26,7 @@ describe('Monitor Criteria API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -48,7 +48,7 @@ describe('Monitor Criteria API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -83,7 +83,7 @@ describe('Monitor Criteria API', function () {
         request
             .get('/monitorCriteria')
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

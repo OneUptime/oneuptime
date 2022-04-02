@@ -27,7 +27,7 @@ describe('Jwt Token API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -49,7 +49,7 @@ describe('Jwt Token API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -86,7 +86,7 @@ describe('Jwt Token API', function () {
             .post('/token/new')
             .set('Authorization', authorization)
             .send({ refreshToken: refreshToken })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });

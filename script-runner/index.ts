@@ -18,7 +18,7 @@ import main from './workers/main';
 
 app.use(cors());
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

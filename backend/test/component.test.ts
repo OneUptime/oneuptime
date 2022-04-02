@@ -40,7 +40,7 @@ describe('Component API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -62,7 +62,7 @@ describe('Component API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -82,7 +82,7 @@ describe('Component API', function () {
             .send({
                 name: 'New Component',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -96,7 +96,7 @@ describe('Component API', function () {
             .send({
                 name: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -110,7 +110,7 @@ describe('Component API', function () {
             .send({
                 name: 'New Component',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 componentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component');
@@ -126,7 +126,7 @@ describe('Component API', function () {
             .send({
                 name: 'Updated Component',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(componentId);
                 done();
@@ -138,7 +138,7 @@ describe('Component API', function () {
         request
             .get(`/component/${projectId}/component`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -152,7 +152,7 @@ describe('Component API', function () {
         request
             .get(`/component/${projectId}/component/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body._id).to.be.equal(componentId);
@@ -171,7 +171,7 @@ describe('Component API', function () {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor');
@@ -185,7 +185,7 @@ describe('Component API', function () {
         request
             .get(`/component/${projectId}/resources/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.totalResources).to.be.an('array');
                 expect(res.body.totalResources[0].type).to.be.a('string'); // type of the monitor
@@ -202,14 +202,14 @@ describe('Component API', function () {
             .send({
                 name: 'New Application Log',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Application Log');
                 resourceCount++; // Increment Resource Count
                 request
                     .get(`/component/${projectId}/resources/${componentId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(200);
                         expect(res.body.totalResources).to.be.an('array');
                         expect(res.body.totalResources[1].status).to.be.a(
@@ -234,7 +234,7 @@ describe('Component API', function () {
             .send({
                 name: 'New Application Log II',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 resourceCount++; // Increment Resource Count
                 expect(res.body.name).to.be.equal('New Application Log II');
@@ -247,7 +247,7 @@ describe('Component API', function () {
                     .post(`/application-log/${res.body._id}/log`)
                     .set('Authorization', authorization)
                     .send(log)
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(200);
 
                         request
@@ -255,7 +255,7 @@ describe('Component API', function () {
                                 `/component/${projectId}/resources/${componentId}`
                             )
                             .set('Authorization', authorization)
-                            .end(function (err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: $TSFixMe) {
                                 expect(res).to.have.status(200);
                                 expect(res.body.totalResources).to.be.an(
                                     'array'
@@ -294,7 +294,7 @@ describe('Component API', function () {
                 .post(`/security/${projectId}/${componentId}/application`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(200);
                     resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -308,7 +308,7 @@ describe('Component API', function () {
                     request
                         .get(`/component/${projectId}/resources/${componentId}`)
                         .set('Authorization', authorization)
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
                             expect(res.body.totalResources).to.have.lengthOf(
@@ -340,7 +340,7 @@ describe('Component API', function () {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(200);
                     resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -350,7 +350,7 @@ describe('Component API', function () {
                     request
                         .get(`/component/${projectId}/resources/${componentId}`)
                         .set('Authorization', authorization)
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
                             expect(res.body.totalResources).to.have.lengthOf(
@@ -367,12 +367,12 @@ describe('Component API', function () {
         request
             .delete(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 request
                     .get(`/monitor/${projectId}/monitor/${monitorId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res.body).to.be.an('object');
                         expect(res.body).to.not.have.property('_id');
                         done();
@@ -402,13 +402,13 @@ describe('Component API with Sub-Projects', function () {
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
                     createUser(
                         request,
                         userData.newUser,
-                        function (err: $TSFixMe, res: Response) {
+                        function (err: $TSFixMe, res: $TSFixMe) {
                             const project = res.body.project;
                             newProjectId = project._id;
                             newUserId = res.body.id;
@@ -436,7 +436,7 @@ describe('Component API with Sub-Projects', function () {
                                                 })
                                                 .end(function (
                                                     err: $TSFixMe,
-                                                    res: Response
+                                                    res: $TSFixMe
                                                 ) {
                                                     newUserToken =
                                                         res.body.tokens
@@ -500,7 +500,7 @@ describe('Component API with Sub-Projects', function () {
         createUser(
             request,
             userData.anotherUser,
-            function (err: $TSFixMe, res: Response) {
+            function (err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 otherProjectId = project._id;
                 otherUserId = res.body.id;
@@ -522,7 +522,7 @@ describe('Component API with Sub-Projects', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        res: Response
+                                        res: $TSFixMe
                                     ) {
                                         const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                         request
@@ -531,7 +531,7 @@ describe('Component API with Sub-Projects', function () {
                                             .send({ name: 'New Component 1' })
                                             .end(function (
                                                 err: $TSFixMe,
-                                                res: Response
+                                                res: $TSFixMe
                                             ) {
                                                 expect(res).to.have.status(400);
                                                 expect(
@@ -557,7 +557,7 @@ describe('Component API with Sub-Projects', function () {
             .send({
                 name: 'New Component 1',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -574,7 +574,7 @@ describe('Component API with Sub-Projects', function () {
             .send({
                 name: 'New Component 1',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 newComponentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component 1');
@@ -590,7 +590,7 @@ describe('Component API with Sub-Projects', function () {
             .send({
                 name: 'New Component 1',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Component with that name already exists.'
@@ -607,7 +607,7 @@ describe('Component API with Sub-Projects', function () {
             .send({
                 name: 'New Component 2',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 subProjectComponentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component 2');
@@ -620,7 +620,7 @@ describe('Component API with Sub-Projects', function () {
         request
             .get(`/component/${subProjectId}/component`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -636,7 +636,7 @@ describe('Component API with Sub-Projects', function () {
         request
             .get(`/component/${projectId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('components');
@@ -651,7 +651,7 @@ describe('Component API with Sub-Projects', function () {
         request
             .get(`/component/${subProjectId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('components');
@@ -666,7 +666,7 @@ describe('Component API with Sub-Projects', function () {
         request
             .delete(`/component/${subProjectId}/${subProjectComponentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -680,7 +680,7 @@ describe('Component API with Sub-Projects', function () {
         request
             .delete(`/component/${subProjectId}/${subProjectComponentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -691,7 +691,7 @@ describe('Component API with Sub-Projects', function () {
         request
             .delete(`/component/${projectId}/${newComponentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });

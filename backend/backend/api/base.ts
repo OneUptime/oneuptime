@@ -197,8 +197,8 @@ export default ({
     };
 
     const updateItemMiddleware = async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {
@@ -232,8 +232,8 @@ export default ({
         const functionChain = [];
 
         const apiPropsMiddleware = (
-            req: Request,
-            res: Response,
+            req: ExpressRequest,
+            res: ExpressResponse,
             next: NextFunction
         ) => {
             req.apiProps = props;

@@ -38,7 +38,7 @@ describe('Disable Sign up test', function () {
     });
 
     it('should not sign up the user when sign up is disabled', (done: $TSFixMe) => {
-        createUser(request, data.user, function (err: $TSFixMe, res: Response) {
+        createUser(request, data.user, function (err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             expect(res.body.message).to.be.equal('Sign up is disabled.');
             done();
@@ -53,7 +53,7 @@ describe('Disable Sign up test', function () {
             .send({
                 ...data.anotherUser,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('email');
                 expect(res.body).to.have.property('role');

@@ -41,7 +41,7 @@ class AddExternalStatusPagesModal extends Component<ComponentProps> {
                 statusPage.status._id,
                 values
             )
-            .then((res: Response) => {
+            .then((res: ExpressResponse) => {
                 if (res) {
                     this.handleCloseModal();
                 }

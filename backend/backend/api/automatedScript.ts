@@ -45,7 +45,7 @@ router.get(
     '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
@@ -98,7 +98,7 @@ router.post(
     '/:projectId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -163,7 +163,7 @@ router.put(
     '/:projectId/:automatedScriptId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const automatedScriptId = req.params.automatedScriptId;
             const data = req.body;
@@ -230,7 +230,7 @@ router.put(
     '/:projectId/:automatedScriptId/run',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { automatedScriptId } = req.params;
 

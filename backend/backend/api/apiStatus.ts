@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -9,7 +12,7 @@ import ApiStatusService from '../services/apiStatusService';
 const router = express.getRouter();
 
 // store account details to the db
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = {
             status: 'online',

@@ -30,7 +30,7 @@ describe('Email Logs API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -52,7 +52,7 @@ describe('Email Logs API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -131,7 +131,7 @@ describe('Email Logs API', function () {
         request
             .get('/email-logs')
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -219,7 +219,7 @@ describe('Email Logs API', function () {
         request
             .post('/email-logs/search')
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });

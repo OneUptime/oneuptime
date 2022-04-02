@@ -26,7 +26,7 @@ describe('Global Config API', function () {
             createUser(
                 request,
                 data.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -48,7 +48,7 @@ describe('Global Config API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -91,7 +91,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfig)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal(globalConfig.name);
                 expect(res.body.value).to.equal(globalConfig.value);
@@ -115,7 +115,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfigs)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -139,7 +139,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfig)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -152,7 +152,7 @@ describe('Global Config API', function () {
             .post('/globalConfig/configs')
             .set('Authorization', authorization)
             .send(globalConfigs)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -172,7 +172,7 @@ describe('Global Config API', function () {
         request
             .get('/globalConfig/TestName')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('TestName');
                 done();
@@ -184,7 +184,7 @@ describe('Global Config API', function () {
         request
             .get('/globalConfig/auditLogMonitoringStatus')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('auditLogMonitoringStatus');
                 expect(res.body.value).to.equal(true);
@@ -198,7 +198,7 @@ describe('Global Config API', function () {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send({ name: 'auditLogMonitoringStatus', value: false })
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('auditLogMonitoringStatus');
                 expect(res.body.value).to.equal(false);

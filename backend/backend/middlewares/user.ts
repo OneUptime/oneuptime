@@ -1,5 +1,9 @@
 const jwtSecretKey = process.env['JWT_SECRET'];
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressResponse,
+    ExpressRequest,
+    NextFunction,
+} from 'common-server/utils/express';
 import jwt from 'jsonwebtoken';
 import url from 'url';
 import UserService from '../services/userService';
@@ -17,7 +21,11 @@ const _this = {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
 
-    getUser: async function (req: Request, res: Response, next: NextFunction) {
+    getUser: async function (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -119,7 +127,11 @@ const _this = {
         }
     },
 
-    checkUser: function (req: Request, res: Response, next: NextFunction) {
+    checkUser: function (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ) {
         try {
             const accessToken =
                 req.headers['authorization'] ||
@@ -167,8 +179,8 @@ const _this = {
         }
     },
     checkUserBelongToProject: function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {
@@ -256,8 +268,8 @@ const _this = {
     },
 
     isUserMasterAdmin: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         if (!req.user) {
@@ -283,8 +295,8 @@ const _this = {
     },
 
     isScaleOrMasterAdmin: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {

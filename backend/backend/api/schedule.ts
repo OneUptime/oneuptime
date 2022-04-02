@@ -211,7 +211,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -232,7 +232,7 @@ router.get(
     '/:projectId/:scheduleId/getescalation',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const scheduleId = req.params.scheduleId;
             const response = await ScheduleService.getEscalations(scheduleId);
@@ -253,7 +253,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const userId = req.user ? req.user.id : null;
             const scheduleId = req.params.scheduleId;

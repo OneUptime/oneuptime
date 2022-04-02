@@ -75,7 +75,7 @@ ApiBase({
 router.post(
     '/:projectId/tweets',
     checkUser,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             let { handle } = req.body;
 
@@ -107,7 +107,7 @@ router.put(
     '/:projectId/:statusPageId/resetBubbleId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, statusPageId } = req.params;
         const newStatusBubbleId = uuid.v4();
         try {
@@ -163,7 +163,7 @@ router.put(
     '/:projectId/theme',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId } = req.params;
         const { theme, statusPageId } = req.body;
         try {
@@ -221,7 +221,7 @@ router.put(
     '/:projectId/:statusPageId/domain',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, statusPageId } = req.params;
         const {
             domain: subDomain,
@@ -291,7 +291,7 @@ router.put(
     '/:projectId/:statusPageId/resetColors',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, statusPageId } = req.params;
         const defaultBrandColor = defaultStatusPageColors.default;
         try {
@@ -320,7 +320,7 @@ router.put(
     '/:projectId/:statusPageId/:domainId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, statusPageId, domainId } = req.params;
         const {
             domain: newDomain,
@@ -490,7 +490,7 @@ router.delete(
     '/:projectId/:statusPageId/:domainId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { statusPageId, domainId } = req.params;
 
         try {
@@ -2639,7 +2639,7 @@ router.get(
     }
 );
 
-async function getStatusPage(req: Request, statusPageSlug: $TSFixMe) {
+async function getStatusPage(req: ExpressRequest, statusPageSlug: $TSFixMe) {
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
@@ -2705,7 +2705,7 @@ async function getStatusPage(req: Request, statusPageSlug: $TSFixMe) {
 }
 
 async function getOngoingScheduledEvents(
-    req: Request,
+    req: ExpressRequest,
     statusPageSlug: $TSFixMe
 ) {
     const { skip = 0, limit = 5, theme = false } = req.query;
@@ -2726,7 +2726,7 @@ async function getOngoingScheduledEvents(
     }
     return { events, count };
 }
-async function getFutureEvents(req: Request, statusPageSlug: $TSFixMe) {
+async function getFutureEvents(req: ExpressRequest, statusPageSlug: $TSFixMe) {
     const { skip = 0, limit = 5, theme = false } = req.query;
     const response = await StatusPageService.getFutureEvents(
         { slug: statusPageSlug },
@@ -2739,7 +2739,7 @@ async function getFutureEvents(req: Request, statusPageSlug: $TSFixMe) {
     }
     return response;
 }
-async function getPastEvents(req: Request, statusPageSlug: $TSFixMe) {
+async function getPastEvents(req: ExpressRequest, statusPageSlug: $TSFixMe) {
     const { skip = 0, limit = 5, theme = false } = req.query;
 
     const response = await StatusPageService.getPastEvents(
@@ -2769,7 +2769,7 @@ async function getProbes(req: $TSFixMe) {
     const count = await ProbeService.countBy({});
     return { probes, count };
 }
-async function getMonitorLogs(req: Request, monitors: $TSFixMe) {
+async function getMonitorLogs(req: ExpressRequest, monitors: $TSFixMe) {
     const logs: $TSFixMe = [];
     await Promise.all(
         monitors.map(async (monitor: $TSFixMe) => {
@@ -2823,7 +2823,7 @@ async function getMonitorLogs(req: Request, monitors: $TSFixMe) {
 }
 
 async function getAnnouncements(
-    req: Request,
+    req: ExpressRequest,
     statusPageId: $TSFixMe,
     projectId: $TSFixMe
 ) {
@@ -2848,7 +2848,7 @@ async function getAnnouncements(
     };
 }
 //get monitor status
-async function getMonitorStatuses(req: Request, monitors: $TSFixMe) {
+async function getMonitorStatuses(req: ExpressRequest, monitors: $TSFixMe) {
     const status = {};
     const endDate = moment(Date.now());
     const startDate = moment(Date.now()).subtract(90, 'days');
@@ -2877,7 +2877,7 @@ async function getMonitorTimelines(statusPageSlug: $TSFixMe) {
 }
 //get status page notes
 async function getStatusPageNote(
-    req: Request,
+    req: ExpressRequest,
     statusPageSlug: $TSFixMe,
     theme: $TSFixMe
 ) {

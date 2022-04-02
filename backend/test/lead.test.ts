@@ -40,7 +40,7 @@ describe('Lead API', function () {
         request
             .post('/lead')
             .send(leadData)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
                 done();
@@ -52,7 +52,7 @@ describe('Lead API', function () {
         request
             .post('/lead')
             .send(leadData)
-            .end(async function (err: $TSFixMe, res: Response) {
+            .end(async function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
                 const emailStatuses = await EmailStatusService.findBy({

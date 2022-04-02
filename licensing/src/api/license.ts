@@ -1,5 +1,8 @@
-import express from 'common-server/utils/express';
-const router = express.getRouter();
+import Express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
+const router = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -7,7 +10,7 @@ import {
 
 import LicenseService from '../services/licenseService';
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
 

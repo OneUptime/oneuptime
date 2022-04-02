@@ -57,8 +57,6 @@ class Express {
 
         return this.app;
     }
-
-    static;
 }
 
 export default Express;

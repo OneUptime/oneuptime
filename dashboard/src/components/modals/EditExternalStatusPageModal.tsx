@@ -41,7 +41,7 @@ class EditExternalStatusPagesModal extends Component<ComponentProps> {
                 data.link._id,
                 values
             )
-            .then((res: Response) => {
+            .then((res: ExpressResponse) => {
                 if (res) {
                     this.handleCloseModal();
                 }

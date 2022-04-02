@@ -2,7 +2,11 @@ import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
 import url from 'url';
 import { sendErrorResponse } from 'common-server/utils/response';
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'common-server/utils/express';
 import apiMiddleware from '../middlewares/api';
 
 export default {
@@ -12,8 +16,8 @@ export default {
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: Project does not exist or User is not present in this project; 500: Server Error
     doesUserBelongToProject: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {
@@ -105,8 +109,8 @@ export default {
     // Param 1: req.params-> {projectId}; req.user-> {id}
     // Returns: 400: You are not authorized to add member to project. Only admin can add.; 500: Server Error
     isUserAdmin: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {
@@ -177,8 +181,8 @@ export default {
     },
 
     isUserOwner: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {
@@ -229,8 +233,8 @@ export default {
     },
 
     getUserRole: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {

@@ -56,7 +56,7 @@ export class ProjectSwitcher extends Component<ProjectSwitcherProps>{
 
         if (project._id !== currentProject._id) {
 
-            this.props.getSubProjects(project._id).then((res: Response) => {
+            this.props.getSubProjects(project._id).then((res: ExpressResponse) => {
                 const { data: subProjects } = res.data;
                 switchProject(dispatch, project, subProjects);
 

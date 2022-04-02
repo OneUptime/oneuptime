@@ -31,7 +31,7 @@ describe('Feedback API', function () {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: Response) {
+                    function (err: $TSFixMe, res: $TSFixMe) {
                         const project = res.body.project;
                         projectId = project._id;
                         userId = res.body.id;
@@ -57,7 +57,7 @@ describe('Feedback API', function () {
                                             })
                                             .end(function (
                                                 err: $TSFixMe,
-                                                res: Response
+                                                res: $TSFixMe
                                             ) {
                                                 token =
                                                     res.body.tokens

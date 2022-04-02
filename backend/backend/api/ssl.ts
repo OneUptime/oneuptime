@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -9,7 +12,7 @@ import SslService from '../services/sslService';
 const router = express.getRouter();
 
 // store acme challenge to the db
-router.post('/challenge', async (req: Request, res: Response) => {
+router.post('/challenge', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
 
@@ -21,25 +24,28 @@ router.post('/challenge', async (req: Request, res: Response) => {
 });
 
 // fetch an acme challenge
-router.get('/challenge/:token', async (req: Request, res: Response) => {
-    try {
-        const { token } = req.params;
-        const acmeChallenge = await SslService.findOneBy({
-            query: { token },
-            select: 'token keyAuthorization challengeUrl deleted deletedAt',
-        });
+router.get(
+    '/challenge/:token',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { token } = req.params;
+            const acmeChallenge = await SslService.findOneBy({
+                query: { token },
+                select: 'token keyAuthorization challengeUrl deleted deletedAt',
+            });
 
-        return sendItemResponse(req, res, acmeChallenge);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, acmeChallenge);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // fetch keyAuthorization for a token
 // api to be consumed from the statuspage
 router.get(
     '/challenge/authorization/:token',
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { token } = req.params;
             const acmeChallenge = await SslService.findOneBy({
@@ -57,15 +63,18 @@ router.get(
 );
 
 // delete an acme challenge
-router.delete('/challenge/:token', async (req: Request, res: Response) => {
-    try {
-        const { token } = req.params;
+router.delete(
+    '/challenge/:token',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { token } = req.params;
 
-        const acmeChallenge = await SslService.deleteBy({ token });
-        return sendItemResponse(req, res, acmeChallenge);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const acmeChallenge = await SslService.deleteBy({ token });
+            return sendItemResponse(req, res, acmeChallenge);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

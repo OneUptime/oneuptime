@@ -114,7 +114,7 @@ class EditAnnouncement extends Component<ComponentProps> {
         updateAnnouncement(projectId, statusPage._id, announcement._id, {
             data: postObj,
         })
-            .then((res: Response) => {
+            .then((res: ExpressResponse) => {
                 if (res) {
                     this.handleCloseModal();
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);

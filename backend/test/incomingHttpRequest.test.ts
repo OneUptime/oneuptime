@@ -55,7 +55,7 @@ describe('Incoming HTTP Request API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -77,7 +77,7 @@ describe('Incoming HTTP Request API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -94,7 +94,7 @@ describe('Incoming HTTP Request API', function () {
                                                 })
                                                 .end(function (
                                                     err: $TSFixMe,
-                                                    res: Response
+                                                    res: $TSFixMe
                                                 ) {
                                                     componentId = res.body._id;
 
@@ -127,7 +127,7 @@ describe('Incoming HTTP Request API', function () {
                                                         })
                                                         .end(function (
                                                             err: $TSFixMe,
-                                                            res: Response
+                                                            res: $TSFixMe
                                                         ) {
                                                             monitorId =
                                                                 res.body._id;
@@ -182,7 +182,7 @@ describe('Incoming HTTP Request API', function () {
                 .post(`/incoming-request/${projectId}/create-request-url`)
                 .set('Authorization', authorization)
                 .send(incidentRequest)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     requestId = res.body._id;
                     createIncidentUrl = res.body.url;
                     expect(res).to.have.status(200);
@@ -198,7 +198,7 @@ describe('Incoming HTTP Request API', function () {
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
             .send(acknowledgeRequest)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 acknowledgeIncidentUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(acknowledgeRequest.name);
@@ -212,7 +212,7 @@ describe('Incoming HTTP Request API', function () {
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
             .send(resolveRequest)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 resolveIncidentUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(resolveRequest.name);
@@ -226,7 +226,7 @@ describe('Incoming HTTP Request API', function () {
             .post(`/incoming-request/${projectId}/create-request-url`)
             .send(incidentNoteRequest)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 incidentNoteUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(incidentNoteRequest.name);
@@ -243,7 +243,7 @@ describe('Incoming HTTP Request API', function () {
             .post(`/incoming-request/${projectId}/create-request-url`)
             .send(internalNoteRequest)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 internalNoteUrl = res.body.url;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(internalNoteRequest.name);
@@ -264,7 +264,7 @@ describe('Incoming HTTP Request API', function () {
             .put(`/incoming-request/${projectId}/update/${requestId}`)
             .send(update)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(update.name);
                 done();
@@ -280,13 +280,13 @@ describe('Incoming HTTP Request API', function () {
             .post(`/incoming-request/${projectId}/create-request-url`)
             .set('Authorization', authorization)
             .send(incidentRequest)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 requestId = res.body._id;
 
                 request
                     .get(`/incoming-request/${projectId}/all-incoming-request`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(200);
                         expect(res.body.data).to.be.an('array');
                         done();
@@ -359,7 +359,7 @@ describe('Incoming HTTP Request API', function () {
         request
             .delete(`/incoming-request/${projectId}/remove/${requestId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(String(requestId));
                 done();

@@ -1,13 +1,17 @@
 import ErrorService from '../services/errorService';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'common-server/utils/express';
 
 import { sendErrorResponse } from 'common-server/utils/response';
 
 export default {
     isAuthorizedService: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {

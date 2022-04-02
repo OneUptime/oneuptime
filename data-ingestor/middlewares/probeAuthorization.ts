@@ -2,7 +2,11 @@ import ProbeService from '../services/probeService';
 import { sendErrorResponse } from 'common-server/utils/response';
 
 import ErrorService from '../services/errorService';
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'common-server/utils/express';
 
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
@@ -10,8 +14,8 @@ global.probes = {};
 
 export default {
     isAuthorizedProbe: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         try {

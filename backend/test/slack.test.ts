@@ -24,7 +24,7 @@ describe('Slack API', function () {
             request
                 .post('/user/signup')
                 .send(userData.user)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     projectId = res.body.projectId;
                     request
                         .post('/user/login')
@@ -32,7 +32,7 @@ describe('Slack API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -61,7 +61,7 @@ describe('Slack API', function () {
             .send({
                 name: 'New Schedule',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -72,7 +72,7 @@ describe('Slack API', function () {
         request
             .get(`/slack/${projectId}/:teamId`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();

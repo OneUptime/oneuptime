@@ -120,7 +120,7 @@ describe('Probe API', function () {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 probeId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.probeName).to.be.equal(probeName);
@@ -133,7 +133,7 @@ describe('Probe API', function () {
         createUser(
             request,
             userData.newUser,
-            function (err: $TSFixMe, res: Response) {
+            function (err: $TSFixMe, res: $TSFixMe) {
                 userId = res.body.id;
                 VerificationTokenModel.findOne(
                     { userId },
@@ -152,7 +152,7 @@ describe('Probe API', function () {
                                     })
                                     .end(function (
                                         err: $TSFixMe,
-                                        res: Response
+                                        res: $TSFixMe
                                     ) {
                                         const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                         request
@@ -164,7 +164,7 @@ describe('Probe API', function () {
                                             })
                                             .end(function (
                                                 err: $TSFixMe,
-                                                res: Response
+                                                res: $TSFixMe
                                             ) {
                                                 expect(res).to.have.status(400);
                                                 done();
@@ -187,7 +187,7 @@ describe('Probe API', function () {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 request
                     .post('/probe/')
@@ -196,7 +196,7 @@ describe('Probe API', function () {
                         probeName: probeName,
                         probeKey: probeKey,
                     })
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(400);
                         done();
                     });
@@ -209,7 +209,7 @@ describe('Probe API', function () {
             .get('/probe/')
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -225,14 +225,14 @@ describe('Probe API', function () {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 probeId = res.body._id;
                 expect(res).to.have.status(200);
                 request
                     .delete(`/probe/${probeId}`)
                     .set('Authorization', authorization)
                     .send()
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(200);
                         done();
                     });
@@ -453,7 +453,7 @@ describe('Probe API', function () {
                             probeKey,
                             clusterKey,
                         })
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('array');
                             done();
@@ -493,7 +493,7 @@ describe('Probe API', function () {
                             probeKey,
                             clusterKey,
                         })
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('array');
                             done();

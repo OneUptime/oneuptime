@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 
 import psl from 'psl';
 
@@ -27,7 +30,7 @@ router.put(
     '/:projectId/verify/:domainId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { domain: subDomain, verificationToken } = req.body;
         // id of the base domain
         const { domainId } = req.params;
@@ -71,7 +74,7 @@ router.put(
     '/:projectId/forceVerify/:domainId',
     getUser,
     isUserMasterAdmin,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         // id of the base domain
         const { domainId } = req.params;
         try {
@@ -90,7 +93,7 @@ router.put(
     '/:projectId/unverify/:domainId',
     getUser,
     isUserMasterAdmin,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { domainId } = req.params;
             const response = await DomainVerificationService.updateOneBy(
@@ -110,7 +113,7 @@ router.get(
     '/:projectId/domains',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
         const selectDomainVerify =
@@ -144,7 +147,7 @@ router.post(
     '/:projectId/domain',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const { domain } = req.body;
@@ -203,7 +206,7 @@ router.put(
     '/:projectId/resetDomain/:domainId',
     getUser,
     isUserMasterAdmin,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { domainId } = req.params;
             const domain = await DomainVerificationService.resetDomain(
@@ -220,7 +223,7 @@ router.put(
     '/:projectId/domain/:domainId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, domainId } = req.params;
             const { domain } = req.body;
@@ -293,7 +296,7 @@ router.delete(
     '/:projectId/domain/:domainId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, domainId } = req.params;
             const projectArr = await ProjectService.findSubprojectId(projectId);

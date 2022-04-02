@@ -34,7 +34,7 @@ describe('Email verification API', function () {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: Response) {
+                    function (err: $TSFixMe, res: $TSFixMe) {
                         userId = res.body.id;
                         projectId = res.body.project._id;
 

@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -15,7 +18,7 @@ router.post(
     '/:projectId/dockerCredential',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { dockerRegistryUrl, dockerUsername, dockerPassword } =
                 req.body;
@@ -64,7 +67,7 @@ router.get(
     '/:projectId/dockerCredential',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
 
@@ -87,7 +90,7 @@ router.put(
     '/:projectId/dockerCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId } = req.params;
             const { dockerRegistryUrl, dockerUsername, dockerPassword } =
@@ -119,7 +122,7 @@ router.delete(
     '/:projectId/dockerCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId } = req.params;
 

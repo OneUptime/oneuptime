@@ -31,7 +31,7 @@ export default {
     },
 };
 
-const job = async (monitor: $TSFixMe, res: Response) => {
+const job = async (monitor: $TSFixMe, res: $TSFixMe) => {
     try {
         const populate = [
             {

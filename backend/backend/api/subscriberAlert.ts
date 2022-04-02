@@ -17,7 +17,7 @@ import IncidentService from '../services/incidentService';
 
 router.post(
     '/:projectId/:subscriberId',
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -78,7 +78,7 @@ router.get(
 // get subscribers alerts by projectId
 // req.params-> {projectId};
 // Returns: response subscriber alerts, error message
-router.get('/:projectId', async (req: Request, res: Response) => {
+router.get('/:projectId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const projectId = req.params.projectId;
         const skip = req.query['skip'] || 0;
@@ -116,7 +116,7 @@ router.get('/:projectId', async (req: Request, res: Response) => {
 // Returns: response subscriber alerts, error message
 router.get(
     '/:projectId/incident/:incidentSlug',
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;
             const incidentSlug = req.params.incidentSlug;

@@ -30,7 +30,7 @@ describe('Audit Logs API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -52,7 +52,7 @@ describe('Audit Logs API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -123,7 +123,7 @@ describe('Audit Logs API', function () {
         request
             .get('/audit-logs')
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -137,7 +137,7 @@ describe('Audit Logs API', function () {
                     email: userData.newUser.email,
                     password: userData.newUser.password,
                 })
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     const token = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${token}`;
 
@@ -145,7 +145,7 @@ describe('Audit Logs API', function () {
                         .get('/audit-logs/')
                         .set('Authorization', authorization)
                         .send()
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             expect(res).to.have.status(400);
                             done();
                         });
@@ -224,7 +224,7 @@ describe('Audit Logs API', function () {
         request
             .post('/audit-logs/search')
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });

@@ -78,7 +78,7 @@ class HideAnnouncement extends Component<ComponentProps> {
             announcement._id,
             { data }
         )
-            .then((res: Response) => {
+            .then((res: ExpressResponse) => {
                 if (res) {
 
                     this.props.closeThisDialog();

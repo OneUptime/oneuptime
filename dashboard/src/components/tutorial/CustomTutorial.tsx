@@ -11,7 +11,7 @@ import ShouldRender from '../basic/ShouldRender';
 const getDescription = (type: $TSFixMe) => {
     return tutorials.getTutorials().filter(note => note.id === type);
 };
-const renderFeatures = (features: Response) => {
+const renderFeatures = (features: ExpressResponse) => {
     if (features) {
         return features.map((feature: $TSFixMe) => <FeatureList key={uuidv4()} content={feature} />);
     }

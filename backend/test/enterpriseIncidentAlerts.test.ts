@@ -57,7 +57,7 @@ describe('Incident Alerts', function () {
             createEnterpriseUser(
                 request,
                 userData.user,
-                async function (err: $TSFixMe, res: Response) {
+                async function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -72,7 +72,7 @@ describe('Incident Alerts', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(async function (err: $TSFixMe, res: Response) {
+                        .end(async function (err: $TSFixMe, res: $TSFixMe) {
                             token = res.body.tokens.jwtAccessToken;
                             authorization = `Basic ${token}`;
 

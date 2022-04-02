@@ -36,7 +36,7 @@ describe('User API', function () {
             createUser(
                 request,
                 data.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     if (err) {
                         throw err;
                     }
@@ -64,7 +64,7 @@ describe('User API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             if (err) {
                                                 throw err;
@@ -103,7 +103,7 @@ describe('User API', function () {
         createUser(
             request,
             data.newUser,
-            function (err: $TSFixMe, res: Response) {
+            function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 done();
@@ -115,7 +115,7 @@ describe('User API', function () {
         createUser(
             request,
             data.nullUser,
-            function (err: $TSFixMe, res: Response) {
+            function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             }
@@ -123,7 +123,7 @@ describe('User API', function () {
     });
 
     it('should not register with same email', function (done: $TSFixMe) {
-        createUser(request, data.user, function (err: $TSFixMe, res: Response) {
+        createUser(request, data.user, function (err: $TSFixMe, res: $TSFixMe) {
             expect(res).to.have.status(400);
             done();
         });
@@ -135,7 +135,7 @@ describe('User API', function () {
         createUser(
             request,
             invalidMailUser,
-            function (err: $TSFixMe, res: Response) {
+            function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             }
@@ -148,7 +148,7 @@ describe('User API', function () {
         createUser(
             request,
             personalMailUser,
-            function (err: $TSFixMe, res: Response) {
+            function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             }
@@ -164,7 +164,7 @@ describe('User API', function () {
                 email: null,
                 password: data.user.password,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -179,7 +179,7 @@ describe('User API', function () {
                 email: data.user.email,
                 password: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -192,7 +192,7 @@ describe('User API', function () {
                 email: 'invalidEmail',
                 password: data.user.password,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -205,7 +205,7 @@ describe('User API', function () {
                 email: data.user.email,
                 password: {},
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -232,7 +232,7 @@ describe('User API', function () {
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).include.keys('tokens');
@@ -248,7 +248,7 @@ describe('User API', function () {
                 password: data.newUser.password,
                 redirect: 'http://oneuptime.com',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).have.property('redirect');
@@ -263,7 +263,7 @@ describe('User API', function () {
             .send({
                 email: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -275,7 +275,7 @@ describe('User API', function () {
             .send({
                 email: '(' + data.user.email + ')',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -287,7 +287,7 @@ describe('User API', function () {
             .send({
                 email: data.newUser.email,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -302,7 +302,7 @@ describe('User API', function () {
                 password: data.user.password,
                 token: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -317,7 +317,7 @@ describe('User API', function () {
                 password: null,
                 token: 'randomToken',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -339,7 +339,7 @@ describe('User API', function () {
                                 password: 'newPassword',
                                 token: user.resetPasswordToken,
                             })
-                            .end(function (err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: $TSFixMe) {
                                 expect(res).to.have.status(200);
                                 done();
                             });
@@ -354,7 +354,7 @@ describe('User API', function () {
             .send({
                 email: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -366,7 +366,7 @@ describe('User API', function () {
             .send({
                 email: data.user.email,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.a('boolean');
                 done();
@@ -379,7 +379,7 @@ describe('User API', function () {
             .put('/user/profile')
             .set('Authorization', authorization)
             .send(profile)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('_id');
@@ -399,7 +399,7 @@ describe('User API', function () {
                 newPassword: 'abcdefghi',
                 confirmPassword: 'abcdefghi',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -415,7 +415,7 @@ describe('User API', function () {
                 newPassword: null,
                 confirmPassword: 'abcdefghi',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -431,7 +431,7 @@ describe('User API', function () {
                 newPassword: 'abcdefghi',
                 confirmPassword: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -447,7 +447,7 @@ describe('User API', function () {
                 newPassword: 'abcdefghi',
                 confirmPassword: 'abcdefghi',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.id).to.be.equal(userId);
                 done();
@@ -459,7 +459,7 @@ describe('User API', function () {
         request
             .get('/user/profile')
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('name');
@@ -475,7 +475,7 @@ describe('User API', function () {
             .put('/user/profile')
             .set('Authorization', authorization)
             .send(profile)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body._id).to.be.equal(userId);
                 expect(res.body.alertPhoneNumber).not.to.be.equal(
                     profile.alertPhoneNumber
@@ -491,7 +491,7 @@ describe('User API', function () {
         request
             .delete(`/user/${anotherUserId}/delete`)
             .set('Authorization', authorization)
-            .end(function (_err: $TSFixMe, res: Response) {
+            .end(function (_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -502,7 +502,7 @@ describe('User API', function () {
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
-            .end(function (_err: $TSFixMe, res: Response) {
+            .end(function (_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -513,7 +513,7 @@ describe('User API', function () {
         request
             .post(`/user/totp/token/${userId}`)
             .set('Authorization', authorization)
-            .end(async function (_err: $TSFixMe, res: Response) {
+            .end(async function (_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 const user = await UserService.findOneBy({
                     query: { _id: userId },
@@ -551,7 +551,7 @@ describe('User API', function () {
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
             .send(deleteAccountConfirmation)
-            .end(function (_err: $TSFixMe, res: Response) {
+            .end(function (_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.user.deleted).to.equal(true);
                 done();
@@ -564,7 +564,7 @@ describe('User API', function () {
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
             .send(deleteAccountConfirmation)
-            .end(function (_err: $TSFixMe, res: Response) {
+            .end(function (_err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -574,7 +574,7 @@ describe('User API', function () {
         createUser(
             request,
             data.anotherUser,
-            function (_err: $TSFixMe, res: Response) {
+            function (_err: $TSFixMe, res: $TSFixMe) {
                 const project = res.body.project;
                 const { id: userId } = res.body;
                 VerificationTokenModel.findOne(
@@ -594,7 +594,7 @@ describe('User API', function () {
                                     })
                                     .end(function (
                                         _err: $TSFixMe,
-                                        res: Response
+                                        res: $TSFixMe
                                     ) {
                                         const accessToken =
                                             res.body.tokens.jwtAccessToken;
@@ -608,7 +608,7 @@ describe('User API', function () {
                                             })
                                             .end(function (
                                                 _err: $TSFixMe,
-                                                res: Response
+                                                res: $TSFixMe
                                             ) {
                                                 expect(
                                                     res.body[0].team.length
@@ -626,7 +626,7 @@ describe('User API', function () {
                                                     )
                                                     .end(function (
                                                         _err: $TSFixMe,
-                                                        res: Response
+                                                        res: $TSFixMe
                                                     ) {
                                                         expect(
                                                             res
@@ -679,7 +679,7 @@ describe('SSO authentication', function () {
     it('Should not accept requests without email as query.', function (done: $TSFixMe) {
         request
             .get('/user/sso/login')
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -688,7 +688,7 @@ describe('SSO authentication', function () {
     it('Should not accept requests with invalid email.', function (done: $TSFixMe) {
         request
             .get('/user/sso/login?email=invalid@email')
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -697,7 +697,7 @@ describe('SSO authentication', function () {
     it("Should not accept requests with domains that aren't defined in the ssos collection.", function (done: $TSFixMe) {
         request
             .get('/user/sso/login?email=user@inexistant-domain.hackerbay.io')
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(404);
                 done();
             });
@@ -710,7 +710,7 @@ describe('SSO authentication', function () {
         ).then(() => {
             request
                 .get('/user/sso/login?email=user@tests.hackerbay.io')
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     expect(res).to.have.status(401);
                     SsoModel.updateOne(
                         { _id: ssoId },

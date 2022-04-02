@@ -19,7 +19,7 @@ const router = express.getRouter();
 router.get(
     '/monitors',
     isAuthorizedService,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             //get top 10 monitors.
             const allScriptMonitors = await MonitorService.getScriptMonitors({

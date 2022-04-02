@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -15,7 +18,7 @@ router.post(
     '/:projectId/gitCredential',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
                 req.body;
@@ -51,7 +54,7 @@ router.get(
     '/:projectId/gitCredential',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
 
@@ -77,7 +80,7 @@ router.put(
     '/:projectId/gitCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId } = req.params;
             const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
@@ -115,7 +118,7 @@ router.delete(
     '/:projectId/gitCredential/:credentialId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId } = req.params;
 

@@ -1,7 +1,11 @@
 import mongoose from '../config/db';
 import ProjectService from '../services/projectService';
 import { sendErrorResponse } from 'common-server/utils/response';
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'common-server/utils/express';
 const ObjectID = mongoose.Types.ObjectId;
 import MonitorService from '../services/monitorService';
 
@@ -11,8 +15,8 @@ export default {
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
     isValidProjectIdAndApiKey: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         //get project id
@@ -160,8 +164,8 @@ export default {
     },
 
     isValidMonitor: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         const id = req.params.id;

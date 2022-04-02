@@ -72,7 +72,7 @@ class SideNav extends Component<ComponentProps> {
                 this.props
 
                     .getSubProjects(this.props.currentProject._id)
-                    .then((res: Response) => {
+                    .then((res: ExpressResponse) => {
 
                         this.props.switchToProjectViewer(
                             User.getUserId(),

@@ -28,7 +28,7 @@ export class CreateProjectModal extends Component<CreateProjectModalProps>{
 
         const { switchProject, dispatch } = this.props;
 
-        return this.props.createProject(values).then((res: Response) => {
+        return this.props.createProject(values).then((res: ExpressResponse) => {
             if (
 
                 this.props.projects &&

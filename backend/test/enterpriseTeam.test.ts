@@ -26,7 +26,7 @@ describe('Enterprise Team API', function () {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -36,7 +36,7 @@ describe('Enterprise Team API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -66,7 +66,7 @@ describe('Enterprise Team API', function () {
                 emails: teamEmail,
                 role: 'Member',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res.body[0].team[0].userId).to.be.a('string');
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');

@@ -105,7 +105,7 @@ class SlackTeamList extends React.Component<SlackTeamListProps> {
                         </thead>
                         <tbody className="Table-body">
                             <ShouldRender if={teams.teams.length > 0}>
-                                {teams.teams.map((res: Response) => <SlackTeamItem
+                                {teams.teams.map((res: ExpressResponse) => <SlackTeamItem
                                     key={`${res._id}`}
 
                                     team={res}

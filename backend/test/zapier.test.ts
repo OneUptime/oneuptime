@@ -37,7 +37,7 @@ describe('Zapier API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -60,7 +60,7 @@ describe('Zapier API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -74,7 +74,7 @@ describe('Zapier API', function () {
                                                 .send(monitor)
                                                 .end(function (
                                                     err: $TSFixMe,
-                                                    res: Response
+                                                    res: $TSFixMe
                                                 ) {
                                                     monitorId = res.body._id;
                                                     incidentData.monitors = [
@@ -143,7 +143,7 @@ describe('Zapier API', function () {
             .post(`/zapier/subscribe?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -157,7 +157,7 @@ describe('Zapier API', function () {
             .send({
                 type: 'created',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -171,7 +171,7 @@ describe('Zapier API', function () {
             .send({
                 url: 'https://www.oneuptime.com',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -187,7 +187,7 @@ describe('Zapier API', function () {
                 type: 'created',
                 input: { monitors: ['12345'] },
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 zapierId = res.body.id;
                 expect(res).to.have.status(200);
                 done();
@@ -200,7 +200,7 @@ describe('Zapier API', function () {
             .get(`/zapier/test?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -212,7 +212,7 @@ describe('Zapier API', function () {
             .get(`/zapier/test?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -234,7 +234,7 @@ describe('Zapier API', function () {
         request
             .get(`/zapier/incidents?projectId=${projectId}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -244,7 +244,7 @@ describe('Zapier API', function () {
         request
             .get(`/zapier/incidents?apiKey=${apiKey}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -256,7 +256,7 @@ describe('Zapier API', function () {
             .get(`/zapier/incidents?apiKey=${apiKey}&&projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -268,7 +268,7 @@ describe('Zapier API', function () {
             .get(`/zapier/incident/resolved?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -280,7 +280,7 @@ describe('Zapier API', function () {
             .get(`/zapier/incident/resolved?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -294,7 +294,7 @@ describe('Zapier API', function () {
             )
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -306,7 +306,7 @@ describe('Zapier API', function () {
             .get(`/zapier/incident/acknowledged?projectId=${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -318,7 +318,7 @@ describe('Zapier API', function () {
             .get(`/zapier/incident/acknowledged?apiKey=${apiKey}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -332,7 +332,7 @@ describe('Zapier API', function () {
             )
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -344,7 +344,7 @@ describe('Zapier API', function () {
                 `/zapier/unsubscribe/${zapierId}?apiKey=${apiKey}&&projectId=${projectId}`
             )
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -356,7 +356,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -368,7 +368,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -382,7 +382,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -396,7 +396,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/acknowledgeIncident?projectId=${projectId}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -406,7 +406,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/acknowledgeIncident?apiKey=${apiKey}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -420,7 +420,7 @@ describe('Zapier API', function () {
             .send({
                 incidents: [incidentId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -434,7 +434,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/resolveIncident?projectId=${projectId}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -444,7 +444,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/resolveIncident?apiKey=${apiKey}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -458,7 +458,7 @@ describe('Zapier API', function () {
             .send({
                 incidents: [incidentId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -476,7 +476,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -488,7 +488,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -502,7 +502,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -518,7 +518,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -530,7 +530,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -544,7 +544,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');
@@ -560,7 +560,7 @@ describe('Zapier API', function () {
                 `/zapier/incident/acknowledgeAllIncidents?projectId=${projectId}`
             )
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -570,7 +570,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/acknowledgeAllIncidents?apiKey=${apiKey}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -595,7 +595,7 @@ describe('Zapier API', function () {
                             .send({
                                 monitors: [monitorId],
                             })
-                            .end(function (err: $TSFixMe, res: Response) {
+                            .end(function (err: $TSFixMe, res: $TSFixMe) {
                                 expect(res).to.have.status(200);
                                 expect(res.body).to.be.an('object');
                                 expect(res.body).to.have.property('incidents');
@@ -615,7 +615,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/resolveAllIncidents?projectId=${projectId}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -625,7 +625,7 @@ describe('Zapier API', function () {
         request
             .post(`/zapier/incident/resolveAllIncidents?apiKey=${apiKey}`)
             .send()
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -639,7 +639,7 @@ describe('Zapier API', function () {
             .send({
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('incidents');

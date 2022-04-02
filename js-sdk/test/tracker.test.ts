@@ -36,7 +36,7 @@ describe('Tracker Timeline', function () {
             request
                 .post('/user/signup')
                 .send(user)
-                .end(function (err: $TSFixMe, res: Response) {
+                .end(function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     token = res.body.tokens.jwtAccessToken;
@@ -44,7 +44,7 @@ describe('Tracker Timeline', function () {
                         .post(`/component/${projectId}`)
                         .set('Authorization', `Basic ${token}`)
                         .send(component)
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             componentId = res.body._id;
                             request
                                 .post(
@@ -52,7 +52,7 @@ describe('Tracker Timeline', function () {
                                 )
                                 .set('Authorization', `Basic ${token}`)
                                 .send({ name: 'Application OneUptimeTracker' })
-                                .end(function (err: $TSFixMe, res: Response) {
+                                .end(function (err: $TSFixMe, res: $TSFixMe) {
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     expect(res.body).to.have.property('_id');

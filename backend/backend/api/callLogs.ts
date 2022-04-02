@@ -46,7 +46,7 @@ router.post(
     '/',
     getUser,
     isUserMasterAdmin,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
 

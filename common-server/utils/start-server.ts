@@ -70,7 +70,7 @@ app.use(setDefaultHeaders);
 
 // Add limit of 10 MB to avoid "Request Entity too large error"
 // https://stackoverflow.com/questions/19917401/error-request-entity-too-large
-app.use(ExpressJson({ limit: '10mb', extended: true }));
+app.use(ExpressJson({ limit: '10mb' }));
 app.use(ExpressUrlEncoded({ limit: '10mb' }));
 
 app.use(logRequest);

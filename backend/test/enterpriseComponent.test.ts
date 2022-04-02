@@ -28,7 +28,7 @@ describe('Enterprise Component API', function () {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -38,7 +38,7 @@ describe('Enterprise Component API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -66,7 +66,7 @@ describe('Enterprise Component API', function () {
             .send({
                 projectName: 'Test Project',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 newProjectId = res.body._id;
                 request
                     .post(`/component/${newProjectId}`)
@@ -74,7 +74,7 @@ describe('Enterprise Component API', function () {
                     .send({
                         name: 'New Component',
                     })
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         componentId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.be.equal('New Component');

@@ -13,7 +13,7 @@ import bodyParser from 'body-parser';
 
 import cors from 'cors';
 
-async function interactWithDB(req: Request, res: Response) {
+async function interactWithDB(req: ExpressRequest, res: ExpressResponse) {
     if (req.params.dbFunction === 'find') {
         res.send(await find(req.body.collection, req.body.query));
     }

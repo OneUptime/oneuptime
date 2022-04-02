@@ -24,7 +24,7 @@ describe('Enterprise Project API', function () {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -34,7 +34,7 @@ describe('Enterprise Project API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: Response) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe) {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -61,7 +61,7 @@ describe('Enterprise Project API', function () {
             .send({
                 projectName: 'Test Project',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 newProjectId = res.body._id;
                 expect(res).to.have.status(200);
                 done();
@@ -73,7 +73,7 @@ describe('Enterprise Project API', function () {
         request
             .delete(`/project/${projectId}/deleteProject`)
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, res: Response) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -84,7 +84,7 @@ describe('Enterprise Project API', function () {
         request
             .put(`/project/${projectId}/restoreProject`)
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, res: Response) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 done();
             });

@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -19,7 +22,7 @@ router.get(
     '/:projectId/:componentId/application/logs/:applicationSecurityId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecurityId, componentId } = req.params;
 
@@ -54,7 +57,7 @@ router.get(
     '/:projectId/:componentId/applicationSecuritySlug/logs/:applicationSecuritySlug',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { applicationSecuritySlug, componentId } = req.params;
 
@@ -89,7 +92,7 @@ router.get(
     '/:projectId/:componentId/application/logs',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId } = req.params;
             const populateApplicationSecurityLog = [

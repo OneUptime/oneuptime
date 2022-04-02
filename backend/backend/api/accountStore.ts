@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -9,7 +12,7 @@ import AccountStoreService from '../services/accountStoreService';
 const router = express.getRouter();
 
 // store account details to the db
-router.post('/store', async (req: Request, res: Response) => {
+router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
 
@@ -21,7 +24,7 @@ router.post('/store', async (req: Request, res: Response) => {
 });
 
 // update account details in the db
-router.put('/store/:id', async (req: Request, res: Response) => {
+router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id } = req.params;
         const account = await AccountStoreService.updateOneBy({ id }, req.body);
@@ -33,7 +36,7 @@ router.put('/store/:id', async (req: Request, res: Response) => {
 });
 
 // fetch an account detail
-router.get('/store/:id', async (req: Request, res: Response) => {
+router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id } = req.params;
         const account = await AccountStoreService.findOneBy({
@@ -48,15 +51,18 @@ router.get('/store/:id', async (req: Request, res: Response) => {
 });
 
 // delete an account detail
-router.delete('/store/:id', async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
+router.delete(
+    '/store/:id',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { id } = req.params;
 
-        const account = await AccountStoreService.deleteBy({ id });
-        return sendItemResponse(req, res, account);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const account = await AccountStoreService.deleteBy({ id });
+            return sendItemResponse(req, res, account);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 export default router;

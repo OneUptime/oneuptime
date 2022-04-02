@@ -1016,7 +1016,7 @@ router.post('/isInvited', async (req: ExpressRequest, res: ExpressResponse) => {
 router.post(
     '/isAuthenticated',
     getUser,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         // request will get here if user is authenticated.
 
         return sendItemResponse(req, res, {

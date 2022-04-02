@@ -1,15 +1,9 @@
-import jwt from 'jsonwebtoken';
+import JWT from 'common-server/utils/json-web-token';
 
-import { tokenSecret } from '../config/token';
+class WebToken {
+    static generateWebToken(licenseKey: string, expiryTime: Date): string {
+        return JWT.sign(licenseKey, expiryTime);
+    }
+}
 
-const _this = {
-    generateWebToken: ({ licenseKey, presentTime, expiryTime }: $TSFixMe) => {
-        const tokenExpiryTime = expiryTime - presentTime;
-
-        return jwt.sign({ licenseKey }, tokenSecret, {
-            expiresIn: String(tokenExpiryTime),
-        });
-    },
-};
-
-export default _this;
+export default WebToken;

@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -11,7 +14,7 @@ import SiteManagerService from '../services/siteManagerService';
 const router = express.getRouter();
 
 // store certificate details to the db
-router.post('/store', async (req: Request, res: Response) => {
+router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
 
@@ -23,7 +26,7 @@ router.post('/store', async (req: Request, res: Response) => {
 });
 
 // update certificate details in the db
-router.put('/store/:id', async (req: Request, res: Response) => {
+router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id } = req.params;
         const certificate = await CertificateStoreService.updateOneBy(
@@ -38,7 +41,7 @@ router.put('/store/:id', async (req: Request, res: Response) => {
 });
 
 // fetch a certificate detail
-router.get('/store/:id', async (req: Request, res: Response) => {
+router.get('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id } = req.params;
         const certificate = await CertificateStoreService.findOneBy({
@@ -54,33 +57,39 @@ router.get('/store/:id', async (req: Request, res: Response) => {
 
 // fetch a certificate by the subject
 // called from the status page project
-router.get('/store/cert/:subject', async (req: Request, res: Response) => {
-    try {
-        const { subject } = req.params;
-        const certificate = await CertificateStoreService.findOneBy({
-            query: { subject },
-            select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
-        });
+router.get(
+    '/store/cert/:subject',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { subject } = req.params;
+            const certificate = await CertificateStoreService.findOneBy({
+                query: { subject },
+                select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
+            });
 
-        return sendItemResponse(req, res, certificate);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            return sendItemResponse(req, res, certificate);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // delete an certificate detail
-router.delete('/store/:id', async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
+router.delete(
+    '/store/:id',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { id } = req.params;
 
-        const certificate = await CertificateStoreService.deleteBy({ id });
-        return sendItemResponse(req, res, certificate);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+            const certificate = await CertificateStoreService.deleteBy({ id });
+            return sendItemResponse(req, res, certificate);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
-router.post('/certOrder', async (req: Request, res: Response) => {
+router.post('/certOrder', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const domains = [];
 
@@ -166,26 +175,29 @@ router.post('/certOrder', async (req: Request, res: Response) => {
 // delete ssl certificate for a particular domain
 // and remove it from certificate order queue
 // id => domain/subdomain
-router.delete('/certDelete/:id', async (req: Request, res: Response) => {
-    try {
-        const greenlock = global.greenlock;
-        const { id } = req.body;
+router.delete(
+    '/certDelete/:id',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const greenlock = global.greenlock;
+            const { id } = req.body;
 
-        if (greenlock) {
-            await greenlock.remove({ subject: id });
-            await CertificateStoreService.deleteBy({
-                id,
-            });
+            if (greenlock) {
+                await greenlock.remove({ subject: id });
+                await CertificateStoreService.deleteBy({
+                    id,
+                });
+            }
+
+            return sendItemResponse(
+                req,
+                res,
+                `Certificate deleted and cert order removed from queue`
+            );
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-
-        return sendItemResponse(
-            req,
-            res,
-            `Certificate deleted and cert order removed from queue`
-        );
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 export default router;

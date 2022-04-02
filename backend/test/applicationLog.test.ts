@@ -44,7 +44,7 @@ describe('Application Log API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -66,7 +66,7 @@ describe('Application Log API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -82,7 +82,7 @@ describe('Application Log API', function () {
                                                 })
                                                 .end(function (
                                                     err: $TSFixMe,
-                                                    res: Response
+                                                    res: $TSFixMe
                                                 ) {
                                                     componentId = res.body._id;
                                                     expect(res).to.have.status(
@@ -110,7 +110,7 @@ describe('Application Log API', function () {
             .send({
                 name: 'New Application Log',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(401);
                 done();
             });
@@ -124,7 +124,7 @@ describe('Application Log API', function () {
             .send({
                 name: null,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -138,7 +138,7 @@ describe('Application Log API', function () {
             .send({
                 name: 'Travis Watcher',
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 applicationLog = res.body;
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ name: 'Travis Watcher' });
@@ -151,7 +151,7 @@ describe('Application Log API', function () {
         request
             .get(`/application-log/${projectId}/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.applicationLogs).to.be.an('array');
                 done();
@@ -163,7 +163,7 @@ describe('Application Log API', function () {
         request
             .get(`/application-log/${projectId}/5ee8d7cc8701d678901ab908`) // wrong component ID
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Component does not exist.'
@@ -178,7 +178,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application Log does not exist.'
@@ -194,7 +194,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ content: log.content });
                 expect(res.body).to.include({ type: log.type });
@@ -214,7 +214,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ content: log.content });
                 expect(res.body).to.include({ type: log.type });
@@ -236,7 +236,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ content: log.content });
                 expect(res.body).to.include({ type: log.type });
@@ -259,7 +259,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application Log Tags must be of type String or Array of Strings'
@@ -281,7 +281,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ content: log.content });
                 expect(res.body).to.include({ type: log.type });
@@ -315,7 +315,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ filter: 'server' })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.logs).to.be.an('array');
@@ -333,7 +333,7 @@ describe('Application Log API', function () {
             .post(`/application-log/${applicationLog._id}/log`)
             .set('Authorization', authorization)
             .send(log)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Log Type must be of the allowed types.'
@@ -349,7 +349,7 @@ describe('Application Log API', function () {
                 `/application-log/${projectId}/${componentId}/5ee8d7cc8701d678901ab908/reset-key`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(404);
                 expect(res.body.message).to.be.equal(
                     'Application Log not found'
@@ -367,7 +367,7 @@ describe('Application Log API', function () {
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/reset-key`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 // confirm that the new key is not the same with the old key
                 expect(res.body.key).to.not.be.equal(applicationLog.key);
@@ -386,7 +386,7 @@ describe('Application Log API', function () {
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}/logs`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.logs).to.be.an('array');
@@ -416,7 +416,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ type: 'warning' })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.logs).to.be.an('array');
@@ -445,7 +445,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ type: 'error' }) // filter by error
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.logs).to.be.an('array');
@@ -458,7 +458,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ type: 'error', filter: 'james' }) // filter by error and keyword from content
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.logs).to.be.an('array');
@@ -487,7 +487,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({})
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.data).to.be.an('object');
                 expect(res.body.data.all).to.be.equal(
@@ -509,7 +509,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ name: newName })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'New Application Log Name is required.'
@@ -527,7 +527,7 @@ describe('Application Log API', function () {
             .send({
                 name: newName,
             })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 applicationLog = res.body;
                 expect(res).to.have.status(200);
                 expect(res.body).to.include({ name: newName });
@@ -537,7 +537,7 @@ describe('Application Log API', function () {
                     )
                     .set('Authorization', authorization)
                     .send({ name: newName })
-                    .end(function (err: $TSFixMe, res: Response) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe) {
                         expect(res).to.have.status(400);
                         expect(res.body.message).to.be.equal(
                             'Application Log with that name already exists.'
@@ -556,7 +556,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ name: newName })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.id).to.be.equal(applicationLog.id);
                 expect(res.body.name).to.be.equal(newName);
@@ -573,7 +573,7 @@ describe('Application Log API', function () {
             )
             .set('Authorization', authorization)
             .send({ name: newName })
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.id).to.be.equal(applicationLog.id);
                 expect(res.body.name).to.be.equal(newName);
@@ -589,7 +589,7 @@ describe('Application Log API', function () {
                 `/application-log/${projectId}/${componentId}/${applicationLog._id}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: Response) {
+            .end(function (err: $TSFixMe, res: $TSFixMe) {
                 expect(res).to.have.status(200);
                 expect(res.body.id).to.be.equal(applicationLog.id);
                 expect(res.body.deleted).to.be.equal(true);

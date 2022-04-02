@@ -178,45 +178,56 @@ async function handleCertificate(
     return certificate;
 }
 
-app.use('/', async function (req: Request, res: Response, next: NextFunction) {
-    const host = req.hostname;
-    if (
-        host &&
-        (host === 'oneuptime.com' ||
-            host === 'staging.oneuptime.com' ||
-            host === 'oneuptime.com' ||
-            host === 'staging.oneuptime.com' ||
-            host.indexOf('localhost') > -1)
+app.use(
+    '/',
+    async function (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
     ) {
-        return next();
-    }
-
-    try {
-        const response = await handleCustomDomain(client, 'statuspages', host);
-
-        const { enableHttps } = response;
-        if (enableHttps) {
-            if (!req.secure) {
-                res.writeHead(301, {
-                    Location: `https://${host}${req.url}`,
-                });
-                return res.end();
-            }
-            return next();
-        } else {
-            if (req.secure) {
-                res.writeHead(301, {
-                    Location: `http://${host}${req.url}`,
-                });
-                return res.end();
-            }
+        const host = req.hostname;
+        if (
+            host &&
+            (host === 'oneuptime.com' ||
+                host === 'staging.oneuptime.com' ||
+                host === 'oneuptime.com' ||
+                host === 'staging.oneuptime.com' ||
+                host.indexOf('localhost') > -1)
+        ) {
             return next();
         }
-    } catch (error) {
-        logger.info('Error with fetch', error);
-        return next();
+
+        try {
+            const response = await handleCustomDomain(
+                client,
+                'statuspages',
+                host
+            );
+
+            const { enableHttps } = response;
+            if (enableHttps) {
+                if (!req.secure) {
+                    res.writeHead(301, {
+                        Location: `https://${host}${req.url}`,
+                    });
+                    return res.end();
+                }
+                return next();
+            } else {
+                if (req.secure) {
+                    res.writeHead(301, {
+                        Location: `http://${host}${req.url}`,
+                    });
+                    return res.end();
+                }
+                return next();
+            }
+        } catch (error) {
+            logger.info('Error with fetch', error);
+            return next();
+        }
     }
-});
+);
 
 app.get(
     ['/status-page/status', '/status'],
@@ -249,18 +260,20 @@ async function fetchCredential(
     configPath: $TSFixMe
 ) {
     return new Promise((resolve, reject) => {
-        fetch(`${apiHost}/file/${credentialName}`).then((res: Response) => {
-            const dest = fs.createWriteStream(configPath);
-            res.body.pipe(dest);
-            // at this point, writing to the specified file is complete
-            dest.on('finish', async () => {
-                resolve('done writing to file');
-            });
+        fetch(`${apiHost}/file/${credentialName}`).then(
+            (res: ExpressResponse) => {
+                const dest = fs.createWriteStream(configPath);
+                res.body.pipe(dest);
+                // at this point, writing to the specified file is complete
+                dest.on('finish', async () => {
+                    resolve('done writing to file');
+                });
 
-            dest.on('error', async error => {
-                reject(error);
-            });
-        });
+                dest.on('error', async error => {
+                    reject(error);
+                });
+            }
+        );
     });
 }
 

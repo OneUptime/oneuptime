@@ -350,7 +350,7 @@ router.get(
     '/:projectId/last-metrics/:performanceTrackerId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { performanceTrackerId } = req.params;
             let { startDate, endDate } = req.query;

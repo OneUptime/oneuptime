@@ -41,7 +41,7 @@ describe('Reports API', function () {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: Response) {
+                function (err: $TSFixMe, res: $TSFixMe) {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -63,7 +63,7 @@ describe('Reports API', function () {
                                         })
                                         .end(function (
                                             err: $TSFixMe,
-                                            res: Response
+                                            res: $TSFixMe
                                         ) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
@@ -86,7 +86,7 @@ describe('Reports API', function () {
                                                     })
                                                     .end(function (
                                                         err: $TSFixMe,
-                                                        res: Response
+                                                        res: $TSFixMe
                                                     ) {
                                                         monitorId =
                                                             res.body._id;
@@ -128,7 +128,7 @@ describe('Reports API', function () {
                 `/reports/${projectId}/active-members?startDate=${startDate}&&endDate=${endDate}&&skip=0&&limit=10`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, res: Response) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -144,7 +144,7 @@ describe('Reports API', function () {
                 `/reports/${projectId}/active-monitors?startDate=${startDate}&&endDate=${endDate}&&skip=0&&limit=10`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, res: Response) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -160,7 +160,7 @@ describe('Reports API', function () {
                 `/reports/${projectId}/average-resolved?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, res: Response) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();
@@ -174,7 +174,7 @@ describe('Reports API', function () {
                 `/reports/${projectId}/incidents?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`
             )
             .set('Authorization', authorization)
-            .end((err: $TSFixMe, res: Response) => {
+            .end((err: $TSFixMe, res: $TSFixMe) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

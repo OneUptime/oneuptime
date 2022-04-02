@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -9,7 +12,7 @@ import DefaultManagerService from '../services/defaultManagerService';
 const router = express.getRouter();
 
 // store default details to the db
-router.put('/default', async (req: Request, res: Response) => {
+router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const {
             store,
@@ -57,7 +60,7 @@ router.put('/default', async (req: Request, res: Response) => {
     }
 });
 
-router.get('/default', async (req: Request, res: Response) => {
+router.get('/default', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const defaultManager = await DefaultManagerService.findOneBy({
             query: { deleted: false },

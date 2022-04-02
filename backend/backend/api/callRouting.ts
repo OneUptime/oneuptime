@@ -19,7 +19,7 @@ const router = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-const callForward = async (req: Request, res: Response) => {
+const callForward = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -42,7 +42,7 @@ const callForward = async (req: Request, res: Response) => {
     }
 };
 
-const backupCallForward = async (req: Request, res: Response) => {
+const backupCallForward = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -65,7 +65,7 @@ const backupCallForward = async (req: Request, res: Response) => {
     }
 };
 
-const callStatus = async (req: Request, res: Response) => {
+const callStatus = async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -101,7 +101,7 @@ router.get(
     '/:projectId',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             let { skip, limit } = req.query;
             const { projectId } = req.params;
@@ -135,7 +135,7 @@ router.get(
     '/:projectId/logs',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId } = req.params;
             const logs = await CallRoutingService.getCallRoutingLogs(projectId);
@@ -150,7 +150,7 @@ router.get(
     '/:projectId/routingNumbers',
     getUser,
     isAuthorized,
-    async (req: Request, res: Response) => {
+    async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { countryCode, numberType } = req.query;
             const { projectId } = req.params;

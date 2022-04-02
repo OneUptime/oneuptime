@@ -1,4 +1,7 @@
-import express from 'common-server/utils/express';
+import express, {
+    ExpressRequest,
+    ExpressResponse,
+} from 'common-server/utils/express';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -9,7 +12,7 @@ import SiteManagerService from '../services/siteManagerService';
 const router = express.getRouter();
 
 // store site details to the db
-router.post('/site', async (req: Request, res: Response) => {
+router.post('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data = req.body;
 
@@ -21,7 +24,7 @@ router.post('/site', async (req: Request, res: Response) => {
 });
 
 // update site details in the db
-router.put('/site', async (req: Request, res: Response) => {
+router.put('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { subject } = req.query;
         const site = await SiteManagerService.updateOneBy(
@@ -36,7 +39,7 @@ router.put('/site', async (req: Request, res: Response) => {
 });
 
 // fetch a site detail
-router.get('/site', async (req: Request, res: Response) => {
+router.get('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { servername } = req.query;
         const site = await SiteManagerService.findOneBy({
@@ -51,7 +54,7 @@ router.get('/site', async (req: Request, res: Response) => {
 });
 
 // fetch all sites
-router.get('/sites', async (req: Request, res: Response) => {
+router.get('/sites', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const sites = await SiteManagerService.findBy({
             query: {},
@@ -64,21 +67,24 @@ router.get('/sites', async (req: Request, res: Response) => {
 });
 
 // fetch all sites by servernames
-router.post('/site/servernames', async (req: Request, res: Response) => {
-    try {
-        const { servernames = [] } = req.body;
-        const sites = await SiteManagerService.findBy({
-            query: { subject: { $in: servernames } },
-            select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
-        });
-        return sendItemResponse(req, res, sites);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.post(
+    '/site/servernames',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            const { servernames = [] } = req.body;
+            const sites = await SiteManagerService.findBy({
+                query: { subject: { $in: servernames } },
+                select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',
+            });
+            return sendItemResponse(req, res, sites);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 // fetch sites base on the options
-router.post('/site/opts', async (req: Request, res: Response) => {
+router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { issuedBefore, expiresBefore, renewBefore } = req.body;
         const query = { $or: [] };
@@ -117,7 +123,7 @@ router.post('/site/opts', async (req: Request, res: Response) => {
 });
 
 // delete an site detail
-router.delete('/site', async (req: Request, res: Response) => {
+router.delete('/site', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { subject } = req.query; // still handle this for legacy code
         const { domains } = req.body;

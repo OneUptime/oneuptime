@@ -1,4 +1,4 @@
-import JsonToCsv from './jsonToCsv';
+import JsonToCsv from './json-to-csv';
 import logger from './logger';
 import { GridFSBucket } from 'mongodb';
 import { OneUptimeRequest, OneUptimeResponse } from './express';

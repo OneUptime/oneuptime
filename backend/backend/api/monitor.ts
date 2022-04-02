@@ -893,8 +893,8 @@ router.get(
 );
 
 const _updateDeviceMonitorPingTime = async function (
-    req: Request,
-    res: Response
+    req: ExpressRequest,
+    res: ExpressResponse
 ) {
     try {
         const projectId = req.params.projectId;

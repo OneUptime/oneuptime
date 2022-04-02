@@ -809,7 +809,7 @@ export default {
         });
         const prevTeams = subProjects
             .concat(project)
-            .map((res: Response) => res.users);
+            .map((res: $TSFixMe) => res.users);
         const prevFlatTeams = flatten(prevTeams);
         const prevTeamArr = prevFlatTeams.filter(
             user => String(user.userId) === String(teamMemberUserId)

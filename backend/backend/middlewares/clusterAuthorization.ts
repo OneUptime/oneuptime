@@ -1,10 +1,14 @@
 import { sendErrorResponse } from 'common-server/utils/response';
-import { Request, Response, NextFunction } from 'common-server/utils/express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from 'common-server/utils/express';
 
 export default {
     isAuthorizedAdmin: async function (
-        req: Request,
-        res: Response,
+        req: ExpressRequest,
+        res: ExpressResponse,
         next: NextFunction
     ) {
         let masterAdmin = false;

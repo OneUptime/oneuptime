@@ -133,7 +133,7 @@ class CreateAnnouncement extends Component<ComponentProps> {
         }
 
         createAnnouncement(projectId, statusPage._id, { data: postObj })
-            .then((res: Response) => {
+            .then((res: ExpressResponse) => {
                 if (res) {
                     this.handleCloseModal();
                     fetchAnnouncements(projectId, statusPage._id, 0, 10);
