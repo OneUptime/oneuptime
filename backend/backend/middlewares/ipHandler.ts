@@ -1,6 +1,6 @@
 import StatusPageService from '../services/statusPageService';
 import { sendErrorResponse } from 'common-server/utils/response';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 import {
     ExpressResponse,
     ExpressRequest,

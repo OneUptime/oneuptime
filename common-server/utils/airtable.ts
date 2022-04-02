@@ -1,6 +1,6 @@
 import PositiveNumber from 'common/types/positive-number';
 import AirtableLib from 'airtable';
-
+import Dictionary from 'common/types/dictionary';
 import { airtableApiKey, airtableBaseId } from '../config';
 
 class Airtable {
@@ -14,19 +14,19 @@ class Airtable {
         limit: PositiveNumber
     ) {
         return this.base(tableName)
-            .select({ view: airtableView, pageSize: limit })
+            .select({ view: airtableView, pageSize: limit.toNumber() })
             .firstPage();
     }
 
     public static async update(
         tableName: string,
         id: string,
-        fields: $TSFixMe
+        fields: Dictionary<string>
     ) {
         return this.base(tableName).update(id, fields);
     }
 
-    public static async create(tableName: string, fields: $TSFixMe) {
+    public static async create(tableName: string, fields: Dictionary<string>) {
         return this.base(tableName).create(fields);
     }
 

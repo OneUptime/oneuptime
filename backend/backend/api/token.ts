@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/express';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 
 const router = express.getRouter();
 import UserService from '../services/userService';

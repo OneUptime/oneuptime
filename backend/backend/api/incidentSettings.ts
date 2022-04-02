@@ -4,7 +4,7 @@ import express, {
 } from 'common-server/utils/express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,

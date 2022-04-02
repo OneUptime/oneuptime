@@ -1,5 +1,5 @@
 import ProbeService from '../services/probeService';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 const sendErrorResponse = require('./response').sendErrorResponse;
 import ErrorService from '../services/errorService';
 import {

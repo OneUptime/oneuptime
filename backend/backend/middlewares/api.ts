@@ -1,7 +1,7 @@
 import mongoose from '../config/db';
 import ProjectService from '../services/projectService';
 import { sendErrorResponse } from 'common-server/utils/response';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 import {
     ExpressRequest,
     ExpressResponse,

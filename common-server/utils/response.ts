@@ -12,6 +12,7 @@ import { File } from 'common/types/file';
 import Exception from 'common/types/exception';
 import { ListData } from 'common/types/list';
 import Database from './database';
+import PositiveNumber from 'common/types/positive-number';
 
 function logResponse(
     req: ExpressRequest,
@@ -112,7 +113,7 @@ export const sendListResponse = async (
     req: ExpressRequest,
     res: ExpressResponse,
     list: JSONArray,
-    count: number
+    count: PositiveNumber
 ) => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -122,9 +123,9 @@ export const sendListResponse = async (
 
     const listData: ListData = new ListData({
         data: [],
-        count: 0,
-        skip: 0,
-        limit: 0,
+        count: new PositiveNumber(0),
+        skip: new PositiveNumber(0),
+        limit: new PositiveNumber(0),
     });
 
     if (!list) {
@@ -138,15 +139,19 @@ export const sendListResponse = async (
     if (count) {
         listData.count = count;
     } else {
-        if (list) listData.count = list.length;
+        if (list) listData.count = new PositiveNumber(list.length);
     }
 
     if (oneUptimeRequest.query['skip']) {
-        listData.skip = parseInt(oneUptimeRequest.query['skip'].toString());
+        listData.skip = new PositiveNumber(
+            parseInt(oneUptimeRequest.query['skip'].toString())
+        );
     }
 
     if (oneUptimeRequest.query['limit']) {
-        listData.limit = parseInt(oneUptimeRequest.query['limit'].toString());
+        listData.limit = new PositiveNumber(
+            parseInt(oneUptimeRequest.query['limit'].toString())
+        );
     }
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {

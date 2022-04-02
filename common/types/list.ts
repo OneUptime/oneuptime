@@ -4,8 +4,8 @@ import PositiveNumber from './positive-number';
 export class ListData {
     constructor(obj: {
         data: JSONArray;
-        count: number;
-        skip: number;
+        count: PositiveNumber;
+        skip: PositiveNumber;
         limit: PositiveNumber;
     }) {
         this.data = obj.data;
@@ -15,16 +15,16 @@ export class ListData {
     }
 
     public data: JSONArray;
-    public count: number;
-    public skip: number;
+    public count: PositiveNumber;
+    public skip: PositiveNumber;
     public limit: PositiveNumber;
 
     public toJSONValue(): JSONValue {
         const json: JSONValue = {
             data: this.data,
-            count: this.count,
-            skip: this.skip,
-            limit: this.limit,
+            count: this.count.toNumber(),
+            skip: this.skip.toNumber(),
+            limit: this.limit.toNumber(),
         };
 
         return json;

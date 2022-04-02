@@ -4,7 +4,7 @@ import express, {
 } from 'common-server/utils/express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 import IncidentService from '../services/incidentService';
 import IncidentTimelineService from '../services/incidentTimelineService';
 import MonitorStatusService from '../services/monitorStatusService';

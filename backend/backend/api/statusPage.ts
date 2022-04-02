@@ -10,7 +10,7 @@ import UtilService from '../services/utilService';
 import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 
 const router = express.getRouter();
 

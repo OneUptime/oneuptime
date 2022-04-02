@@ -1,7 +1,7 @@
 import ProjectService from '../services/projectService';
 import ErrorService from 'common-server/utils/error';
 import { sendErrorResponse } from 'common-server/utils/response';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 import {
     ExpressRequest,
     ExpressResponse,

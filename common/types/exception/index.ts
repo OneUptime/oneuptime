@@ -1,4 +1,4 @@
-import ExceptionCode from './exceptionCode';
+import ExceptionCode from './exception-code';
 
 export default class Exception extends Error {
     private _code: ExceptionCode = ExceptionCode.GeneralException;

@@ -9,7 +9,7 @@ import RealTimeService from '../services/realTimeService';
 import LogService from '../services/logService';
 import ErrorService from 'common-server/utils/error';
 import NotificationService from '../services/notificationService';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;

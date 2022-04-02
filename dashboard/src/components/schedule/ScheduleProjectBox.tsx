@@ -24,7 +24,7 @@ interface ScheduleProjectBoxProps {
     isRequesting: boolean;
     skip?: unknown | unknown;
     limit?: unknown | unknown;
-    count: number;
+    count: PositiveNumber;
     numberOfSchedules: number;
     subProjectName: string;
     currentProject: object;

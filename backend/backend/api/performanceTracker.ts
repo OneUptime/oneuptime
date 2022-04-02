@@ -8,7 +8,7 @@ import ErrorService from 'common-server/utils/error';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import { decode } from 'js-base64';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 import {
     sendErrorResponse,
     sendItemResponse,

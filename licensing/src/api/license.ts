@@ -9,7 +9,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 import Email from 'common/types/email';
-import BadDataException from 'common/types/exception/badDataException';
+import BadDataException from 'common/types/exception/bad-data-exception';
 
 import LicenseService from '../services/licenseService';
 import Exception from 'common/types/exception';
@@ -50,7 +50,9 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
 
-        const limit = new PositiveNumber(parseInt(req.query['limit'] || '100'));
+        const limit = new PositiveNumber(
+            parseInt((req.query['limit'] as string) || '100')
+        );
 
         const item = await LicenseService.confirm(
             data.license,
