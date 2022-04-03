@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 const router = express.getRouter();
 
@@ -17,7 +17,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 // Route
 // Description: Creating Resource Category.

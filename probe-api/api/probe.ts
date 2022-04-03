@@ -1,12 +1,12 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import MonitorService from '../services/monitorService';
 const router = express.getRouter();
 import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import { sendErrorResponse } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 

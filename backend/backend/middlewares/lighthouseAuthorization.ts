@@ -3,7 +3,7 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 export default {
     isAuthorizedLighthouse: async function (

@@ -1,6 +1,6 @@
-import './env';
-import './process';
-import logger from './logger';
+import './ENV';
+import './Process';
+import logger from './Logger';
 import cors from 'cors';
 
 import Express, {
@@ -9,10 +9,10 @@ import Express, {
     NextFunction,
     ExpressJson,
     ExpressUrlEncoded,
-} from './express';
+} from './Express';
 
 // connect common api's.
-import '../api/index';
+import '../api/Index';
 
 const app = Express.getExpressApp();
 

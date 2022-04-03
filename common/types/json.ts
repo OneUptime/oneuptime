@@ -1,4 +1,12 @@
-export type JSONValue = string | number | boolean | JSONObject | JSONArray;
+export type JSONValue =
+    | Array<string>
+    | string
+    | Array<number>
+    | number
+    | Array<boolean>
+    | boolean
+    | JSONObject
+    | JSONArray;
 
 export interface JSONObject {
     [x: string]: JSONValue;

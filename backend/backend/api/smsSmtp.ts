@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import SmsSmtpService from '../services/smsSmtpService';
 import TwilioService from '../services/twilioService';
 const router = express.getRouter();
@@ -13,7 +13,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 router.post(
     '/:projectId',

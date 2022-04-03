@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
-import BadDataException from 'common/types/exception/bad-data-exception';
+} from 'common-server/utils/Express';
+import BadDataException from 'common/types/exception/BadDataException';
 const router = express.getRouter();
 import TeamService from '../services/teamService';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -16,7 +16,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 // Route
 // Description: Getting details of team members of the project.

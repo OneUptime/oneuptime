@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
 
 import SubscriberService from '../services/subscriberService';
@@ -14,7 +14,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 // Route Description: Adding / Updating subscriber to the project.
 // req.params->{projectId}; req.body -> {monitorIds, alertVia, contactEmail, contactPhone, }

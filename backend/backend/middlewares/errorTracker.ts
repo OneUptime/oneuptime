@@ -3,7 +3,7 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import ErrorTrackerService from '../services/errorTrackerService';
 
 const _this = {

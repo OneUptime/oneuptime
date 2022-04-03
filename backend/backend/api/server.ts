@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
 
 import { IS_SAAS_SERVICE } from '../config/server';

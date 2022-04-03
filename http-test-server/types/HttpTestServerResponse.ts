@@ -1,10 +1,11 @@
 import PositiveNumber from 'common/types/positive-number';
-import Headers from 'common/types/api/headers';
-import { JSONObjectOrArray } from 'common/types/json';
+import Headers from 'common/types/api/Headers';
+import { JSONObject, JSONObjectOrArray } from 'common/types/json';
 import HTML from 'common/types/html';
+import ResponseType from 'common/types/api/ResponseType';
 
 class HTTPTestServerResponse {
-    private _statusCode: PositiveNumber;
+    private _statusCode: PositiveNumber = new PositiveNumber(200);
     public get statusCode(): PositiveNumber {
         return this._statusCode;
     }
@@ -12,15 +13,15 @@ class HTTPTestServerResponse {
         this._statusCode = v;
     }
 
-    private _responseType: string;
-    public get responseType(): string {
+    private _responseType: ResponseType = ResponseType.JSON;
+    public get responseType(): ResponseType {
         return this._responseType;
     }
-    public set responseType(v: string) {
+    public set responseType(v: ResponseType) {
         this._responseType = v;
     }
 
-    private _responseTime: PositiveNumber;
+    private _responseTime: PositiveNumber = new PositiveNumber(0);
     public get responseTime(): PositiveNumber {
         return this._responseTime;
     }
@@ -28,7 +29,7 @@ class HTTPTestServerResponse {
         this._responseTime = v;
     }
 
-    private _headers: Headers;
+    private _headers: Headers = {};
 
     public get headers(): Headers {
         return this._headers;
@@ -38,7 +39,10 @@ class HTTPTestServerResponse {
         this._headers = v;
     }
 
-    private _jsonBody: JSONObjectOrArray;
+    private _jsonBody: JSONObjectOrArray = {
+        status: 'ok',
+    };
+
     public get jsonBody(): JSONObjectOrArray {
         return this._jsonBody;
     }
@@ -46,21 +50,28 @@ class HTTPTestServerResponse {
         this._jsonBody = v;
     }
 
-    private _htmlBody: HTML;
-    public get htmlBody(): string {
+    private _htmlBody: HTML = new HTML('');
+    public get htmlBody(): HTML {
         return this._htmlBody;
     }
-    public set htmlBody(v: string) {
+    public set htmlBody(v: HTML) {
         this._htmlBody = v;
     }
 
-    toJSON() {
+    toJSON(): JSONObject {
         return {
-            statusCode: 200,
-            responseType: { values: ['json', 'html'], currentType: 'json' },
-            responseTime: 0,
-            header: {},
-            josnBody: { status: 'ok' },
+            statusCode: this.statusCode.toNumber(),
+            responseType: {
+                values: [
+                    ResponseType.JSON.toString(),
+                    ResponseType.HTML.toString(),
+                ],
+                currentType: this.responseType.toString(),
+            },
+            responseTime: this.responseTime.toNumber(),
+            header: this.headers,
+            jsonBody: this.jsonBody,
+            htmlBody: this.htmlBody.toString(),
         };
     }
 }

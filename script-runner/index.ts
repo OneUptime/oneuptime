@@ -2,9 +2,9 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
-import app from 'common-server/utils/start-server';
+import app from 'common-server/utils/StartServer';
 
 import http from 'http';
 http.createServer(app);

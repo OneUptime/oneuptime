@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import logger from './logger';
+import logger from './Logger';
 
-import { databaseUrl, isMongoReplicaSet } from '../config';
+import { databaseUrl, isMongoReplicaSet } from '../Config';
 
 let options = {};
 

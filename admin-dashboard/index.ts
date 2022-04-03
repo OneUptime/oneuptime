@@ -2,9 +2,9 @@ import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import path from 'path';
-import app from 'common-server/utils/start-server';
+import app from 'common-server/utils/StartServer';
 
 app.get(
     ['/env.js', '/admin/env.js'],

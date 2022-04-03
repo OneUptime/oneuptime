@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
 import ContainerSecurityService from '../services/containerSecurityService';
 import ContainerSecurityLogService from '../services//containerSecurityLogService';
@@ -11,7 +11,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 import RealTimeService from '../services/realTimeService';
 import MailService from '../services/mailService';

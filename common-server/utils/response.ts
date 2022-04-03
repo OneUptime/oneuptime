@@ -1,17 +1,17 @@
-import JsonToCsv from './json-to-csv';
-import logger from './logger';
+import JsonToCsv from './JsonToCsv';
+import logger from './Logger';
 import { GridFSBucket } from 'mongodb';
 import {
     OneUptimeRequest,
     ExpressResponse,
     ExpressRequest,
     OneUptimeResponse,
-} from './express';
+} from './Express';
 import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/types/json';
 import { File } from 'common/types/file';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 import { ListData } from 'common/types/list';
-import Database from './database';
+import Database from './Database';
 import PositiveNumber from 'common/types/positive-number';
 
 function logResponse(
@@ -85,7 +85,7 @@ export const sendFileResponse = async (
     /** return response */
     readstream.pipe(res);
 
-    return logResponse(req, res, 'FILE');
+    return logResponse(req, res);
 };
 
 export const sendErrorResponse = (
@@ -178,9 +178,8 @@ export const sendItemResponse = async (
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv = JsonToCsv.ToCsv([item]);
-        oneUptimeResponse.logBody = csv;
         oneUptimeResponse.status(200).send(csv);
-        return logResponse(req, res, csv);
+        return logResponse(req, res);
     }
 
     oneUptimeResponse.logBody = item;

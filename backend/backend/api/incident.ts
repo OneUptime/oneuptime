@@ -1,10 +1,10 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
-import BadDataException from 'common/types/exception/bad-data-exception';
+import BadDataException from 'common/types/exception/BadDataException';
 import IncidentService from '../services/incidentService';
 import IncidentTimelineService from '../services/incidentTimelineService';
 import MonitorStatusService from '../services/monitorStatusService';
@@ -28,7 +28,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 import subscriberAlertService from '../services/subscriberAlertService';
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
 import Services from '../utils/services';

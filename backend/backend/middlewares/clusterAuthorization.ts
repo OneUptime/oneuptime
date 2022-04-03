@@ -1,10 +1,10 @@
 import { sendErrorResponse } from 'common-server/utils/response';
-import BadDataException from 'common/types/exception/bad-data-exception';
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 export default {
     isAuthorizedAdmin: async function (

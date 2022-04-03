@@ -3,7 +3,7 @@ import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import jwt from 'jsonwebtoken';
 import url from 'url';
 import UserService from '../services/userService';

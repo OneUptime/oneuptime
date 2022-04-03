@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 import { sendErrorResponse, sendSuccessResponse } from '../utils/response';
 const router = express.getRouter();

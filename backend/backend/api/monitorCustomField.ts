@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 import { isAuthorized } from '../middlewares/authorization';
 
@@ -11,7 +11,7 @@ import {
     sendItemResponse,
     sendListResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 import MonitorCustomFieldService from '../services/monitorCustomField';
 

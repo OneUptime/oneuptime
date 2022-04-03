@@ -1,5 +1,5 @@
-import Exception from '.';
-import ExceptionCode from './exception-code';
+import Exception from './Exception';
+import ExceptionCode from './ExceptionCode';
 
 export default class APIException extends Exception {
     constructor(message: string) {

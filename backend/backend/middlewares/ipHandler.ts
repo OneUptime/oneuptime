@@ -1,11 +1,11 @@
 import StatusPageService from '../services/statusPageService';
 import { sendErrorResponse } from 'common-server/utils/response';
-import BadDataException from 'common/types/exception/bad-data-exception';
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import apiMiddleware from './api';
 import ipaddr from 'ipaddr.js';
 

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import alertService from '../services/alertService';
 import IncidentService from '../services/incidentService';
 import alertChargeService from '../services/alertChargeService';
@@ -20,7 +20,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 router.post(
     '/:projectId',

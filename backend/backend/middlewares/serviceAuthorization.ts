@@ -3,7 +3,7 @@ import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 

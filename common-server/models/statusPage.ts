@@ -1,4 +1,4 @@
-import mongoose from '../utils/orm';
+import mongoose from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 const statusSchema = new Schema({

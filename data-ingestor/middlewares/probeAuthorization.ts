@@ -5,7 +5,7 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 

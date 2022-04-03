@@ -1,6 +1,6 @@
-import Protocol from './protocol';
-import Route from './route';
-import Hostname from './hostname';
+import Protocol from './Protocol';
+import Route from './Route';
+import Hostname from './Hostname';
 
 export default class URL {
     private _route: Route = new Route();

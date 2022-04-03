@@ -1,4 +1,4 @@
-import Express, { ExpressRequest, ExpressResponse } from '../utils/express';
+import Express, { ExpressRequest, ExpressResponse } from '../utils/Express';
 
 const router = Express.getRouter();
 

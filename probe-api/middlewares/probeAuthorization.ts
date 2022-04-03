@@ -1,12 +1,12 @@
 import ProbeService from '../services/probeService';
-import BadDataException from 'common/types/exception/bad-data-exception';
+import BadDataException from 'common/types/exception/BadDataException';
 const sendErrorResponse = require('./response').sendErrorResponse;
 
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import { clusterKey as CLUSTER_KEY } from '../utils/config';
 
 global.probes = {};

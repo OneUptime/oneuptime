@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import ProjectService from '../services/projectService';
 
 const router = express.getRouter();
@@ -22,7 +22,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 const isAuthorizedService =
     require('../middlewares/serviceAuthorization').isAuthorizedService;
 import ErrorService from 'common-server/utils/error';

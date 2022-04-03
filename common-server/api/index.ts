@@ -1,6 +1,6 @@
-import version from './version';
-import status from './status';
-import Express from '../utils/express';
+import version from './Version';
+import status from './Status';
+import Express from '../utils/Express';
 
 const app = Express.getExpressApp();
 

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import PositiveNumber from 'common/types/positive-number';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
@@ -10,7 +10,7 @@ import UtilService from '../services/utilService';
 import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
-import BadDataException from 'common/types/exception/bad-data-exception';
+import BadDataException from 'common/types/exception/BadDataException';
 
 const router = express.getRouter();
 
@@ -35,7 +35,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 import uuid from 'uuid';
 import defaultStatusPageColors from '../config/statusPageColors';

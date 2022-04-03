@@ -2,7 +2,7 @@ import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 
 import ApplicationLogService from '../services/applicationLogService';
 import { sendErrorResponse } from 'common-server/utils/response';

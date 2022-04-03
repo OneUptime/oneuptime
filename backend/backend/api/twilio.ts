@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/express';
+} from 'common-server/utils/Express';
 import IncidentService from '../services/incidentService';
 import UserService from '../services/userService';
 const {
@@ -17,7 +17,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception';
+import Exception from 'common/types/exception/Exception';
 
 const router = express.getRouter();
 import SmsCountService from '../services/smsCountService';

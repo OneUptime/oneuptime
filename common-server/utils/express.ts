@@ -1,5 +1,5 @@
 import express from 'express';
-import logger from './logger';
+import logger from './Logger';
 import { JSONObjectOrArray } from 'common/types/json';
 
 export type RequestHandler = express.RequestHandler;

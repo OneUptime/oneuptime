@@ -1,7 +1,7 @@
 import PositiveNumber from 'common/types/positive-number';
 import AirtableLib from 'airtable';
 import Dictionary from 'common/types/dictionary';
-import { airtableApiKey, airtableBaseId } from '../config';
+import { airtableApiKey, airtableBaseId } from '../Config';
 
 class Airtable {
     private static base = new AirtableLib({ apiKey: airtableApiKey }).base(

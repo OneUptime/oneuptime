@@ -1,14 +1,14 @@
 import axios, { AxiosError } from 'axios';
-import URL from '../types/api/url';
+import URL from '../types/api/URL';
 import { JSONObjectOrArray } from '../types/json';
-import Headers from '../types/api/headers';
-import HTTPResponse from '../types/api/response';
-import HTTPErrorResponse from '../types/api/error-response';
-import HTTPMethod from '../types/api/method';
-import APIException from '../types/exception/api-exception';
-import Protocol from '../types/api/protocol';
-import Hostname from '../types/api/hostname';
-import Route from '../types/api/route';
+import Headers from '../types/api/Headers';
+import HTTPResponse from '../types/api/Response';
+import HTTPErrorResponse from '../types/api/ErrorResponse';
+import HTTPMethod from '../types/api/HTTPMethod';
+import APIException from '../types/exception/ApiException';
+import Protocol from '../types/api/Protocol';
+import Hostname from '../types/api/Hostname';
+import Route from '../types/api/Route';
 
 export default class API {
     private _protocol: Protocol = Protocol.HTTPS;

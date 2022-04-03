@@ -1,5 +1,5 @@
 import MongoDB from 'mongodb';
-import { databaseUrl, databaseName } from '../config';
+import { databaseUrl, databaseName } from '../Config';
 
 export default class Database {
     private static databaseClient: MongoDB.MongoClient;

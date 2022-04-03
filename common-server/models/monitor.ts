@@ -1,4 +1,4 @@
-import mongoose from '../utils/orm';
+import mongoose from '../utils/ORM';
 const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
