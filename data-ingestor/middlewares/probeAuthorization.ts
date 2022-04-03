@@ -1,6 +1,6 @@
 import ProbeService from '../services/probeService';
 import { sendErrorResponse } from 'common-server/utils/response';
-
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -32,10 +32,11 @@ export default {
         } else if (req.body && req.body.probeKey) {
             probeKey = req.body.probeKey;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Probe Key not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Probe Key not found.')
+            );
         }
 
         if (req.params && req.params.probeName) {
@@ -51,16 +52,17 @@ export default {
         } else if (req.body && req.body.probeName) {
             probeName = req.body.probeName;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Probe Name not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Probe Name not found.')
+            );
         }
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterKey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterKey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
             (req.headers['clusterKey'] || req.headers['clusterkey'])
@@ -130,10 +132,11 @@ export default {
         }
 
         if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Probe key and probe name do not match.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Probe key and probe name do not match.')
+            );
         }
 
         if (!probeId) {

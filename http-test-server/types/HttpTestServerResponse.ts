@@ -1,6 +1,6 @@
 import PositiveNumber from 'common/types/positive-number';
 import Headers from 'common/types/api/Headers';
-import { JSONObject, JSONObjectOrArray } from 'common/types/json';
+import { JSONObject, JSONObjectOrArray } from 'common/types/JSON';
 import HTML from 'common/types/html';
 import ResponseType from 'common/types/api/ResponseType';
 

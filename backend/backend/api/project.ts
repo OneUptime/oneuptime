@@ -23,8 +23,7 @@ import {
     sendItemResponse,
 } from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
-const isAuthorizedService =
-    require('../middlewares/serviceAuthorization').isAuthorizedService;
+import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 import ErrorService from 'common-server/utils/error';
 
 // Route
@@ -578,7 +577,7 @@ router.delete(
 // the init script ensures we also deletes the project
 router.delete(
     '/:projectId/initScript/deleteProject',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId = req.params.projectId;

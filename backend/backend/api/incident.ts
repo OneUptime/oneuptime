@@ -33,15 +33,14 @@ import subscriberAlertService from '../services/subscriberAlertService';
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
 import Services from '../utils/services';
 import joinNames from '../utils/joinNames';
-
-import { isAuthorizedService } from '../middlewares/serviceAuthorization';
+import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 import ErrorService from 'common-server/utils/error';
 
 // data-ingestor will consume this api
 // create an incident and return the created incident
 router.post(
     '/data-ingestor/create-incident',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data = req.body;
@@ -59,7 +58,7 @@ router.post(
 // acknowledge an incident
 router.post(
     '/data-ingestor/acknowledge-incident',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incidentId, name, probeId } = req.body;
@@ -81,7 +80,7 @@ router.post(
 // resolve an incident
 router.post(
     '/data-ingestor/resolve-incident',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { incidentId, name, probeId } = req.body;
@@ -103,7 +102,7 @@ router.post(
 // update an incident
 router.post(
     '/data-ingestor/update-incident',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data, query } = req.body;

@@ -11,15 +11,14 @@ import Exception from 'common/types/exception/Exception';
 import { sendListResponse } from 'common-server/utils/response';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
-
-import { isAuthorizedService } from '../middlewares/serviceAuthorization';
+import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 
 const router = express.getRouter();
 
 // get all script monitors for script-runner
 router.get(
     '/monitors',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             //get top 10 monitors.
@@ -43,7 +42,7 @@ router.get(
 // ping script monitor
 router.post(
     '/ping/:monitorId',
-    isAuthorizedService,
+    ClusterKeyAuthorization.isAuthorizedService,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitor, resp } = req.body;

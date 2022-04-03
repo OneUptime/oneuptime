@@ -1,5 +1,6 @@
 import ContainerScannerService from '../services/containerScannerService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
@@ -26,10 +27,11 @@ export default {
         } else if (req.body && req.body.containerScannerKey) {
             containerScannerKey = req.body.containerScannerKey;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'containerScanner Key not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('containerScanner Key not found.')
+            );
         }
 
         if (req.params && req.params.containerscannername) {
@@ -41,16 +43,17 @@ export default {
         } else if (req.body && req.body.containerscannerName) {
             containerScannerName = req.body.containerscannername;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'containerScanner Name not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('containerScanner Name not found.')
+            );
         }
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterkey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterkey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
             (req.headers['clusterKey'] || req.headers['clusterkey'])

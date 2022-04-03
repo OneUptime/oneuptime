@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import URL from '../types/api/URL';
-import { JSONObjectOrArray } from '../types/json';
+import { JSONObjectOrArray } from '../types/JSON';
 import Headers from '../types/api/Headers';
 import HTTPResponse from '../types/api/Response';
 import HTTPErrorResponse from '../types/api/ErrorResponse';

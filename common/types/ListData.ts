@@ -1,5 +1,5 @@
-import { JSONArray, JSONObject } from './json';
-import PositiveNumber from './positive-number';
+import { JSONArray, JSONObject } from './JSON';
+import PositiveNumber from './PositiveNumber';
 
 export class ListData {
     constructor(obj: {

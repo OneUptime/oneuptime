@@ -1,4 +1,4 @@
-import { JSONArray } from 'common/types/json';
+import { JSONArray } from 'common/types/JSON';
 
 import Json2Csv from 'json2csv';
 

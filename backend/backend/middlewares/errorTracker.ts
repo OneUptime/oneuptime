@@ -1,4 +1,5 @@
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -28,66 +29,77 @@ const _this = {
         }
         data.createdById = req.user ? req.user.id : null;
         if (!data.eventId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Event ID is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Event ID is required.')
+            );
         }
         if (!data.fingerprint) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Fingerprint is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Fingerprint is required.')
+            );
         }
         if (!Array.isArray(data.fingerprint)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Fingerprint is to be of type Array.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Fingerprint is to be of type Array.')
+            );
         }
         const allowedLogType = ['exception', 'message', 'error'].filter(
             elem => elem === data.type
         );
         if (allowedLogType.length < 1) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Error Event Type must be of the allowed types.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Error Event Type must be of the allowed types.'
+                )
+            );
         }
 
         if (!data.tags) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Tags is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Tags is required.')
+            );
         }
         // confirm tags are valid data type if present
         if (data.tags && !Array.isArray(data.tags)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Tags are to be of type Array.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Tags are to be of type Array.')
+            );
         }
 
         if (!data.timeline) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Timeline is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Timeline is required.')
+            );
         }
         // confirm timeline is valid data type if present
         if (!Array.isArray(data.timeline)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Timeline is to be of type Array.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Timeline is to be of type Array.')
+            );
         }
 
         if (!data.exception) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Exception is required.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Exception is required.')
+            );
         }
         // try to get the error tracker by the ID and key
         const errorTrackerCount = await ErrorTrackerService.countBy({
@@ -96,10 +108,11 @@ const _this = {
         });
         // send an error if the error tracker doesnt exist
         if (errorTrackerCount === 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Error Tracker does not exist.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Error Tracker does not exist.')
+            );
         }
         // all checks fine now, proceed with the request
         return next();

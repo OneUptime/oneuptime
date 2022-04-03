@@ -1,4 +1,4 @@
-import { JSONObjectOrArray } from '../json';
+import { JSONObjectOrArray } from '../JSON';
 
 export default class HTTPResponse {
     private _statusCode: number = -1;

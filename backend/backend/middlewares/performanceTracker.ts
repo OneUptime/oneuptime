@@ -1,5 +1,6 @@
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
@@ -13,10 +14,11 @@ const _this = {
     ) {
         const { key } = req.params;
         if (!key) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Please provide an api key to continue',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Please provide an api key to continue')
+            );
         }
 
         // check if there's a performance tracker with the key
@@ -26,10 +28,11 @@ const _this = {
             }
         );
         if (performanceTrackerCount === 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'API key is not valid',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('API key is not valid')
+            );
         }
 
         // everything is fine at this point

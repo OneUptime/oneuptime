@@ -21,6 +21,7 @@
         "jsonwebtoken": "^8.5.1",
         "mongodb": "^4.4.1",
         "mongoose": "^6.2.8",
+        "socket.io": "^4.4.1",
         "winston": "^3.6.0"
     },
     "devDependencies": {

@@ -7,12 +7,12 @@ import {
     ExpressRequest,
     OneUptimeResponse,
 } from './Express';
-import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/types/json';
-import { File } from 'common/types/file';
+import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/types/JSON';
+import { File } from 'common/types/File';
 import Exception from 'common/types/exception/Exception';
-import { ListData } from 'common/types/list';
+import { ListData } from 'common/types/List';
 import Database from './Database';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 
 function logResponse(
     req: ExpressRequest,

@@ -1,13 +1,15 @@
-import { sendErrorResponse } from 'common-server/utils/response';
-import BadDataException from 'common/types/exception/BadDataException';
+import { clusterKey as CLUSTER_KEY } from '../Config';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
+} from '../utils/Express';
 
-export default {
-    isAuthorizedLighthouse: async function (
+import { sendErrorResponse } from '../utils/Response';
+import BadDataException from 'common/types/exception/BadDataException';
+
+export default class ClusterKeyAuthorization {
+    static async isAuthorizedService(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
@@ -22,19 +24,28 @@ export default {
             req.headers &&
             (req.headers['clusterKey'] || req.headers['clusterkey'])
         ) {
+            // header keys are automatically transformed to lowercase
             clusterKey = req.headers['clusterKey'] || req.headers['clusterkey'];
         } else if (req.body && req.body.clusterKey) {
             clusterKey = req.body.clusterKey;
-        }
-
-        if (!clusterKey) {
+        } else {
             return sendErrorResponse(
                 req,
                 res,
-                new BadDataException('Authorization Rejected.')
+                new BadDataException('Cluster key not found.')
             );
         }
 
-        next();
-    },
-};
+        const isAuthorized = clusterKey === CLUSTER_KEY;
+
+        if (!isAuthorized) {
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Invalid cluster key provided')
+            );
+        }
+
+        return next();
+    }
+}

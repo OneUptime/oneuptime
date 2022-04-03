@@ -1,5 +1,6 @@
 import ApplicationScannerService from '../services/applicationScannerService';
 import { sendErrorResponse } from 'common-server/utils/response';
+import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
@@ -26,10 +27,11 @@ export default {
         } else if (req.body && req.body.applicationScannerKey) {
             applicationScannerKey = req.body.applicationScannerKey;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'applicationScanner Key not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('applicationScanner Key not found.')
+            );
         }
 
         if (req.params && req.params.applicationscannername) {
@@ -41,16 +43,17 @@ export default {
         } else if (req.body && req.body.applicationscannerName) {
             applicationScannerName = req.body.applicationscannername;
         } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'applicationScanner Name not found.',
-            });
+            return sendErrorResponse(
+                req,
+                res,
+                new BadDataException('applicationScanner Name not found.')
+            );
         }
 
-        if (req.params && req.params.clusterKey) {
-            clusterKey = req.params.clusterkey;
-        } else if (req.query && req.query.clusterKey) {
-            clusterKey = req.query.clusterkey;
+        if (req.params && req.params['clusterKey']) {
+            clusterKey = req.params['clusterKey'];
+        } else if (req.query && req.query['clusterKey']) {
+            clusterKey = req.query['clusterKey'];
         } else if (
             req.headers &&
             (req.headers['clusterKey'] || req.headers['clusterkey'])
