@@ -1,4 +1,4 @@
-import LogModel from '../models/log';
+import LogModel from 'common-server/models/log';
 import ApplicationLogService from './applicationLogService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

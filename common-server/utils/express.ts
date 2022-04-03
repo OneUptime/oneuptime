@@ -1,6 +1,6 @@
 import express from 'express';
 import logger from './logger';
-import { JSONValue } from 'common/types/json';
+import { JSONObjectOrArray } from 'common/types/json';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
@@ -23,7 +23,7 @@ export interface OneUptimeRequest extends express.Request {
 }
 
 export interface OneUptimeResponse extends express.Response {
-    logBody: JSONValue;
+    logBody: JSONObjectOrArray;
 }
 
 class Express {

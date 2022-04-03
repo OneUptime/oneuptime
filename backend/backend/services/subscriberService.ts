@@ -1,3 +1,8 @@
+import SubscriberModel from 'common-server/models/subscriber';
+import StatusPageService from './statusPageService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -249,7 +254,7 @@ export default {
                 );
 
                 error.code = 400;
-                ErrorService.log('SubscriberService.subscribe', error);
+
                 throw error;
             } else {
                 if (newSubscriber.alertVia === 'email') {
@@ -398,9 +403,3 @@ export default {
         }
     },
 };
-
-import SubscriberModel from '../models/subscriber';
-import ErrorService from 'common-server/utils/error';
-import StatusPageService from './statusPageService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';

@@ -4,9 +4,9 @@ import express, {
 } from 'common-server/utils/express';
 const router = express.getRouter();
 import NotificationService from '../services/notificationService';
-import ErrorService from 'common-server/utils/error';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
+import RealTimeService from '../services/realTimeService';
 import { decode } from 'js-base64';
 import BadDataException from 'common/types/exception/bad-data-exception';
 import {
@@ -57,21 +57,16 @@ router.post(
                 data
             );
 
-            try {
-                NotificationService.create(
-                    performanceTracker.componentId.projectId._id,
+            NotificationService.create(
+                performanceTracker.componentId.projectId._id,
 
-                    `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
+                `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
 
-                    performanceTracker.createdById._id,
-                    'performanceTrackeraddremove'
-                );
-            } catch (error) {
-                ErrorService.log('notificationService.create', error);
-            }
-            // await RealTimeService.sendPerformanceTrackerCreated(
-            //     performanceTracker
-            // );
+                performanceTracker.createdById._id,
+                'performanceTrackeraddremove'
+            );
+
+            RealTimeService.sendPerformanceTrackerCreated(performanceTracker);
             return sendItemResponse(req, res, performanceTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

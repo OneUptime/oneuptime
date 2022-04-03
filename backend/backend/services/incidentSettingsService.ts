@@ -203,6 +203,6 @@ export default {
     },
 };
 
-import incidentSettingsModel from '../models/incidentSettings';
+import incidentSettingsModel from 'common-server/models/incidentSettings';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

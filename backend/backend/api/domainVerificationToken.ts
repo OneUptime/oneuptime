@@ -20,7 +20,6 @@ import { sendListResponse } from 'common-server/utils/response';
 
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';
-import errorService from 'common-server/utils/error';
 
 const router = express.getRouter();
 
@@ -278,9 +277,7 @@ router.put(
                 domainId,
                 domain,
                 domainObj.domain
-            ).catch(error => {
-                errorService.log('StatusPageService.updateCustomDomain', error);
-            });
+            );
 
             const response = await DomainVerificationService.updateOneBy(
                 { _id: domainId, projectId },

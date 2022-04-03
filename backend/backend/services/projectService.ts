@@ -975,7 +975,7 @@ export default {
     },
 };
 
-import ProjectModel from '../models/project';
+import ProjectModel from 'common-server/models/project';
 
 import { v1 as uuidv1 } from 'uuid';
 import MonitorService from '../services/monitorService';

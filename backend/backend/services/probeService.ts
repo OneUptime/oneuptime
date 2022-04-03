@@ -1,3 +1,20 @@
+import ProbeModel from 'common-server/models/probe';
+import RealTimeService from './realTimeService';
+
+import { v1 as uuidv1 } from 'uuid';
+import MonitorService from './monitorService';
+import MonitorStatusService from './monitorStatusService';
+import MonitorLogService from './monitorLogService';
+import LighthouseLogService from './lighthouseLogService';
+import IncidentService from './incidentService';
+import IncidentTimelineService from './incidentTimelineService';
+import moment from 'moment';
+import { some, forEach } from 'p-iteration';
+import vm from 'vm';
+import AutomatedScriptService from './automatedScriptService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+
 export default {
     create: async function (data) {
         const _this = this;
@@ -758,17 +775,12 @@ export default {
     },
 
     updateProbeStatus: async function (probeId) {
-        try {
-            const probe = await ProbeModel.findOneAndUpdate(
-                { _id: probeId },
-                { $set: { lastAlive: Date.now() } },
-                { new: true }
-            );
-            return probe;
-        } catch (error) {
-            ErrorService.log('probeService.updateProbeStatus', error);
-            throw error;
-        }
+        const probe = await ProbeModel.findOneAndUpdate(
+            { _id: probeId },
+            { $set: { lastAlive: Date.now() } },
+            { new: true }
+        );
+        return probe;
     },
 
     scriptConditions: (resp, con) => {
@@ -6435,21 +6447,3 @@ const formatBytes = (a, b, c, d, e) => {
         (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
     );
 };
-
-import ProbeModel from '../models/probe';
-import RealTimeService from './realTimeService';
-import ErrorService from 'common-server/utils/error';
-
-import { v1 as uuidv1 } from 'uuid';
-import MonitorService from './monitorService';
-import MonitorStatusService from './monitorStatusService';
-import MonitorLogService from './monitorLogService';
-import LighthouseLogService from './lighthouseLogService';
-import IncidentService from './incidentService';
-import IncidentTimelineService from './incidentTimelineService';
-import moment from 'moment';
-import { some, forEach } from 'p-iteration';
-import vm from 'vm';
-import AutomatedScriptService from './automatedScriptService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';

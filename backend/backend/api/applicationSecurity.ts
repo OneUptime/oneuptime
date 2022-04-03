@@ -402,13 +402,9 @@ router.post(
                     { scanned: false }
                 ); //This helps the application scanner to pull the application
 
-            try {
-                RealTimeService.handleScanning({
-                    security: updatedApplicationSecurity,
-                });
-            } catch (error) {
-                ErrorService.log('realtimeService.handleScanning', error);
-            }
+            RealTimeService.handleScanning({
+                security: updatedApplicationSecurity,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

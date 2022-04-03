@@ -183,7 +183,7 @@ export default {
     },
 };
 
-import EmailStatusModel from '../models/emailStatus';
+import EmailStatusModel from 'common-server/models/emailStatus';
 import GlobalConfigService from './globalConfigService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

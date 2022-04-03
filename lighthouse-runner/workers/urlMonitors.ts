@@ -1,5 +1,5 @@
 import UrlService from '../utils/urlService';
-import ErrorService from '../utils/errorService';
+
 import { fork } from 'child_process';
 import moment from 'moment';
 
@@ -7,54 +7,41 @@ import moment from 'moment';
 
 export default {
     ping: async (monitor: $TSFixMe) => {
-        try {
-            if (monitor && monitor.type) {
-                if (monitor.data.url) {
-                    const now = new Date().getTime();
-                    const scanIntervalInDays = monitor.lighthouseScannedAt
-                        ? moment(now).diff(
-                              moment(monitor.lighthouseScannedAt),
-                              'days'
-                          )
-                        : -1;
-                    if (
-                        (monitor.lighthouseScanStatus &&
-                            monitor.lighthouseScanStatus === 'scan') ||
-                        (monitor.lighthouseScanStatus &&
-                            monitor.lighthouseScanStatus === 'failed') ||
-                        ((!monitor.lighthouseScannedAt ||
-                            scanIntervalInDays > 0) &&
-                            (!monitor.lighthouseScanStatus ||
-                                monitor.lighthouseScanStatus !== 'scanning'))
-                    ) {
+        if (monitor && monitor.type) {
+            if (monitor.data.url) {
+                const now = new Date().getTime();
+                const scanIntervalInDays = monitor.lighthouseScannedAt
+                    ? moment(now).diff(
+                          moment(monitor.lighthouseScannedAt),
+                          'days'
+                      )
+                    : -1;
+                if (
+                    (monitor.lighthouseScanStatus &&
+                        monitor.lighthouseScanStatus === 'scan') ||
+                    (monitor.lighthouseScanStatus &&
+                        monitor.lighthouseScanStatus === 'failed') ||
+                    ((!monitor.lighthouseScannedAt || scanIntervalInDays > 0) &&
+                        (!monitor.lighthouseScanStatus ||
+                            monitor.lighthouseScanStatus !== 'scanning'))
+                ) {
+                    await UrlService.ping(monitor._id, {
+                        monitor,
+                        resp: { lighthouseScanStatus: 'scanning' },
+                    });
+
+                    const sites = monitor.siteUrls;
+
+                    for (const url of sites) {
+                        const resp = await lighthouseFetch(url);
+
                         await UrlService.ping(monitor._id, {
                             monitor,
-                            resp: { lighthouseScanStatus: 'scanning' },
+                            resp,
                         });
-
-                        const sites = monitor.siteUrls;
-
-                        for (const url of sites) {
-                            try {
-                                const resp = await lighthouseFetch(url);
-
-                                await UrlService.ping(monitor._id, {
-                                    monitor,
-                                    resp,
-                                });
-                            } catch (error) {
-                                ErrorService.log(
-                                    'lighthouseFetch',
-                                    error.error
-                                );
-                            }
-                        }
                     }
                 }
             }
-        } catch (error) {
-            ErrorService.log('UrlMonitors.ping', error);
-            throw error;
         }
     },
 };

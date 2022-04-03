@@ -1,5 +1,3 @@
-import logger from 'common-server/utils/logger';
-
 import {
     ExpressRequest,
     ExpressResponse,
@@ -11,7 +9,6 @@ import app from 'common-server/utils/start-server';
 
 import path from 'path';
 
-import bodyParser from 'body-parser';
 import http from 'http';
 
 const { NODE_ENV } = process.env;
@@ -29,8 +26,8 @@ global.httpServerResponse = {
 
 app.use(
     '*',
-    function (req: ExpressRequest, res: ExpressResponse, next: NextFunction) {
-        if (process.env && process.env.PRODUCTION) {
+    function (_req: ExpressRequest, res: ExpressResponse, next: NextFunction) {
+        if (process.env && process.env['NODE_ENV'] === 'production') {
             res.set('Cache-Control', 'public, max-age=86400');
         } else res.set('Cache-Control', 'no-cache');
         return next();
@@ -41,23 +38,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(ExpressStatic('public'));
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(require('./api/settings'));
+app.use(require('./api/webhooks'));
 
-app.use(require('./backend/api/settings'));
-
-app.get('/status', (req: ExpressRequest, res: ExpressResponse) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'oneuptime-http-test-server',
-        })
-    );
-});
-
-app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
+app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     if (http.STATUS_CODES[global.httpServerResponse.statusCode]) {
         res.status(global.httpServerResponse.statusCode);
     } else {
@@ -86,29 +70,6 @@ app.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     }, global.httpServerResponse.responseTime);
 });
 
-const hook = {};
-
-app.post('/api/webhooks/:id', (req: ExpressRequest, res: ExpressResponse) => {
-    const { id } = req.params;
-
-    hook[id] = req.body;
-    return res.status(200).json(req.body);
-});
-
-app.get('/api/webhooks/:id', (req: ExpressRequest, res: ExpressResponse) => {
-    const { id } = req.params;
-
-    if (hook[id] === undefined) return res.status(404).json({});
-
-    return res.status(200).json(hook[id]);
-});
-
-app.use('/*', (req: ExpressRequest, res: ExpressResponse) => {
+app.use('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(404).render('notFound.ejs', {});
-});
-
-app.set('port', process.env['PORT'] || 3010);
-
-app.listen(app.get('port'), function () {
-    logger.info('Server running on port : ' + app.get('port'));
 });

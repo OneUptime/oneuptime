@@ -1,5 +1,5 @@
 import ApiService from '../utils/apiService';
-import ErrorService from '../utils/errorService';
+
 import logger from 'common-server/utils/logger';
 import pingfetch from '../utils/pingFetch';
 
@@ -9,41 +9,36 @@ import pingfetch from '../utils/pingFetch';
 
 export default {
     ping: async ({ monitor }: $TSFixMe) => {
-        try {
-            if (monitor && monitor.type) {
-                if (monitor.data.url) {
-                    let retry = true;
-                    let retryCount = 0;
-                    while (retry || retryCount > 2) {
-                        const { res, resp, rawResp } = await pingfetch(
-                            monitor.data.url
-                        );
+        if (monitor && monitor.type) {
+            if (monitor.data.url) {
+                let retry = true;
+                let retryCount = 0;
+                while (retry || retryCount > 2) {
+                    const { res, resp, rawResp } = await pingfetch(
+                        monitor.data.url
+                    );
 
-                        logger.info(
-                            `Monitor ID ${monitor._id}: Start saving data to ingestor.`
-                        );
-                        const response = await ApiService.ping(monitor._id, {
-                            monitor,
-                            res,
-                            resp,
-                            rawResp,
-                            type: monitor.type,
-                            retryCount,
-                        });
-                        logger.info(
-                            `Monitor ID ${monitor._id}: End saving data to ingestor.`
-                        );
-                        if (response && !response.retry) {
-                            retry = false;
-                        } else {
-                            retryCount++;
-                        }
+                    logger.info(
+                        `Monitor ID ${monitor._id}: Start saving data to ingestor.`
+                    );
+                    const response = await ApiService.ping(monitor._id, {
+                        monitor,
+                        res,
+                        resp,
+                        rawResp,
+                        type: monitor.type,
+                        retryCount,
+                    });
+                    logger.info(
+                        `Monitor ID ${monitor._id}: End saving data to ingestor.`
+                    );
+                    if (response && !response.retry) {
+                        retry = false;
+                    } else {
+                        retryCount++;
                     }
                 }
             }
-        } catch (error) {
-            ErrorService.log('UrlMonitors.ping', error);
-            throw error;
         }
     },
 };

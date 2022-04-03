@@ -86,7 +86,7 @@ export default {
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-import ApplicationScannerModel from '../models/applicationScanner';
+import ApplicationScannerModel from 'common-server/models/applicationScanner';
 
 import { v1 as uuidv1 } from 'uuid';
 import handleSelect from '../utils/select';

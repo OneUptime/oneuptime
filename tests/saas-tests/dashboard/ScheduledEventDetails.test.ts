@@ -16,7 +16,7 @@ const user = {
     email,
     password,
 };
-require('should');
+import 'should';
 
 describe('Scheduled Event Note', () => {
     const operationTimeOut = init.timeout;

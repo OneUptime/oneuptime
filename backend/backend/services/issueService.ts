@@ -1,3 +1,11 @@
+import IssueModel from 'common-server/models/issue';
+import sha256 from 'crypto-js/sha256';
+import ComponentService from './componentService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -179,9 +187,7 @@ export default {
                 `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
                 issue.deletedById._id,
                 'errorTrackerIssueaddremove'
-            ).catch(error => {
-                errorService.log('NotificationService.create', error);
-            });
+            );
             // run in the background
             RealTimeService.sendErrorTrackerIssueDelete(issue);
             return issue;
@@ -200,13 +206,3 @@ export default {
         return count;
     },
 };
-
-import IssueModel from '../models/issue';
-
-import sha256 from 'crypto-js/sha256';
-import ComponentService from './componentService';
-import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import errorService from 'common-server/utils/error';

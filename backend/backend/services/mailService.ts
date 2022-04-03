@@ -3,7 +3,6 @@ import nodemailer from 'nodemailer';
 import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import Whitepapers from '../config/whitepaper';
-import ErrorService from 'common-server/utils/error';
 import defaultEmailTemplates from '../config/emailTemplate';
 import GlobalConfigService from './globalConfigService';
 import EmailSmtpService from './emailSmtpService';
@@ -246,8 +245,7 @@ const _this = {
         // this should be handled gracefully
         // if there's no settings, no email should be sent
         // throwing error here is not needed
-        const error = new Error('SMTP settings not found.');
-        ErrorService.log('mailService.getSmtpSettings', error);
+
         return {};
     },
 
@@ -416,7 +414,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -614,7 +611,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -780,7 +776,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendDeleteProjectEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -935,7 +930,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendVerifyEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1133,7 +1127,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendLeadEmailToOneUptimeTeam', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1284,7 +1277,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendUserFeedbackResponse', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1433,7 +1425,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log('mailService.sendRequestDemoEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1463,7 +1454,7 @@ const _this = {
                 const error = new Error('Email or Whitepaper found');
 
                 error.code = 400;
-                ErrorService.log('mailService.sendWhitepaperEmail', error);
+
                 throw error;
             } else {
                 let link = null;
@@ -1478,7 +1469,7 @@ const _this = {
                     const error = new Error('Whitepaper not found');
 
                     error.code = 400;
-                    ErrorService.log('mailService.sendWhitepaperEmail', error);
+
                     throw error;
                 } else {
                     let accountMail = await _this.getSmtpSettings();
@@ -1613,7 +1604,6 @@ const _this = {
                 }
             }
         } catch (error) {
-            ErrorService.log('mailService.sendWhitepaperEmail', error);
             if (mailOptions) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1768,7 +1758,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendForgotPasswordMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1918,7 +1907,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2076,10 +2064,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendNewUserAddedToProjectMail',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2234,10 +2218,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendExistingUserAddedToProjectMail',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2393,7 +2373,6 @@ const _this = {
             }
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendContainerEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2541,7 +2520,6 @@ const _this = {
             }
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendContainerEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2682,7 +2660,6 @@ const _this = {
             }
             return info;
         } catch (error) {
-            ErrorService.log('mailService.sendContainerEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2834,10 +2811,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendExistingStatusPageViewerMail',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2993,10 +2966,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendExistingUserAddedToSubProjectMail',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3151,7 +3120,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendNewStatusPageViewerMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3310,7 +3278,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendChangeRoleEmailToUser', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3467,10 +3434,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendRemoveFromProjectEmailToUser',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3628,10 +3591,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendRemoveFromSubProjectEmailToUser',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3865,7 +3824,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendIncidentCreatedMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4093,10 +4051,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendIncidentCreatedMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4300,7 +4254,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendIncidentAcknowledgedMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4498,7 +4451,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendIncidentResolvedMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4727,10 +4679,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendIncidentCreatedMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4939,10 +4887,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendInvestigationNoteToSubscribers',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5180,10 +5124,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendScheduledEventMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5417,10 +5357,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendScheduledEventMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5655,10 +5591,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendCancelledScheduledEventMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5891,10 +5823,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendScheduledEventNoteMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6111,7 +6039,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendAnnouncementToSubscriber', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6346,10 +6273,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendIncidentResolvedMailToSubscriber',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6477,7 +6400,7 @@ const _this = {
 
                 err.code = 400;
             }
-            ErrorService.log('mailService.testSmtpConfig', error);
+
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6636,7 +6559,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendChangePlanMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6790,7 +6712,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendCreateProjectMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6941,7 +6862,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendCreateSubProjectMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7098,7 +7018,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendUpgradeToEnterpriseMail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7257,7 +7176,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendPaymentFailedEmail', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7445,7 +7363,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendSlaNotification', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7616,7 +7533,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendSlaBreachNotification', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7783,10 +7699,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendUnpaidSubscriptionReminder',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7952,10 +7864,6 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log(
-                'mailService.sendUnpaidSubscriptionProjectDelete',
-                error
-            );
             await EmailStatusService.create({
                 from: mailOptions.from,
 

@@ -1,4 +1,4 @@
-import SslModel from '../models/ssl';
+import SslModel from 'common-server/models/ssl';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

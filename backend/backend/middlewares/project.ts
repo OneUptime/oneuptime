@@ -1,5 +1,4 @@
 import ProjectService from '../services/projectService';
-import ErrorService from 'common-server/utils/error';
 import BadDataException from 'common/types/exception/bad-data-exception';
 import url from 'url';
 import { sendErrorResponse } from 'common-server/utils/response';
@@ -96,7 +95,6 @@ export default {
                 }
             }
         } catch (error) {
-            ErrorService.log('project.doesUserBelongToProject', error);
             return sendErrorResponse(
                 req,
                 res,
@@ -174,7 +172,6 @@ export default {
                 }
             }
         } catch (error) {
-            ErrorService.log('project.isUserAdmin', error);
             return sendErrorResponse(
                 req,
                 res,
@@ -227,7 +224,6 @@ export default {
                 }
             }
         } catch (error) {
-            ErrorService.log('project.isUserOwner', error);
             return sendErrorResponse(
                 req,
                 res,
@@ -267,7 +263,6 @@ export default {
 
             return next();
         } catch (error) {
-            ErrorService.log('project.getUserRole', error);
             return sendErrorResponse(
                 req,
                 res,

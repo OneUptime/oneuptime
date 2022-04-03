@@ -1,4 +1,4 @@
-import EscalationModel from '../models/escalation';
+import EscalationModel from 'common-server/models/escalation';
 import moment from 'moment';
 import DateTime from '../utils/DateTime';
 import ScheduleService from './scheduleService';

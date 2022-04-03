@@ -1,118 +1,96 @@
 export default {
     create: async function (data: $TSFixMe) {
-        try {
-            const LogHour = {};
+        const LogHour = {};
 
-            LogHour.monitorId = data.monitorId;
+        LogHour.monitorId = data.monitorId;
 
-            LogHour.probeId = data.probeId;
+        LogHour.probeId = data.probeId;
 
-            LogHour.status = data.status;
+        LogHour.status = data.status;
 
-            LogHour.responseTime = data.responseTime;
+        LogHour.responseTime = data.responseTime;
 
-            LogHour.responseStatus = data.responseStatus;
+        LogHour.responseStatus = data.responseStatus;
 
-            LogHour.cpuLoad = data.cpuLoad;
+        LogHour.cpuLoad = data.cpuLoad;
 
-            LogHour.avgCpuLoad = data.avgCpuLoad;
+        LogHour.avgCpuLoad = data.avgCpuLoad;
 
-            LogHour.cpuCores = data.cpuCores;
+        LogHour.cpuCores = data.cpuCores;
 
-            LogHour.memoryUsed = data.memoryUsed;
+        LogHour.memoryUsed = data.memoryUsed;
 
-            LogHour.totalMemory = data.totalMemory;
+        LogHour.totalMemory = data.totalMemory;
 
-            LogHour.swapUsed = data.swapUsed;
+        LogHour.swapUsed = data.swapUsed;
 
-            LogHour.storageUsed = data.storageUsed;
+        LogHour.storageUsed = data.storageUsed;
 
-            LogHour.totalStorage = data.totalStorage;
+        LogHour.totalStorage = data.totalStorage;
 
-            LogHour.storageUsage = data.storageUsage;
+        LogHour.storageUsage = data.storageUsage;
 
-            LogHour.mainTemp = data.mainTemp;
+        LogHour.mainTemp = data.mainTemp;
 
-            LogHour.maxTemp = data.maxTemp;
+        LogHour.maxTemp = data.maxTemp;
 
-            LogHour.maxResponseTime = data.responseTime;
+        LogHour.maxResponseTime = data.responseTime;
 
-            LogHour.maxCpuLoad = data.cpuLoad;
+        LogHour.maxCpuLoad = data.cpuLoad;
 
-            LogHour.maxMemoryUsed = data.memoryUsed;
+        LogHour.maxMemoryUsed = data.memoryUsed;
 
-            LogHour.maxStorageUsed = data.storageUsed;
+        LogHour.maxStorageUsed = data.storageUsed;
 
-            LogHour.maxMainTemp = data.mainTemp;
+        LogHour.maxMainTemp = data.mainTemp;
 
-            LogHour.intervalDate = data.intervalDate;
+        LogHour.intervalDate = data.intervalDate;
 
-            LogHour.sslCertificate = data.sslCertificate;
+        LogHour.sslCertificate = data.sslCertificate;
 
-            LogHour.kubernetesLog = data.kubernetesData || {};
+        LogHour.kubernetesLog = data.kubernetesData || {};
 
-            LogHour.createdAt = new Date(moment().format());
+        LogHour.createdAt = new Date(moment().format());
 
-            const result = await monitorLogByHourCollection.insertOne(LogHour);
-            const savedLogHour = await this.findOneBy({
-                _id: ObjectId(result.insertedId),
-            });
+        const result = await monitorLogByHourCollection.insertOne(LogHour);
+        const savedLogHour = await this.findOneBy({
+            _id: ObjectId(result.insertedId),
+        });
 
-            return savedLogHour;
-        } catch (error) {
-            ErrorService.log('monitorLogByHourService.create', error);
-            throw error;
-        }
+        return savedLogHour;
     },
 
     updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
-            await monitorLogByHourCollection.updateOne(query, { $set: data });
-            const monitorLogByHour = await monitorLogByHourCollection.findOne(
-                query
-            );
-
-            return monitorLogByHour;
-        } catch (error) {
-            ErrorService.log('monitorLogByHourService.updateOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted)
+            query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+
+        await monitorLogByHourCollection.updateOne(query, { $set: data });
+        const monitorLogByHour = await monitorLogByHourCollection.findOne(
+            query
+        );
+
+        return monitorLogByHour;
     },
 
     async findOneBy(query: $TSFixMe) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
-            const monitorLog = await monitorLogByHourCollection.findOne(query);
-
-            return monitorLog;
-        } catch (error) {
-            ErrorService.log('monitorLogByHourService.findOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted)
+            query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+
+        const monitorLog = await monitorLogByHourCollection.findOne(query);
+
+        return monitorLog;
     },
 };
 
 import { ObjectId } from 'mongodb';
-import ErrorService from '../services/errorService';
 
 const monitorLogByHourCollection = global.db.collection('monitorlogbyhours');
 import moment from 'moment';

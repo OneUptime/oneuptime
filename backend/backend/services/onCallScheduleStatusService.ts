@@ -155,6 +155,6 @@ export default {
     },
 };
 
-import OnCallScheduleStatusModel from '../models/onCallScheduleStatus';
+import OnCallScheduleStatusModel from 'common-server/models/onCallScheduleStatus';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

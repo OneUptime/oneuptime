@@ -1,6 +1,5 @@
 import lighthouse from 'lighthouse';
 import chromeLauncher from 'chrome-launcher';
-import ErrorService from './errorService';
 
 function launchChromeAndRunLighthouse(
     url: URL,
@@ -56,6 +55,5 @@ process.on('message', url => {
         })
         .catch(error => {
             process.send({ data: { url }, error });
-            ErrorService.log('launchChromeAndRunLighthouse', error);
         });
 });

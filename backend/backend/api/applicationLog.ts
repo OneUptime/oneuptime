@@ -191,11 +191,8 @@ router.post(
 
             const log = await LogService.create(data);
 
-            try {
-                RealTimeService.sendLogCreated(log);
-            } catch (error) {
-                ErrorService.log('realtimeService.sendLogCreated', error);
-            }
+            RealTimeService.sendLogCreated(log);
+
             return sendItemResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

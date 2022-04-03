@@ -301,17 +301,15 @@ export default {
         if (verificationToken) {
             const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
             // Checking for already verified user so that he/she will not recieve another email verification
-            try {
-                if (!user.isVerified) {
-                    MailService.sendVerifyEmail(
-                        verificationTokenURL,
-                        user.name,
-                        email
-                    );
-                }
-            } catch (error) {
-                ErrorService.log('mailService.sendVerifyEmail', error);
+
+            if (!user.isVerified) {
+                MailService.sendVerifyEmail(
+                    verificationTokenURL,
+                    user.name,
+                    email
+                );
             }
+
             if (email !== user.email) {
                 _this
                     .updateOneBy({ _id: user._id }, { tempEmail: email })
@@ -401,19 +399,15 @@ export default {
                     .toISOString()
                     .split('T', 1);
 
-                try {
-                    AirtableService.logUser({
-                        name: data.name,
-                        email: data.email,
-                        phone: data.companyPhoneNumber,
-                        company: data.companyName,
-                        jobRole: data.companyRole,
-                        source: data.source,
-                        createdAt,
-                    });
-                } catch (error) {
-                    ErrorService.log('userService.signup', error);
-                }
+                AirtableService.logUser({
+                    name: data.name,
+                    email: data.email,
+                    phone: data.companyPhoneNumber,
+                    company: data.companyName,
+                    jobRole: data.companyRole,
+                    source: data.source,
+                    createdAt,
+                });
 
                 if (IS_TESTING) {
                     user.verificationToken = verificationToken;
@@ -1139,7 +1133,7 @@ export default {
 import bcrypt from 'bcrypt';
 
 import constants from '../config/constants.json';
-import UserModel from '../models/user';
+import UserModel from 'common-server/models/user';
 import util from './utilService.js';
 import randToken from 'rand-token';
 import PaymentService from './paymentService';
@@ -1154,7 +1148,7 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
-import VerificationTokenModel from '../models/verificationToken';
+import VerificationTokenModel from 'common-server/models/verificationToken';
 import MailService from '../services/mailService';
 import AirtableService from './airtableService';
 

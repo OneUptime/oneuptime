@@ -5,7 +5,7 @@ import init from '../../test-init';
 import axios from 'axios';
 
 let browser: $TSFixMe, page: $TSFixMe;
-require('should');
+import 'should';
 
 // user credentials
 const email = 'masteradmin@hackerbay.io';

@@ -225,7 +225,7 @@ export default {
     },
 };
 
-import LighthouseLogModel from '../models/lighthouseLog';
+import LighthouseLogModel from 'common-server/models/lighthouseLog';
 import MonitorService from './monitorService';
 import RealTimeService from './realTimeService';
 import probeService from './probeService';

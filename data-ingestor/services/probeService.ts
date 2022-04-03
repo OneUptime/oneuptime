@@ -1,631 +1,277 @@
+import MonitorService from './monitorService';
+import MonitorStatusService from './monitorStatusService';
+import MonitorLogService from './monitorLogService';
+import LighthouseLogService from './lighthouseLogService';
+import IncidentService from './incidentService';
+import IncidentTimelineService from './incidentTimelineService';
+import moment from 'moment';
+import { some, forEach } from 'p-iteration';
+import vm from 'vm';
+import AutomatedScriptService from './automatedScriptService';
+import { ObjectId } from 'mongodb';
+
+const probeCollection = global.db.collection('probes');
+
+import { v1 as uuidv1 } from 'uuid';
+
+import BackendAPI from '../utils/api';
+
+import { realtimeUrl } from '../utils/config';
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+
 export default {
     create: async function (data) {
-        try {
-            const _this = this;
-            let probeKey;
-            if (data.probeKey) {
-                probeKey = data.probeKey;
-            } else {
-                probeKey = uuidv1();
-            }
-            const storedProbe = await _this.findOneBy({
-                probeName: data.probeName,
-            });
-            if (storedProbe && storedProbe.probeName) {
-                const error = new Error('Probe name already exists.');
+        const _this = this;
+        let probeKey;
+        if (data.probeKey) {
+            probeKey = data.probeKey;
+        } else {
+            probeKey = uuidv1();
+        }
+        const storedProbe = await _this.findOneBy({
+            probeName: data.probeName,
+        });
+        if (storedProbe && storedProbe.probeName) {
+            const error = new Error('Probe name already exists.');
 
-                error.code = 400;
-                ErrorService.log('probe.create', error);
-                throw error;
-            } else {
-                const probe = {};
+            error.code = 400;
 
-                probe.probeKey = probeKey;
-
-                probe.probeName = data.probeName;
-
-                probe.version = data.probeVersion;
-
-                const now = new Date(moment().format());
-
-                probe.createdAt = now;
-
-                probe.lastAlive = now;
-
-                probe.deleted = false;
-
-                const result = await probeCollection.insertOne(probe);
-                const savedProbe = await _this.findOneBy({
-                    _id: ObjectId(result.insertedId),
-                });
-                return savedProbe;
-            }
-        } catch (error) {
-            ErrorService.log('ProbeService.create', error);
             throw error;
+        } else {
+            const probe = {};
+
+            probe.probeKey = probeKey;
+
+            probe.probeName = data.probeName;
+
+            probe.version = data.probeVersion;
+
+            const now = new Date(moment().format());
+
+            probe.createdAt = now;
+
+            probe.lastAlive = now;
+
+            probe.deleted = false;
+
+            const result = await probeCollection.insertOne(probe);
+            const savedProbe = await _this.findOneBy({
+                _id: ObjectId(result.insertedId),
+            });
+            return savedProbe;
         }
     },
 
     findOneBy: async function (query) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
-            const probe = await probeCollection.findOne(query);
-            return probe;
-        } catch (error) {
-            ErrorService.log('ProbeService.findOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted)
+            query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+
+        const probe = await probeCollection.findOne(query);
+        return probe;
     },
 
     updateOneBy: async function (query, data) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
-            await probeCollection.updateOne(query, { $set: data });
-            const probe = await this.findOneBy(query);
-            return probe;
-        } catch (error) {
-            ErrorService.log('ProbeService.updateOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted)
+            query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+
+        await probeCollection.updateOne(query, { $set: data });
+        const probe = await this.findOneBy(query);
+        return probe;
     },
 
     saveLighthouseLog: async function (data) {
-        try {
-            const log = await LighthouseLogService.create(data);
-            return log;
-        } catch (error) {
-            ErrorService.log('ProbeService.saveLighthouseScan', error);
-            throw error;
-        }
+        const log = await LighthouseLogService.create(data);
+        return log;
     },
 
     createMonitorDisabledStatus: async function (data) {
-        try {
-            let monitorStatus = await MonitorStatusService.findBy({
-                query: {
-                    monitorId: data.monitorId,
-                },
-                limit: 1, // only get one item, which is the latest item
+        let monitorStatus = await MonitorStatusService.findBy({
+            query: {
+                monitorId: data.monitorId,
+            },
+            limit: 1, // only get one item, which is the latest item
+        });
+        monitorStatus = monitorStatus[0];
+
+        const lastStatus =
+            monitorStatus && monitorStatus.status ? monitorStatus.status : null;
+
+        if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+            data.lastStatus = lastStatus ? lastStatus : null;
+            monitorStatus = await MonitorStatusService.create({
+                ...data,
+                deleted: false,
             });
-            monitorStatus = monitorStatus[0];
-
-            const lastStatus =
-                monitorStatus && monitorStatus.status
-                    ? monitorStatus.status
-                    : null;
-
-            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
-                data.lastStatus = lastStatus ? lastStatus : null;
-                monitorStatus = await MonitorStatusService.create({
-                    ...data,
-                    deleted: false,
-                });
-            }
-            return monitorStatus;
-        } catch (error) {
-            ErrorService.log('ProbeService.createMonitorDisabledStatus', error);
-            throw error;
         }
+        return monitorStatus;
     },
 
     saveMonitorLog: async function (data) {
-        try {
-            const _this = this;
+        const _this = this;
 
-            let monitorStatus = await MonitorStatusService.findBy({
-                query: {
-                    monitorId: data.monitorId,
-                    probeId: data.probeId,
-                },
-                limit: 1, // only get one item, which is the latest item
-            });
-            monitorStatus = monitorStatus[0];
+        let monitorStatus = await MonitorStatusService.findBy({
+            query: {
+                monitorId: data.monitorId,
+                probeId: data.probeId,
+            },
+            limit: 1, // only get one item, which is the latest item
+        });
+        monitorStatus = monitorStatus[0];
 
-            const lastStatus =
-                monitorStatus && monitorStatus.status
-                    ? monitorStatus.status
-                    : null;
+        const lastStatus =
+            monitorStatus && monitorStatus.status ? monitorStatus.status : null;
 
-            let log = await MonitorLogService.create(data);
+        let log = await MonitorLogService.create(data);
 
-            if (!data.stopPingTimeUpdate) {
-                await MonitorService.updateMonitorPingTime(data.monitorId);
-            }
-
-            // grab all the criteria in a monitor
-
-            const allCriteria = [];
-            if (data.matchedUpCriterion) {
-                data.matchedUpCriterion.forEach(criteria =>
-                    allCriteria.push(criteria)
-                );
-            }
-            if (data.matchedDownCriterion) {
-                data.matchedDownCriterion.forEach(criteria =>
-                    allCriteria.push(criteria)
-                );
-            }
-            if (data.matchedDegradedCriterion) {
-                data.matchedDegradedCriterion.forEach(criteria =>
-                    allCriteria.push(criteria)
-                );
-            }
-
-            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
-                // check if monitor has a previous status
-                // check if previous status is different from the current status
-                // if different, resolve last incident, create a new incident and monitor status
-                if (lastStatus) {
-                    // check 3 times just to make sure
-                    if (
-                        typeof data.retry === 'boolean' &&
-                        data.retryCount >= 0 &&
-                        data.retryCount < 3
-                    )
-                        return { retry: true, retryCount: data.retryCount };
-
-                    await _this.incidentResolveOrAcknowledge(data, allCriteria);
-                }
-
-                const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(
-                    data
-                );
-
-                if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
-
-                if (
-                    Array.isArray(incidentIdsOrRetry) &&
-                    incidentIdsOrRetry.length
-                ) {
-                    data.incidentId = incidentIdsOrRetry[0];
-                }
-
-                await MonitorStatusService.create({ ...data, deleted: false });
-
-                if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
-                    log = await MonitorLogService.updateOneBy(
-                        { _id: ObjectId(log._id) },
-                        { incidentIds: incidentIdsOrRetry }
-                    );
-                }
-            } else {
-                // should make sure all unresolved incidents for the monitor is resolved
-                if (data.status === 'online') {
-                    await _this.incidentResolveOrAcknowledge(data, allCriteria);
-                }
-
-                const incidents = await IncidentService.findBy({
-                    query: {
-                        'monitors.monitorId': ObjectId(data.monitorId),
-                        incidentType: data.status,
-                        resolved: false,
-                    },
-                });
-
-                const incidentIds = incidents.map(incident => incident._id);
-
-                if (incidentIds && incidentIds.length) {
-                    log = await MonitorLogService.updateOneBy(
-                        { _id: ObjectId(log._id) },
-                        { incidentIds }
-                    );
-                }
-            }
-            return log;
-        } catch (error) {
-            ErrorService.log('ProbeService.saveMonitorLog', error);
-            throw error;
+        if (!data.stopPingTimeUpdate) {
+            await MonitorService.updateMonitorPingTime(data.monitorId);
         }
+
+        // grab all the criteria in a monitor
+
+        const allCriteria = [];
+        if (data.matchedUpCriterion) {
+            data.matchedUpCriterion.forEach(criteria =>
+                allCriteria.push(criteria)
+            );
+        }
+        if (data.matchedDownCriterion) {
+            data.matchedDownCriterion.forEach(criteria =>
+                allCriteria.push(criteria)
+            );
+        }
+        if (data.matchedDegradedCriterion) {
+            data.matchedDegradedCriterion.forEach(criteria =>
+                allCriteria.push(criteria)
+            );
+        }
+
+        if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+            // check if monitor has a previous status
+            // check if previous status is different from the current status
+            // if different, resolve last incident, create a new incident and monitor status
+            if (lastStatus) {
+                // check 3 times just to make sure
+                if (
+                    typeof data.retry === 'boolean' &&
+                    data.retryCount >= 0 &&
+                    data.retryCount < 3
+                )
+                    return { retry: true, retryCount: data.retryCount };
+
+                await _this.incidentResolveOrAcknowledge(data, allCriteria);
+            }
+
+            const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(data);
+
+            if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
+
+            if (
+                Array.isArray(incidentIdsOrRetry) &&
+                incidentIdsOrRetry.length
+            ) {
+                data.incidentId = incidentIdsOrRetry[0];
+            }
+
+            await MonitorStatusService.create({ ...data, deleted: false });
+
+            if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
+                log = await MonitorLogService.updateOneBy(
+                    { _id: ObjectId(log._id) },
+                    { incidentIds: incidentIdsOrRetry }
+                );
+            }
+        } else {
+            // should make sure all unresolved incidents for the monitor is resolved
+            if (data.status === 'online') {
+                await _this.incidentResolveOrAcknowledge(data, allCriteria);
+            }
+
+            const incidents = await IncidentService.findBy({
+                query: {
+                    'monitors.monitorId': ObjectId(data.monitorId),
+                    incidentType: data.status,
+                    resolved: false,
+                },
+            });
+
+            const incidentIds = incidents.map(incident => incident._id);
+
+            if (incidentIds && incidentIds.length) {
+                log = await MonitorLogService.updateOneBy(
+                    { _id: ObjectId(log._id) },
+                    { incidentIds }
+                );
+            }
+        }
+        return log;
     },
 
     getMonitorLog: async function (data) {
-        try {
-            const date = new Date(moment().format());
-            const log = await MonitorLogService.findOneBy({
-                monitorId: data.monitorId,
-                probeId: data.probeId,
-                createdAt: { $lt: data.date || date },
-            });
-            return log;
-        } catch (error) {
-            ErrorService.log('probeService.getMonitorLog', error);
-            throw error;
-        }
+        const date = new Date(moment().format());
+        const log = await MonitorLogService.findOneBy({
+            monitorId: data.monitorId,
+            probeId: data.probeId,
+            createdAt: { $lt: data.date || date },
+        });
+        return log;
     },
 
     incidentCreateOrUpdate: async function (data) {
-        try {
-            const [monitor, incidents] = await Promise.all([
-                MonitorService.findOneBy({
-                    query: { _id: ObjectId(data.monitorId) },
-                }),
-                IncidentService.findBy({
-                    query: {
-                        'monitors.monitorId': ObjectId(data.monitorId),
-                        incidentType: data.status,
-                        resolved: false,
-                        manuallyCreated: false,
-                    },
-                }),
-            ]);
-            const { matchedCriterion } = data;
-            let incidentIds = [];
-            let scripts = [];
+        const [monitor, incidents] = await Promise.all([
+            MonitorService.findOneBy({
+                query: { _id: ObjectId(data.monitorId) },
+            }),
+            IncidentService.findBy({
+                query: {
+                    'monitors.monitorId': ObjectId(data.monitorId),
+                    incidentType: data.status,
+                    resolved: false,
+                    manuallyCreated: false,
+                },
+            }),
+        ]);
+        const { matchedCriterion } = data;
+        let incidentIds = [];
+        let scripts = [];
 
-            if (
-                matchedCriterion &&
-                matchedCriterion.scripts &&
-                matchedCriterion.scripts.length > 0
-            ) {
-                scripts = matchedCriterion.scripts.map(script => {
-                    return {
-                        automatedScript: script.scriptId,
-                    };
-                });
-            }
-
-            if (
-                data.status === 'online' &&
-                monitor &&
-                matchedCriterion &&
-                matchedCriterion.createAlert
-            ) {
-                if (incidents && incidents.length) {
-                    const internalIncidents = [];
-                    for (let incident of incidents) {
-                        if (monitor.type !== 'incomingHttpRequest') {
-                            const initialProbes = incident.probes.map(
-                                probe => ({
-                                    probeId: probe.probeId._id || probe.probeId,
-                                    updatedAt: probe.updatedAt,
-                                    status: probe.status,
-                                    reportedStatus: probe.reportedStatus,
-                                })
-                            );
-                            incident = await IncidentService.updateOneBy(
-                                {
-                                    _id: ObjectId(incident._id),
-                                },
-                                {
-                                    probes: [
-                                        ...initialProbes,
-                                        {
-                                            probeId: data.probeId,
-                                            updatedAt: new Date(
-                                                moment().format()
-                                            ),
-                                            status: true,
-                                            reportedStatus: data.status,
-                                        },
-                                    ],
-                                }
-                            );
-                        }
-
-                        await IncidentTimelineService.create({
-                            incidentId: incident._id,
-                            probeId: data.probeId,
-                            status: data.status,
-                        });
-
-                        incident && internalIncidents.push(incident);
-                    }
-
-                    incidentIds = internalIncidents;
-                } else {
-                    if (
-                        typeof data.retry === 'boolean' &&
-                        data.retryCount >= 0 &&
-                        data.retryCount < 3
-                    )
-                        return { retry: true, retryCount: data.retryCount };
-
-                    const response = await BackendAPI.post(
-                        'api/incident/data-ingestor/create-incident',
-                        {
-                            projectId: monitor.projectId,
-                            monitors: [data.monitorId],
-                            createdById: null,
-                            incidentType: 'online',
-                            probeId: data.probeId,
-                            reason: data.reason,
-                            response: data.response,
-                            ...(matchedCriterion && {
-                                matchedCriterion,
-                            }),
-                        }
-                    );
-                    const incident = response;
-
-                    AutomatedScriptService.runResource({
-                        triggeredId: incident._id,
-                        triggeredBy: 'incident',
-                        resources: scripts,
-                    });
-
-                    if (incident) {
-                        incidentIds = [incident];
-                    }
-                }
-            } else if (
-                data.status === 'degraded' &&
-                monitor &&
-                matchedCriterion &&
-                matchedCriterion.createAlert
-            ) {
-                if (incidents && incidents.length) {
-                    const internalIncidents = [];
-                    for (let incident of incidents) {
-                        if (monitor.type !== 'incomingHttpRequest') {
-                            const initialProbes = incident.probes.map(
-                                probe => ({
-                                    probeId: probe.probeId._id || probe.probeId,
-                                    updatedAt: probe.updatedAt,
-                                    status: probe.status,
-                                    reportedStatus: probe.reportedStatus,
-                                })
-                            );
-                            incident = await IncidentService.updateOneBy(
-                                {
-                                    _id: ObjectId(incident._id),
-                                },
-                                {
-                                    probes: [
-                                        ...initialProbes,
-                                        {
-                                            probeId: data.probeId,
-                                            updatedAt: new Date(
-                                                moment().format()
-                                            ),
-                                            status: true,
-                                            reportedStatus: data.status,
-                                        },
-                                    ],
-                                }
-                            );
-                        }
-
-                        await IncidentTimelineService.create({
-                            incidentId: incident._id.toString(),
-                            probeId: data.probeId,
-                            status: data.status,
-                        });
-
-                        incident && internalIncidents.push(incident);
-                    }
-                    incidentIds = internalIncidents;
-                } else {
-                    if (
-                        typeof data.retry === 'boolean' &&
-                        data.retryCount >= 0 &&
-                        data.retryCount < 3
-                    )
-                        return { retry: true, retryCount: data.retryCount };
-
-                    const response = await BackendAPI.post(
-                        'api/incident/data-ingestor/create-incident',
-                        {
-                            projectId: monitor.projectId,
-                            monitors: [data.monitorId],
-                            createdById: null,
-                            incidentType: 'degraded',
-                            probeId: data.probeId,
-                            reason: data.reason,
-                            response: data.response,
-                            ...(matchedCriterion && {
-                                matchedCriterion,
-                            }),
-                        }
-                    );
-                    const incident = response;
-
-                    AutomatedScriptService.runResource({
-                        triggeredId: incident._id,
-                        triggeredBy: 'incident',
-                        resources: scripts,
-                    });
-
-                    if (incident) {
-                        incidentIds = [incident];
-                    }
-                }
-            } else if (
-                data.status === 'offline' &&
-                monitor &&
-                matchedCriterion &&
-                matchedCriterion.createAlert
-            ) {
-                if (incidents && incidents.length) {
-                    const internalIncidents = [];
-                    for (let incident of incidents) {
-                        if (monitor.type !== 'incomingHttpRequest') {
-                            const initialProbes = incident.probes.map(
-                                probe => ({
-                                    probeId: probe.probeId._id || probe.probeId,
-                                    updatedAt: probe.updatedAt,
-                                    status: probe.status,
-                                    reportedStatus: probe.reportedStatus,
-                                })
-                            );
-                            incident = await IncidentService.updateOneBy(
-                                {
-                                    _id: ObjectId(incident._id),
-                                },
-                                {
-                                    probes: [
-                                        ...initialProbes,
-                                        {
-                                            probeId: data.probeId,
-                                            updatedAt: new Date(
-                                                moment().format()
-                                            ),
-                                            status: true,
-                                            reportedStatus: data.status,
-                                        },
-                                    ],
-                                }
-                            );
-                        }
-
-                        await IncidentTimelineService.create({
-                            incidentId: incident._id.toString(),
-                            probeId: data.probeId,
-                            status: data.status,
-                        });
-
-                        incident && internalIncidents.push(incident);
-                    }
-                    incidentIds = internalIncidents;
-                } else {
-                    if (
-                        typeof data.retry === 'boolean' &&
-                        data.retryCount >= 0 &&
-                        data.retryCount < 3
-                    )
-                        return { retry: true, retryCount: data.retryCount };
-
-                    const response = await BackendAPI.post(
-                        'api/incident/data-ingestor/create-incident',
-                        {
-                            projectId: monitor.projectId,
-                            monitors: [data.monitorId],
-                            createdById: null,
-                            incidentType: 'offline',
-                            probeId: data.probeId,
-                            reason: data.reason,
-                            response: data.response,
-                            ...(matchedCriterion && {
-                                matchedCriterion,
-                            }),
-                        }
-                    );
-                    const incident = response;
-
-                    AutomatedScriptService.runResource({
-                        triggeredId: incident._id,
-                        triggeredBy: 'incident',
-                        resources: scripts,
-                    });
-
-                    if (incident) {
-                        incidentIds = [incident];
-                    }
-                }
-            }
-
-            incidentIds = incidentIds.map(i => i._id);
-            return incidentIds;
-        } catch (error) {
-            ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
-            throw error;
+        if (
+            matchedCriterion &&
+            matchedCriterion.scripts &&
+            matchedCriterion.scripts.length > 0
+        ) {
+            scripts = matchedCriterion.scripts.map(script => {
+                return {
+                    automatedScript: script.scriptId,
+                };
+            });
         }
-    },
 
-    incidentResolveOrAcknowledge: async function (data, allCriteria) {
-        try {
-            const [incidents, monitor] = await Promise.all([
-                IncidentService.findBy({
-                    query: {
-                        'monitors.monitorId': ObjectId(data.monitorId),
-                        resolved: false,
-                        manuallyCreated: false,
-                    },
-                }),
-                MonitorService.findOneBy({
-                    query: { _id: ObjectId(data.monitorId) },
-                }),
-            ]);
-
-            // should grab all the criterion for the monitor and put them into one array
-            // check the id of each criteria against the id of criteria attached to an incident
-            // ack / resolve according to the criteria
-
-            let autoAcknowledge, autoResolve;
-            if (incidents && incidents.length > 0) {
-                incidents.forEach(incident => {
-                    let criteriaId = null;
-                    if (
-                        incident &&
-                        incident.criterionCause &&
-                        incident.criterionCause._id
-                    )
-                        criteriaId = String(incident.criterionCause._id);
-
-                    allCriteria.forEach(criteria => {
-                        if (
-                            String(criteria?._id) === criteriaId ||
-                            criteria?.name === incident?.criterionCause?.name
-                        ) {
-                            autoAcknowledge = criteria?.autoAcknowledge;
-                            autoResolve = criteria?.autoResolve;
-                        }
-                    });
-                });
-            }
-
-            const incidentsV1 = [];
-            const incidentsV2 = [];
-
+        if (
+            data.status === 'online' &&
+            monitor &&
+            matchedCriterion &&
+            matchedCriterion.createAlert
+        ) {
             if (incidents && incidents.length) {
-                // is this check needed at all??
-                // if (lastStatus && lastStatus !== data.status) {
-
-                incidents.forEach(incident => {
-                    if (
-                        incident.probes &&
-                        incident.probes.length > 0 &&
-                        monitor.type !== 'incomingHttpRequest'
-                    ) {
-                        incident.probes.some(probe => {
-                            if (
-                                probe.probeId &&
-                                String(probe.probeId._id || probe.probeId) ===
-                                    String(data.probeId)
-                            ) {
-                                incidentsV1.push(incident);
-                                return true;
-                            } else return false;
-                        });
-                    } else {
-                        incidentsV1.push(incident);
-                        return true;
-                    }
-                });
-                // }
-            }
-
-            for (const incident of incidentsV1) {
-                if (
-                    incident.probes &&
-                    incident.probes.length > 0 &&
-                    monitor.type !== 'incomingHttpRequest'
-                ) {
-                    const initialProbes = incident.probes.map(probe => ({
-                        probeId: probe.probeId._id || probe.probeId,
-                        updatedAt: probe.updatedAt,
-                        status: probe.status,
-                        reportedStatus: probe.reportedStatus,
-                    }));
-                    const [newIncident] = await Promise.all([
-                        IncidentService.updateOneBy(
+                const internalIncidents = [];
+                for (let incident of incidents) {
+                    if (monitor.type !== 'incomingHttpRequest') {
+                        const initialProbes = incident.probes.map(probe => ({
+                            probeId: probe.probeId._id || probe.probeId,
+                            updatedAt: probe.updatedAt,
+                            status: probe.status,
+                            reportedStatus: probe.reportedStatus,
+                        }));
+                        incident = await IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
                             },
@@ -635,57 +281,355 @@ export default {
                                     {
                                         probeId: data.probeId,
                                         updatedAt: new Date(moment().format()),
-                                        status: false,
+                                        status: true,
                                         reportedStatus: data.status,
                                     },
                                 ],
                             }
-                        ),
-                        IncidentTimelineService.create({
-                            incidentId: incident._id.toString(),
-                            probeId: data.probeId,
-                            status: data.status,
-                        }),
-                    ]);
-
-                    incidentsV2.push(newIncident);
-                } else {
-                    incidentsV2.push(incident);
-                }
-            }
-
-            await forEach(incidentsV2, async incident => {
-                const trueArray = [];
-                const falseArray = [];
-
-                incident.probes.forEach(probe => {
-                    if (probe.status) {
-                        trueArray.push(probe);
-                    } else {
-                        falseArray.push(probe);
+                        );
                     }
+
+                    await IncidentTimelineService.create({
+                        incidentId: incident._id,
+                        probeId: data.probeId,
+                        status: data.status,
+                    });
+
+                    incident && internalIncidents.push(incident);
+                }
+
+                incidentIds = internalIncidents;
+            } else {
+                if (
+                    typeof data.retry === 'boolean' &&
+                    data.retryCount >= 0 &&
+                    data.retryCount < 3
+                )
+                    return { retry: true, retryCount: data.retryCount };
+
+                const response = await BackendAPI.post(
+                    'api/incident/data-ingestor/create-incident',
+                    {
+                        projectId: monitor.projectId,
+                        monitors: [data.monitorId],
+                        createdById: null,
+                        incidentType: 'online',
+                        probeId: data.probeId,
+                        reason: data.reason,
+                        response: data.response,
+                        ...(matchedCriterion && {
+                            matchedCriterion,
+                        }),
+                    }
+                );
+                const incident = response;
+
+                AutomatedScriptService.runResource({
+                    triggeredId: incident._id,
+                    triggeredBy: 'incident',
+                    resources: scripts,
                 });
 
-                if (
-                    trueArray.length === falseArray.length ||
-                    monitor.type === 'incomingHttpRequest'
-                ) {
-                    if (autoAcknowledge) {
-                        if (!incident.acknowledged) {
-                            await BackendAPI.post(
-                                'api/incident/data-ingestor/acknowledge-incident',
-                                {
-                                    incidentId: incident._id.toString(),
-                                    name: 'oneuptime',
-                                    probeId: data.probeId,
-                                }
-                            );
-                        }
+                if (incident) {
+                    incidentIds = [incident];
+                }
+            }
+        } else if (
+            data.status === 'degraded' &&
+            monitor &&
+            matchedCriterion &&
+            matchedCriterion.createAlert
+        ) {
+            if (incidents && incidents.length) {
+                const internalIncidents = [];
+                for (let incident of incidents) {
+                    if (monitor.type !== 'incomingHttpRequest') {
+                        const initialProbes = incident.probes.map(probe => ({
+                            probeId: probe.probeId._id || probe.probeId,
+                            updatedAt: probe.updatedAt,
+                            status: probe.status,
+                            reportedStatus: probe.reportedStatus,
+                        }));
+                        incident = await IncidentService.updateOneBy(
+                            {
+                                _id: ObjectId(incident._id),
+                            },
+                            {
+                                probes: [
+                                    ...initialProbes,
+                                    {
+                                        probeId: data.probeId,
+                                        updatedAt: new Date(moment().format()),
+                                        status: true,
+                                        reportedStatus: data.status,
+                                    },
+                                ],
+                            }
+                        );
                     }
 
-                    if (autoResolve) {
+                    await IncidentTimelineService.create({
+                        incidentId: incident._id.toString(),
+                        probeId: data.probeId,
+                        status: data.status,
+                    });
+
+                    incident && internalIncidents.push(incident);
+                }
+                incidentIds = internalIncidents;
+            } else {
+                if (
+                    typeof data.retry === 'boolean' &&
+                    data.retryCount >= 0 &&
+                    data.retryCount < 3
+                )
+                    return { retry: true, retryCount: data.retryCount };
+
+                const response = await BackendAPI.post(
+                    'api/incident/data-ingestor/create-incident',
+                    {
+                        projectId: monitor.projectId,
+                        monitors: [data.monitorId],
+                        createdById: null,
+                        incidentType: 'degraded',
+                        probeId: data.probeId,
+                        reason: data.reason,
+                        response: data.response,
+                        ...(matchedCriterion && {
+                            matchedCriterion,
+                        }),
+                    }
+                );
+                const incident = response;
+
+                AutomatedScriptService.runResource({
+                    triggeredId: incident._id,
+                    triggeredBy: 'incident',
+                    resources: scripts,
+                });
+
+                if (incident) {
+                    incidentIds = [incident];
+                }
+            }
+        } else if (
+            data.status === 'offline' &&
+            monitor &&
+            matchedCriterion &&
+            matchedCriterion.createAlert
+        ) {
+            if (incidents && incidents.length) {
+                const internalIncidents = [];
+                for (let incident of incidents) {
+                    if (monitor.type !== 'incomingHttpRequest') {
+                        const initialProbes = incident.probes.map(probe => ({
+                            probeId: probe.probeId._id || probe.probeId,
+                            updatedAt: probe.updatedAt,
+                            status: probe.status,
+                            reportedStatus: probe.reportedStatus,
+                        }));
+                        incident = await IncidentService.updateOneBy(
+                            {
+                                _id: ObjectId(incident._id),
+                            },
+                            {
+                                probes: [
+                                    ...initialProbes,
+                                    {
+                                        probeId: data.probeId,
+                                        updatedAt: new Date(moment().format()),
+                                        status: true,
+                                        reportedStatus: data.status,
+                                    },
+                                ],
+                            }
+                        );
+                    }
+
+                    await IncidentTimelineService.create({
+                        incidentId: incident._id.toString(),
+                        probeId: data.probeId,
+                        status: data.status,
+                    });
+
+                    incident && internalIncidents.push(incident);
+                }
+                incidentIds = internalIncidents;
+            } else {
+                if (
+                    typeof data.retry === 'boolean' &&
+                    data.retryCount >= 0 &&
+                    data.retryCount < 3
+                )
+                    return { retry: true, retryCount: data.retryCount };
+
+                const response = await BackendAPI.post(
+                    'api/incident/data-ingestor/create-incident',
+                    {
+                        projectId: monitor.projectId,
+                        monitors: [data.monitorId],
+                        createdById: null,
+                        incidentType: 'offline',
+                        probeId: data.probeId,
+                        reason: data.reason,
+                        response: data.response,
+                        ...(matchedCriterion && {
+                            matchedCriterion,
+                        }),
+                    }
+                );
+                const incident = response;
+
+                AutomatedScriptService.runResource({
+                    triggeredId: incident._id,
+                    triggeredBy: 'incident',
+                    resources: scripts,
+                });
+
+                if (incident) {
+                    incidentIds = [incident];
+                }
+            }
+        }
+
+        incidentIds = incidentIds.map(i => i._id);
+        return incidentIds;
+    },
+
+    incidentResolveOrAcknowledge: async function (data, allCriteria) {
+        const [incidents, monitor] = await Promise.all([
+            IncidentService.findBy({
+                query: {
+                    'monitors.monitorId': ObjectId(data.monitorId),
+                    resolved: false,
+                    manuallyCreated: false,
+                },
+            }),
+            MonitorService.findOneBy({
+                query: { _id: ObjectId(data.monitorId) },
+            }),
+        ]);
+
+        // should grab all the criterion for the monitor and put them into one array
+        // check the id of each criteria against the id of criteria attached to an incident
+        // ack / resolve according to the criteria
+
+        let autoAcknowledge, autoResolve;
+        if (incidents && incidents.length > 0) {
+            incidents.forEach(incident => {
+                let criteriaId = null;
+                if (
+                    incident &&
+                    incident.criterionCause &&
+                    incident.criterionCause._id
+                )
+                    criteriaId = String(incident.criterionCause._id);
+
+                allCriteria.forEach(criteria => {
+                    if (
+                        String(criteria?._id) === criteriaId ||
+                        criteria?.name === incident?.criterionCause?.name
+                    ) {
+                        autoAcknowledge = criteria?.autoAcknowledge;
+                        autoResolve = criteria?.autoResolve;
+                    }
+                });
+            });
+        }
+
+        const incidentsV1 = [];
+        const incidentsV2 = [];
+
+        if (incidents && incidents.length) {
+            // is this check needed at all??
+            // if (lastStatus && lastStatus !== data.status) {
+
+            incidents.forEach(incident => {
+                if (
+                    incident.probes &&
+                    incident.probes.length > 0 &&
+                    monitor.type !== 'incomingHttpRequest'
+                ) {
+                    incident.probes.some(probe => {
+                        if (
+                            probe.probeId &&
+                            String(probe.probeId._id || probe.probeId) ===
+                                String(data.probeId)
+                        ) {
+                            incidentsV1.push(incident);
+                            return true;
+                        } else return false;
+                    });
+                } else {
+                    incidentsV1.push(incident);
+                    return true;
+                }
+            });
+            // }
+        }
+
+        for (const incident of incidentsV1) {
+            if (
+                incident.probes &&
+                incident.probes.length > 0 &&
+                monitor.type !== 'incomingHttpRequest'
+            ) {
+                const initialProbes = incident.probes.map(probe => ({
+                    probeId: probe.probeId._id || probe.probeId,
+                    updatedAt: probe.updatedAt,
+                    status: probe.status,
+                    reportedStatus: probe.reportedStatus,
+                }));
+                const [newIncident] = await Promise.all([
+                    IncidentService.updateOneBy(
+                        {
+                            _id: ObjectId(incident._id),
+                        },
+                        {
+                            probes: [
+                                ...initialProbes,
+                                {
+                                    probeId: data.probeId,
+                                    updatedAt: new Date(moment().format()),
+                                    status: false,
+                                    reportedStatus: data.status,
+                                },
+                            ],
+                        }
+                    ),
+                    IncidentTimelineService.create({
+                        incidentId: incident._id.toString(),
+                        probeId: data.probeId,
+                        status: data.status,
+                    }),
+                ]);
+
+                incidentsV2.push(newIncident);
+            } else {
+                incidentsV2.push(incident);
+            }
+        }
+
+        await forEach(incidentsV2, async incident => {
+            const trueArray = [];
+            const falseArray = [];
+
+            incident.probes.forEach(probe => {
+                if (probe.status) {
+                    trueArray.push(probe);
+                } else {
+                    falseArray.push(probe);
+                }
+            });
+
+            if (
+                trueArray.length === falseArray.length ||
+                monitor.type === 'incomingHttpRequest'
+            ) {
+                if (autoAcknowledge) {
+                    if (!incident.acknowledged) {
                         await BackendAPI.post(
-                            'api/incident/data-ingestor/resolve-incident',
+                            'api/incident/data-ingestor/acknowledge-incident',
                             {
                                 incidentId: incident._id.toString(),
                                 name: 'oneuptime',
@@ -694,45 +638,43 @@ export default {
                         );
                     }
                 }
-            });
 
-            return {};
-        } catch (error) {
-            ErrorService.log(
-                'ProbeService.incidentResolveOrAcknowledge',
-                error
-            );
-            throw error;
-        }
+                if (autoResolve) {
+                    await BackendAPI.post(
+                        'api/incident/data-ingestor/resolve-incident',
+                        {
+                            incidentId: incident._id.toString(),
+                            name: 'oneuptime',
+                            probeId: data.probeId,
+                        }
+                    );
+                }
+            }
+        });
+
+        return {};
     },
 
     updateProbeStatus: async function (probeId) {
-        try {
-            const now = new Date(moment().format());
-            await probeCollection.updateOne(
-                {
-                    _id: ObjectId(probeId),
-                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
-                },
-                { $set: { lastAlive: now } }
-            );
-            const probe = await this.findOneBy({
+        const now = new Date(moment().format());
+        await probeCollection.updateOne(
+            {
                 _id: ObjectId(probeId),
-            });
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
+            { $set: { lastAlive: now } }
+        );
+        const probe = await this.findOneBy({
+            _id: ObjectId(probeId),
+        });
 
-            // realtime update for probe
-            BackendAPI.post(
-                `${realtimeBaseUrl}/update-probe`,
-                { data: probe },
-                true
-            ).catch(error => {
-                ErrorService.log('probeService.updateProbeStatus', error);
-            });
-            return probe;
-        } catch (error) {
-            ErrorService.log('probeService.updateProbeStatus', error);
-            throw error;
-        }
+        // realtime update for probe
+        BackendAPI.post(
+            `${realtimeBaseUrl}/update-probe`,
+            { data: probe },
+            true
+        );
+        return probe;
     },
 
     scriptConditions: (resp, con) => {
@@ -942,134 +884,126 @@ export default {
     },
 
     probeHttpRequest: async function (monitor, probeId) {
-        try {
-            const _this = this;
-            let status, reason;
-            let matchedCriterion;
-            const lastPingTime = monitor.lastPingTime;
-            const payload = moment().diff(moment(lastPingTime), 'minutes');
+        const _this = this;
+        let status, reason;
+        let matchedCriterion;
+        const lastPingTime = monitor.lastPingTime;
+        const payload = moment().diff(moment(lastPingTime), 'minutes');
 
-            const {
-                eventOccurred: validUp,
+        const {
+            eventOccurred: validUp,
 
-                matchedCriterion: matchedUpCriterion,
-            } =
-                monitor && monitor.criteria && monitor.criteria.up
-                    ? _this.incomingCondition(payload, monitor.criteria.up)
-                    : false;
+            matchedCriterion: matchedUpCriterion,
+        } =
+            monitor && monitor.criteria && monitor.criteria.up
+                ? _this.incomingCondition(payload, monitor.criteria.up)
+                : false;
 
-            const {
-                eventOccurred: validDegraded,
+        const {
+            eventOccurred: validDegraded,
 
-                matchedCriterion: matchedDegradedCriterion,
-            } =
-                monitor && monitor.criteria && monitor.criteria.degraded
-                    ? _this.incomingCondition(
-                          payload,
-                          monitor.criteria.degraded
-                      )
-                    : false;
+            matchedCriterion: matchedDegradedCriterion,
+        } =
+            monitor && monitor.criteria && monitor.criteria.degraded
+                ? _this.incomingCondition(payload, monitor.criteria.degraded)
+                : false;
 
-            const {
-                eventOccurred: validDown,
+        const {
+            eventOccurred: validDown,
 
-                matchedCriterion: matchedDownCriterion,
-            } =
-                monitor && monitor.criteria && monitor.criteria.down
-                    ? _this.incomingCondition(payload, [
-                          ...monitor.criteria.down.filter(
-                              criterion => criterion.default !== true
-                          ),
-                      ])
-                    : false;
-            let timeHours = 0;
-            let timeMinutes = payload;
-            let tempReason = `${payload} min`;
-            if (timeMinutes > 60) {
-                timeHours = Math.floor(timeMinutes / 60);
-                timeMinutes = Math.floor(timeMinutes % 60);
-                tempReason = `${timeHours} hrs ${timeMinutes} min`;
-            }
-
-            if (validDown) {
-                status = 'offline';
-                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
-                matchedCriterion = matchedDownCriterion;
-            } else if (validDegraded) {
-                status = 'degraded';
-                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
-                matchedCriterion = matchedDegradedCriterion;
-            } else if (validUp) {
-                status = 'online';
-                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
-                matchedCriterion = matchedUpCriterion;
-            } else {
-                status = 'offline';
-                reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
-                if (monitor.criteria.down) {
-                    matchedCriterion = monitor.criteria.down.find(
-                        criterion => criterion.default === true
-                    );
-                }
-            }
-            const logData = {};
-
-            logData.responseTime = 0;
-
-            logData.responseStatus = null;
-
-            logData.status = status;
-
-            logData.probeId = probeId;
-
-            logData.monitorId =
-                monitor && monitor.id
-                    ? monitor.id
-                    : monitor._id
-                    ? monitor._id
-                    : null;
-
-            logData.sslCertificate = null;
-
-            logData.lighthouseScanStatus = null;
-
-            logData.performance = null;
-
-            logData.accessibility = null;
-
-            logData.bestPractices = null;
-
-            logData.seo = null;
-
-            logData.pwa = null;
-
-            logData.lighthouseData = null;
-
-            logData.retryCount = 3;
-
-            logData.reason = reason;
-
-            logData.response = null;
-
-            logData.stopPingTimeUpdate = true;
-
-            logData.matchedCriterion = matchedCriterion;
-
-            // update monitor to save the last matched criterion
-            const [, log] = await Promise.all([
-                MonitorService.updateCriterion(
-                    ObjectId(monitor._id),
-                    matchedCriterion
-                ),
-
-                _this.saveMonitorLog(logData),
-            ]);
-
-            return log;
-        } catch (error) {
-            ErrorService.log('probeService.probeHttpRequest', error);
-            throw error;
+            matchedCriterion: matchedDownCriterion,
+        } =
+            monitor && monitor.criteria && monitor.criteria.down
+                ? _this.incomingCondition(payload, [
+                      ...monitor.criteria.down.filter(
+                          criterion => criterion.default !== true
+                      ),
+                  ])
+                : false;
+        let timeHours = 0;
+        let timeMinutes = payload;
+        let tempReason = `${payload} min`;
+        if (timeMinutes > 60) {
+            timeHours = Math.floor(timeMinutes / 60);
+            timeMinutes = Math.floor(timeMinutes % 60);
+            tempReason = `${timeHours} hrs ${timeMinutes} min`;
         }
+
+        if (validDown) {
+            status = 'offline';
+            reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            matchedCriterion = matchedDownCriterion;
+        } else if (validDegraded) {
+            status = 'degraded';
+            reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            matchedCriterion = matchedDegradedCriterion;
+        } else if (validUp) {
+            status = 'online';
+            reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            matchedCriterion = matchedUpCriterion;
+        } else {
+            status = 'offline';
+            reason = [`${criteriaStrings.incomingTime} ${tempReason}`];
+            if (monitor.criteria.down) {
+                matchedCriterion = monitor.criteria.down.find(
+                    criterion => criterion.default === true
+                );
+            }
+        }
+        const logData = {};
+
+        logData.responseTime = 0;
+
+        logData.responseStatus = null;
+
+        logData.status = status;
+
+        logData.probeId = probeId;
+
+        logData.monitorId =
+            monitor && monitor.id
+                ? monitor.id
+                : monitor._id
+                ? monitor._id
+                : null;
+
+        logData.sslCertificate = null;
+
+        logData.lighthouseScanStatus = null;
+
+        logData.performance = null;
+
+        logData.accessibility = null;
+
+        logData.bestPractices = null;
+
+        logData.seo = null;
+
+        logData.pwa = null;
+
+        logData.lighthouseData = null;
+
+        logData.retryCount = 3;
+
+        logData.reason = reason;
+
+        logData.response = null;
+
+        logData.stopPingTimeUpdate = true;
+
+        logData.matchedCriterion = matchedCriterion;
+
+        // update monitor to save the last matched criterion
+        const [, log] = await Promise.all([
+            MonitorService.updateCriterion(
+                ObjectId(monitor._id),
+                matchedCriterion
+            ),
+
+            _this.saveMonitorLog(logData),
+        ]);
+
+        return log;
     },
 };
 
@@ -3291,48 +3225,32 @@ const checkAnd = (
                                 ? response.body
                                 : response
                             : response;
-                        try {
-                            if (
-                                !(
-                                    con.criteria[i] &&
-                                    con.criteria[i].field1 &&
-                                    response &&
-                                    Function(
-                                        '"use strict";const response = ' +
-                                            JSON.stringify(response) +
-                                            ';return (' +
-                                            con.criteria[i].field1 +
-                                            ');'
-                                    )()
-                                )
-                            ) {
-                                validity = false;
-                                failedReasons.push(
-                                    `${
-                                        criteriaStrings.response
-                                    } \`${JSON.stringify(
-                                        responseDisplay
-                                    )}\` did evaluate \`${
-                                        con.criteria[i].field1
-                                    }\``
-                                );
-                            } else {
-                                successReasons.push(
-                                    `${
-                                        criteriaStrings.response
-                                    } \`${JSON.stringify(
-                                        responseDisplay
-                                    )}\` did evaluate \`${
-                                        con.criteria[i].field1
-                                    }\``
-                                );
-                            }
-                        } catch (e) {
+
+                        if (
+                            !(
+                                con.criteria[i] &&
+                                con.criteria[i].field1 &&
+                                response &&
+                                Function(
+                                    '"use strict";const response = ' +
+                                        JSON.stringify(response) +
+                                        ';return (' +
+                                        con.criteria[i].field1 +
+                                        ');'
+                                )()
+                            )
+                        ) {
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
                                     responseDisplay
-                                )}\` caused an error`
+                                )}\` did evaluate \`${con.criteria[i].field1}\``
+                            );
+                        } else {
+                            successReasons.push(
+                                `${criteriaStrings.response} \`${JSON.stringify(
+                                    responseDisplay
+                                )}\` did evaluate \`${con.criteria[i].field1}\``
                             );
                         }
                     }
@@ -5556,52 +5474,41 @@ const checkOr = (
                                 ? response.body
                                 : response
                             : response;
-                        try {
-                            if (
-                                con.criteria[i] &&
-                                con.criteria[i].field1 &&
-                                response &&
-                                Function(
-                                    '"use strict";const response = ' +
-                                        JSON.stringify(response) +
-                                        ';return (' +
-                                        con.criteria[i].field1 +
-                                        ');'
-                                )()
-                            ) {
-                                validity = true;
-                                if (con.criteria[i].field1) {
-                                    successReasons.push(
-                                        `${
-                                            criteriaStrings.response
-                                        } \`${JSON.stringify(
-                                            responseDisplay
-                                        )}\` evaluate \`${
-                                            con.criteria[i].field1
-                                        }\``
-                                    );
-                                }
-                            } else {
-                                if (con.criteria[i].field1) {
-                                    failedReasons.push(
-                                        `${
-                                            criteriaStrings.response
-                                        } \`${JSON.stringify(
-                                            responseDisplay
-                                        )}\` did not evaluate \`${
-                                            con.criteria[i].field1
-                                        }\``
-                                    );
-                                }
+
+                        if (
+                            con.criteria[i] &&
+                            con.criteria[i].field1 &&
+                            response &&
+                            Function(
+                                '"use strict";const response = ' +
+                                    JSON.stringify(response) +
+                                    ';return (' +
+                                    con.criteria[i].field1 +
+                                    ');'
+                            )()
+                        ) {
+                            validity = true;
+                            if (con.criteria[i].field1) {
+                                successReasons.push(
+                                    `${
+                                        criteriaStrings.response
+                                    } \`${JSON.stringify(
+                                        responseDisplay
+                                    )}\` evaluate \`${con.criteria[i].field1}\``
+                                );
                             }
-                        } catch (e) {
-                            failedReasons.push(
-                                `${criteriaStrings.response} \`${JSON.stringify(
-                                    responseDisplay
-                                )}\` did not evaluate \`${
-                                    con.criteria[i].field1
-                                }\``
-                            );
+                        } else {
+                            if (con.criteria[i].field1) {
+                                failedReasons.push(
+                                    `${
+                                        criteriaStrings.response
+                                    } \`${JSON.stringify(
+                                        responseDisplay
+                                    )}\` did not evaluate \`${
+                                        con.criteria[i].field1
+                                    }\``
+                                );
+                            }
                         }
                     }
                 } else if (
@@ -6288,25 +6195,3 @@ const formatBytes = (a, b, c, d, e) => {
         (e ? 'kMGTPEZY'[--e] + 'B' : 'Bytes')
     );
 };
-
-import ErrorService from './errorService';
-import MonitorService from './monitorService';
-import MonitorStatusService from './monitorStatusService';
-import MonitorLogService from './monitorLogService';
-import LighthouseLogService from './lighthouseLogService';
-import IncidentService from './incidentService';
-import IncidentTimelineService from './incidentTimelineService';
-import moment from 'moment';
-import { some, forEach } from 'p-iteration';
-import vm from 'vm';
-import AutomatedScriptService from './automatedScriptService';
-import { ObjectId } from 'mongodb';
-
-const probeCollection = global.db.collection('probes');
-
-import { v1 as uuidv1 } from 'uuid';
-
-import BackendAPI from '../utils/api';
-
-import { realtimeUrl } from '../utils/config';
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;

@@ -1,5 +1,4 @@
 import ApiService from '../utils/apiService';
-import ErrorService from '../utils/errorService';
 
 import ping from 'ping';
 // it collects all monitors then ping them one by one to store their response
@@ -7,36 +6,31 @@ import ping from 'ping';
 // creates incident if a IP Address is down and resolves it when they come back up
 export default {
     ping: async ({ monitor }: $TSFixMe) => {
-        try {
-            if (monitor && monitor.type) {
-                if (monitor.data.IPAddress) {
-                    let retry = true;
-                    let retryCount = 0;
-                    while (retry || retryCount > 2) {
-                        const { res, resp, rawResp } = await pingfetch(
-                            monitor.data.IPAddress
-                        );
+        if (monitor && monitor.type) {
+            if (monitor.data.IPAddress) {
+                let retry = true;
+                let retryCount = 0;
+                while (retry || retryCount > 2) {
+                    const { res, resp, rawResp } = await pingfetch(
+                        monitor.data.IPAddress
+                    );
 
-                        const response = await ApiService.ping(monitor._id, {
-                            monitor,
-                            res,
-                            resp,
-                            rawResp,
-                            type: monitor.type,
-                            retryCount,
-                        });
+                    const response = await ApiService.ping(monitor._id, {
+                        monitor,
+                        res,
+                        resp,
+                        rawResp,
+                        type: monitor.type,
+                        retryCount,
+                    });
 
-                        if (response && !response.retry) {
-                            retry = false;
-                        } else {
-                            retryCount++;
-                        }
+                    if (response && !response.retry) {
+                        retry = false;
+                    } else {
+                        retryCount++;
                     }
                 }
             }
-        } catch (error) {
-            ErrorService.log('IPMonitors.ping', error);
-            throw error;
         }
     },
 };

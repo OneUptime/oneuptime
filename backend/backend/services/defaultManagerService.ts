@@ -1,4 +1,4 @@
-import DefaultManagerModel from '../models/defaultManager';
+import DefaultManagerModel from 'common-server/models/defaultManager';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

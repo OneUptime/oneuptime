@@ -9,7 +9,6 @@ import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
 import AuditLogsService from '../services/auditLogsService';
-import ErrorService from 'common-server/utils/error';
 const sendErrorResponse = require('./response').sendErrorResponse;
 
 import { getProjectId } from './api';
@@ -124,7 +123,6 @@ export default {
 
             return next();
         } catch (error) {
-            ErrorService.log('auditLogs.log', error);
             return sendErrorResponse(
                 req,
                 res,

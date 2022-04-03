@@ -1,217 +1,133 @@
 export default {
     sendCreatedIncident: ({ projectId, incident }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`incidentCreated-${projectId}`, incident);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendCreatedIncident', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`incidentCreated-${projectId}`, incident);
     },
 
     sendIncidentTimeline: ({ projectId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`incidentTimeline-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendIncidentTimeline', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`incidentTimeline-${projectId}`, data);
     },
 
     sendSlaCountDown: ({ projectId, incident, countDown }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`slaCountDown-${projectId}`, {
-                incident,
-                countDown,
-            });
-        } catch (error) {
-            ErrorService.log('realtimeService.sendSlaCountDown', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`slaCountDown-${projectId}`, {
+            incident,
+            countDown,
+        });
     },
 
     deleteIncident: ({ projectId, incident }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`deleteIncident-${projectId}`, incident);
-        } catch (error) {
-            ErrorService.log('realtimeService.deleteIncident', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`deleteIncident-${projectId}`, incident);
     },
 
     addIncidentNote: ({ projectId, incidentNote }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`addIncidentNote-${projectId}`, incidentNote);
-        } catch (error) {
-            ErrorService.log('realtimeService.addIncidentNote', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`addIncidentNote-${projectId}`, incidentNote);
     },
 
     updateIncidentNote: ({ projectId, incidentNote }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateIncidentNote-${projectId}`, incidentNote);
-        } catch (error) {
-            ErrorService.log('realtimeService.updateIncidentNote', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`updateIncidentNote-${projectId}`, incidentNote);
     },
 
     updateIncidentTimeline: ({ incidentTimeline, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateIncidentTimeline-${projectId}`, incidentTimeline);
-        } catch (error) {
-            ErrorService.log('realtimeService.updateIncidentTimeline', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`updateIncidentTimeline-${projectId}`, incidentTimeline);
     },
 
     updateIncident: ({ incident, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateIncident-${projectId}`, incident);
-        } catch (error) {
-            ErrorService.log('realtimeService.updateIncident', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateIncident-${projectId}`, incident);
     },
 
     deleteIncidentNote: ({ incidentNote, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`deleteIncidentNote-${projectId}`, incidentNote);
-        } catch (error) {
-            ErrorService.log('realtimeService.deleteIncidentNote', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`deleteIncidentNote-${projectId}`, incidentNote);
     },
 
     addScheduledEvent: ({ event, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`addScheduledEvent-${projectId}`, event);
-        } catch (error) {
-            ErrorService.log('realtimeService.addScheduledEvent', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`addScheduledEvent-${projectId}`, event);
     },
 
     deleteScheduledEvent: ({ event, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`deleteScheduledEvent-${projectId}`, event);
-        } catch (error) {
-            ErrorService.log('realtimeService.deleteScheduledEvent', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`deleteScheduledEvent-${projectId}`, event);
     },
 
     updateScheduledEvent: ({ event, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateScheduledEvent-${projectId}`, event);
-        } catch (error) {
-            ErrorService.log('realtimeService.updateScheduledEvent', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`updateScheduledEvent-${projectId}`, event);
     },
 
     resolveScheduledEvent: ({ event, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`resolveScheduledEvent-${projectId}`, event);
-        } catch (error) {
-            ErrorService.log('realtimeService.resolveScheduledEvent', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`resolveScheduledEvent-${projectId}`, event);
     },
 
     addScheduledEventInternalNote: ({ note, scheduledEventId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(scheduledEventId)
-                .emit(
-                    `addScheduledEventInternalNote-${scheduledEventId}`,
-                    note
-                );
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.addScheduledEventInternalNote',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(scheduledEventId)
+            .emit(`addScheduledEventInternalNote-${scheduledEventId}`, note);
     },
 
     addScheduledEventInvestigationNote: ({
@@ -219,50 +135,31 @@ export default {
         projectId,
         scheduledEventId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(scheduledEventId)
-                .emit(
-                    `addScheduledEventInvestigationNote-${scheduledEventId}`,
-                    note
-                );
-
-            global.io.to(projectId).emit(`addEventNote-${projectId}`, note); // realtime update on status page
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.addScheduledEventInvestigationNote',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(scheduledEventId)
+            .emit(
+                `addScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+
+        global.io.to(projectId).emit(`addEventNote-${projectId}`, note); // realtime update on status page
     },
 
     deleteScheduledEventInternalNote: ({
         note,
         scheduledEventId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(scheduledEventId)
-                .emit(
-                    `deleteScheduledEventInternalNote-${scheduledEventId}`,
-                    note
-                );
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.deleteScheduledEventInternalNote',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(scheduledEventId)
+            .emit(`deleteScheduledEventInternalNote-${scheduledEventId}`, note);
     },
 
     deleteScheduledEventInvestigationNote: ({
@@ -270,50 +167,31 @@ export default {
         projectId,
         scheduledEventId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(scheduledEventId)
-                .emit(
-                    `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
-                    note
-                );
-
-            global.io.to(projectId).emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.deleteScheduledEventInvestigationNote',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(scheduledEventId)
+            .emit(
+                `deleteScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+
+        global.io.to(projectId).emit(`deleteEventNote-${projectId}`, note); // realtime update on status page
     },
 
     updateScheduledEventInternalNote: ({
         note,
         scheduledEventId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(scheduledEventId)
-                .emit(
-                    `updateScheduledEventInternalNote-${scheduledEventId}`,
-                    note
-                );
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.updateScheduledEventInternalNote',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(scheduledEventId)
+            .emit(`updateScheduledEventInternalNote-${scheduledEventId}`, note);
     },
 
     updateScheduledEventInvestigationNote: ({
@@ -321,567 +199,346 @@ export default {
         projectId,
         scheduledEventId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(scheduledEventId)
-                .emit(
-                    `updateScheduledEventInvestigationNote-${scheduledEventId}`,
-                    note
-                );
-
-            global.io.to(projectId).emit(`updateEventNote-${projectId}`, note);
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.updateScheduledEventInvestigationNote',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(scheduledEventId)
+            .emit(
+                `updateScheduledEventInvestigationNote-${scheduledEventId}`,
+                note
+            );
+
+        global.io.to(projectId).emit(`updateEventNote-${projectId}`, note);
     },
 
     sendComponentCreated: ({ component, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`createComponent-${projectId}`, component);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendComponentCreated', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`createComponent-${projectId}`, component);
     },
 
     sendMonitorCreated: ({ monitor, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`createMonitor-${projectId}`, monitor);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendMonitorCreated', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`createMonitor-${projectId}`, monitor);
     },
 
     sendComponentDelete: ({ component, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`deleteComponent-${projectId}`, component);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendComponentDelete', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`deleteComponent-${projectId}`, component);
     },
 
     sendMonitorDelete: ({ monitor, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`deleteMonitor-${projectId}`, monitor);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendMonitorDelete', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`deleteMonitor-${projectId}`, monitor);
     },
 
     incidentResolved: ({ incident, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`incidentResolved-${projectId}`, incident);
-        } catch (error) {
-            ErrorService.log('realtimeService.incidentResolved', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`incidentResolved-${projectId}`, incident);
     },
 
     incidentAcknowledged: ({ incident, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`incidentAcknowledged-${projectId}`, incident);
-        } catch (error) {
-            ErrorService.log('realtimeService.incidentAcknowledged', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`incidentAcknowledged-${projectId}`, incident);
     },
 
     statusPageEdit: ({ statusPage, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateStatusPage-${projectId}`, statusPage);
-        } catch (error) {
-            ErrorService.log('realtimeService.statusPageEdit', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(projectId)
+            .emit(`updateStatusPage-${projectId}`, statusPage);
     },
 
     componentEdit: ({ component, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateComponent-${projectId}`, component);
-        } catch (error) {
-            ErrorService.log('realtimeService.componentEdit', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateComponent-${projectId}`, component);
     },
 
     monitorEdit: ({ monitor, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`updateMonitor-${projectId}`, monitor);
-        } catch (error) {
-            ErrorService.log('realtimeService.monitorEdit', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateMonitor-${projectId}`, monitor);
     },
 
     updateMonitorLog: ({ data, logData, projectId, monitorId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`updateMonitorLog-${projectId}`, {
-                projectId,
-                monitorId,
-                data,
-                logData,
-            });
-        } catch (error) {
-            ErrorService.log('realtimeService.updateMonitorLog', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateMonitorLog-${projectId}`, {
+            projectId,
+            monitorId,
+            data,
+            logData,
+        });
     },
 
     updateLighthouseLog: ({ data, projectId, monitorId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`updateLighthouseLog-${projectId}`, {
-                projectId,
-                monitorId,
-                data,
-            });
-        } catch (error) {
-            ErrorService.log('realtimeService.updateLighthouseLog', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateLighthouseLog-${projectId}`, {
+            projectId,
+            monitorId,
+            data,
+        });
     },
 
     updateAllLighthouseLog: ({ projectId, data, monitorId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`updateAllLighthouseLog-${projectId}`, {
-                    projectId,
-                    monitorId,
-                    data,
-                });
-        } catch (error) {
-            ErrorService.log('realtimeService.updateAllLighthouseLog', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateAllLighthouseLog-${projectId}`, {
+            projectId,
+            monitorId,
+            data,
+        });
     },
 
     updateMonitorStatus: ({ data, projectId, monitorId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`updateMonitorStatus-${projectId}`, {
-                projectId,
-                monitorId,
-                data,
-            });
-        } catch (error) {
-            ErrorService.log('realtimeService.updateMonitorStatus', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`updateMonitorStatus-${projectId}`, {
+            projectId,
+            monitorId,
+            data,
+        });
     },
 
     updateTweets: ({ tweets, statusPageId, _projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(_projectId).emit(`updateTweets-${_projectId}`, {
-                tweets,
-                statusPageId,
-            });
-        } catch (error) {
-            ErrorService.log('realtimeService.updateTweets', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(_projectId).emit(`updateTweets-${_projectId}`, {
+            tweets,
+            statusPageId,
+        });
     },
 
     updateProbe: ({ data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.emit(`updateProbe`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.updateProbe', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.emit(`updateProbe`, data);
     },
 
     sendNotification: ({ data, projectId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`NewNotification-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendNotification', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`NewNotification-${projectId}`, data);
     },
 
     updateTeamMemberRole: ({ projectId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(projectId)
-                .emit(`TeamMemberRoleUpdate-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.updateTeamMemberRole', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`TeamMemberRoleUpdate-${projectId}`, data);
     },
 
     createTeamMember: ({ projectId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`TeamMemberCreate-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.createTeamMember', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`TeamMemberCreate-${projectId}`, data);
     },
 
     deleteTeamMember: ({ projectId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(projectId).emit(`TeamMemberDelete-${projectId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.deleteTeamMember', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(projectId).emit(`TeamMemberDelete-${projectId}`, data);
     },
 
     sendApplicationLogCreated: ({ applicationLog, componentId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(`createApplicationLog-${componentId}`, applicationLog);
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.sendApplicationLogCreated',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`createApplicationLog-${componentId}`, applicationLog);
     },
     sendApplicationLogDelete: ({ applicationLog, componentId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(`deleteApplicationLog-${componentId}`, applicationLog);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendApplicationLogDelete', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`deleteApplicationLog-${componentId}`, applicationLog);
     },
     sendLogCreated: ({ contentLog, applicationLogId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(applicationLogId)
-                .emit(`createLog-${applicationLogId}`, contentLog);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendLogCreated', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(applicationLogId)
+            .emit(`createLog-${applicationLogId}`, contentLog);
     },
     applicationLogKeyReset: ({ applicationLog, componentId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(`applicationLogKeyReset-${componentId}`, applicationLog);
-        } catch (error) {
-            ErrorService.log('realtimeService.applicationLogKeyReset', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`applicationLogKeyReset-${componentId}`, applicationLog);
     },
     sendContainerSecurityCreated: ({
         containerSecurity,
         componentId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(
-                    `createContainerSecurity-${componentId}`,
-                    containerSecurity
-                );
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.sendContainerSecurityCreated',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`createContainerSecurity-${componentId}`, containerSecurity);
     },
     sendApplicationSecurityCreated: ({
         applicationSecurity,
         componentId,
     }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(
-                    `createApplicationSecurity-${componentId}`,
-                    applicationSecurity
-                );
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.sendApplicationSecurityCreated',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(
+                `createApplicationSecurity-${componentId}`,
+                applicationSecurity
+            );
     },
     sendErrorTrackerCreated: ({ errorTracker, componentId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(`createErrorTracker-${componentId}`, errorTracker);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendErrorTrackerCreated', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`createErrorTracker-${componentId}`, errorTracker);
     },
     sendErrorTrackerDelete: ({ errorTracker, componentId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(`deleteErrorTracker-${componentId}`, errorTracker);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendErrorTrackerDelete', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`deleteErrorTracker-${componentId}`, errorTracker);
     },
     errorTrackerKeyReset: ({ errorTracker, componentId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(componentId)
-                .emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
-        } catch (error) {
-            ErrorService.log('realtimeService.errorTrackerKeyReset', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(componentId)
+            .emit(`errorTrackerKeyReset-${componentId}`, errorTracker);
     },
     sendErrorEventCreated: ({ data, errorTrackerId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(errorTrackerId)
-                .emit(`createErrorEvent-${errorTrackerId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendErrorEventCreated', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(errorTrackerId)
+            .emit(`createErrorEvent-${errorTrackerId}`, data);
     },
     sendIssueStatusChange: ({ issue, type, errorTrackerId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(errorTrackerId)
-                .emit(`${type}Issue-${errorTrackerId}`, issue);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendIssueStatusChange', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(errorTrackerId)
+            .emit(`${type}Issue-${errorTrackerId}`, issue);
     },
     sendErrorTrackerIssueDelete: ({ issue, errorTrackerId }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(errorTrackerId)
-                .emit(`deleteErrorTrackerIssue-${errorTrackerId}`, issue);
-        } catch (error) {
-            ErrorService.log(
-                'realtimeService.sendErrorTrackerIssueDelete',
-                error
-            );
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io
+            .to(errorTrackerId)
+            .emit(`deleteErrorTrackerIssue-${errorTrackerId}`, issue);
     },
     sendTimeMetrics: ({ appId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(appId).emit(`timeMetrics-${appId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendTimeMetrics', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(appId).emit(`timeMetrics-${appId}`, data);
     },
     sendThroughputMetrics: ({ appId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(appId).emit(`throughputMetrics-${appId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendThroughputMetrics', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(appId).emit(`throughputMetrics-${appId}`, data);
     },
     sendErrorMetrics: ({ appId, data }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io.to(appId).emit(`errorMetrics-${appId}`, data);
-        } catch (error) {
-            ErrorService.log('realtimeService.sendErrorMetrics', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(appId).emit(`errorMetrics-${appId}`, data);
     },
     handleScanning: ({ security }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(security._id)
-                .emit(`security_${security._id}`, security);
-        } catch (error) {
-            ErrorService.log('realtimeService.handleScanning', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(security._id).emit(`security_${security._id}`, security);
     },
     handleLog: ({ securityId, securityLog }: $TSFixMe) => {
-        try {
-            if (!global || !global.io) {
-                return;
-            }
-
-            global.io
-                .to(securityId)
-                .emit(`securityLog_${securityId}`, securityLog);
-        } catch (error) {
-            ErrorService.log('realtimeService.handleLog', error);
-            throw error;
+        if (!global || !global.io) {
+            return;
         }
+
+        global.io.to(securityId).emit(`securityLog_${securityId}`, securityLog);
     },
 };
-
-import ErrorService from './errorService';

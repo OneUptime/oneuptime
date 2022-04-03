@@ -1,4 +1,4 @@
-import { JSONArray, JSONValue } from './json';
+import { JSONArray, JSONObject } from './json';
 import PositiveNumber from './positive-number';
 
 export class ListData {
@@ -19,8 +19,8 @@ export class ListData {
     public skip: PositiveNumber;
     public limit: PositiveNumber;
 
-    public toJSONValue(): JSONValue {
-        const json: JSONValue = {
+    public toJSON(): JSONObject {
+        const json: JSONObject = {
             data: this.data,
             count: this.count.toNumber(),
             skip: this.skip.toNumber(),

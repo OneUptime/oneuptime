@@ -129,6 +129,6 @@ export default {
     },
 };
 
-import MonitorLogByDayModel from '../models/monitorLogByDay';
+import MonitorLogByDayModel from 'common-server/models/monitorLogByDay';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

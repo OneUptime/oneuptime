@@ -1,4 +1,4 @@
-import MonitorSlaModel from '../models/monitorSla';
+import MonitorSlaModel from 'common-server/models/monitorSla';
 import MonitorService from './monitorService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

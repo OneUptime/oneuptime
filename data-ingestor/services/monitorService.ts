@@ -1,63 +1,47 @@
+import moment from 'moment';
+
+const monitorCollection = global.db.collection('monitors');
+import { ObjectId } from 'mongodb';
+
 export default {
     updateCriterion: async function (
         _id: $TSFixMe,
         lastMatchedCriterion: $TSFixMe
     ) {
-        try {
-            await monitorCollection.updateOne(
-                {
-                    _id: ObjectId(_id),
-                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
-                },
-                { $set: { lastMatchedCriterion } }
-            );
-        } catch (error) {
-            ErrorService.log('monitorService.updateCriterion', error);
-            throw error;
-        }
+        await monitorCollection.updateOne(
+            {
+                _id: ObjectId(_id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
+            { $set: { lastMatchedCriterion } }
+        );
     },
 
     updateScanStatus: async function (monitorIds: $TSFixMe, status: $TSFixMe) {
-        try {
-            for (const id of monitorIds) {
-                await monitorCollection.updateOne(
-                    {
-                        _id: ObjectId(id),
-                        $or: [
-                            { deleted: false },
-                            { deleted: { $exists: false } },
-                        ],
-                    },
-                    {
-                        $set: { scanning: status },
-                    }
-                );
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.updateScanStatus', error);
-            throw error;
+        for (const id of monitorIds) {
+            await monitorCollection.updateOne(
+                {
+                    _id: ObjectId(id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+                },
+                {
+                    $set: { scanning: status },
+                }
+            );
         }
     },
 
     addProbeScanning: async function (monitorIds: $TSFixMe, probeId: $TSFixMe) {
-        try {
-            for (const id of monitorIds) {
-                await monitorCollection.updateOne(
-                    {
-                        _id: ObjectId(id),
-                        $or: [
-                            { deleted: false },
-                            { deleted: { $exists: false } },
-                        ],
-                    },
-                    {
-                        $push: { probeScanning: probeId },
-                    }
-                );
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.addProbeScanning', error);
-            throw error;
+        for (const id of monitorIds) {
+            await monitorCollection.updateOne(
+                {
+                    _id: ObjectId(id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+                },
+                {
+                    $push: { probeScanning: probeId },
+                }
+            );
         }
     },
 
@@ -65,24 +49,16 @@ export default {
         monitorIds: $TSFixMe,
         probeId: $TSFixMe
     ) {
-        try {
-            for (const id of monitorIds) {
-                await monitorCollection.updateOne(
-                    {
-                        _id: ObjectId(id),
-                        $or: [
-                            { deleted: false },
-                            { deleted: { $exists: false } },
-                        ],
-                    },
-                    {
-                        $pull: { probeScanning: probeId },
-                    }
-                );
-            }
-        } catch (error) {
-            ErrorService.log('monitorService.removeProbeScanning', error);
-            throw error;
+        for (const id of monitorIds) {
+            await monitorCollection.updateOne(
+                {
+                    _id: ObjectId(id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+                },
+                {
+                    $pull: { probeScanning: probeId },
+                }
+            );
         }
     },
 
@@ -91,36 +67,28 @@ export default {
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
     ) {
-        try {
-            const updateData = {};
+        const updateData = {};
 
-            if (lighthouseScanStatus !== 'scanning') {
-                updateData.lighthouseScannedAt = new Date(moment().format());
+        if (lighthouseScanStatus !== 'scanning') {
+            updateData.lighthouseScannedAt = new Date(moment().format());
 
-                updateData.lighthouseScannedBy = lighthouseScannedBy;
-            } else {
-                updateData.fetchLightHouse = null;
-            }
-
-            await monitorCollection.updateOne(
-                {
-                    _id: ObjectId(_id),
-                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
-                },
-                {
-                    $set: {
-                        lighthouseScanStatus,
-                        ...updateData,
-                    },
-                }
-            );
-        } catch (error) {
-            ErrorService.log(
-                'monitorService.updateLighthouseScanStatus',
-                error
-            );
-            throw error;
+            updateData.lighthouseScannedBy = lighthouseScannedBy;
+        } else {
+            updateData.fetchLightHouse = null;
         }
+
+        await monitorCollection.updateOne(
+            {
+                _id: ObjectId(_id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
+            {
+                $set: {
+                    lighthouseScanStatus,
+                    ...updateData,
+                },
+            }
+        );
     },
 
     updateScriptStatus: async function (
@@ -128,69 +96,45 @@ export default {
         scriptRunStatus: $TSFixMe,
         scriptRunBy: $TSFixMe
     ) {
-        try {
-            await monitorCollection.updateOne(
-                {
-                    _id: ObjectId(_id),
-                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+        await monitorCollection.updateOne(
+            {
+                _id: ObjectId(_id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
+            {
+                $set: {
+                    scriptRunStatus,
+                    scriptRunBy,
                 },
-                {
-                    $set: {
-                        scriptRunStatus,
-                        scriptRunBy,
-                    },
-                }
-            );
-        } catch (error) {
-            ErrorService.log('monitorService.updateScriptStatus', error);
-            throw error;
-        }
+            }
+        );
     },
 
     async findOneBy({ query }: $TSFixMe) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
-            const monitor = await monitorCollection.findOne(query);
-            return monitor;
-        } catch (error) {
-            ErrorService.log('monitorService.findOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted)
+            query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+
+        const monitor = await monitorCollection.findOne(query);
+        return monitor;
     },
 
     async updateMonitorPingTime(id: $TSFixMe) {
-        try {
-            await monitorCollection.updateOne(
-                {
-                    _id: ObjectId(id),
-                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
-                },
-                { $set: { lastPingTime: new Date(moment().format()) } }
-            );
-            const monitor = await monitorCollection.findOne({
+        await monitorCollection.updateOne(
+            {
                 _id: ObjectId(id),
                 $or: [{ deleted: false }, { deleted: { $exists: false } }],
-            });
+            },
+            { $set: { lastPingTime: new Date(moment().format()) } }
+        );
+        const monitor = await monitorCollection.findOne({
+            _id: ObjectId(id),
+            $or: [{ deleted: false }, { deleted: { $exists: false } }],
+        });
 
-            return monitor;
-        } catch (error) {
-            ErrorService.log('monitorService.updateMonitorPingTime', error);
-            throw error;
-        }
+        return monitor;
     },
 };
-
-import ErrorService from './errorService';
-import moment from 'moment';
-
-const monitorCollection = global.db.collection('monitors');
-import { ObjectId } from 'mongodb';

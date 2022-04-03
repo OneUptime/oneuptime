@@ -1,4 +1,4 @@
-import ApplicationSecurityLogModel from '../models/applicationSecurityLog';
+import ApplicationSecurityLogModel from 'common-server/models/applicationSecurityLog';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

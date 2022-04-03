@@ -1,3 +1,10 @@
+import LoginHistoryModel from 'common-server/models/loginIPLog';
+import DeviceDetector from 'node-device-detector';
+import MailService from '../services/mailService';
+import UserService from '../services/userService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+
 export default {
     async create(
         user: $TSFixMe,
@@ -15,17 +22,13 @@ export default {
             status,
         });
 
-        try {
-            MailService.sendLoginEmail(
-                user.email,
-                ipLocation,
-                result,
-                user.twoFactorEnabled,
-                status
-            );
-        } catch (error) {
-            ErrorService.log('mailService.sendLoginEmail', error);
-        }
+        MailService.sendLoginEmail(
+            user.email,
+            ipLocation,
+            result,
+            user.twoFactorEnabled,
+            status
+        );
     },
     async findBy({ query, skip, limit, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
@@ -61,11 +64,3 @@ export default {
         return response;
     },
 };
-
-import LoginHistoryModel from '../models/loginIPLog';
-import ErrorService from 'common-server/utils/error';
-import DeviceDetector from 'node-device-detector';
-import MailService from '../services/mailService';
-import UserService from '../services/userService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';

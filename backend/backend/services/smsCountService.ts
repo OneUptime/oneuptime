@@ -155,7 +155,7 @@ export default {
     },
 };
 
-import SmsCountModel from '../models/smsCount';
+import SmsCountModel from 'common-server/models/smsCount';
 import moment from 'moment';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import URL from '../types/api/url';
-import { JSONValue } from '../types/json';
+import { JSONObjectOrArray } from '../types/json';
 import Headers from '../types/api/headers';
 import HTTPResponse from '../types/api/response';
 import HTTPErrorResponse from '../types/api/error-response';
@@ -34,7 +34,7 @@ export default class API {
 
     public async get(
         path: Route,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await API.get(
@@ -46,7 +46,7 @@ export default class API {
 
     public async delete(
         path: Route,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await API.delete(
@@ -58,7 +58,7 @@ export default class API {
 
     public async put(
         path: Route,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await API.put(
@@ -70,7 +70,7 @@ export default class API {
 
     public async post(
         path: Route,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await API.post(
@@ -111,7 +111,7 @@ export default class API {
 
     public static async get(
         url: URL,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.GET, url, data, headers);
@@ -119,7 +119,7 @@ export default class API {
 
     public static async delete(
         url: URL,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.DELETE, url, data, headers);
@@ -127,7 +127,7 @@ export default class API {
 
     public static async put(
         url: URL,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.PUT, url, data, headers);
@@ -135,7 +135,7 @@ export default class API {
 
     public static async post(
         url: URL,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         return await this.fetch(HTTPMethod.POST, url, data, headers);
@@ -144,7 +144,7 @@ export default class API {
     private static async fetch(
         method: HTTPMethod,
         url: URL,
-        data?: JSONValue,
+        data?: JSONObjectOrArray,
         headers?: Headers
     ): Promise<HTTPResponse> {
         const apiHeaders: Headers = this.getHeaders(headers);

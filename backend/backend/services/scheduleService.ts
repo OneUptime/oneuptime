@@ -546,7 +546,7 @@ export default {
     },
 };
 
-import ScheduleModel from '../models/schedule';
+import ScheduleModel from 'common-server/models/schedule';
 import EscalationService from '../services/escalationService';
 import getSlug from '../utils/getSlug';
 import handlePopulate from '../utils/populate';

@@ -1,4 +1,4 @@
-import MonitorModel from '../models/monitor';
+import MonitorModel from 'common-server/models/monitor';
 import ProbeService from './probeService';
 import MonitorStatusService from './monitorStatusService';
 import MonitorLogService from './monitorLogService';
@@ -18,7 +18,6 @@ import StatusPageService from './statusPageService';
 import ScheduleService from './scheduleService';
 import IntegrationService from './integrationService';
 import TeamService from './teamService';
-import ErrorService from 'common-server/utils/error';
 import moment from 'moment';
 
 import _ from 'lodash';
@@ -703,26 +702,22 @@ export default {
                 })
             );
 
-            try {
-                NotificationService.create(
-                    monitor.projectId,
-                    `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
-                    monitor.deletedById._id,
-                    'monitoraddremove'
-                );
+            NotificationService.create(
+                monitor.projectId,
+                `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
+                monitor.deletedById._id,
+                'monitoraddremove'
+            );
 
-                // run in the background
-                // no need to delay request
-                StatusPageService.removeMonitor(monitor._id);
-                ScheduleService.removeMonitor(monitor._id);
-                ScheduledEventService.removeMonitor(monitor._id, userId);
-                IncomingRequestService.removeMonitor(monitor._id);
-                IncidentService.removeMonitor(monitor._id, userId);
-                IntegrationService.removeMonitor(monitor._id, userId);
-                RealTimeService.sendMonitorDelete(monitor);
-            } catch (error) {
-                ErrorService.log('monitorService.deleteBy', error);
-            }
+            // run in the background
+            // no need to delay request
+            StatusPageService.removeMonitor(monitor._id);
+            ScheduleService.removeMonitor(monitor._id);
+            ScheduledEventService.removeMonitor(monitor._id, userId);
+            IncomingRequestService.removeMonitor(monitor._id);
+            IncidentService.removeMonitor(monitor._id, userId);
+            IntegrationService.removeMonitor(monitor._id, userId);
+            RealTimeService.sendMonitorDelete(monitor);
 
             return monitor;
         } else {

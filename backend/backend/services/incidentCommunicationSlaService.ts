@@ -1,4 +1,4 @@
-import IncidentCommunicationSlaModel from '../models/incidentCommunicationSla';
+import IncidentCommunicationSlaModel from 'common-server/models/incidentCommunicationSla';
 import MonitorService from './monitorService';
 import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';

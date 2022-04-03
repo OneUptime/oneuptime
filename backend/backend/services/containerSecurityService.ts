@@ -1,4 +1,4 @@
-import ContainerSecurityModel from '../models/containerSecurity';
+import ContainerSecurityModel from 'common-server/models/containerSecurity';
 import moment from 'moment';
 
 import { decrypt } from '../config/encryptDecrypt';

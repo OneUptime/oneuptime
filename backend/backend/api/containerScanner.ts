@@ -17,7 +17,6 @@ import RealTimeService from '../services/realTimeService';
 import MailService from '../services/mailService';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-import ErrorService from 'common-server/utils/error';
 
 router.get(
     '/containerSecurities',
@@ -46,11 +45,8 @@ router.post(
                     { scanning: true }
                 );
 
-            try {
-                RealTimeService.handleScanning({ security: containerSecurity });
-            } catch (error) {
-                ErrorService.log('realtimeService.handleScanning', error);
-            }
+            RealTimeService.handleScanning({ security: containerSecurity });
+
             return sendItemResponse(req, res, containerSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -146,20 +142,14 @@ router.post(
                     query: { _id: userId },
                     select: '_id email name',
                 });
-                try {
-                    MailService.sendContainerEmail(project, user);
-                } catch (error) {
-                    ErrorService.log('mailService.sendContainerEmail', error);
-                }
+
+                MailService.sendContainerEmail(project, user);
             }
-            try {
-                RealTimeService.handleLog({
-                    securityId: security.securityId,
-                    securityLog: findLog,
-                });
-            } catch (error) {
-                ErrorService.log('realtimeService.handleLog', error);
-            }
+
+            RealTimeService.handleLog({
+                securityId: security.securityId,
+                securityLog: findLog,
+            });
 
             return sendItemResponse(req, res, findLog);
         } catch (error) {

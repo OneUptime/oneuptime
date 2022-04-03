@@ -1,5 +1,5 @@
 import Crypto from 'crypto';
-import GitCredentialModel from '../models/gitCredential';
+import GitCredentialModel from 'common-server/models/gitCredential';
 
 import { encrypt } from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';

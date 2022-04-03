@@ -5472,7 +5472,7 @@ function calcSmsSegments(sms: $TSFixMe) {
     return Math.ceil(smsLength / 160);
 }
 
-import AlertModel from '../models/alert';
+import AlertModel from 'common-server/models/alert';
 import ProjectService from './projectService';
 import PaymentService from './paymentService';
 import AlertType from '../config/alertType';

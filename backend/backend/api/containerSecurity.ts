@@ -387,13 +387,9 @@ router.post(
                     { scanned: false }
                 ); //This helps the container scanner to pull the container
 
-            try {
-                RealTimeService.handleScanning({
-                    security: updatedContainerSecurity,
-                });
-            } catch (error) {
-                ErrorService.log('realtimeService.handleScanning', error);
-            }
+            RealTimeService.handleScanning({
+                security: updatedContainerSecurity,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

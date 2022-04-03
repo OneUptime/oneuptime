@@ -2,7 +2,6 @@ import moment from 'moment';
 import payment from '../config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
-import ErrorService from 'common-server/utils/error';
 import ProjectService from '../services/projectService';
 import UserService from '../services/userService';
 import AlertService from '../services/alertService';
@@ -36,112 +35,100 @@ const _this = {
      */
 
     handleUnpaidSubscription: async startAfter => {
-        try {
-            if (IS_SAAS_SERVICE) {
-                const subscriptions = await handleFetchingUnpaidSubscriptions(
-                    startAfter
-                );
-                // apply recursion here in order to fetch all the unpaid subscriptions and store it in data array
-                // since stripe have a limit on the amount of items to return in the subscription list
-                // and also because, if we cancel a subscription and the subscription happens to be the last item in the subscription data array
-                // there is no way to fetch the next 100 item, so we are using this approach to fetch every thing once before proceeding to the next stage
+        if (IS_SAAS_SERVICE) {
+            const subscriptions = await handleFetchingUnpaidSubscriptions(
+                startAfter
+            );
+            // apply recursion here in order to fetch all the unpaid subscriptions and store it in data array
+            // since stripe have a limit on the amount of items to return in the subscription list
+            // and also because, if we cancel a subscription and the subscription happens to be the last item in the subscription data array
+            // there is no way to fetch the next 100 item, so we are using this approach to fetch every thing once before proceeding to the next stage
 
-                data = [...data, ...subscriptions.data];
-                if (subscriptions && subscriptions.has_more) {
-                    const lastIndex = subscriptions.data.length - 1;
-                    const subscriptionId = subscriptions.data[lastIndex].id;
-                    await _this.handleUnpaidSubscription(subscriptionId);
-                }
+            data = [...data, ...subscriptions.data];
+            if (subscriptions && subscriptions.has_more) {
+                const lastIndex = subscriptions.data.length - 1;
+                const subscriptionId = subscriptions.data[lastIndex].id;
+                await _this.handleUnpaidSubscription(subscriptionId);
+            }
 
-                const unpaidSubscriptions = [...data];
-                for (const unpaidSubscription of unpaidSubscriptions) {
-                    const stripeCustomerId = unpaidSubscription.customer;
-                    const stripeSubscriptionId = unpaidSubscription.id;
-                    let subscriptionEndDate = unpaidSubscription.ended_at; // unix timestamp
-                    subscriptionEndDate = moment(subscriptionEndDate * 1000);
-                    const timeDiff = moment().diff(subscriptionEndDate, 'days');
+            const unpaidSubscriptions = [...data];
+            for (const unpaidSubscription of unpaidSubscriptions) {
+                const stripeCustomerId = unpaidSubscription.customer;
+                const stripeSubscriptionId = unpaidSubscription.id;
+                let subscriptionEndDate = unpaidSubscription.ended_at; // unix timestamp
+                subscriptionEndDate = moment(subscriptionEndDate * 1000);
+                const timeDiff = moment().diff(subscriptionEndDate, 'days');
 
-                    const [user, project] = await Promise.all([
-                        UserService.findOneBy({
-                            query: { stripeCustomerId },
-                            select: 'name email',
-                        }),
+                const [user, project] = await Promise.all([
+                    UserService.findOneBy({
+                        query: { stripeCustomerId },
+                        select: 'name email',
+                    }),
 
-                        ProjectService.findOneBy({
-                            query: { stripeSubscriptionId },
-                            select: 'unpaidSubscriptionNotifications stripePlanId name slug',
-                        }),
-                    ]);
+                    ProjectService.findOneBy({
+                        query: { stripeSubscriptionId },
+                        select: 'unpaidSubscriptionNotifications stripePlanId name slug',
+                    }),
+                ]);
 
-                    // ignore if there is no project or user
-                    // also ignore if the unpaid subscription is not up to 5 or more days
-                    if (project && user && timeDiff >= 5) {
-                        if (
-                            !project.unpaidSubscriptionNotifications ||
-                            Number(project.unpaidSubscriptionNotifications) ===
-                                0
-                        ) {
-                            // update unpaidSubscriptionNotifications
-                            ProjectService.updateOneBy(
-                                { stripeSubscriptionId },
-                                { unpaidSubscriptionNotifications: '1' }
-                            );
+                // ignore if there is no project or user
+                // also ignore if the unpaid subscription is not up to 5 or more days
+                if (project && user && timeDiff >= 5) {
+                    if (
+                        !project.unpaidSubscriptionNotifications ||
+                        Number(project.unpaidSubscriptionNotifications) === 0
+                    ) {
+                        // update unpaidSubscriptionNotifications
+                        ProjectService.updateOneBy(
+                            { stripeSubscriptionId },
+                            { unpaidSubscriptionNotifications: '1' }
+                        );
 
-                            // send email reminder for unpaid subscription
-                            AlertService.sendUnpaidSubscriptionEmail(
-                                project,
-                                user
-                            );
-                        } else if (
-                            project.unpaidSubscriptionNotifications &&
-                            Number(project.unpaidSubscriptionNotifications) ===
-                                14
-                        ) {
-                            // cancel subscription
+                        // send email reminder for unpaid subscription
+                        AlertService.sendUnpaidSubscriptionEmail(project, user);
+                    } else if (
+                        project.unpaidSubscriptionNotifications &&
+                        Number(project.unpaidSubscriptionNotifications) === 14
+                    ) {
+                        // cancel subscription
 
-                            stripe.subscriptions.del(stripeSubscriptionId);
+                        stripe.subscriptions.del(stripeSubscriptionId);
 
-                            // delete project
-                            ProjectService.updateOneBy(
-                                { stripeSubscriptionId },
-                                {
-                                    deleted: true,
-                                    deletedAt: Date.now(),
-                                    unpaidSubscriptionNotifications: '0',
-                                }
-                            );
+                        // delete project
+                        ProjectService.updateOneBy(
+                            { stripeSubscriptionId },
+                            {
+                                deleted: true,
+                                deletedAt: Date.now(),
+                                unpaidSubscriptionNotifications: '0',
+                            }
+                        );
 
-                            // handle sending email to customer (stripeCustomerId)
-                            AlertService.sendProjectDeleteEmailForUnpaidSubscription(
-                                project,
-                                user
-                            );
-                        } else {
-                            // increment unpaidSubscriptionNotifications
-                            ProjectService.updateOneBy(
-                                { stripeSubscriptionId },
-                                {
-                                    unpaidSubscriptionNotifications: `${
-                                        Number(
-                                            project.unpaidSubscriptionNotifications
-                                        ) + 1
-                                    }`,
-                                }
-                            );
+                        // handle sending email to customer (stripeCustomerId)
+                        AlertService.sendProjectDeleteEmailForUnpaidSubscription(
+                            project,
+                            user
+                        );
+                    } else {
+                        // increment unpaidSubscriptionNotifications
+                        ProjectService.updateOneBy(
+                            { stripeSubscriptionId },
+                            {
+                                unpaidSubscriptionNotifications: `${
+                                    Number(
+                                        project.unpaidSubscriptionNotifications
+                                    ) + 1
+                                }`,
+                            }
+                        );
 
-                            //send email remainder for unpaid subscription
-                            AlertService.sendUnpaidSubscriptionEmail(
-                                project,
-                                user
-                            );
-                        }
+                        //send email remainder for unpaid subscription
+                        AlertService.sendUnpaidSubscriptionEmail(project, user);
                     }
                 }
-
-                data = []; // reset to empty array
             }
-        } catch (error) {
-            ErrorService.log('subscription.handleUnpaidSubscription', error);
+
+            data = []; // reset to empty array
         }
     },
 };

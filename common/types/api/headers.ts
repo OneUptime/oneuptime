@@ -1,3 +1,3 @@
-export default interface Headers {
-    [key: string]: string;
-}
+import Dictionary from '../dictionary';
+
+export default interface Headers extends Dictionary<string> {}

@@ -205,7 +205,7 @@ export default {
     },
 };
 
-import SsoModel from '../models/sso';
+import SsoModel from 'common-server/models/sso';
 import SsoDefaultRolesService from './ssoDefaultRolesService';
 import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';

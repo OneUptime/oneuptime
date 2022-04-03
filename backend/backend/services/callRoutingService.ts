@@ -746,7 +746,7 @@ export default {
     },
 };
 
-import CallRoutingModel from '../models/callRouting';
+import CallRoutingModel from 'common-server/models/callRouting';
 import CallRoutingLogService from '../services/callRoutingLogService';
 import PaymentService from './paymentService';
 import TwilioService from './twilioService';

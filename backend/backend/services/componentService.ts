@@ -1,4 +1,17 @@
 import PositiveNumber from 'common/types/positive-number';
+import ComponentModel from 'common-server/models/component';
+import Plans from '../config/plans';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import ProjectService from './projectService';
+import PaymentService from './paymentService';
+import MonitorService from './monitorService';
+import TeamService from './teamService';
+import { IS_SAAS_SERVICE } from '../config/server';
+import getSlug from '../utils/getSlug';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+
 export default {
     //Description: Upsert function for component.
     //Params:
@@ -348,9 +361,7 @@ export default {
                 `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
                 component.deletedById._id,
                 'componentaddremove'
-            ).catch(error => {
-                errorService.log('NotificationService.create', error);
-            });
+            );
             // run in the background
             RealTimeService.sendComponentDelete(component);
 
@@ -509,32 +520,3 @@ export default {
         }
     },
 };
-
-import ComponentModel from '../models/component';
-// import ComponentModel from '../models/component'
-// import ProbeService from './probeService'
-// import ComponentStatusService from './componentStatusService'
-// import ComponentLogService from './componentLogService'
-// import ComponentLogByHourService from './componentLogByHourService'
-// import ComponentLogByDayService from './componentLogByDayService'
-// import ComponentLogByWeekService from './componentLogByWeekService'
-// import ComponentCategoryService from './componentCategoryService'
-// import ComponentCriteriaService from './componentCriteriaService'
-import Plans from '../config/plans';
-import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import ProjectService from './projectService';
-import PaymentService from './paymentService';
-import MonitorService from './monitorService';
-// import StatusPageService from './statusPageService'
-// import ScheduleService from './scheduleService'
-// import IntegrationService from './integrationService'
-import TeamService from './teamService';
-// import moment from 'moment'
-// import _ from 'lodash'
-
-import { IS_SAAS_SERVICE } from '../config/server';
-import getSlug from '../utils/getSlug';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import errorService from 'common-server/utils/error';

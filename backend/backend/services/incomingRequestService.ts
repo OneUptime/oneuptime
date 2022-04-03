@@ -1,4 +1,4 @@
-import IncomingRequestModel from '../models/incomingRequest';
+import IncomingRequestModel from 'common-server/models/incomingRequest';
 import IncidentService from '../services/incidentService';
 import MonitorService from '../services/monitorService';
 import AlertService from '../services/alertService';

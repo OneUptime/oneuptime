@@ -136,6 +136,6 @@ export default {
     },
 };
 
-import CallRoutingLogModel from '../models/callRoutingLog';
+import CallRoutingLogModel from 'common-server/models/callRoutingLog';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

@@ -1,4 +1,4 @@
-import ApiStatusModel from '../models/apiStatus';
+import ApiStatusModel from 'common-server/models/apiStatus';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

@@ -14,7 +14,7 @@ try {
     serverMonitor = oneuptime.ServerMonitor;
 }
 
-require('should');
+import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();

@@ -6,7 +6,7 @@ import http from 'http';
 
 const router = express.getRouter();
 
-router.get('/settings', (req: ExpressRequest, res: ExpressResponse) => {
+router.get('/settings', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(200).render('settings.ejs', {
         data: global.httpServerResponse,
     });

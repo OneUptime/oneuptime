@@ -157,6 +157,6 @@ export default {
     },
 };
 
-import SubscriberAlertModel from '../models/subscriberAlert';
+import SubscriberAlertModel from 'common-server/models/subscriberAlert';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

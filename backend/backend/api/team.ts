@@ -18,8 +18,6 @@ import {
 } from 'common-server/utils/response';
 import Exception from 'common/types/exception';
 
-import ErrorService from 'common-server/utils/error';
-
 // Route
 // Description: Getting details of team members of the project.
 // Params:
@@ -214,15 +212,12 @@ router.post(
                     message: 'Something went wrong. Please try again.',
                 });
             } else {
-                try {
-                    // run in the background
-                    RealTimeService.createTeamMember(projectId, {
-                        users,
-                        userId: userId.id,
-                    });
-                } catch (error) {
-                    ErrorService.log('realtimeService.createTeamMember', error);
-                }
+                // run in the background
+                RealTimeService.createTeamMember(projectId, {
+                    users,
+                    userId: userId.id,
+                });
+
                 return sendItemResponse(req, res, users);
             }
         } catch (error) {
@@ -342,18 +337,15 @@ router.put(
                     'Administrator'
                 );
 
-                try {
-                    NotificationService.create(
-                        projectId,
+                NotificationService.create(
+                    projectId,
 
-                        `A team members role was updated by ${req.user.name}`,
+                    `A team members role was updated by ${req.user.name}`,
 
-                        req.user.id,
-                        'information'
-                    );
-                } catch (error) {
-                    ErrorService.log('notificationService.create', error);
-                }
+                    req.user.id,
+                    'information'
+                );
+
                 return sendItemResponse(req, res, teamMembers);
             } else {
                 // Call the TeamService
@@ -364,18 +356,16 @@ router.put(
                         teamMemberId,
                         data.role
                     );
-                try {
-                    NotificationService.create(
-                        projectId,
 
-                        `A team members role was updated by ${req.user.name}`,
+                NotificationService.create(
+                    projectId,
 
-                        req.user.id,
-                        'information'
-                    );
-                } catch (error) {
-                    ErrorService.log('notificationService.create', error);
-                }
+                    `A team members role was updated by ${req.user.name}`,
+
+                    req.user.id,
+                    'information'
+                );
+
                 return sendItemResponse(req, res, updatedTeamMembers);
             }
         } catch (error) {

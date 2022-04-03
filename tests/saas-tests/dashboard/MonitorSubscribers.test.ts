@@ -5,7 +5,7 @@ const csvFile = `${__dirname}/MOCKS/subscribers.csv`;
 const emptyFile = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
 const existingSubscribers = `${__dirname}/MOCKS/existing.csv`;
 
-require('should');
+import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();

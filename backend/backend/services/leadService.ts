@@ -1,3 +1,7 @@
+import LeadsModel from 'common-server/models/lead';
+import MailService from './mailService';
+import AirtableService from './airtableService';
+
 export default {
     //Description: Create new project for user.
     //Params:
@@ -34,23 +38,21 @@ export default {
         }
 
         lead = await lead.save();
-        try {
-            MailService.sendLeadEmailToOneUptimeTeam(lead);
-            if (data.type) {
-                if (data.type === 'demo') {
-                    MailService.sendRequestDemoEmail(data.email);
-                }
 
-                if (data.type === 'whitepaper') {
-                    MailService.sendWhitepaperEmail(
-                        data.email,
-                        data.whitepaperName
-                    ); //whitepaper name should be stored in moreInfo.
-                }
+        MailService.sendLeadEmailToOneUptimeTeam(lead);
+        if (data.type) {
+            if (data.type === 'demo') {
+                MailService.sendRequestDemoEmail(data.email);
             }
-        } catch (error) {
-            ErrorService.log('leadService.create', error);
+
+            if (data.type === 'whitepaper') {
+                MailService.sendWhitepaperEmail(
+                    data.email,
+                    data.whitepaperName
+                ); //whitepaper name should be stored in moreInfo.
+            }
         }
+
         AirtableService.logLeads({
             name: data.name,
             email: data.email,
@@ -70,8 +72,3 @@ export default {
         return 'Lead(s) Removed Successfully!';
     },
 };
-
-import LeadsModel from '../models/lead';
-import MailService from './mailService';
-import ErrorService from 'common-server/utils/error';
-import AirtableService from './airtableService';

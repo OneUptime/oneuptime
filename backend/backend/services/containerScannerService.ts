@@ -75,6 +75,6 @@ export default {
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-import ContainerScannerModel from '../models/containerScanner';
+import ContainerScannerModel from 'common-server/models/containerScanner';
 
 import { v1 as uuidv1 } from 'uuid';

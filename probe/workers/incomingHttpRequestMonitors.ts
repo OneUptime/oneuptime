@@ -1,37 +1,31 @@
 import ApiService from '../utils/apiService';
-import ErrorService from '../utils/errorService';
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 export default {
     run: async ({ monitor }: $TSFixMe) => {
-        try {
-            if (monitor && monitor.type) {
-                if (monitor.data.link && monitor.criteria) {
-                    const up = monitor.criteria.up
-                        ? await checkCondition(monitor.criteria.up)
-                        : false;
-                    const degraded = monitor.criteria.degraded
-                        ? await checkCondition(monitor.criteria.degraded)
-                        : false;
-                    const down = monitor.criteria.down
-                        ? await checkCondition(monitor.criteria.down)
-                        : false;
-                    if (up || degraded || down) {
-                        await ApiService.ping(monitor._id, {
-                            monitor,
-                            res: null,
-                            resp: null,
-                            type: monitor.type,
-                            retryCount: 3,
-                        });
-                    }
+        if (monitor && monitor.type) {
+            if (monitor.data.link && monitor.criteria) {
+                const up = monitor.criteria.up
+                    ? await checkCondition(monitor.criteria.up)
+                    : false;
+                const degraded = monitor.criteria.degraded
+                    ? await checkCondition(monitor.criteria.degraded)
+                    : false;
+                const down = monitor.criteria.down
+                    ? await checkCondition(monitor.criteria.down)
+                    : false;
+                if (up || degraded || down) {
+                    await ApiService.ping(monitor._id, {
+                        monitor,
+                        res: null,
+                        resp: null,
+                        type: monitor.type,
+                        retryCount: 3,
+                    });
                 }
             }
-        } catch (error) {
-            ErrorService.log('IncomingHttpRequestMonitor.ping', error);
-            throw error;
         }
     },
 };

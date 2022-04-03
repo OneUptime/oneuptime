@@ -273,7 +273,7 @@ export default {
 };
 
 import Crypto from 'crypto';
-import GlobalConfigModel from '../models/globalConfig';
+import GlobalConfigModel from 'common-server/models/globalConfig';
 import EncryptDecrypt from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

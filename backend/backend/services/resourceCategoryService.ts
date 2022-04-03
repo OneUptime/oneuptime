@@ -189,11 +189,11 @@ export default {
     },
 };
 
-import ResourceCategoryModel from '../models/resourceCategory';
-import MonitorModel from '../models/monitor';
-import ApplicationLogModel from '../models/applicationLog';
-import ErrorTrackerModel from '../models/errorTracker';
-import ApplicationSecurityModel from '../models/applicationSecurity';
-import ContainerSecurityModel from '../models/containerSecurity';
+import ResourceCategoryModel from 'common-server/models/resourceCategory';
+import MonitorModel from 'common-server/models/monitor';
+import ApplicationLogModel from 'common-server/models/applicationLog';
+import ErrorTrackerModel from 'common-server/models/errorTracker';
+import ApplicationSecurityModel from 'common-server/models/applicationSecurity';
+import ContainerSecurityModel from 'common-server/models/containerSecurity';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

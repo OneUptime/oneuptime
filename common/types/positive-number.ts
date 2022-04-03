@@ -1,3 +1,5 @@
+import BadDataException from './exception/bad-data-exception';
+
 export default class PositiveNumber {
     private _positiveNumber: number = 0;
     public get positiveNumber(): number {
@@ -8,6 +10,10 @@ export default class PositiveNumber {
     }
 
     constructor(positiveNumber: number) {
+        if (positiveNumber < 0) {
+            throw new BadDataException('positiveNumber cannot be less than 0');
+        }
+
         this.positiveNumber = positiveNumber;
     }
 

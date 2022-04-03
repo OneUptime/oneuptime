@@ -1,4 +1,35 @@
 import PositiveNumber from 'common/types/positive-number';
+import IncidentModel from 'common-server/models/incident';
+import IncidentTimelineService from './incidentTimelineService';
+import MonitorService from './monitorService';
+import AlertService from './alertService';
+import RealTimeService from './realTimeService';
+import NotificationService from './notificationService';
+import WebHookService from './webHookService';
+import MsTeamsService from './msTeamsService';
+import SlackService from './slackService';
+import ZapierService from './zapierService';
+import ProjectService from './projectService';
+import MonitorStatusService from './monitorStatusService';
+import ComponentService from './componentService';
+import IncidentSettingsService from './incidentSettingsService';
+import Handlebars from 'handlebars';
+import Moment from 'moment';
+import IncidentMessageService from './incidentMessageService';
+const {
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+    INCIDENT_RESOLVED,
+} = require('../constants/incidentEvents');
+import IncidentUtilitiy from '../utils/incident';
+import IncidentCommunicationSlaService from './incidentCommunicationSlaService';
+
+import { isEmpty } from 'lodash';
+import joinNames from '../utils/joinNames';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import getSlug from '../utils/getSlug';
+
 export default {
     findBy: async function ({
         query,
@@ -264,12 +295,7 @@ export default {
             MonitorService.updateAllMonitorStatus(
                 { _id: { $in: data.monitors } },
                 { monitorStatus: data.incidentType.toLowerCase() }
-            ).catch(error => {
-                ErrorService.log(
-                    'MonitorService.updateAllMonitorStatus',
-                    error
-                );
-            });
+            );
 
             // ********* TODO ************
             // notification is an array of notifications
@@ -339,14 +365,8 @@ export default {
                 populate,
             });
 
-            try {
-                // run in the background
-                RealTimeService.sendCreatedIncident(incident);
-            } catch (error) {
-                ErrorService.log('realtimeService.sendCreatedIncident', error);
-            }
+            RealTimeService.sendCreatedIncident(incident);
 
-            // run in the background
             IncidentMessageService.create({
                 content: incident.description,
                 incidentId: incident._id,
@@ -355,8 +375,6 @@ export default {
                 type: 'investigation',
                 incident_state: 'Identified',
                 post_statuspage: true,
-            }).catch(error => {
-                ErrorService.log('IncidentMessageService.create', error);
             });
 
             await IncidentTimelineService.create({
@@ -422,12 +440,7 @@ export default {
             MonitorService.updateAllMonitorStatus(
                 { _id: { $in: monitors } },
                 { monitorStatus: 'online' }
-            ).catch(error => {
-                ErrorService.log(
-                    'MonitorService.updateAllMonitorStatus',
-                    error
-                );
-            });
+            );
 
             const populateIncTimeline = [
                 { path: 'createdById', select: 'name' },
@@ -586,11 +599,7 @@ export default {
     },
 
     async _sendIncidentCreatedAlert(incident: $TSFixMe) {
-        ZapierService.pushToZapier('incident_created', incident).catch(
-            error => {
-                ErrorService.log('ZapierService.pushToZapier', error);
-            }
-        );
+        ZapierService.pushToZapier('incident_created', incident);
         // await RealTimeService.sendCreatedIncident(incident);
 
         const notifications = [];
@@ -600,19 +609,10 @@ export default {
         );
 
         // handle this asynchronous operation in the background
-        AlertService.sendCreatedIncidentToSubscribers(incident, monitors).catch(
-            error => {
-                ErrorService.log(
-                    'AlertService.sendCreatedIncidentToSubscribers',
-                    error
-                );
-            }
-        );
+        AlertService.sendCreatedIncidentToSubscribers(incident, monitors);
 
         for (const monitor of monitors) {
-            AlertService.sendCreatedIncident(incident, monitor).catch(error => {
-                ErrorService.log('AlertService.sendCreatedIncident', error);
-            });
+            AlertService.sendCreatedIncident(incident, monitor);
 
             let notification = {};
             // send slack notification
@@ -623,9 +623,7 @@ export default {
                 monitor,
                 INCIDENT_CREATED,
                 monitor.componentId
-            ).catch(error => {
-                ErrorService.log('SlackService.sendNotification', error);
-            });
+            );
             // send webhook notification
 
             WebHookService.sendIntegrationNotification(
@@ -634,12 +632,7 @@ export default {
                 monitor,
                 INCIDENT_CREATED,
                 monitor.componentId
-            ).catch(error => {
-                ErrorService.log(
-                    'WebHookService.sendIntegrationNotification',
-                    error
-                );
-            });
+            );
             // send Ms Teams notification
 
             MsTeamsService.sendNotification(
@@ -648,50 +641,42 @@ export default {
                 monitor,
                 INCIDENT_CREATED,
                 monitor.componentId
-            ).catch(error => {
-                ErrorService.log('MsTeamsService.sendNotification', error);
-            });
+            );
 
             const meta = {
                 type: 'Incident',
                 componentId: monitor.componentId._id || monitor.componentId,
                 incidentId: incident._id,
             };
-            try {
-                if (!incident.createdById) {
-                    if (incident.createdByIncomingHttpRequest) {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
-                        notification = await NotificationService.create(
-                            incident.projectId._id || incident.projectId,
-                            msg,
-                            'incoming http request',
-                            'warning',
-                            meta
-                        );
-                    } else {
-                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
-                        notification = await NotificationService.create(
-                            incident.projectId._id || incident.projectId,
-                            msg,
-                            'oneuptime',
-                            'warning',
-                            meta
-                        );
-                    }
-                } else {
-                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
+
+            if (!incident.createdById) {
+                if (incident.createdByIncomingHttpRequest) {
+                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
                     notification = await NotificationService.create(
                         incident.projectId._id || incident.projectId,
                         msg,
-                        incident.createdById.name,
+                        'incoming http request',
+                        'warning',
+                        meta
+                    );
+                } else {
+                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
+                    notification = await NotificationService.create(
+                        incident.projectId._id || incident.projectId,
+                        msg,
+                        'oneuptime',
                         'warning',
                         meta
                     );
                 }
-            } catch (error) {
-                ErrorService.log(
-                    'incidentService._sendIncidentCreatedAlert',
-                    error
+            } else {
+                const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
+                notification = await NotificationService.create(
+                    incident.projectId._id || incident.projectId,
+                    msg,
+                    incident.createdById.name,
+                    'warning',
+                    meta
                 );
             }
 
@@ -741,25 +726,21 @@ export default {
                     incident.createdAt
                 );
 
-            try {
-                if (isEmpty(httpRequest)) {
-                    NotificationService.create(
-                        incident.projectId._id || incident.projectId,
-                        `An Incident was acknowledged by ${name}`,
-                        userId,
-                        'acknowledge'
-                    );
-                } else {
-                    NotificationService.create(
-                        incident.projectId._id || incident.projectId,
+            if (isEmpty(httpRequest)) {
+                NotificationService.create(
+                    incident.projectId._id || incident.projectId,
+                    `An Incident was acknowledged by ${name}`,
+                    userId,
+                    'acknowledge'
+                );
+            } else {
+                NotificationService.create(
+                    incident.projectId._id || incident.projectId,
 
-                        `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
-                        userId,
-                        'acknowledge'
-                    );
-                }
-            } catch (error) {
-                ErrorService.log('notificationService.create', error);
+                    `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
+                    userId,
+                    'acknowledge'
+                );
             }
 
             // Ping webhook
@@ -800,8 +781,6 @@ export default {
                 post_statuspage: true,
                 monitors,
                 ignoreCounter: true,
-            }).catch(error => {
-                ErrorService.log('IncidentMessageService.create', error);
             });
 
             await IncidentTimelineService.create({
@@ -818,12 +797,7 @@ export default {
             AlertService.sendAcknowledgedIncidentToSubscribers(
                 incident,
                 monitors
-            ).catch(error => {
-                ErrorService.log(
-                    'AlertService.sendAcknowledgedIncidentToSubscribers',
-                    error
-                );
-            });
+            );
 
             for (const monitor of monitors) {
                 WebHookService.sendIntegrationNotification(
@@ -833,12 +807,7 @@ export default {
                     INCIDENT_ACKNOWLEDGED,
                     component,
                     downtimestring
-                ).catch(error => {
-                    ErrorService.log(
-                        'WebHookService.sendIntegrationNotification',
-                        error
-                    );
-                });
+                );
 
                 SlackService.sendNotification(
                     incident.projectId._id || incident.projectId,
@@ -847,9 +816,7 @@ export default {
                     INCIDENT_ACKNOWLEDGED,
                     component,
                     downtimestring
-                ).catch(error => {
-                    ErrorService.log('SlackService.sendNotification', error);
-                });
+                );
 
                 MsTeamsService.sendNotification(
                     incident.projectId._id || incident.projectId,
@@ -858,26 +825,13 @@ export default {
                     INCIDENT_ACKNOWLEDGED,
                     component,
                     downtimestring
-                ).catch(error => {
-                    ErrorService.log('MsTeamsService.sendNotification', error);
-                });
+                );
 
-                AlertService.sendAcknowledgedIncidentMail(
-                    incident,
-                    monitor
-                ).catch(error => {
-                    ErrorService.log(
-                        'AlertService.sendAcknowledgedIncidentMail',
-                        error
-                    );
-                });
+                AlertService.sendAcknowledgedIncidentMail(incident, monitor);
             }
 
-            ZapierService.pushToZapier('incident_acknowledge', incident).catch(
-                error => {
-                    ErrorService.log('ZapierService.pushToZapier', error);
-                }
-            );
+            ZapierService.pushToZapier('incident_acknowledge', incident);
+
             RealTimeService.incidentAcknowledged(incident);
         } else {
             const populate = [
@@ -987,9 +941,7 @@ export default {
         MonitorService.updateAllMonitorStatus(
             { _id: { $in: monitors } },
             { monitorStatus: 'online' }
-        ).catch(error => {
-            ErrorService.log('MonitorService.updateAllMonitorStatus', error);
-        });
+        );
 
         // automatically create resolved incident note
         await IncidentMessageService.create({
@@ -1016,15 +968,7 @@ export default {
 
         const statusData = [];
         // send notificaton to subscribers
-        AlertService.sendResolvedIncidentToSubscribers(
-            incident,
-            monitors
-        ).catch(error => {
-            ErrorService.log(
-                'AlertService.sendResolvedIncidentToSubscribers',
-                error
-            );
-        });
+        AlertService.sendResolvedIncidentToSubscribers(incident, monitors);
         for (const monitor of monitors) {
             if (incident.probes && incident.probes.length > 0) {
                 for (const probe of incident.probes) {
@@ -1051,11 +995,7 @@ export default {
 
         RealTimeService.incidentResolved(incident);
 
-        ZapierService.pushToZapier('incident_resolve', incident).catch(
-            error => {
-                ErrorService.log('ZapierService.pushToZapier', error);
-            }
-        );
+        ZapierService.pushToZapier('incident_resolve', incident);
 
         return incident;
     },
@@ -1325,9 +1265,7 @@ export default {
             INCIDENT_RESOLVED,
             component,
             downtimestring
-        ).catch(error => {
-            ErrorService.log('SlackService.sendNotification', error);
-        });
+        );
         // Ping webhook
         WebHookService.sendIntegrationNotification(
             incident.projectId._id || incident.projectId,
@@ -1336,12 +1274,7 @@ export default {
             INCIDENT_RESOLVED,
             component,
             downtimestring
-        ).catch(error => {
-            ErrorService.log(
-                'WebHookService.sendIntegrationNotification',
-                error
-            );
-        });
+        );
         // Ms Teams
         MsTeamsService.sendNotification(
             incident.projectId._id || incident.projectId,
@@ -1350,13 +1283,9 @@ export default {
             INCIDENT_RESOLVED,
             component,
             downtimestring
-        ).catch(error => {
-            ErrorService.log('MsTeamsService.sendNotification', error);
-        });
+        );
 
-        AlertService.sendResolveIncidentMail(incident, monitor).catch(error => {
-            ErrorService.log('AlertService.sendResolveIncidentMail', error);
-        });
+        AlertService.sendResolveIncidentMail(incident, monitor);
 
         const msg = `${
             monitor.name
@@ -1366,21 +1295,14 @@ export default {
             'oneuptime'
         }`;
 
-        try {
-            NotificationService.create(
-                incident.projectId._id || incident.projectId,
-                msg,
-                resolvedincident.resolvedBy
-                    ? resolvedincident.resolvedBy._id
-                    : 'oneuptime',
-                'success'
-            );
-        } catch (error) {
-            ErrorService.log(
-                'incidentService.sendIncidentResolvedNotification',
-                error
-            );
-        }
+        NotificationService.create(
+            incident.projectId._id || incident.projectId,
+            msg,
+            resolvedincident.resolvedBy
+                ? resolvedincident.resolvedBy._id
+                : 'oneuptime',
+            'success'
+        );
     },
 
     sendIncidentNoteAdded: async function (
@@ -1397,31 +1319,17 @@ export default {
                 incident,
                 data,
                 monitor
-            ).catch(error => {
-                ErrorService.log(
-                    'SlackService.sendIncidentNoteNotification',
-                    error
-                );
-            });
+            );
 
             MsTeamsService.sendIncidentNoteNotification(
                 projectId,
                 incident,
                 data,
                 monitor
-            ).catch(error => {
-                ErrorService.log(
-                    'MsTeamsService.sendIncidentNoteNotification',
-                    error
-                );
-            });
+            );
         }
 
-        ZapierService.pushToZapier('incident_note', incident, data).catch(
-            error => {
-                ErrorService.log('ZapierService.pushToZapier', error);
-            }
-        );
+        ZapierService.pushToZapier('incident_note', incident, data);
     },
 
     hardDeleteBy: async function (query: $TSFixMe) {
@@ -1567,13 +1475,9 @@ export default {
                     populate,
                 });
 
-                try {
-                    // run in the background
-                    if (updatedIncident) {
-                        RealTimeService.deleteIncident(updatedIncident);
-                    }
-                } catch (error) {
-                    ErrorService.log('realtimeService.deleteIncident', error);
+                // run in the background
+                if (updatedIncident) {
+                    RealTimeService.deleteIncident(updatedIncident);
                 }
             })
         );
@@ -1667,28 +1571,15 @@ export default {
 
                         // await was left out here because we care about the slaCountDown
                         // and also to ensure that it was delivered successfully
-                        try {
-                            RealTimeService.sendSlaCountDown(
-                                currentIncident,
-                                `${countDown}`
-                            );
-                        } catch (error) {
-                            ErrorService.log(
-                                'realtimeService.sendSlaCountDown',
-                                error
-                            );
-                        }
+
+                        RealTimeService.sendSlaCountDown(
+                            currentIncident,
+                            `${countDown}`
+                        );
 
                         if (countDown === alertTime) {
                             // send mail to team
-                            AlertService.sendSlaEmailToTeamMembers(data).catch(
-                                error => {
-                                    ErrorService.log(
-                                        'AlertService.sendSlaEmailToTeamMembers',
-                                        error
-                                    );
-                                }
-                            );
+                            AlertService.sendSlaEmailToTeamMembers(data);
                         }
 
                         if (countDown === 0) {
@@ -1700,15 +1591,7 @@ export default {
                             );
 
                             // send mail to team
-                            AlertService.sendSlaEmailToTeamMembers(
-                                data,
-                                true
-                            ).catch(error => {
-                                ErrorService.log(
-                                    'AlertService.sendSlaEmailToTeamMembers',
-                                    error
-                                );
-                            });
+                            AlertService.sendSlaEmailToTeamMembers(data, true);
                         }
                     }, 1000);
 
@@ -1762,35 +1645,3 @@ function isArrayUnique(myArray: $TSFixMe) {
 }
 
 let intervals: $TSFixMe = [];
-
-import IncidentModel from '../models/incident';
-import IncidentTimelineService from './incidentTimelineService';
-import MonitorService from './monitorService';
-import AlertService from './alertService';
-import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import WebHookService from './webHookService';
-import MsTeamsService from './msTeamsService';
-import SlackService from './slackService';
-import ZapierService from './zapierService';
-import ProjectService from './projectService';
-import ErrorService from 'common-server/utils/error';
-import MonitorStatusService from './monitorStatusService';
-import ComponentService from './componentService';
-import IncidentSettingsService from './incidentSettingsService';
-import Handlebars from 'handlebars';
-import Moment from 'moment';
-import IncidentMessageService from './incidentMessageService';
-const {
-    INCIDENT_CREATED,
-    INCIDENT_ACKNOWLEDGED,
-    INCIDENT_RESOLVED,
-} = require('../constants/incidentEvents');
-import IncidentUtilitiy from '../utils/incident';
-import IncidentCommunicationSlaService from './incidentCommunicationSlaService';
-
-import { isEmpty } from 'lodash';
-import joinNames from '../utils/joinNames';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import getSlug from '../utils/getSlug';

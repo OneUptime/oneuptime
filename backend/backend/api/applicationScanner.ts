@@ -17,8 +17,6 @@ import RealtimeService from '../services/realTimeService';
 import MailService from '../services/mailService';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-import ErrorService from 'common-server/utils/error';
-
 // Route
 // Description: Updating profile setting.
 // Params:
@@ -53,13 +51,10 @@ router.post(
                     { scanning: true }
                 );
 
-            try {
-                RealtimeService.handleScanning({
-                    security: applicationSecurity,
-                });
-            } catch (error) {
-                ErrorService.log('realtimeService.handleScanning', error);
-            }
+            RealtimeService.handleScanning({
+                security: applicationSecurity,
+            });
+
             return sendItemResponse(req, res, applicationSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -255,21 +250,15 @@ router.post(
                     query: { _id: userId },
                     select: '_id email name',
                 });
-                try {
-                    MailService.sendApplicationEmail(project, user);
-                } catch (error) {
-                    ErrorService.log('mailService.sendApplicationEmail', error);
-                }
+
+                MailService.sendApplicationEmail(project, user);
             }
 
-            try {
-                RealtimeService.handleLog({
-                    securityId: securityLog.securityId,
-                    securityLog: findLog,
-                });
-            } catch (error) {
-                ErrorService.log('realtimeService.handleLog', error);
-            }
+            RealtimeService.handleLog({
+                securityId: securityLog.securityId,
+                securityLog: findLog,
+            });
+
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

@@ -196,7 +196,7 @@ export default {
 };
 
 import Crypto from 'crypto';
-import TwilioModel from '../models/twilio';
+import TwilioModel from 'common-server/models/twilio';
 import EncryptDecrypt from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

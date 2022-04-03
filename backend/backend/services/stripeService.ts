@@ -1,3 +1,18 @@
+import payment from '../config/payment';
+import UserService from '../services/userService';
+import PaymentService from '../services/paymentService';
+import ProjectService from '../services/projectService';
+import ProjectModel from 'common-server/models/project';
+import MailService from '../services/mailService';
+
+import { sendSlackAlert } from '../utils/stripeHandlers';
+const stripe = require('stripe')(payment.paymentPrivateKey, {
+    maxNetworkRetries: 3, // Retry a request three times before giving up
+});
+// removal of 'moment' due to declaration but not used.
+
+export default Services;
+
 const Services = {
     successEvent: async function (
         customerId: $TSFixMe,
@@ -52,27 +67,23 @@ const Services = {
                     ? 'second'
                     : 'third';
 
-            try {
-                if (user && user.email) {
-                    MailService.sendPaymentFailedEmail(
-                        project.name,
-                        user.email,
-                        user.name,
-                        chargeAttemptStage,
-                        invoiceUrl
-                    );
-                }
-
-                await sendSlackAlert(
-                    'Stripe Webhook Event',
-                    'stripeService.failedEvent',
-                    'Subscription Payment Failed',
-                    400,
+            if (user && user.email) {
+                MailService.sendPaymentFailedEmail(
+                    project.name,
+                    user.email,
+                    user.name,
+                    chargeAttemptStage,
                     invoiceUrl
                 );
-            } catch (error) {
-                ErrorService.log('stripeService.failedEvent', error);
             }
+
+            await sendSlackAlert(
+                'Stripe Webhook Event',
+                'stripeService.failedEvent',
+                'Subscription Payment Failed',
+                400,
+                invoiceUrl
+            );
 
             if (chargeAttemptCount === 3) {
                 await ProjectService.updateOneBy(
@@ -492,19 +503,3 @@ const Services = {
         } else return false;
     },
 };
-
-import payment from '../config/payment';
-import UserService from '../services/userService';
-import PaymentService from '../services/paymentService';
-import ProjectService from '../services/projectService';
-import ProjectModel from '../models/project';
-import MailService from '../services/mailService';
-import ErrorService from 'common-server/utils/error';
-
-import { sendSlackAlert } from '../utils/stripeHandlers';
-const stripe = require('stripe')(payment.paymentPrivateKey, {
-    maxNetworkRetries: 3, // Retry a request three times before giving up
-});
-// removal of 'moment' due to declaration but not used.
-
-export default Services;

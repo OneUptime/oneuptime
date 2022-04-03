@@ -678,16 +678,14 @@ router.post(
                 }),
             ]);
             const email = user.email;
-            try {
-                MailService.sendChangePlanMail(
-                    projectName,
-                    oldPlan,
-                    newPlan,
-                    email
-                );
-            } catch (error) {
-                ErrorService.log('mailService.sendChangePlanMail', error);
-            }
+
+            MailService.sendChangePlanMail(
+                projectName,
+                oldPlan,
+                newPlan,
+                email
+            );
+
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -766,16 +764,14 @@ router.put(
                     }),
                 ]);
                 const email = user.email;
-                try {
-                    MailService.sendChangePlanMail(
-                        projectName,
-                        oldPlan,
-                        newPlan,
-                        email
-                    );
-                } catch (error) {
-                    ErrorService.log('mailService.sendChangePlanMail', error);
-                }
+
+                MailService.sendChangePlanMail(
+                    projectName,
+                    oldPlan,
+                    newPlan,
+                    email
+                );
+
                 return sendItemResponse(req, res, updatedProject);
             }
         } catch (error) {

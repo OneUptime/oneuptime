@@ -1,4 +1,4 @@
-import AccountModel from '../models/account';
+import AccountModel from 'common-server/models/account';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

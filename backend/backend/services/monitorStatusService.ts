@@ -259,7 +259,7 @@ export default {
     },
 };
 
-import MonitorStatusModel from '../models/monitorStatus';
+import MonitorStatusModel from 'common-server/models/monitorStatus';
 import MonitorService from '../services/monitorService';
 import RealTimeService from './realTimeService';
 import handleSelect from '../utils/select';

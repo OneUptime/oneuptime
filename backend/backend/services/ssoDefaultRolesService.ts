@@ -319,7 +319,7 @@ export default {
     },
 };
 
-import ssoDefaultRolesModel from '../models/ssoDefaultRoles';
+import ssoDefaultRolesModel from 'common-server/models/ssoDefaultRoles';
 import mongoose from 'mongoose';
 import ProjectService from './projectService';
 import SsoService from './ssoService';

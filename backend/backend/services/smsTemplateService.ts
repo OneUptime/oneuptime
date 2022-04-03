@@ -189,7 +189,7 @@ export default {
     },
 };
 
-import SmsTemplateModel from '../models/smsTemplate';
+import SmsTemplateModel from 'common-server/models/smsTemplate';
 import smsTemplateVariables from '../config/smsTemplateVariables';
 import defaultSmsTemplate from '../config/smsTemplate';
 import handleSelect from '../utils/select';

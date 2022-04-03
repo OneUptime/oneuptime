@@ -402,7 +402,7 @@ export default {
     },
 };
 
-import ErrorEventModel from '../models/errorEvent';
+import ErrorEventModel from 'common-server/models/errorEvent';
 import IssueService from './issueService';
 import IssueMemberService from './issueMemberService';
 import IssueTimelineService from './issueTimelineService';

@@ -1,4 +1,4 @@
-import PerformanceTrackerMetricModel from '../models/performanceTrackerMetric';
+import PerformanceTrackerMetricModel from 'common-server/models/performanceTrackerMetric';
 import moment from 'moment';
 import RealTimeService from './realTimeService';
 import handleSelect from '../utils/select';

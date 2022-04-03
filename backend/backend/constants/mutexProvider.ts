@@ -1,7 +1,6 @@
 import { Mutex } from 'async-mutex';
 import mongoose from 'mongoose';
 
-import errorService from '../services/errorService';
 import MUTEX_RESOURCES from './MUTEX_RESOURCES';
 
 // this is a single mutex storage
@@ -45,7 +44,6 @@ const getMutex = (mutexResource: $TSFixMe, resourceId: $TSFixMe) => {
 
         return mutex;
     } catch (error) {
-        errorService.log('ProjectMutexProvider.getProjectMutex', error);
         return mutex;
     }
 };

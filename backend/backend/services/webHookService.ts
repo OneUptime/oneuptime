@@ -1,3 +1,19 @@
+import IntegrationService from './integrationService';
+import axios from 'axios';
+import ProjectService from './projectService';
+import MonitorStatusService from './monitorStatusService';
+
+import {
+    PROJECT_WEBHOOK,
+    EXTERNAL_SUBSCRIBER_WEBHOOK,
+} from '../constants/webHookTypes';
+
+import {
+    INCIDENT_RESOLVED,
+    INCIDENT_ACKNOWLEDGED,
+    INCIDENT_CREATED,
+} from '../constants/incidentEvents';
+
 export default {
     // process external subscriber webhook
     sendSubscriberNotification: async function (
@@ -354,8 +370,7 @@ export default {
                     timeout: 5000,
                 })
                 .then(response => response.status)
-                .catch(error => {
-                    ErrorService.log('WebHookService.notify', error);
+                .catch(() => {
                     return 500;
                 });
             return response === 200;
@@ -364,18 +379,3 @@ export default {
         }
     },
 };
-
-import IntegrationService from './integrationService';
-import axios from 'axios';
-import ProjectService from './projectService';
-import MonitorStatusService from './monitorStatusService';
-import ErrorService from 'common-server/utils/error';
-const {
-    PROJECT_WEBHOOK,
-    EXTERNAL_SUBSCRIBER_WEBHOOK,
-} = require('../constants/webHookTypes');
-const {
-    INCIDENT_RESOLVED,
-    INCIDENT_ACKNOWLEDGED,
-    INCIDENT_CREATED,
-} = require('../constants/incidentEvents');

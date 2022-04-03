@@ -1,4 +1,4 @@
-import IncidentNoteTemplateModel from '../models/incidentNoteTemplate';
+import IncidentNoteTemplateModel from 'common-server/models/incidentNoteTemplate';
 
 export default {
     findBy: async function ({ query = {}, limit, skip }: $TSFixMe) {

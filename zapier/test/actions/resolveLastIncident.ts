@@ -1,4 +1,4 @@
-require('should');
+import 'should';
 
 import zapier from 'zapier-platform-core';
 

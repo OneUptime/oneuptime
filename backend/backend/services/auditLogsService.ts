@@ -86,6 +86,6 @@ export default {
     },
 };
 
-import AuditLogsModel from '../models/auditLogs';
+import AuditLogsModel from 'common-server/models/auditLogs';
 import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';

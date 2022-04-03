@@ -1,3 +1,8 @@
+import NotificationModel from 'common-server/models/notification';
+import RealTimeService from '../services/realTimeService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+
 export default {
     async findBy({ query, skip, limit, populate, select }: $TSFixMe) {
         if (!skip) skip = 0;
@@ -47,54 +52,47 @@ export default {
         icon: $TSFixMe,
         meta: $TSFixMe
     ) {
-        try {
-            if (!meta) {
-                meta = {};
-            }
-            const populateNotification = [
-                { path: 'projectId', select: 'name _id' },
-                {
-                    path: 'meta.incidentId',
-                    model: 'Incident',
-                    select: '_id idNumber slug',
-                },
-                {
-                    path: 'meta.componentId',
-                    model: 'Component',
-                    select: '_id slug',
-                },
-            ];
-
-            const selectNotification =
-                'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
-            let notification = new NotificationModel();
-
-            notification.projectId = projectId;
-
-            notification.message = message;
-
-            notification.icon = icon;
-
-            notification.createdBy = userId;
-
-            notification.meta = meta;
-            notification = await notification.save();
-            const populatedNotification = await this.findOneBy({
-                query: { _id: notification._id },
-                select: selectNotification,
-                populate: populateNotification,
-            });
-
-            // run this in the background
-            RealTimeService.sendNotification(
-                populatedNotification || notification
-            );
-
-            return populatedNotification || notification;
-        } catch (error) {
-            ErrorService.log('notificationService.create', error);
-            throw error;
+        if (!meta) {
+            meta = {};
         }
+        const populateNotification = [
+            { path: 'projectId', select: 'name _id' },
+            {
+                path: 'meta.incidentId',
+                model: 'Incident',
+                select: '_id idNumber slug',
+            },
+            {
+                path: 'meta.componentId',
+                model: 'Component',
+                select: '_id slug',
+            },
+        ];
+
+        const selectNotification =
+            'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
+        let notification = new NotificationModel();
+
+        notification.projectId = projectId;
+
+        notification.message = message;
+
+        notification.icon = icon;
+
+        notification.createdBy = userId;
+
+        notification.meta = meta;
+        notification = await notification.save();
+        const populatedNotification = await this.findOneBy({
+            query: { _id: notification._id },
+            select: selectNotification,
+            populate: populateNotification,
+        });
+
+        // run this in the background
+        RealTimeService.sendNotification(populatedNotification || notification);
+
+        return populatedNotification || notification;
     },
 
     updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
@@ -187,9 +185,3 @@ export default {
         return notification;
     },
 };
-
-import NotificationModel from '../models/notification';
-import RealTimeService from '../services/realTimeService';
-import ErrorService from 'common-server/utils/error';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';

@@ -130,6 +130,6 @@ export default {
     },
 };
 
-import MonitorLogByWeekModel from '../models/monitorLogByWeek';
+import MonitorLogByWeekModel from 'common-server/models/monitorLogByWeek';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

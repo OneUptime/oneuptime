@@ -90,6 +90,6 @@ export default {
     },
 };
 
-import AlertChargeModel from '../models/alertCharge';
+import AlertChargeModel from 'common-server/models/alertCharge';
 import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';

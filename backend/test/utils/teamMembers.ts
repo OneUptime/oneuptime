@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 import ProjectModel from '../../backend/models/project';
 
-import ErrorService from '../../backend/services/errorService';
-
 export default {
     /**
      * adds team members to a project
@@ -38,7 +36,6 @@ export default {
                 return updatedProject;
             }
         } catch (error) {
-            ErrorService.log('TeamMembers.addTeamsToProject', error);
             return { error: 'Can not add team members to project' };
         }
     },
@@ -75,7 +72,6 @@ export default {
                 return updatedProject;
             }
         } catch (error) {
-            ErrorService.log('TeamMembers.removeTeamMembers', error);
             return { error: 'Can not remove team members to project' };
         }
     },

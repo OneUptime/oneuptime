@@ -1,4 +1,4 @@
-import CustomFieldModel from '../models/customField';
+import CustomFieldModel from 'common-server/models/customField';
 import IncomingRequestService from '../services/incomingRequestService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

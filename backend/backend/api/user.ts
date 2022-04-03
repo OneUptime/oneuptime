@@ -32,11 +32,10 @@ import constants from '../config/constants.json';
 
 import { emaildomains } from '../config/emaildomains';
 import randToken from 'rand-token';
-import VerificationTokenModel from '../models/verificationToken';
+import VerificationTokenModel from 'common-server/models/verificationToken';
 
 import { IS_SAAS_SERVICE } from '../config/server';
-import UserModel from '../models/user';
-import ErrorService from 'common-server/utils/error';
+import UserModel from 'common-server/models/user';
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
@@ -202,11 +201,9 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 );
 
                 // Call the MailService.
-                try {
-                    MailService.sendSignupMail(user.email, user.name);
-                } catch (error) {
-                    ErrorService.log('mailService.sendSignupMail', error);
-                }
+
+                MailService.sendSignupMail(user.email, user.name);
+
                 if (!verified) {
                     UserService.sendToken(user, user.email);
                 }
@@ -267,12 +264,9 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
             }
             // Call the UserService.
             user = await UserService.signup(data);
-            try {
-                // Call the MailService.
-                MailService.sendSignupMail(user.email, user.name);
-            } catch (error) {
-                ErrorService.log('mailService.sendSignupMail', error);
-            }
+
+            // Call the MailService.
+            MailService.sendSignupMail(user.email, user.name);
 
             // create access token and refresh token.
             const authUserObj = {
@@ -922,12 +916,9 @@ router.post(
             const user = await UserService.forgotPassword(data.email);
 
             const tokenVerifyUrl = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
-            try {
-                // Call the MailService.
-                MailService.sendForgotPasswordMail(tokenVerifyUrl, user.email);
-            } catch (error) {
-                ErrorService.log('mailService.sendForgetPasswordMail', error);
-            }
+
+            // Call the MailService.
+            MailService.sendForgotPasswordMail(tokenVerifyUrl, user.email);
 
             return sendItemResponse(req, res, {
                 message: 'User received mail succcessfully.',
@@ -989,15 +980,8 @@ router.post(
                 });
             }
 
-            try {
-                // Call the MailService.
-                MailService.sendResetPasswordConfirmMail(user.email);
-            } catch (error) {
-                ErrorService.log(
-                    'mailService.sendResetPasswordConfirmMail',
-                    error
-                );
-            }
+            MailService.sendResetPasswordConfirmMail(user.email);
+
             return sendItemResponse(req, res, {
                 message: 'User password has been reset successfully.',
             });
@@ -1421,8 +1405,7 @@ router.get(
                 );
             }
         } catch (error) {
-            ErrorService.log('user.router.get(/confirmation/:token)', error);
-            throw error;
+            return sendErrorResponse(req, res, error as Exception);
         }
     }
 );

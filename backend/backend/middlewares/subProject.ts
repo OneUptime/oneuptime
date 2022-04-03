@@ -1,5 +1,4 @@
 import ProjectService from '../services/projectService';
-import ErrorService from 'common-server/utils/error';
 import { sendErrorResponse } from 'common-server/utils/response';
 import BadDataException from 'common/types/exception/bad-data-exception';
 import {
@@ -73,7 +72,6 @@ export default {
                 });
             }
         } catch (error) {
-            ErrorService.log('subProject.getSubProjects', error);
             return sendErrorResponse(
                 req,
                 res,

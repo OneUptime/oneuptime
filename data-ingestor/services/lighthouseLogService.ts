@@ -14,131 +14,98 @@ const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe) {
-        try {
-            const result = await lighthouseLogCollection.insertOne({
-                monitorId: data.monitorId,
-                probeId: data.probeId,
-                data: data.lighthouseData.issues,
-                url: data.lighthouseData.url,
-                performance: data.performance,
-                accessibility: data.accessibility,
-                bestPractices: data.bestPractices,
-                seo: data.seo,
-                pwa: data.pwa,
-                scanning: data.scanning,
-                createdAt: new Date(moment().format()),
-            });
-            const savedLog = await this.findOneBy({
-                _id: ObjectId(result.insertedId),
-            });
+        const result = await lighthouseLogCollection.insertOne({
+            monitorId: data.monitorId,
+            probeId: data.probeId,
+            data: data.lighthouseData.issues,
+            url: data.lighthouseData.url,
+            performance: data.performance,
+            accessibility: data.accessibility,
+            bestPractices: data.bestPractices,
+            seo: data.seo,
+            pwa: data.pwa,
+            scanning: data.scanning,
+            createdAt: new Date(moment().format()),
+        });
+        const savedLog = await this.findOneBy({
+            _id: ObjectId(result.insertedId),
+        });
 
-            await this.sendLighthouseLog(savedLog);
+        await this.sendLighthouseLog(savedLog);
 
-            if (data.probeId && data.monitorId) {
-                await probeService.sendProbe(data.probeId, data.monitorId);
-            }
-
-            return savedLog;
-        } catch (error) {
-            ErrorService.log('lighthouseLogService.create', error);
-            throw error;
+        if (data.probeId && data.monitorId) {
+            await probeService.sendProbe(data.probeId, data.monitorId);
         }
+
+        return savedLog;
     },
 
     findOneBy: async function (query: $TSFixMe) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
-            const log = await lighthouseLogCollection.findOne(query);
-
-            return log;
-        } catch (error) {
-            ErrorService.log('lighthouseLogService.findOneBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        if (!query.deleted)
+            query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+
+        const log = await lighthouseLogCollection.findOne(query);
+
+        return log;
     },
 
     async sendLighthouseLog(data: $TSFixMe) {
-        try {
-            const monitor = await MonitorService.findOneBy({
-                query: { _id: ObjectId(data.monitorId) },
+        const monitor = await MonitorService.findOneBy({
+            query: { _id: ObjectId(data.monitorId) },
+        });
+
+        if (monitor && monitor.projectId) {
+            const project = await ProjectService.findOneBy({
+                query: {
+                    _id: ObjectId(monitor.projectId._id || monitor.projectId),
+                },
             });
+            const parentProjectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id || project.parentProjectId
+                    : project._id
+                : monitor.projectId._id || monitor.projectId;
 
-            if (monitor && monitor.projectId) {
-                const project = await ProjectService.findOneBy({
-                    query: {
-                        _id: ObjectId(
-                            monitor.projectId._id || monitor.projectId
-                        ),
-                    },
-                });
-                const parentProjectId = project
-                    ? project.parentProjectId
-                        ? project.parentProjectId._id || project.parentProjectId
-                        : project._id
-                    : monitor.projectId._id || monitor.projectId;
-
-                // realtime update
-                post(
-                    `${realtimeBaseUrl}/update-lighthouse-log`,
-                    {
-                        data,
-                        projectId: monitor.projectId._id || monitor.projectId,
-                        monitorId: data.monitorId,
-                        parentProjectId,
-                    },
-                    true
-                ).catch((error: $TSFixMe) => {
-                    ErrorService.log(
-                        'lighthouseLogService.sendLighthouseLog',
-                        error
-                    );
-                });
-            }
-        } catch (error) {
-            ErrorService.log('lighthouseLogService.sendLighthouseLog', error);
-            throw error;
+            // realtime update
+            post(
+                `${realtimeBaseUrl}/update-lighthouse-log`,
+                {
+                    data,
+                    projectId: monitor.projectId._id || monitor.projectId,
+                    monitorId: data.monitorId,
+                    parentProjectId,
+                },
+                true
+            ).catch((error: $TSFixMe) => {
+                ErrorService.log(
+                    'lighthouseLogService.sendLighthouseLog',
+                    error
+                );
+            });
         }
     },
 
     updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
-        try {
-            if (!query) {
-                query = {};
-            }
-
-            await lighthouseLogCollection.updateMany(query, {
-                $set: data,
-            });
-            // fetch updated items
-            const lighthouseLog = await lighthouseLogCollection
-                .find(query)
-                .toArray();
-
-            return lighthouseLog;
-        } catch (error) {
-            ErrorService.log('lighthouseLogService.updateManyBy', error);
-            throw error;
+        if (!query) {
+            query = {};
         }
+
+        await lighthouseLogCollection.updateMany(query, {
+            $set: data,
+        });
+        // fetch updated items
+        const lighthouseLog = await lighthouseLogCollection
+            .find(query)
+            .toArray();
+
+        return lighthouseLog;
     },
 
     async updateAllLighthouseLogs(monitorId: $TSFixMe, query: $TSFixMe) {
-        try {
-            await this.updateManyBy({ monitorId: monitorId }, query);
-        } catch (error) {
-            ErrorService.log(
-                'lighthouseLogService.updateAllLighthouseLog',
-                error
-            );
-            throw error;
-        }
+        await this.updateManyBy({ monitorId: monitorId }, query);
     },
 };

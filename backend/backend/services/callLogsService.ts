@@ -116,6 +116,6 @@ export default {
     },
 };
 
-import CallLogsModel from '../models/callLogs';
+import CallLogsModel from 'common-server/models/callLogs';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

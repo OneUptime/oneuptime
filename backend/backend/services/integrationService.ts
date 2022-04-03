@@ -258,6 +258,6 @@ export default {
         return 'Integration(s) Removed Successfully!';
     },
 };
-import IntegrationModel from '../models/integration';
+import IntegrationModel from 'common-server/models/integration';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

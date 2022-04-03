@@ -1,4 +1,3 @@
-import ErrorService from 'common-server/utils/error';
 export default (populateArray: $TSFixMe, query: $TSFixMe) => {
     /**
      * populate should be an array of object, no matter the depth it exist in
@@ -11,28 +10,24 @@ export default (populateArray: $TSFixMe, query: $TSFixMe) => {
      * OR
      * [{ path, select, populate: [{ path, select }, ...] }]
      */
-    try {
-        if (populateArray && !Array.isArray(populateArray)) {
-            const error = new Error('Populate should be an array of fields');
 
-            error.code = 400;
-            throw error;
-        }
-        // validate and check for path & select
-        if (populateArray && !isPopulateValid(populateArray, true)) {
-            const error = new Error(
-                'Populate is not following the right convention, make sure to specify path and select property'
-            );
+    if (populateArray && !Array.isArray(populateArray)) {
+        const error = new Error('Populate should be an array of fields');
 
-            error.code = 400;
-            throw error;
-        }
-
-        return query.populate(populateArray);
-    } catch (error) {
-        ErrorService.log('populate', error);
+        error.code = 400;
         throw error;
     }
+    // validate and check for path & select
+    if (populateArray && !isPopulateValid(populateArray, true)) {
+        const error = new Error(
+            'Populate is not following the right convention, make sure to specify path and select property'
+        );
+
+        error.code = 400;
+        throw error;
+    }
+
+    return query.populate(populateArray);
 };
 
 /**

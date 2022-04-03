@@ -1,4 +1,4 @@
-import ApplicationLogModel from '../models/applicationLog';
+import ApplicationLogModel from 'common-server/models/applicationLog';
 import ComponentService from './componentService';
 import RealTimeService from './realTimeService';
 import NotificationService from './notificationService';
@@ -8,7 +8,6 @@ import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
 import handlePopulate from '../utils/populate';
 import handleSelect from '../utils/select';
-import errorService from 'common-server/utils/error';
 import PositiveNumber from 'common/types/positive-number';
 
 export default {
@@ -194,9 +193,7 @@ export default {
                 `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
                 applicationLog.deletedById._id,
                 'applicationLogaddremove'
-            ).catch(error => {
-                errorService.log('NotificationService.create', error);
-            });
+            );
             // run in the background
             RealTimeService.sendApplicationLogDelete(applicationLog);
             return applicationLog;

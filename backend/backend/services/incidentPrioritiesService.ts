@@ -129,6 +129,6 @@ export default {
 
 import IncidentSettingsService from './incidentSettingsService';
 import IncidentService from './incidentService';
-import incidentPriorityModel from '../models/incidentPriority';
+import incidentPriorityModel from 'common-server/models/incidentPriority';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

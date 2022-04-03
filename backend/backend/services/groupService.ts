@@ -1,4 +1,4 @@
-import GroupModel from '../models/groups';
+import GroupModel from 'common-server/models/groups';
 import PositiveNumber from 'common/types/positive-number';
 
 export default {

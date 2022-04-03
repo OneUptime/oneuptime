@@ -1,3 +1,9 @@
+import FeedbackModel from 'common-server/models/feedback';
+import MailService from './mailService';
+import UserService from './userService';
+import ProjectService from './projectService';
+import AirtableService from './airtableService';
+
 export default {
     //Description: Create new project for user.
     //Params:
@@ -53,12 +59,9 @@ export default {
 
         feedback.templateName = 'User Feedback';
 
-        try {
-            MailService.sendLeadEmailToOneUptimeTeam(feedback);
-            MailService.sendUserFeedbackResponse(user.email, user.name);
-        } catch (error) {
-            ErrorService.log('feedbackservice.create', error);
-        }
+        MailService.sendLeadEmailToOneUptimeTeam(feedback);
+        MailService.sendUserFeedbackResponse(user.email, user.name);
+
         return feedback;
     },
 
@@ -67,10 +70,3 @@ export default {
         return 'Feedback(s) removed successfully!';
     },
 };
-
-import FeedbackModel from '../models/feedback';
-import MailService from './mailService';
-import UserService from './userService';
-import ProjectService from './projectService';
-import AirtableService from './airtableService';
-import ErrorService from 'common-server/utils/error';

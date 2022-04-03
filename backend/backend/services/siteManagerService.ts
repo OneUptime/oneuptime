@@ -1,4 +1,4 @@
-import SiteManagerModel from '../models/siteManager';
+import SiteManagerModel from 'common-server/models/siteManager';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

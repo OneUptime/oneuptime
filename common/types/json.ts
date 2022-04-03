@@ -15,3 +15,5 @@ export class JSONFunctions {
         return JSON.stringify(val);
     }
 }
+
+export type JSONObjectOrArray = JSONObject | JSONArray;

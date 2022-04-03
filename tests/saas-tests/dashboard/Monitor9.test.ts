@@ -3,7 +3,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
-require('should');
+import 'should';
 
 // user credentials
 const password = '1234567890';

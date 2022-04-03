@@ -5,7 +5,7 @@ import init from '../../test-init';
 import speakeasy from 'speakeasy';
 import { expect } from 'chai';
 
-require('should');
+import 'should';
 const projectName = 'project';
 
 let browser: $TSFixMe, page: $TSFixMe;

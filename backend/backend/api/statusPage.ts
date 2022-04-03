@@ -149,12 +149,9 @@ router.put(
                 populate: populateStatusPage,
                 select: selectStatusPage,
             });
-            try {
-                // run in the background
-                RealTimeService.statusPageEdit(updatedStatusPage);
-            } catch (error) {
-                ErrorService.log('realtimeService.statuspageEdit', error);
-            }
+
+            RealTimeService.statusPageEdit(updatedStatusPage);
+
             return sendItemResponse(req, res, updatedStatusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -204,12 +201,10 @@ router.put(
                 populate: populateStatusPage,
                 select: selectStatusPage,
             });
-            try {
-                // run in the background
-                RealTimeService.statusPageEdit(updatedStatusPage);
-            } catch (error) {
-                ErrorService.log('realtimeService.statusPageEdit', error);
-            }
+
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
+
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -688,25 +683,18 @@ router.put(
                     }
                 );
 
-                try {
-                    RealTimeService.statusPageEdit(updatedStatusPage);
-                } catch (error) {
-                    ErrorService.log('realtimeService.statusPageEdit', error);
-                }
+                RealTimeService.statusPageEdit(updatedStatusPage);
 
                 if (updatedStatusPage?.twitterHandle) {
                     const tweets = await StatusPageService.fetchTweets(
                         updatedStatusPage.twitterHandle
                     );
-                    try {
-                        RealTimeService.updateTweets(
-                            tweets,
-                            updatedStatusPage._id,
-                            updatedStatusPage.projectId
-                        );
-                    } catch (error) {
-                        ErrorService.log('realtimeService.updateTweets', error);
-                    }
+
+                    RealTimeService.updateTweets(
+                        tweets,
+                        updatedStatusPage._id,
+                        updatedStatusPage.projectId
+                    );
                 }
 
                 return sendItemResponse(req, res, statusPage);

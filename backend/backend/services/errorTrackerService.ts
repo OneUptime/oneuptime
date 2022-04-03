@@ -188,9 +188,7 @@ export default {
                 `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                 errorTracker.deletedById._id,
                 'errorTrackeraddremove'
-            ).catch(error => {
-                errorService.log('NotificationService.create', error);
-            });
+            );
             RealTimeService.sendErrorTrackerDelete(errorTracker);
             return errorTracker;
         } else {
@@ -243,7 +241,7 @@ export default {
     },
 };
 
-import ErrorTrackerModel from '../models/errorTracker';
+import ErrorTrackerModel from 'common-server/models/errorTracker';
 import ComponentService from './componentService';
 import ResourceCategoryService from './resourceCategoryService';
 import RealTimeService from './realTimeService';
@@ -253,4 +251,3 @@ import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
-import errorService from 'common-server/utils/error';

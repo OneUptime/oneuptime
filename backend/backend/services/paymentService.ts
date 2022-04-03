@@ -3,9 +3,8 @@ import payment from '../config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 import Plans from '../config/plans';
-import ErrorService from 'common-server/utils/error';
 import ProjectService from './projectService';
-import ProjectModel from '../models/project';
+import ProjectModel from 'common-server/models/project';
 import StripeService from './stripeService';
 import NotificationService from './notificationService';
 import {
@@ -66,10 +65,6 @@ export default {
                 closingBalance: updatedProject.balance,
             };
         } catch (error) {
-            ErrorService.log(
-                'PaymentService.chargeAlertAndGetProjectBalance',
-                error
-            );
             return { error: 'Could not charge alert' };
         } finally {
             // if (release) {
@@ -123,7 +118,6 @@ export default {
             }
             return isBalanceMoreThanMinimum;
         } catch (error) {
-            ErrorService.log('PaymentService.hasEnoughBalance', error);
             return false;
         }
     },
@@ -154,7 +148,6 @@ export default {
 
             return false;
         } catch (error) {
-            ErrorService.log('PaymentService.fillProjectBalance', error);
             return false;
         }
     },
@@ -434,17 +427,14 @@ export default {
                     type: 'action',
                     client_secret: paymentIntent.client_secret,
                 };
-                try {
-                    NotificationService.create(
-                        projectId,
-                        message,
-                        userId,
-                        null,
-                        meta
-                    );
-                } catch (error) {
-                    ErrorService.log('paymentService.chargeAlert', error);
-                }
+
+                NotificationService.create(
+                    projectId,
+                    message,
+                    userId,
+                    null,
+                    meta
+                );
             }
 
             // confirm payment intent

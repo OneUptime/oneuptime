@@ -59,6 +59,6 @@ export default {
     },
 };
 
-import IssueTimelineModel from '../models/issueTimeline';
+import IssueTimelineModel from 'common-server/models/issueTimeline';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

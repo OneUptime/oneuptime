@@ -1707,12 +1707,9 @@ router.delete(
                 req.user.id
             );
             if (incident) {
-                try {
-                    // RUN IN THE BACKGROUND
-                    RealTimeService.deleteIncident(incident);
-                } catch (error) {
-                    ErrorService.log('realtimeService.deleteIncident', error);
-                }
+                // RUN IN THE BACKGROUND
+                RealTimeService.deleteIncident(incident);
+
                 return sendItemResponse(req, res, incident);
             } else {
                 return sendErrorResponse(req, res, {

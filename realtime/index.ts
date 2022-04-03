@@ -104,11 +104,4 @@ app.get(
 
 app.use('/realtime', require('./api/realtime'));
 
-app.set('port', process.env['PORT'] || 3300);
-
-http.listen(app.get('port'), function () {
-    // eslint-disable-next-line
-    logger.info('realtime server started on port ' + app.get('port'));
-});
-
 export default app;

@@ -667,25 +667,17 @@ export default {
         if (!query.deleted) query.deleted = false;
 
         // run this in the background
-        try {
-            if (data && data.groupedMonitors) {
-                for (const [key, value] of Object.entries(
-                    data.groupedMonitors
-                )) {
-                    const monitorIds = value.map(
-                        (monitorObj: $TSFixMe) => monitorObj.monitor
-                    );
-                    MonitorService.updateBy(
-                        { _id: { $in: monitorIds } },
-                        { statusPageCategory: key }
-                    );
-                }
+
+        if (data && data.groupedMonitors) {
+            for (const [key, value] of Object.entries(data.groupedMonitors)) {
+                const monitorIds = value.map(
+                    (monitorObj: $TSFixMe) => monitorObj.monitor
+                );
+                MonitorService.updateBy(
+                    { _id: { $in: monitorIds } },
+                    { statusPageCategory: key }
+                );
             }
-        } catch (error) {
-            ErrorService.log(
-                'statusPageService.updateOneBy > MonitorService.updateBy',
-                error
-            );
         }
 
         let updatedStatusPage = await StatusPageModel.findOneAndUpdate(
@@ -2204,7 +2196,7 @@ const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     }
 };
 
-import IncidentModel from '../models/incident';
+import IncidentModel from 'common-server/models/incident';
 
 import IncidentService from './incidentService';
 import ScheduledEventsService from './scheduledEventService';
@@ -2224,10 +2216,10 @@ import moment from 'moment';
 
 import uuid from 'uuid';
 import CertificateStoreService from './certificateStoreService';
-import AnnouncementModel from '../models/announcements';
-import ExternalStatusPageModel from '../models/externalStatusPage';
+import AnnouncementModel from 'common-server/models/announcements';
+import ExternalStatusPageModel from 'common-server/models/externalStatusPage';
 import getSlug from '../utils/getSlug';
-import AnnouncementLogModel from '../models/announcementLogs';
+import AnnouncementLogModel from 'common-server/models/announcementLogs';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 import axios from 'axios';

@@ -1,4 +1,4 @@
-import MonitorCustomFieldModel from '../models/monitorCustomField';
+import MonitorCustomFieldModel from 'common-server/models/monitorCustomField';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

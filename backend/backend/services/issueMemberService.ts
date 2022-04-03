@@ -102,6 +102,6 @@ export default {
     },
 };
 
-import IssueMemberModel from '../models/issueMember';
+import IssueMemberModel from 'common-server/models/issueMember';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

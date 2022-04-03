@@ -1,4 +1,4 @@
-import incidentSMSActionModel from '../models/incidentSMSAction';
+import incidentSMSActionModel from 'common-server/models/incidentSMSAction';
 import twilio from 'twilio';
 import SmsSmtpService from './smsSmtpService';
 import Handlebars from 'handlebars';

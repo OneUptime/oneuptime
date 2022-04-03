@@ -1,4 +1,4 @@
-import { JSONValue } from '../json';
+import { JSONObjectOrArray } from '../json';
 
 export default class HTTPResponse {
     private _statusCode: number = -1;
@@ -9,15 +9,15 @@ export default class HTTPResponse {
         this._statusCode = v;
     }
 
-    private _data: JSONValue = {};
-    public get data(): JSONValue {
+    private _data: JSONObjectOrArray = {};
+    public get data(): JSONObjectOrArray {
         return this._data;
     }
-    public set data(v: JSONValue) {
+    public set data(v: JSONObjectOrArray) {
         this._data = v;
     }
 
-    constructor(statusCode: number, data: JSONValue) {
+    constructor(statusCode: number, data: JSONObjectOrArray) {
         this.statusCode = statusCode;
         this.data = data;
     }

@@ -1,3 +1,13 @@
+import MonitorLogModel from 'common-server/models/monitorLog';
+import MonitorLogByHourService from '../services/monitorLogByHourService';
+import MonitorLogByDayService from '../services/monitorLogByDayService';
+import MonitorLogByWeekService from '../services/monitorLogByWeekService';
+import MonitorService from '../services/monitorService';
+import RealTimeService from './realTimeService';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import moment from 'moment';
+
 export default {
     create: async function (data: $TSFixMe) {
         const Log = new MonitorLogModel();
@@ -299,27 +309,12 @@ export default {
             }),
         ]);
         if (monitor && monitor.projectId && monitor.projectId._id) {
-            try {
-                // run in the background
-                RealTimeService.updateMonitorLog(
-                    data,
-                    logData,
-                    monitor.projectId._id
-                );
-            } catch (error) {
-                ErrorService.log('realtimeService.updateMonitorLog', error);
-            }
+            // run in the background
+            RealTimeService.updateMonitorLog(
+                data,
+                logData,
+                monitor.projectId._id
+            );
         }
     },
 };
-
-import MonitorLogModel from '../models/monitorLog';
-import MonitorLogByHourService from '../services/monitorLogByHourService';
-import MonitorLogByDayService from '../services/monitorLogByDayService';
-import MonitorLogByWeekService from '../services/monitorLogByWeekService';
-import MonitorService from '../services/monitorService';
-import RealTimeService from './realTimeService';
-import ErrorService from 'common-server/utils/error';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import moment from 'moment';

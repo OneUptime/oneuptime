@@ -239,7 +239,7 @@ export default {
     },
 };
 
-import IncidentTimelineModel from '../models/incidentTimeline';
+import IncidentTimelineModel from 'common-server/models/incidentTimeline';
 import IncidentService from './incidentService';
 import RealTimeService from './realTimeService';
 import ErrorService from 'common-server/utils/error';

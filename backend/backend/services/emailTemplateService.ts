@@ -187,7 +187,7 @@ export default {
     },
 };
 
-import EmailTemplateModel from '../models/emailTemplate';
+import EmailTemplateModel from 'common-server/models/emailTemplate';
 import emailTemplateVariables from '../config/emailTemplateVariables';
 import defaultTemplate from '../config/emailTemplate';
 import handleSelect from '../utils/select';

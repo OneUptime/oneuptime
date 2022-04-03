@@ -36,7 +36,6 @@ import cors from 'cors';
 import mongoose from './backend/config/db';
 
 import Gl from 'greenlock';
-import ErrorService from 'common-server/utils/error';
 
 import { getUser } from './backend/middlewares/user';
 
@@ -56,7 +55,6 @@ import { getProjectId } from './backend/middlewares/api';
 //     });
 //     global.redisClient = redisClient;
 // } catch (err) {
-//
 //     logger.info('redis error: ', err);
 // }
 
@@ -484,39 +482,35 @@ const server = http.listen(app.get('port'), function () {
 });
 
 mongoose.connection.on('connected', async () => {
-    try {
-        if (!process.env.IS_TESTING) {
-            const greenlock = Gl.create({
-                manager: 'oneuptime-gl-manager',
-                packageRoot: process.cwd(),
-                maintainerEmail: 'certs@oneuptime.com',
-                staging: false,
+    if (!process.env.IS_TESTING) {
+        const greenlock = Gl.create({
+            manager: 'oneuptime-gl-manager',
+            packageRoot: process.cwd(),
+            maintainerEmail: 'certs@oneuptime.com',
+            staging: false,
 
-                notify: function (event, details) {
-                    if ('error' === event) {
-                        // `details` is an error object in this case
+            notify: function (event, details) {
+                if ('error' === event) {
+                    // `details` is an error object in this case
 
-                        logger.error('Greenlock Notify: ', details);
-                    }
+                    logger.error('Greenlock Notify: ', details);
+                }
+            },
+            challenges: {
+                'http-01': {
+                    module: 'oneuptime-acme-http-01',
                 },
-                challenges: {
-                    'http-01': {
-                        module: 'oneuptime-acme-http-01',
-                    },
-                },
-                store: {
-                    module: 'oneuptime-le-store',
-                },
-            });
-            await greenlock.manager.defaults({
-                agreeToTerms: true,
-                subscriberEmail: 'certs@oneuptime.com',
-            });
+            },
+            store: {
+                module: 'oneuptime-le-store',
+            },
+        });
+        await greenlock.manager.defaults({
+            agreeToTerms: true,
+            subscriberEmail: 'certs@oneuptime.com',
+        });
 
-            global.greenlock = greenlock;
-        }
-    } catch (error) {
-        ErrorService.log('GREENLOCK INIT ERROR: ', error);
+        global.greenlock = greenlock;
     }
 });
 

@@ -209,7 +209,7 @@ export default {
 };
 
 import Crypto from 'crypto';
-import EmailSmtpModel from '../models/smtp';
+import EmailSmtpModel from 'common-server/models/smtp';
 import EncryptDecrypt from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

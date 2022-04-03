@@ -685,36 +685,32 @@ export default {
                 ]);
                 project = projectObj;
 
-                try {
-                    if (subProject) {
-                        MailService.sendRemoveFromSubProjectEmailToUser(
-                            subProject,
-                            user,
-                            member.email
-                        );
+                if (subProject) {
+                    MailService.sendRemoveFromSubProjectEmailToUser(
+                        subProject,
+                        user,
+                        member.email
+                    );
 
-                        NotificationService.create(
-                            project._id,
-                            `User removed from subproject ${subProject.name} by ${user.name}`,
-                            userId,
-                            'information'
-                        );
-                    } else {
-                        MailService.sendRemoveFromProjectEmailToUser(
-                            project,
-                            user,
-                            member.email
-                        );
+                    NotificationService.create(
+                        project._id,
+                        `User removed from subproject ${subProject.name} by ${user.name}`,
+                        userId,
+                        'information'
+                    );
+                } else {
+                    MailService.sendRemoveFromProjectEmailToUser(
+                        project,
+                        user,
+                        member.email
+                    );
 
-                        NotificationService.create(
-                            project._id,
-                            `User removed from the project by ${user.name}`,
-                            userId,
-                            'information'
-                        );
-                    }
-                } catch (error) {
-                    ErrorService.log('teamService.removeTeamMember', error);
+                    NotificationService.create(
+                        project._id,
+                        `User removed from the project by ${user.name}`,
+                        userId,
+                        'information'
+                    );
                 }
                 let team = await _this.getTeamMembersBy({
                     _id: project._id,
@@ -881,24 +877,21 @@ export default {
                         select: 'email',
                     }),
                 ]);
-                try {
-                    if (subProject) {
-                        MailService.sendChangeRoleEmailToUser(
-                            subProject,
-                            user,
-                            member.email,
-                            role
-                        );
-                    } else {
-                        MailService.sendChangeRoleEmailToUser(
-                            project,
-                            user,
-                            member.email,
-                            role
-                        );
-                    }
-                } catch (error) {
-                    ErrorService.log('teamService.updateTeamMemberRole', error);
+
+                if (subProject) {
+                    MailService.sendChangeRoleEmailToUser(
+                        subProject,
+                        user,
+                        member.email,
+                        role
+                    );
+                } else {
+                    MailService.sendChangeRoleEmailToUser(
+                        project,
+                        user,
+                        member.email,
+                        role
+                    );
                 }
 
                 // send response
@@ -980,7 +973,7 @@ import NotificationService from '../services/notificationService';
 import RealTimeService from '../services/realTimeService';
 import ErrorService from 'common-server/utils/error';
 import domains from '../config/domains';
-import VerificationTokenModel from '../models/verificationToken';
+import VerificationTokenModel from 'common-server/models/verificationToken';
 import crypto from 'crypto';
 
 import { IS_SAAS_SERVICE } from '../config/server';

@@ -1,5 +1,5 @@
 import Crypto from 'crypto';
-import DockerCredentialModel from '../models/dockerCredential';
+import DockerCredentialModel from 'common-server/models/dockerCredential';
 
 import { encrypt, decrypt } from '../config/encryptDecrypt';
 import axios from 'axios';

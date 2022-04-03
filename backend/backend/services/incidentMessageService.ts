@@ -147,7 +147,7 @@ export default {
     },
 };
 
-import IncidentMessageModel from '../models/incidentMessage';
+import IncidentMessageModel from 'common-server/models/incidentMessage';
 import RealTimeService from './realTimeService';
 import IncidentService from './incidentService';
 import handlePopulate from '../utils/populate';

@@ -130,6 +130,6 @@ export default {
     },
 };
 
-import MonitorLogByHourModel from '../models/monitorLogByHour';
+import MonitorLogByHourModel from 'common-server/models/monitorLogByHour';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';

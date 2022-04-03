@@ -1,4 +1,4 @@
-import CertificateModel from '../models/certificate';
+import CertificateModel from 'common-server/models/certificate';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

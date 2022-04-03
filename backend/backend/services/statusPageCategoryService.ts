@@ -1,5 +1,5 @@
-import StatusPageCategoryModel from '../models/statusPageCategory';
-import MonitorModel from '../models/monitor';
+import StatusPageCategoryModel from 'common-server/models/statusPageCategory';
+import MonitorModel from 'common-server/models/monitor';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

@@ -7,7 +7,7 @@ import {
     ExpressRequest,
     OneUptimeResponse,
 } from './express';
-import { JSONObject, JSONArray, JSONValue } from 'common/types/json';
+import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/types/json';
 import { File } from 'common/types/file';
 import Exception from 'common/types/exception';
 import { ListData } from 'common/types/list';
@@ -17,7 +17,7 @@ import PositiveNumber from 'common/types/positive-number';
 function logResponse(
     req: ExpressRequest,
     res: ExpressResponse,
-    responsebody?: JSONValue
+    responsebody?: JSONObjectOrArray
 ) {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -159,9 +159,9 @@ export const sendListResponse = async (
         oneUptimeResponse.status(200).send(csv);
     } else {
         oneUptimeResponse.status(200).send(listData);
-        oneUptimeResponse.logBody = listData.toJSONValue(); // To be used in 'auditLog' middleware to log reponse data;
+        oneUptimeResponse.logBody = listData.toJSON(); // To be used in 'auditLog' middleware to log reponse data;
         oneUptimeResponse.status(200).send(listData);
-        return logResponse(req, res, listData.toJSONValue());
+        return logResponse(req, res, listData.toJSON());
     }
 };
 

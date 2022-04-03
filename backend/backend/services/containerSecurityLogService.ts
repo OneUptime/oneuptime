@@ -1,4 +1,4 @@
-import ContainerSecurityLogModel from '../models/containerSecurityLog';
+import ContainerSecurityLogModel from 'common-server/models/containerSecurityLog';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
 

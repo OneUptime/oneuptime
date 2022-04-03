@@ -1,6 +1,5 @@
 import PositiveNumber from 'common/types/positive-number';
-import PerformanceTrackerModel from '../models/performanceTracker';
-import ErrorService from 'common-server/utils/error';
+import PerformanceTrackerModel from 'common-server/models/performanceTracker';
 import ComponentService from './componentService';
 
 import generate from 'nanoid/generate';
@@ -14,67 +13,61 @@ import handlePopulate from '../utils/populate';
 
 export default {
     create: async function (data: $TSFixMe) {
-        try {
-            const _this = this;
-            // check if component exists
-            const componentCount = await ComponentService.countBy({
-                _id: data.componentId,
-            });
-            // send an error if the component doesnt exist
-            if (!componentCount || componentCount === 0) {
-                const error = new Error('Component does not exist.');
+        const _this = this;
+        // check if component exists
+        const componentCount = await ComponentService.countBy({
+            _id: data.componentId,
+        });
+        // send an error if the component doesnt exist
+        if (!componentCount || componentCount === 0) {
+            const error = new Error('Component does not exist.');
 
-                error.code = 400;
-                ErrorService.log('performanceTrackerService.create', error);
-                throw error;
-            }
-            // check if a performance tracker already exist with the same name for a particular component
-            const existingPerformanceTracker = await _this.findBy({
-                query: { name: data.name, componentId: data.componentId },
-                select: '_id',
-            });
-            if (
-                existingPerformanceTracker &&
-                existingPerformanceTracker.length > 0
-            ) {
-                const error = new Error(
-                    'Performance tracker with that name already exists.'
-                );
+            error.code = 400;
 
-                error.code = 400;
-                ErrorService.log('performanceTrackerService.create', error);
-                throw error;
-            }
-
-            data.key = uuid.v4();
-            // handle the slug
-            let name = data.name;
-            name = slugify(name);
-            name = `${name}-${generate('1234567890', 8)}`;
-            data.slug = name.toLowerCase();
-
-            let performanceTracker = await PerformanceTrackerModel.create(data);
-
-            const select =
-                'componentId name slug key showQuickStart createdById';
-            const populate = [
-                { path: 'createdById', select: 'name email' },
-                {
-                    path: 'componentId',
-                    select: 'name slug',
-                    populate: { path: 'projectId', select: 'name slug' },
-                },
-            ];
-            performanceTracker = await _this.findOneBy({
-                query: { _id: performanceTracker._id },
-                select,
-                populate,
-            });
-            return performanceTracker;
-        } catch (error) {
-            ErrorService.log('performanceTrackerService.create', error);
             throw error;
         }
+        // check if a performance tracker already exist with the same name for a particular component
+        const existingPerformanceTracker = await _this.findBy({
+            query: { name: data.name, componentId: data.componentId },
+            select: '_id',
+        });
+        if (
+            existingPerformanceTracker &&
+            existingPerformanceTracker.length > 0
+        ) {
+            const error = new Error(
+                'Performance tracker with that name already exists.'
+            );
+
+            error.code = 400;
+
+            throw error;
+        }
+
+        data.key = uuid.v4();
+        // handle the slug
+        let name = data.name;
+        name = slugify(name);
+        name = `${name}-${generate('1234567890', 8)}`;
+        data.slug = name.toLowerCase();
+
+        let performanceTracker = await PerformanceTrackerModel.create(data);
+
+        const select = 'componentId name slug key showQuickStart createdById';
+        const populate = [
+            { path: 'createdById', select: 'name email' },
+            {
+                path: 'componentId',
+                select: 'name slug',
+                populate: { path: 'projectId', select: 'name slug' },
+            },
+        ];
+        performanceTracker = await _this.findOneBy({
+            query: { _id: performanceTracker._id },
+            select,
+            populate,
+        });
+        return performanceTracker;
     },
     //Description: Gets all application logs by component.
     findBy: async function ({
@@ -213,17 +206,14 @@ export default {
                     },
                 });
         if (performanceTracker) {
-            try {
-                NotificationService.create(
-                    performanceTracker.componentId.projectId._id ||
-                        performanceTracker.componentId.projectId,
-                    `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
-                    performanceTracker.deletedById._id,
-                    'performanceTrackeraddremove'
-                );
-            } catch (error) {
-                ErrorService.log('performanceTrackerService.deleteBy', error);
-            }
+            NotificationService.create(
+                performanceTracker.componentId.projectId._id ||
+                    performanceTracker.componentId.projectId,
+                `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
+                performanceTracker.deletedById._id,
+                'performanceTrackeraddremove'
+            );
+
             // await RealTimeService.sendPerformanceTrackerDelete(
             //     performanceTracker
             // );

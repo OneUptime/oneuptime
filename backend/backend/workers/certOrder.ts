@@ -1,4 +1,3 @@
-import ErrorService from 'common-server/utils/error';
 import StatusPageService from '../services/statusPageService';
 import CertificateStoreService from '../services/certificateStoreService';
 
@@ -39,19 +38,15 @@ async function handleFetchingDomains() {
 }
 
 export default async function () {
-    try {
-        const domains = await handleFetchingDomains();
+    const domains = await handleFetchingDomains();
 
-        const greenlock = global.greenlock;
-        if (greenlock) {
-            for (const domain of domains) {
-                await greenlock.add({
-                    subject: domain,
-                    altnames: [domain],
-                });
-            }
+    const greenlock = global.greenlock;
+    if (greenlock) {
+        for (const domain of domains) {
+            await greenlock.add({
+                subject: domain,
+                altnames: [domain],
+            });
         }
-    } catch (error) {
-        ErrorService.log('certOrder', error);
     }
 }

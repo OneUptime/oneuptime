@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
 
-require('should');
+import 'should';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials

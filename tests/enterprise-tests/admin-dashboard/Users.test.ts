@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
-require('should');
+import 'should';
 
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
