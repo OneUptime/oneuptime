@@ -1,7 +1,7 @@
 import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-const expect = require('chai').expect;
+import { expect } from 'chai';
 
 import decode from 'urldecode';
 

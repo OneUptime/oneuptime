@@ -5507,18 +5507,18 @@ import TeamService from './teamService';
 import secondsToHms from '../utils/secondsToHms';
 
 import { getPlanById, getPlanByExtraUserId } from '../config/plans';
-const {
+import {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
-} = require('../constants/incidentEvents');
+} from '../constants/incidentEvents';
 import componentService from './componentService';
 
 import webpush from 'web-push';
-const {
+import {
     calculateHumanReadableDownTime,
     getIncidentLength,
-} = require('../utils/incident');
+} from '../utils/incident';
 //  import IncidentService from './incidentService' Declared but unused
 import IncidentMessageService from './incidentMessageService';
 import IncidentTimelineService from './incidentTimelineService';

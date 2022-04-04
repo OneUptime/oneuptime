@@ -4,11 +4,11 @@ import express, {
 } from 'common-server/utils/Express';
 import IncidentService from '../services/incidentService';
 import UserService from '../services/userService';
-const {
+import {
     sendIncidentCreatedCall,
     sendVerificationSMS,
     test,
-} = require('../services/twilioService');
+} from '../services/twilioService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;

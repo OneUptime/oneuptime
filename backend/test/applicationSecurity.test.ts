@@ -2,7 +2,7 @@ process.env['PORT'] = 3020;
 
 process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
-const expect = require('chai').expect;
+import { expect } from 'chai';
 import userData from './data/user';
 import gitCredential from './data/gitCredential';
 import app from '../server';

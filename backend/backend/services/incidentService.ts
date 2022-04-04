@@ -16,11 +16,11 @@ import IncidentSettingsService from './incidentSettingsService';
 import Handlebars from 'handlebars';
 import Moment from 'moment';
 import IncidentMessageService from './incidentMessageService';
-const {
+import {
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_RESOLVED,
-} = require('../constants/incidentEvents');
+} from '../constants/incidentEvents';
 import IncidentUtilitiy from '../utils/incident';
 import IncidentCommunicationSlaService from './incidentCommunicationSlaService';
 

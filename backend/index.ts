@@ -12,27 +12,6 @@ import expressRequestId from 'express-request-id';
 app.use(expressRequestId);
 
 import path from 'path';
-
-import http from 'http';
-http.createServer(app);
-const io = require('socket.io')(http, {
-    path: '/api/socket.io',
-    transports: ['websocket', 'polling'], // using websocket does not require sticky session
-    perMessageDeflate: {
-        threshold: 1024, // defaults to 1024
-        zlibDeflateOptions: {
-            chunkSize: 1024, // defaults to 16 * 1024
-        },
-        zlibInflateOptions: {
-            windowBits: 15, // defaults to 15
-            memLevel: 8, // defaults to 8
-        },
-    },
-});
-// import redisAdapter from 'socket.io-redis'
-import bodyParser from 'body-parser';
-import cors from 'cors';
-// import redis from 'redis'
 import mongoose from './backend/config/db';
 
 import Gl from 'greenlock';
@@ -41,148 +20,102 @@ import { getUser } from './backend/middlewares/user';
 
 import { getProjectId } from './backend/middlewares/api';
 
-// try {
-//     io.adapter(
-//         redisAdapter({
-//             host: process.env.REDIS_HOST,
-//             port: process.env.REDIS_PORT,
-//         })
-//     );
+// Middleware
 
-//     const redisClient = redis.createClient({
-//         host: process.env.REDIS_HOST,
-//         port: process.env.REDIS_PORT,
-//     });
-//     global.redisClient = redisClient;
-// } catch (err) {
-//     logger.info('redis error: ', err);
-// }
+import AuditLogsMiddleware from './backend/middlewares/auditLogs';
 
-global.io = io;
+// API
+import IncomingHTTPRequestAPI from './backend/api/incomingHttpRequest';
+import AlertAPI from './backend/api/alert';
+import UserAPI from './backend/api/user';
+import LoginHistoryAPI from './backend/api/loginHistory';
+import TokenAPI from './backend/api/token';
+import TeamAPI from './backend/api/team';
+import ProjectAPI from './backend/api/project';
+import InvoiceAPI from './backend/api/invoice';
+import ScheduleAPI from './backend/api/schedule';
+import MonitorAPI from './backend/api/monitor';
+import StatusPageAPI from './backend/api/statusPage';
+import FileAPI from './backend/api/file';
+import IncidentAPI from './backend/api/incident';
+import IncidentPriorityAPI from './backend/api/incidentPriorities';
+import IncidentSettingsAPI from './backend/api/incidentSettings';
+import ReportAPI from './backend/api/report';
+import LeadAPI from './backend/api/lead';
+import TwilioAPI from './backend/api/twilio';
+import SsoAPI from './backend/api/sso';
+import FeedbackAPI from './backend/api/feedback';
+import WebHookAPI from './backend/api/webhooks';
+import ZapierAPI from './backend/api/zapier';
+import SlackAPI from './backend/api/slack';
+import ServerAPI from './backend/api/server';
+import NotificationAPI from './backend/api/notification';
+import SubscriberAPI from './backend/api/subscriber';
+import SsoDefaultRoleAPI from './backend/api/ssoDefaultRoles';
+import AutomatedScriptAPI from './backend/api/automatedScript';
+import CallLogsAPI from './backend/api/callLogs';
+import EmailLogsAPI from './backend/api/emailLogs';
+import StripeAPI from './backend/api/stripe';
+import EmailTemplateAPI from './backend/api/emailTemplate';
+import SmsTemplateAPI from './backend/api/smsTemplate';
+import SubscriberAlertAPI from './backend/api/subscriberAlert';
+import ContainerSecurityAPI from './backend/api/containerSecurity';
+import ApplciationSecurityAPI from './backend/api/applicationSecurity';
+import GlobalConfigAPI from './backend/api/globalConfig';
+import DockerCredentialsAPI from './backend/api/dockerCredential';
+import GitCredentialsAPI from './backend/api/gitCredential';
+import ProbeAPI from './backend/api/probe';
+import ResourceCategoryAPI from './backend/api/resourceCategory';
+import StatusPageCategoryAPI from './backend/api/statusPageCategory';
+import TutorialAPI from './backend/api/tutorial';
+import ApplicationScannerAPI from './backend/api/applicationScanner';
+import ContainerScannerAPI from './backend/api/containerScanner';
+import AuditLogAPI from './backend/api/auditLogs';
+import SMSLogAPI from './backend/api/smsLogs';
+import ScheduledEventAPI from './backend/api/scheduledEvent';
+import LighthouseAPI from './backend/api/lighthouse';
+import IncomingRequestAPI from './backend/api/incomingHttpRequest';
+import ScriptRunnerAPI from './backend/api/scriptRunner';
+import CustomFieldAPI from './backend/api/customField';
+import ComponentAPI from './backend/api/component';
+import SearchAPI from './backend/api/search';
+import ApplicationLogAPI from './backend/api/applicationLog';
+import PerformanceTrackerAPI from './backend/api/performanceTracker';
+import PerformanceTrackerMetricAPI from './backend/api/performanceTrackerMetric';
+import ErrorTrackerAPI from './backend/api/errorTracker';
+import EmailSmtpAPI from './backend/api/emailSmtp';
+import SmsSmtpAPI from './backend/api/smsSmtp';
+import DomainVerificationTokenAPI from './backend/api/domainVerificationToken';
+import MonitorSlaAPI from './backend/api/monitorSla';
+import IncidentCommunicationSlaAPI from './backend/api/incidentCommunicationSla';
+import MonitorCriteriaAPI from './backend/api//monitorCriteria';
+import ApplicationSecurityLogAPI from './backend/api/applicationSecurityLog';
+import ContainerSecurityLogAPI from './backend/api/containerSecurityLog';
+import SiteManagerAPI from './backend/api/siteManager';
+import DefaultManagerAPI from './backend/api/defaultManager';
+import IncidentNoteTemplateAPI from './backend/api/incidentNoteTemplate';
+import CertificateStoreAPI from './backend/api/certificateStore';
+import AccountStoreAPI from './backend/api/accountStore';
+import SslAPI from './backend/api/ssl';
+import GroupsAPI from './backend/api/groups';
+import CallRoutingAPI from './backend/api/callRouting';
+import MonitorCustomFieldAPI from './backend/api/monitorCustomField';
 
-app.use(cors());
+// WORKERS
+import './backend/workers/main';
 
 app.use(async function (
     req: ExpressRequest,
-    res: ExpressResponse,
+    _res: ExpressResponse,
     next: NextFunction
 ) {
-    const method = req.method;
-    const url = req.url;
-    const requestStartedAt = Date.now();
-    req.requestStartedAt = requestStartedAt;
-
-    // log all data to logger
-    const logdata = {
-        requestId: req.id,
-        requestStartedAt: requestStartedAt,
-    };
-
     req = (await getUser(req)) || req;
     req = (await getProjectId(req)) || req;
-
-    logdata.userId = req.user?.id;
-
-    logdata.projectId = req.projectId;
-
-    req.logdata = logdata;
-
-    logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- POD NAME: ${
-            process.env['POD_NAME']
-        } -- RECEIVED AT: ${new Date()} -- METHOD: ${method} -- URL: ${url}`
-    );
-    logger.info(
-        `INCOMING REQUEST ID: ${req.id} -- REQUEST BODY: ${
-            req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-        }`
-    );
-
     next();
 });
 
-app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    if (typeof req.body === 'string') {
-        req.body = JSON.parse(req.body);
-    }
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
-    );
-    if (req.get('host').includes('cluster.local')) {
-        return next();
-    }
-    // Add this to global object, and this can be used anywhere where you need backend host.
-
-    global.apiHost = 'https://' + req.hostname + '/api';
-
-    global.accountsHost = 'https://' + req.hostname + '/accounts';
-
-    global.homeHost = 'https://' + req.hostname;
-
-    global.dashboardHost = 'https://' + req.hostname + '/dashboard';
-
-    global.statusHost = global.homeHost;
-
-    if (
-        req.hostname.includes('localhost') ||
-        req.hostname.includes('127.0.0.1')
-    ) {
-        if (
-            req.get('host').includes('localhost:') ||
-            req.get('host').includes('127.0.0.1:')
-        ) {
-            global.apiHost =
-                'http://' +
-                req.hostname +
-                ':' +
-                (process.env['PORT'] || 3002) +
-                '/api';
-
-            global.accountsHost =
-                'http://' + req.hostname + ':' + 3003 + '/accounts';
-
-            global.homeHost = 'http://' + req.hostname + ':' + 1444;
-
-            global.dashboardHost =
-                'http://' + req.hostname + ':' + 3000 + '/dashboard';
-
-            global.statusHost = 'http://' + req.hostname + ':' + 3006;
-        } else {
-            global.apiHost = 'http://' + req.hostname + '/api';
-
-            global.accountsHost = 'http://' + req.hostname + '/accounts';
-
-            global.homeHost = 'http://' + req.hostname;
-
-            global.dashboardHost = 'http://' + req.hostname + '/dashboard';
-
-            global.statusHost = global.homeHost;
-        }
-    }
-
-    return next();
-});
-
-// Add limit of 10 MB to avoid "Request Entity too large error"
-// https://stackoverflow.com/questions/19917401/error-request-entity-too-large
-
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
-
-app.use(bodyParser.json({ limit: '10mb' }));
-
-const { RATE_LIMITTER_ENABLED } = process.env;
-if (RATE_LIMITTER_ENABLED === 'true') {
-    // import rateLimiter from './backend/middlewares/rateLimit'
-    // app.use(rateLimiter);
-}
 //View engine setup
-
 app.set('views', path.join(__dirname, 'views'));
-
 app.set('view engine', 'ejs');
 
 // enable trust proxy
@@ -193,292 +126,186 @@ app.use(ExpressStatic(path.join(__dirname, 'views')));
 
 app.use('/api', ExpressStatic(path.join(__dirname, 'views')));
 
-app.use(require('./backend/middlewares/auditLogs').log);
+app.use(AuditLogsMiddleware.log);
 
 // Routes(API)
 
 app.use(
     ['/incomingHttpRequest', '/api/incomingHttpRequest'],
-    require('./backend/api/incomingHttpRequest')
+    IncomingHTTPRequestAPI
 );
 
-app.use(['/alert', '/api/alert'], require('./backend/api/alert'));
+app.use(['/alert', '/api/alert'], AlertAPI);
 
-app.use(['/user', '/api/user'], require('./backend/api/user'));
+app.use(['/user', '/api/user'], UserAPI);
 
-app.use(['/history', '/api/history'], require('./backend/api/loginHistory'));
+app.use(['/history', '/api/history'], LoginHistoryAPI);
 
-app.use(['/token', '/api/token'], require('./backend/api/token'));
+app.use(['/token', '/api/token'], TokenAPI);
 
-app.use(['/team', '/api/team'], require('./backend/api/team'));
+app.use(['/team', '/api/team'], TeamAPI);
 
-app.use(['/project', '/api/project'], require('./backend/api/project'));
+app.use(['/project', '/api/project'], ProjectAPI);
 
-app.use(['/invoice', '/api/invoice'], require('./backend/api/invoice'));
+app.use(['/invoice', '/api/invoice'], InvoiceAPI);
 
-app.use(['/schedule', '/api/schedule'], require('./backend/api/schedule'));
+app.use(['/schedule', '/api/schedule'], ScheduleAPI);
 
-app.use(['/monitor', '/api/monitor'], require('./backend/api/monitor'));
+app.use(['/monitor', '/api/monitor'], MonitorAPI);
 
-app.use(
-    ['/status-page', '/api/status-page'],
-    require('./backend/api/statusPage')
-);
+app.use(['/status-page', '/api/status-page'], StatusPageAPI);
 
-app.use(['/file', '/api/file'], require('./backend/api/file'));
+app.use(['/file', '/api/file'], FileAPI);
 
-app.use(['/incident', '/api/incident'], require('./backend/api/incident'));
+app.use(['/incident', '/api/incident'], IncidentAPI);
 
 app.use(
     ['/incidentPriorities', '/api/incidentPriorities'],
-    require('./backend/api/incidentPriorities')
+    IncidentPriorityAPI
 );
 
-app.use(
-    ['/incidentSettings', '/api/incidentSettings'],
-    require('./backend/api/incidentSettings')
-);
+app.use(['/incidentSettings', '/api/incidentSettings'], IncidentSettingsAPI);
 
-app.use(['/reports', '/api/reports'], require('./backend/api/report'));
+app.use(['/reports', '/api/reports'], ReportAPI);
 
-app.use(['/lead', '/api/lead'], require('./backend/api/lead'));
+app.use(['/lead', '/api/lead'], LeadAPI);
 
-app.use(['/feedback', '/api/feedback'], require('./backend/api/feedback'));
+app.use(['/feedback', '/api/feedback'], FeedbackAPI);
 
-app.use(['/twilio', '/api/twilio'], require('./backend/api/twilio'));
+app.use(['/twilio', '/api/twilio'], TwilioAPI);
 
-app.use(['/sso', '/api/sso'], require('./backend/api/sso'));
+app.use(['/sso', '/api/sso'], SsoAPI);
 
-app.use(
-    ['/ssoDefaultRoles', '/api/ssoDefaultRoles'],
-    require('./backend/api/ssoDefaultRoles')
-);
+app.use(['/ssoDefaultRoles', '/api/ssoDefaultRoles'], SsoDefaultRoleAPI);
 
-app.use(['/zapier', '/api/zapier'], require('./backend/api/zapier'));
+app.use(['/zapier', '/api/zapier'], ZapierAPI);
 
-app.use(['/slack', '/api/slack'], require('./backend/api/slack'));
+app.use(['/slack', '/api/slack'], SlackAPI);
 
-app.use(['/webhook', '/api/webhook'], require('./backend/api/webHook'));
+app.use(['/webhook', '/api/webhook'], WebHookAPI);
 
-app.use(['/server', '/api/server'], require('./backend/api/server'));
+app.use(['/server', '/api/server'], ServerAPI);
 
-app.use(
-    ['/notification', '/api/notification'],
-    require('./backend/api/notification')
-);
+app.use(['/notification', '/api/notification'], NotificationAPI);
 
-app.use(['/stripe', '/api/stripe'], require('./backend/api/stripe'));
+app.use(['/stripe', '/api/stripe'], StripeAPI);
 
-app.use(
-    ['/subscriber', '/api/subscriber'],
-    require('./backend/api/subscriber')
-);
+app.use(['/subscriber', '/api/subscriber'], SubscriberAPI);
 
-app.use(
-    ['/subscriberAlert', '/api/subscriberAlert'],
-    require('./backend/api/subscriberAlert')
-);
+app.use(['/subscriberAlert', '/api/subscriberAlert'], SubscriberAlertAPI);
 
-app.use(
-    ['/emailTemplate', '/api/emailTemplate'],
-    require('./backend/api/emailTemplate')
-);
+app.use(['/emailTemplate', '/api/emailTemplate'], EmailTemplateAPI);
 
-app.use(['/emailSmtp', '/api/emailSmtp'], require('./backend/api/emailSmtp'));
+app.use(['/emailSmtp', '/api/emailSmtp'], EmailSmtpAPI);
 
-app.use(
-    ['/smsTemplate', '/api/smsTemplate'],
-    require('./backend/api/smsTemplate')
-);
+app.use(['/smsTemplate', '/api/smsTemplate'], SmsTemplateAPI);
 
-app.use(['/smsSmtp', '/api/smsSmtp'], require('./backend/api/smsSmtp'));
+app.use(['/smsSmtp', '/api/smsSmtp'], SmsSmtpAPI);
 
-app.use(
-    ['/resourceCategory', '/api/resourceCategory'],
-    require('./backend/api/resourceCategory')
-);
+app.use(['/resourceCategory', '/api/resourceCategory'], ResourceCategoryAPI);
 
 app.use(
     ['/statusPageCategory', '/api/statusPageCategory'],
-    require('./backend/api/statusPageCategory')
+    StatusPageCategoryAPI
 );
 
-app.use(
-    ['/monitorCriteria', '/api/monitorCriteria'],
-    require('./backend/api/monitorCriteria')
-);
+app.use(['/monitorCriteria', '/api/monitorCriteria'], MonitorCriteriaAPI);
 
-app.use(
-    ['/scheduledEvent', '/api/scheduledEvent'],
-    require('./backend/api/scheduledEvent')
-);
+app.use(['/scheduledEvent', '/api/scheduledEvent'], ScheduledEventAPI);
 
-app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
+app.use(['/probe', '/api/probe'], ProbeAPI);
 
-app.use(
-    ['/application', '/api/application'],
-    require('./backend/api/applicationScanner')
-);
+app.use(['/application', '/api/application'], ApplicationScannerAPI);
 
-app.use(
-    ['/container', '/api/container'],
-    require('./backend/api/containerScanner')
-);
+app.use(['/container', '/api/container'], ContainerScannerAPI);
 
-app.use(
-    ['/lighthouse', '/api/lighthouse'],
-    require('./backend/api/lighthouse')
-);
+app.use(['/lighthouse', '/api/lighthouse'], LighthouseAPI);
 
-app.use(['/version', '/api/version'], require('./backend/api/version'));
+app.use(['/tutorial', '/api/tutorial'], TutorialAPI);
 
-app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
+app.use(['/audit-logs', '/api/audit-logs'], AuditLogAPI);
 
-app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
+app.use(['/email-logs', '/api/email-logs'], EmailLogsAPI);
 
-app.use(['/email-logs', '/api/email-logs'], require('./backend/api/emailLogs'));
+app.use(['/call-logs', '/api/call-logs'], CallLogsAPI);
 
-app.use(['/call-logs', '/api/call-logs'], require('./backend/api/callLogs'));
+app.use(['/automated-scripts', '/api/automated-scripts'], AutomatedScriptAPI);
 
-app.use(
-    ['/automated-scripts', '/api/automated-scripts'],
-    require('./backend/api/automatedScript')
-);
+app.use(['/sms-logs', '/api/sms-logs'], SMSLogAPI);
 
-app.use(['/sms-logs', '/api/sms-logs'], require('./backend/api/smsLogs'));
+app.use(['/component', '/api/component'], ComponentAPI);
 
-app.use(['/component', '/api/component'], require('./backend/api/component'));
+app.use(['/application-log', '/api/application-log'], ApplicationLogAPI);
 
-app.use(
-    ['/application-log', '/api/application-log'],
-    require('./backend/api/applicationLog')
-);
-
-app.use(
-    ['/globalConfig', '/api/globalConfig'],
-    require('./backend/api/globalConfig')
-);
+app.use(['/globalConfig', '/api/globalConfig'], GlobalConfigAPI);
 
 app.use(
     ['/domainVerificationToken', '/api/domainVerificationToken'],
-    require('./backend/api/domainVerificationToken')
+    DomainVerificationTokenAPI
 );
 
-app.use(
-    ['/security', '/api/security'],
-    require('./backend/api/containerSecurity')
-);
+app.use(['/security', '/api/security'], ContainerSecurityAPI);
 
-app.use(
-    ['/security', '/api/security'],
-    require('./backend/api/applicationSecurity')
-);
+app.use(['/security', '/api/security'], ApplciationSecurityAPI);
 
-app.use(
-    ['/credential', '/api/credential'],
-    require('./backend/api/gitCredential')
-);
+app.use(['/credential', '/api/credential'], GitCredentialsAPI);
 
-app.use(
-    ['/credential', '/api/credential'],
-    require('./backend/api/dockerCredential')
-);
+app.use(['/credential', '/api/credential'], DockerCredentialsAPI);
 
-app.use(
-    ['/securityLog', '/api/securityLog'],
-    require('./backend/api/applicationSecurityLog')
-);
+app.use(['/securityLog', '/api/securityLog'], ApplicationSecurityLogAPI);
 
-app.use(
-    ['/securityLog', '/api/securityLog'],
-    require('./backend/api/containerSecurityLog')
-);
+app.use(['/securityLog', '/api/securityLog'], ContainerSecurityLogAPI);
 
-app.use(
-    ['/error-tracker', '/api/error-tracker'],
-    require('./backend/api/errorTracker')
-);
+app.use(['/error-tracker', '/api/error-tracker'], ErrorTrackerAPI);
 
-app.use(
-    ['/incidentSla', '/api/incidentSla'],
-    require('./backend/api/incidentCommunicationSla')
-);
+app.use(['/incidentSla', '/api/incidentSla'], IncidentCommunicationSlaAPI);
 
-app.use(
-    ['/monitorSla', '/api/monitorSla'],
-    require('./backend/api/monitorSla')
-);
+app.use(['/monitorSla', '/api/monitorSla'], MonitorSlaAPI);
 
-app.use(
-    ['/incoming-request', '/api/incoming-request'],
-    require('./backend/api/incomingRequest')
-);
+app.use(['/incoming-request', '/api/incoming-request'], IncomingRequestAPI);
 
-app.use(
-    ['/script-runner', '/api/script-runner'],
-    require('./backend/api/scriptRunner')
-);
+app.use(['/script-runner', '/api/script-runner'], ScriptRunnerAPI);
 
-app.use(
-    ['/customField', '/api/customField'],
-    require('./backend/api/customField')
-);
+app.use(['/customField', '/api/customField'], CustomFieldAPI);
 
-app.use(['/search', '/api/search'], require('./backend/api/search'));
+app.use(['/search', '/api/search'], SearchAPI);
 
 app.use(
     ['/monitorCustomField', '/api/monitorCustomField'],
-    require('./backend/api/monitorCustomField')
+    MonitorCustomFieldAPI
 );
 
-app.use(
-    ['/callRouting', '/api/callRouting'],
-    require('./backend/api/callRouting')
-);
+app.use(['/callRouting', '/api/callRouting'], CallRoutingAPI);
 
-app.use(['/group', '/api/group'], require('./backend/api/groups'));
+app.use(['/group', '/api/group'], GroupsAPI);
 
-app.use(['/ssl', '/api/ssl'], require('./backend/api/ssl'));
+app.use(['/ssl', '/api/ssl'], SslAPI);
 
-app.use(['/account', '/api/account'], require('./backend/api/accountStore'));
+app.use(['/account', '/api/account'], AccountStoreAPI);
 
-app.use(
-    ['/certificate', '/api/certificate'],
-    require('./backend/api/certificateStore')
-);
+app.use(['/certificate', '/api/certificate'], CertificateStoreAPI);
 
-app.use(['/manager', '/api/manager'], require('./backend/api/siteManager'));
+app.use(['/manager', '/api/manager'], SiteManagerAPI);
 
-app.use(['/manager', '/api/manager'], require('./backend/api/defaultManager'));
+app.use(['/manager', '/api/manager'], DefaultManagerAPI);
 
 app.use(
     ['/performanceTracker', '/api/performanceTracker'],
-    require('./backend/api/performanceTracker')
+    PerformanceTrackerAPI
 );
 
 app.use(
     ['/performanceMetric', '/api/performanceMetric'],
-    require('./backend/api/performanceTrackerMetric')
+    PerformanceTrackerMetricAPI
 );
 
 app.use(
     ['/incidentNoteTemplate', '/api/incidentNoteTemplate'],
-    require('./backend/api/incidentNoteTemplate')
+    IncidentNoteTemplateAPI
 );
 
-app.use(['/api'], require('./backend/api/apiStatus'));
-
-app.use('/*', (req: ExpressRequest, res: ExpressResponse) => {
-    res.status(404).send('Endpoint not found.');
-});
-
-//attach cron jobs
-require('./backend/workers/main');
-
-app.set('port', process.env['PORT'] || 3002);
-
-const server = http.listen(app.get('port'), function () {
-    logger.info('Server Started on port ' + app.get('port'));
+app.use('/*', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.status(404).send({ error: 'not-found' });
 });
 
 mongoose.connection.on('connected', async () => {
@@ -515,6 +342,3 @@ mongoose.connection.on('connected', async () => {
 });
 
 export default app;
-module.exports.close = function () {
-    server.close();
-};

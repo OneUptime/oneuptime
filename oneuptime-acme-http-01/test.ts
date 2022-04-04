@@ -3,7 +3,8 @@
 // See https://git.coolaj86.com/coolaj86/acme-challenge-test.js
 
 import tester from 'acme-challenge-test';
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Usage: node ./test.js example.com username xxxxxxxxx
 const record = process.argv[2] || process.env.RECORD;

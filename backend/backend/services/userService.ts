@@ -1,4 +1,5 @@
 import PositiveNumber from 'common/types/positive-number';
+import BadDataException from 'common/types/exception/BadDataException';
 export default {
     findBy: async function ({
         query,
@@ -597,11 +598,9 @@ export default {
                 const encryptedPassword = user.password;
 
                 if (user.disabled) {
-                    const error = new Error(
+                    const error = new BadDataException(
                         'Your account has been disabled. Kindly contact support@oneuptime.com'
                     );
-
-                    error.code = 400;
                     throw error;
                 }
                 if (
@@ -615,11 +614,9 @@ export default {
                     throw error;
                 }
                 if (!encryptedPassword) {
-                    const error = new Error(
+                    const error = new BadDataException(
                         'Your account does not exist. Please sign up.'
                     );
-
-                    error.code = 400;
                     throw error;
                 } else {
                     const res = await bcrypt.compare(
@@ -695,11 +692,9 @@ export default {
             } else {
                 // ensure user is not in admin mode
                 if (user.isAdminMode && user.cachedPassword) {
-                    const error = new Error(
+                    const error = new BadDataException(
                         'Your account is currently under maintenance. Please try again later'
                     );
-
-                    error.code = 400;
                     throw error;
                 }
                 const buf = await crypto.randomBytes(20);

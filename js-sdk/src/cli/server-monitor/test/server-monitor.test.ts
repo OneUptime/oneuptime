@@ -9,7 +9,7 @@ chai.use(chaihttp);
 const request = chai.request.agent(process.env.API_URL);
 
 import utils from './test-utils';
-const expect = require('chai').expect;
+import { expect } from 'chai';
 import serverMonitor from '../lib/api';
 
 const user = require('./test-utils').user;

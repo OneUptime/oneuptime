@@ -1,6 +1,6 @@
 process.env['PORT'] = 3020;
 process.env['NODE_ENV'] = 'development';
-const expect = require('chai').expect;
+import { expect } from 'chai';
 import userData from './data/user';
 import incidentData from './data/incident';
 import chai from 'chai';

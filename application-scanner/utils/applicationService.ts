@@ -14,12 +14,12 @@ const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 import { spawn } from 'child_process';
-const {
+import {
     updateApplicationSecurityToScanning,
     updateApplicationSecurityLogService,
     updateApplicationSecurityScanTime,
     updateApplicationSecurityToFailed,
-} = require('./applicationSecurityUpdate');
+} from './applicationSecurityUpdate';
 
 import { Client } from 'ssh2';
 export default {

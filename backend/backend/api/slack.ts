@@ -7,12 +7,12 @@ import request from 'request';
 import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-const {
+import {
     CLIENT_ID,
     CLIENT_SECRET,
     APP_ROUTE,
     API_ROUTE,
-} = require('../config/slack');
+} from '../config/slack';
 import {
     sendErrorResponse,
     sendListResponse,

@@ -48,7 +48,8 @@ const client = getMongoClient();
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /status-page/.env
-    require('dotenv').config();
+    import dotenv from 'dotenv';
+    dotenv.config();
 }
 
 app.use(cors());

@@ -1,8 +1,9 @@
-const expect = require('chai').expect;
+import { expect } from 'chai';
 import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 const requests: $TSFixMe = [];
 let app, request: $TSFixMe, sandbox: $TSFixMe;
 

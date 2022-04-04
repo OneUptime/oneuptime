@@ -3,6 +3,7 @@ import twilio from 'twilio';
 import SmsSmtpService from './smsSmtpService';
 import Handlebars from 'handlebars';
 import defaultSmsTemplates from '../config/smsTemplate';
+import BadDataException from 'common/types/exception/BadDataException';
 import GlobalConfigService from './globalConfigService';
 import UserService from './userService';
 import SmsCountService from './smsCountService';
@@ -158,11 +159,9 @@ const _this = {
                     );
                     return message;
                 } else {
-                    const error = new Error(
+                    const error = new BadDataException(
                         'Alerts limit reached for the day.'
                     );
-
-                    error.code = 400;
                     await SmsCountService.create(
                         userId,
                         number,
@@ -1450,11 +1449,9 @@ const _this = {
                         return call;
                     }
                 } else {
-                    const error = new Error(
+                    const error = new BadDataException(
                         'Alerts limit reached for the day.'
                     );
-
-                    error.code = 400;
                     await CallLogsService.create(
                         '+15005550006',
                         number,

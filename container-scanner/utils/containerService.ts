@@ -2,19 +2,19 @@ import crypto from 'crypto';
 import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-
+import BadDataException from 'common/types/exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';
 import fs from 'fs';
 import Path from 'path';
 import { promisify } from 'util';
 const unlink = promisify(fs.unlink);
 import { spawn } from 'child_process';
-const {
+import {
     updateContainerSecurityToScanning,
     updateContainerSecurityLogService,
     updateContainerSecurityScanTime,
     updateContainerSecurityToFailed,
-} = require('./containerSecurityUpdate');
+} from './containerSecurityUpdate';
 import flattenArray from '../utils/flattenArray';
 
 export default {
@@ -104,11 +104,9 @@ export default {
                     (typeof auditLogs === 'string' &&
                         !JSON.stringify(auditLogs).trim())
                 ) {
-                    const error = new Error(
+                    const error = new BadDataException(
                         'Scanning failed please check your docker credential or image path/tag'
                     );
-
-                    error.code = 400;
 
                     await Promise.all([
                         await updateContainerSecurityToFailed(

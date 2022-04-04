@@ -4,6 +4,7 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
+        "compile": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "ts-node --max-http-header-size=80000 index.ts",
         "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
@@ -18,9 +19,10 @@
     },
     "type": "module",
     "dependencies": {
+        "@types/node": "^17.0.23",
         "axios": "^0.26.1",
+        "common": "file:../common",
         "common-server": "file:../common-server",
-"common": "file:../common",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",
         "express": "^4.17.3",

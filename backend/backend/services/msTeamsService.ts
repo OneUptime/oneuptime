@@ -1,11 +1,11 @@
 import IntegrationService from './integrationService';
 import axios from 'axios';
 import ProjectService from './projectService';
-const {
+import {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
-} = require('../constants/incidentEvents');
+} from '../constants/incidentEvents';
 
 export default {
     // process messages to be sent to slack workspace channels

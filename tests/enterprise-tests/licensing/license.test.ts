@@ -1,10 +1,6 @@
 process.env['PORT'] = 3021;
-const expect = require('chai').expect;
-const {
-    validLicense,
-    invalidLicense,
-    expiredLicense,
-} = require('./data/license');
+import { expect } from 'chai';
+import { validLicense, invalidLicense, expiredLicense } from './data/license';
 import chai from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);

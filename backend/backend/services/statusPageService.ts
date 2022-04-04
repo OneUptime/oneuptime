@@ -1,9 +1,9 @@
 import PositiveNumber from 'common/types/positive-number';
 import ServiceBase from './base';
-const {
-    schema: StatusPageModel,
+import {
+    schema as StatusPageModel,
     requiredFields,
-} = require('../models/statusPage');
+} from '../models/statusPage';
 
 const publicListProps = {
     populate: [],

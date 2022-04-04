@@ -13,11 +13,7 @@ import si from 'systeminformation';
 
 import { get, post } from './helpers';
 import logger from './logger';
-const {
-    onlineTestData,
-    degradedTestData,
-    offlineTestData,
-} = require('./config');
+import { onlineTestData, degradedTestData, offlineTestData } from './config';
 
 /**
  * Get system information at interval and upload to server.

@@ -4,7 +4,7 @@ process.env['PORT'] = 3020;
 process.env.ADMIN_EMAIL = userData.adminUser.email.toLowerCase();
 process.env.ADMIN_PASSWORD = userData.adminUser.password;
 import chai from 'chai';
-const expect = require('chai').expect;
+import { expect } from 'chai';
 import app from '../server';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);

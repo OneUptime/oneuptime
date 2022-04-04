@@ -2,7 +2,7 @@ process.env['PORT'] = 3020;
 
 process.env['IS_SAAS_SERVICE'] = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
-const expect = require('chai').expect;
+import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
 import chaihttp from 'chai-http';
@@ -34,12 +34,12 @@ import ComponentModel from '../backend/models/component';
 import moment from 'moment';
 import SubscriberService from '../backend/services/subscriberService';
 import AlertVia from '../backend/config/alertType';
-const {
+import {
     markIncidentAsResolved,
     markIncidentAsAcknowledged,
     markSubprojectIncidentAsAcknowledged,
     markSubprojectIncidentAsResolved,
-} = require('./utils/test-utils');
+} from './utils/test-utils';
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
