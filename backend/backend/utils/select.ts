@@ -1,4 +1,5 @@
-export default (select: $TSFixMe, query: $TSFixMe) => {
+import Query from 'common-server/types/db/Query';
+export default (select: $TSFixMe, query: Query) => {
     /**
      * select is an array of column(s) to show
      *

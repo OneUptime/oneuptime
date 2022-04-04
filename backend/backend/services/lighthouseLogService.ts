@@ -32,7 +32,7 @@ export default {
         return savedLog;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -47,7 +47,7 @@ export default {
 
         return lighthouseLog;
     },
-    updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateManyBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -63,7 +63,7 @@ export default {
         return lighthouseLog;
     },
 
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -82,9 +82,9 @@ export default {
 
         let lighthouseLogsQuery = LighthouseLogModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         lighthouseLogsQuery = handleSelect(select, lighthouseLogsQuery);
         lighthouseLogsQuery = handlePopulate(populate, lighthouseLogsQuery);
@@ -94,12 +94,13 @@ export default {
         return lighthouseLogs;
     },
 
-    async findOneBy({ query, populate, select }: $TSFixMe) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         let lighthouseLogQuery = LighthouseLogModel.findOne(query)
+            .sort(sort)
             .lean()
             .populate('probeId');
 
@@ -185,7 +186,7 @@ export default {
         };
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -209,7 +210,7 @@ export default {
     async updateAllLighthouseLogs(
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
-        query: $TSFixMe
+        query: Query
     ) {
         await this.updateManyBy({ monitorId: monitorId }, query);
         const logs = await this.findLastestScan({
@@ -231,3 +232,6 @@ import RealTimeService from './realTimeService';
 import probeService from './probeService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

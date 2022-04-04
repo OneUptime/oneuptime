@@ -56,9 +56,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -69,14 +70,14 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let responseQuery = incidentSettingsModel
             .find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         responseQuery = handleSelect(select, responseQuery);
         responseQuery = handlePopulate(populate, responseQuery);
@@ -84,28 +85,31 @@ export default {
 
         return result;
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         return await incidentSettingsModel.countDocuments(query);
     },
-    findOne: async ({ query, select, populate }: $TSFixMe) => {
+    findOne: async ({ query, select, populate, sort }: FindOneBy) => {
         if (!query) query = {};
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let responseQuery = incidentSettingsModel.findOne(query).lean();
+        let responseQuery = incidentSettingsModel
+            .findOne(query)
+            .sort(sort)
+            .lean();
         responseQuery = handleSelect(select, responseQuery);
         responseQuery = handlePopulate(populate, responseQuery);
 
         const incidentSettings = await responseQuery;
         return incidentSettings;
     },
-    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: Query, data: $TSFixMe) {
         if (!query) query = {};
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (data.name && query.projectId && query._id) {
             const incidentSetting = await this.findOne({
@@ -155,12 +159,12 @@ export default {
         });
         return incidentSettings;
     },
-    updateBy: async (query: $TSFixMe, data: $TSFixMe) => {
+    updateBy: async (query: Query, data: $TSFixMe) => {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await incidentSettingsModel.updateMany(query, {
             $set: data,
         });
@@ -171,7 +175,7 @@ export default {
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const incidentSetting = await this.findOne({
             query,
             select: 'projectId title description incidentPriority isDefault name createdAt',
@@ -197,7 +201,7 @@ export default {
 
         return deletedIncidentSetting;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await incidentSettingsModel.deleteMany(query);
         return 'Incident setting(s) removed successfully!';
     },
@@ -206,3 +210,6 @@ export default {
 import incidentSettingsModel from 'common-server/models/incidentSettings';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

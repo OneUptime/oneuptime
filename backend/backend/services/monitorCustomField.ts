@@ -1,15 +1,20 @@
 import MonitorCustomFieldModel from 'common-server/models/monitorCustomField';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let customFieldQuery = MonitorCustomFieldModel.findOne(query).lean();
+        let customFieldQuery = MonitorCustomFieldModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         customFieldQuery = handleSelect(select, customFieldQuery);
         customFieldQuery = handlePopulate(populate, customFieldQuery);
@@ -36,12 +41,12 @@ export default {
         return customField;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let customField = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
@@ -75,9 +80,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -96,9 +102,9 @@ export default {
 
         query.deleted = false;
         let customFieldsQuery = MonitorCustomFieldModel.find(query)
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 })
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort)
             .lean();
 
         customFieldsQuery = handleSelect(select, customFieldsQuery);
@@ -109,7 +115,7 @@ export default {
         return customFields;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -118,7 +124,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const customField = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
             {
@@ -140,12 +146,12 @@ export default {
         return customField;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedCustomField = await MonitorCustomFieldModel.updateMany(
             query,
             {
@@ -165,7 +171,7 @@ export default {
         return updatedCustomField;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await MonitorCustomFieldModel.deleteMany(query);
         return 'Monitor Custom field(s) removed successfully!';
     },

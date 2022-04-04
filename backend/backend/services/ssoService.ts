@@ -3,20 +3,11 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+        select,
+        sort,
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
 
         let ssosQuery = SsoModel.find(query, {
             _id: 1,
@@ -24,9 +15,9 @@ export default {
             createdAt: 1,
         })
             .lean()
-            .sort([['createdAt', -1]])
-            .skip(skip)
-            .limit(limit);
+            .sort(sort)
+            .skip(skip.toNumber())
+            .limit(limit.toNumber());
 
         ssosQuery = handleSelect(select, ssosQuery);
         ssosQuery = handlePopulate(populate, ssosQuery);
@@ -35,7 +26,7 @@ export default {
         return ssos;
     },
 
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -122,7 +113,7 @@ export default {
         return savedSso;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -130,7 +121,7 @@ export default {
         if (!query.deleted) {
             query.deleted = false;
         }
-        let ssoQuery = SsoModel.findOne(query).lean();
+        let ssoQuery = SsoModel.findOne(query).sort(sort).lean();
 
         ssoQuery = handleSelect(select, ssoQuery);
         ssoQuery = handlePopulate(populate, ssoQuery);
@@ -140,7 +131,7 @@ export default {
         return sso;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -176,18 +167,18 @@ export default {
         return sso;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const count = await SsoModel.countDocuments(query);
         return count;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await SsoModel.deleteMany(query);
         return 'SSO(s) removed successfully!';
     },
@@ -208,4 +199,7 @@ export default {
 import SsoModel from 'common-server/models/sso';
 import SsoDefaultRolesService from './ssoDefaultRolesService';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';

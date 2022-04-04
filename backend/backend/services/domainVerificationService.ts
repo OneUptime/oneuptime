@@ -9,6 +9,9 @@ import ProjectService from '../services/projectService';
 const dnsPromises = dns.promises;
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import errorService from 'common-server/utils/error';
 
 export default {
@@ -42,7 +45,7 @@ export default {
 
         return await DomainVerificationTokenModel.create(creationData);
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -53,7 +56,9 @@ export default {
             query.domain = parsed.domain;
         }
 
-        let domainQuery = DomainVerificationTokenModel.findOne(query).lean();
+        let domainQuery = DomainVerificationTokenModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         domainQuery = handleSelect(select, domainQuery);
         domainQuery = handlePopulate(populate, domainQuery);
@@ -67,7 +72,8 @@ export default {
         skip,
         populate,
         select,
-    }: $TSFixMe) {
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -104,16 +110,16 @@ export default {
 
         let domainsQuery = DomainVerificationTokenModel.find(query)
             .lean()
-            .sort({ createdAt: -1 })
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         domainsQuery = handleSelect(select, domainsQuery);
         domainsQuery = handlePopulate(populate, domainsQuery);
 
         const domains = await domainsQuery;
         return domains;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (query && query.domain) {
             const parsed = psl.parse(query.domain);
             query.domain = parsed.domain;
@@ -122,7 +128,7 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const updatedDomain =
             await DomainVerificationTokenModel.findOneAndUpdate(query, data, {
@@ -261,11 +267,11 @@ export default {
 
         return false;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await DomainVerificationTokenModel.deleteMany(query);
         return 'Domain verification token(s) Removed Successfully!';
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const domainCount = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
@@ -333,12 +339,12 @@ export default {
         return projectId;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // fetch subproject
         if (query.projectId) {

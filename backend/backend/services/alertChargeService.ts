@@ -36,7 +36,7 @@ export default {
         sort,
         populate,
         select,
-    }: $TSFixMe) {
+    }: FindBy) {
         if (!sort) sort = -1;
 
         if (typeof skip === 'string') {
@@ -74,7 +74,7 @@ export default {
 
         return alertCharges;
     },
-    countBy: async (query: $TSFixMe) => {
+    countBy: async (query: Query) => {
         if (!query) {
             query = {};
         }
@@ -85,11 +85,13 @@ export default {
      * deletes documents in alert charges based on the query condition
      * @param {Object} query
      */
-    hardDeleteBy: async (query: $TSFixMe) => {
+    hardDeleteBy: async (query: Query) => {
         await AlertChargeModel.deleteMany(query);
     },
 };
 
 import AlertChargeModel from 'common-server/models/alertCharge';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';

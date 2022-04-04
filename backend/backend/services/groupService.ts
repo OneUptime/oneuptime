@@ -1,12 +1,8 @@
 import GroupModel from 'common-server/models/groups';
-import PositiveNumber from 'common/types/positive-number';
-
+import Query from 'common-server/types/db/Query';
+import FindBy from 'common-server/types/db/FindBy';
 export default {
-    findBy: async function (
-        query: $TSFixMe,
-        limit: PositiveNumber,
-        skip: PositiveNumber
-    ) {
+    findBy: async function ({ query, limit, skip, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -17,12 +13,12 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const response = {};
         const [groups, count] = await Promise.all([
             GroupModel.find(query)
                 .lean()
-                .sort([['createdAt', -1]])
+                .sort(sort)
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId', 'name')
@@ -43,12 +39,12 @@ export default {
         return response;
     },
 
-    findOneBy: async function (query: $TSFixMe) {
+    findOneBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const group = await GroupModel.findOne(query)
             .populate('projectId', 'name')
             .populate({
@@ -83,7 +79,7 @@ export default {
         return group;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -93,7 +89,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const group = await GroupModel.findOneAndUpdate(
             query,
             {
@@ -111,7 +107,7 @@ export default {
     },
 
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         projectId: $TSFixMe
     ) {
@@ -119,7 +115,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const groupExist = await this.findOneBy({
             name: data.name,

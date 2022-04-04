@@ -26,7 +26,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
     resourceCategoryId: $TSFixMe,

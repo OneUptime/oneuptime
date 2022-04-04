@@ -1,5 +1,5 @@
 import BackendAPI from '../utils/api';
-
+import Query from 'common-server/types/db/Query';
 import { scriptBaseUrl } from '../utils/config';
 
 const scriptLogCollection = global.db.collection('automationsriptlogs');
@@ -46,7 +46,7 @@ export default {
         return newScriptLog;
     },
 
-    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -58,7 +58,7 @@ export default {
         return response;
     },
 
-    findOneBy: async function (query: $TSFixMe) {
+    findOneBy: async function (query: Query) {
         if (!query) {
             query = {};
         }

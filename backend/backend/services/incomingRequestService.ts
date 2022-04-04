@@ -18,16 +18,21 @@ import joinNames from '../utils/joinNames';
 import vm from 'vm';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 // import RealTimeService from './realTimeService'
 
 export default {
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let incomingRequestQuery = IncomingRequestModel.findOne(query).lean();
+        let incomingRequestQuery = IncomingRequestModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         incomingRequestQuery = handleSelect(select, incomingRequestQuery);
         incomingRequestQuery = handlePopulate(populate, incomingRequestQuery);
@@ -156,7 +161,7 @@ export default {
     },
 
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         excludeMonitors: $TSFixMe
     ) {
@@ -166,7 +171,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (!excludeMonitors && data.createIncident) {
             if (
@@ -358,7 +363,7 @@ export default {
         return updatedIncomingRequest;
     },
 
-    updateCustomFieldBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateCustomFieldBy: async function (query: Query, data: $TSFixMe) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -371,9 +376,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -392,9 +398,9 @@ export default {
 
         query.deleted = false;
         let allIncomingRequest = IncomingRequestModel.find(query)
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 })
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort)
             .lean();
 
         allIncomingRequest = handleSelect(select, allIncomingRequest);
@@ -404,7 +410,7 @@ export default {
         return result;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -413,7 +419,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             {
@@ -439,12 +445,12 @@ export default {
         return incomingRequest;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updateIncomingRequest = await IncomingRequestModel.updateMany(
             query,
             {
@@ -471,7 +477,7 @@ export default {
         return updateIncomingRequest;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await IncomingRequestModel.deleteMany(query);
         return 'Incoming request(s) removed successfully!';
     },

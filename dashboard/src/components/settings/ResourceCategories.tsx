@@ -99,7 +99,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
         this.setState({ page: this.state.page + 1 });
     };
 
-    handleCreateResourceCategory = (userId: $TSFixMe) => {
+    handleCreateResourceCategory = (userId: string) => {
 
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
@@ -113,7 +113,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
             });
     };
 
-    handleEdit = (userId: $TSFixMe, _id: $TSFixMe) => {
+    handleEdit = (userId: string, _id: $TSFixMe) => {
 
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)
@@ -129,7 +129,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
             });
     };
 
-    handleDelete = (userId: $TSFixMe, _id: $TSFixMe) => {
+    handleDelete = (userId: string, _id: $TSFixMe) => {
 
         const { openModal, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject)

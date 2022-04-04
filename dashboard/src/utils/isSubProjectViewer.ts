@@ -4,7 +4,7 @@
  * @param {object} subProject the subProject
  */
 
-const isSubProjectViewer = (userId: $TSFixMe, subProject: $TSFixMe) => {
+const isSubProjectViewer = (userId: string, subProject: $TSFixMe) => {
     const user = subProject
         ? subProject.users.find(
               (user: $TSFixMe) =>

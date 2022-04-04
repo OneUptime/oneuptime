@@ -23,7 +23,7 @@ export const addCardSuccess = (card: $TSFixMe) => {
     };
 };
 
-export const addCard = (userId: $TSFixMe, token: $TSFixMe) => {
+export const addCard = (userId: string, token: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`stripe/${userId}/creditCard/${token}`);
 
@@ -61,7 +61,7 @@ export const fetchCardsSuccess = (cards: $TSFixMe) => {
     };
 };
 
-export const fetchCards = (userId: $TSFixMe) => {
+export const fetchCards = (userId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`stripe/${userId}/creditCard`);
 
@@ -100,7 +100,7 @@ export const deleteCardSuccess = (card: $TSFixMe) => {
     };
 };
 
-export const deleteCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
+export const deleteCard = (userId: string, cardId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete `stripe/${userId}/creditCard/${cardId}`;
 
@@ -142,7 +142,7 @@ export const setDefaultCardSuccess = (card: $TSFixMe) => {
     };
 };
 
-export const setDefaultCard = (userId: $TSFixMe, cardId: $TSFixMe) => {
+export const setDefaultCard = (userId: string, cardId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`stripe/${userId}/creditCard/${cardId}`);
 

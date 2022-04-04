@@ -97,7 +97,7 @@ export default {
         sort,
         populate,
         select,
-    }: $TSFixMe) {
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -116,12 +116,12 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let alertsQuery = AlertModel.find(query)
             .lean()
             .sort(sort)
-            .limit(limit)
-            .skip(skip);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         alertsQuery = handleSelect(select, alertsQuery);
         alertsQuery = handlePopulate(populate, alertsQuery);
@@ -317,22 +317,22 @@ export default {
         RealTimeService.sendIncidentTimeline(result);
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await AlertModel.countDocuments(query);
         return count;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const updatedAlert = await AlertModel.findOneAndUpdate(
             query,
             {
@@ -345,12 +345,12 @@ export default {
         return updatedAlert;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await AlertModel.updateMany(query, {
             $set: data,
         });
@@ -371,7 +371,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -3887,12 +3887,12 @@ export default {
         return subProjectAlerts;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await AlertModel.deleteMany(query);
         return 'Alert(s) removed successfully';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         let alert = await _this.findBy({ query, select: '_id' });
@@ -5526,3 +5526,5 @@ import Services from '../utils/services';
 import RealTimeService from './realTimeService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

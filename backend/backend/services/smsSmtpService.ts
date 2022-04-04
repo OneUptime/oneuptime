@@ -29,12 +29,12 @@ export default {
         return twilioSettings;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (data.authToken) {
             const iv = Crypto.randomBytes(16);
@@ -65,12 +65,12 @@ export default {
         return updatedTwilioSettings;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await TwilioModel.updateMany(query, {
             $set: data,
         });
@@ -81,7 +81,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const deletedData = await TwilioModel.findOneAndUpdate(
             query,
             {
@@ -107,34 +107,19 @@ export default {
 
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
+        select,
+        sort,
+    }: FindBy) {
         query.deleted = false;
 
         let twilioSettingQuery = TwilioModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         twilioSettingQuery = handleSelect(select, twilioSettingQuery);
         twilioSettingQuery = handlePopulate(populate, twilioSettingQuery);
@@ -153,16 +138,14 @@ export default {
         return twilioSettings;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
 
-        let twilioQuery = TwilioModel.findOne(query)
-            .sort([['createdAt', -1]])
-            .lean();
+        let twilioQuery = TwilioModel.findOne(query).sort(sort).lean();
         twilioQuery = handleSelect(select, twilioQuery);
         twilioQuery = handlePopulate(populate, twilioQuery);
 
@@ -179,7 +162,7 @@ export default {
         return twilio;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -189,7 +172,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await TwilioModel.deleteMany(query);
         return 'SMS Smtp(s) removed successfully';
     },
@@ -200,3 +183,6 @@ import TwilioModel from 'common-server/models/twilio';
 import EncryptDecrypt from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

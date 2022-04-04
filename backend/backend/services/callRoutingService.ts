@@ -1,28 +1,19 @@
 export default {
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+        select,
+        sort,
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
 
         let callRoutingQuery = CallRoutingModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         callRoutingQuery = handleSelect(select, callRoutingQuery);
         callRoutingQuery = handlePopulate(populate, callRoutingQuery);
 
@@ -59,17 +50,17 @@ export default {
         return numbers;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await CallRoutingModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -97,15 +88,15 @@ export default {
         return numbers;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let callRoutingQuery = CallRoutingModel.findOne(query)
             .lean()
-            .sort([['createdAt', -1]]);
+            .sort(sort);
         callRoutingQuery = handleSelect(select, callRoutingQuery);
         callRoutingQuery = handlePopulate(populate, callRoutingQuery);
 
@@ -113,12 +104,12 @@ export default {
         return callRouting;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const updatedCallRouting = await CallRoutingModel.findOneAndUpdate(
             query,
@@ -132,12 +123,12 @@ export default {
         return updatedCallRouting;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await CallRoutingModel.updateMany(query, {
             $set: data,
         });
@@ -740,7 +731,7 @@ export default {
         return logs;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await CallRoutingModel.deleteMany(query);
         return 'Call routing Number(s) Removed Successfully!';
     },
@@ -761,3 +752,6 @@ import ProjectService from './projectService';
 import FileService from './fileService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

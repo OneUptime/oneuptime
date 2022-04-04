@@ -23,7 +23,7 @@ export default {
         return resourceCategory;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {
@@ -86,9 +86,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -108,9 +109,9 @@ export default {
         query.deleted = false;
         let resourceCategoriesQuery = ResourceCategoryModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 });
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort);
 
         resourceCategoriesQuery = handleSelect(select, resourceCategoriesQuery);
         resourceCategoriesQuery = handlePopulate(
@@ -130,7 +131,7 @@ export default {
         return resourceCategories;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         const existingResourceCategory = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -147,7 +148,7 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {
@@ -160,12 +161,12 @@ export default {
         return resourceCategory;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await ResourceCategoryModel.updateMany(query, {
             $set: data,
         });
@@ -174,7 +175,7 @@ export default {
         return updatedData;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -183,7 +184,7 @@ export default {
         const count = await ResourceCategoryModel.countDocuments(query);
         return count;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await ResourceCategoryModel.deleteMany(query);
         return 'Resource Categories(s) removed successfully!';
     },
@@ -197,3 +198,5 @@ import ApplicationSecurityModel from 'common-server/models/applicationSecurity';
 import ContainerSecurityModel from 'common-server/models/containerSecurity';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

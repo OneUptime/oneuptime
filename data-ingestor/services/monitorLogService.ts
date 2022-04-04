@@ -2,7 +2,7 @@ import MonitorLogByHourService from '../services/monitorLogByHourService';
 import MonitorLogByDayService from '../services/monitorLogByDayService';
 import MonitorLogByWeekService from '../services/monitorLogByWeekService';
 import MonitorService from '../services/monitorService';
-
+import Query from 'common-server/types/db/Query';
 import moment from 'moment';
 
 const monitorLogCollection = global.db.collection('monitorlogs');
@@ -216,7 +216,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -229,7 +229,7 @@ export default {
         return monitorLog;
     },
 
-    async findOneBy(query: $TSFixMe) {
+    async findOneBy(query: Query) {
         if (!query) {
             query = {};
         }

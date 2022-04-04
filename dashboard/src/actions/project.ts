@@ -270,7 +270,7 @@ export const createProject = (values: $TSFixMe) => {
 };
 
 export function switchToProjectViewerNav(
-    userId: $TSFixMe,
+    userId: string,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ) {
@@ -708,7 +708,7 @@ export const exitProjectRequest = () => {
     };
 };
 
-export const exitProjectSuccess = (userId: $TSFixMe) => {
+export const exitProjectSuccess = (userId: string) => {
     return {
         type: types.EXIT_PROJECT_SUCCESS,
         payload: userId,
@@ -722,7 +722,7 @@ export const exitProjectError = (error: ErrorPayload) => {
     };
 };
 
-export const exitProject = (projectId: $TSFixMe, userId: $TSFixMe) => {
+export const exitProject = (projectId: $TSFixMe, userId: string) => {
     return function (dispatch: Dispatch) {
         const promise =
             delete (`project/${projectId}/user/${userId}/exitProject`, null);

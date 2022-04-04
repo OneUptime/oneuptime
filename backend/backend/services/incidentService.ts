@@ -28,6 +28,9 @@ import { isEmpty } from 'lodash';
 import joinNames from '../utils/joinNames';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import getSlug from '../utils/getSlug';
 
 export default {
@@ -37,26 +40,15 @@ export default {
         skip,
         populate,
         select,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) {
-            query = {};
-        }
-
-        if (!query.deleted) query.deleted = false;
+        sort,
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
 
         let incidentQuery = IncidentModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: 'desc' });
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort);
 
         incidentQuery = handleSelect(select, incidentQuery);
         incidentQuery = handlePopulate(populate, incidentQuery);
@@ -395,17 +387,17 @@ export default {
         }
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await IncidentModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -470,14 +462,14 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
 
-        let incidentQuery = IncidentModel.findOne(query).lean();
+        let incidentQuery = IncidentModel.findOne(query).sort(sort).lean();
 
         incidentQuery = handleSelect(select, incidentQuery);
         incidentQuery = handlePopulate(populate, incidentQuery);
@@ -486,12 +478,12 @@ export default {
         return incident;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const _this = this;
         const oldIncident = await _this.findOneBy({
             query: { _id: query._id, deleted: { $ne: null } },
@@ -559,12 +551,12 @@ export default {
         return updatedIncident;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await IncidentModel.updateMany(query, {
             $set: data,
         });
@@ -693,7 +685,7 @@ export default {
      */
     acknowledge: async function (
         incidentId: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         name: $TSFixMe,
         probeId: $TSFixMe,
         zapier: $TSFixMe,
@@ -878,7 +870,7 @@ export default {
     // Returns: promise with incident or error.
     resolve: async function (
         incidentId: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         name: $TSFixMe,
         probeId: $TSFixMe,
         zapier: $TSFixMe,
@@ -1001,7 +993,7 @@ export default {
     },
 
     //
-    close: async function (incidentId: $TSFixMe, userId: $TSFixMe) {
+    close: async function (incidentId: $TSFixMe, userId: string) {
         const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
@@ -1011,7 +1003,7 @@ export default {
 
     getUnresolvedIncidents: async function (
         subProjectIds: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         isHome = false
     ) {
         const _this = this;
@@ -1332,12 +1324,12 @@ export default {
         ZapierService.pushToZapier('incident_note', incident, data);
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await IncidentModel.deleteMany(query);
         return 'Incident(s) removed successfully!';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy({ query, select: '_id' });
@@ -1384,7 +1376,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function (monitorId: $TSFixMe, userId: $TSFixMe) {
+    removeMonitor: async function (monitorId: $TSFixMe, userId: string) {
         const _this = this;
         const incidents = await this.findBy({
             query: { 'monitors.monitorId': monitorId },

@@ -58,7 +58,7 @@ export const notificationClosedSuccess = (notificationId: $TSFixMe) => {
     };
 };
 
-export const allNotificationReadSuccess = (userId: $TSFixMe) => {
+export const allNotificationReadSuccess = (userId: string) => {
     return {
         type: types.ALL_NOTIFICATION_READ_SUCCESS,
         payload: userId,

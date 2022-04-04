@@ -23,12 +23,12 @@ export default {
         return await SmsTemplateModel.insertMany(allData);
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const updatedSmsTemplate = await SmsTemplateModel.findOneAndUpdate(
             query,
             {
@@ -41,12 +41,12 @@ export default {
         return updatedSmsTemplate;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await SmsTemplateModel.updateMany(query, {
             $set: data,
         });
@@ -56,7 +56,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const smsTemplate = await SmsTemplateModel.findOneAndUpdate(
             query,
             {
@@ -75,34 +75,19 @@ export default {
 
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
+        select,
+        sort,
+    }: FindBy) {
         query.deleted = false;
 
         let smsTemplateQuery = SmsTemplateModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         smsTemplateQuery = handleSelect(select, smsTemplateQuery);
         smsTemplateQuery = handlePopulate(populate, smsTemplateQuery);
@@ -111,7 +96,7 @@ export default {
         return smsTemplates;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -120,7 +105,7 @@ export default {
 
         let smsTemplateQuery = SmsTemplateModel.findOne(query)
             .lean()
-            .sort([['createdAt', -1]]);
+            .sort(sort);
 
         smsTemplateQuery = handleSelect(select, smsTemplateQuery);
         smsTemplateQuery = handlePopulate(populate, smsTemplateQuery);
@@ -129,7 +114,7 @@ export default {
         return smsTemplate;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -183,7 +168,7 @@ export default {
         return resetTemplate;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await SmsTemplateModel.deleteMany(query);
         return 'SMS Template(s) removed successfully';
     },
@@ -194,3 +179,6 @@ import smsTemplateVariables from '../config/smsTemplateVariables';
 import defaultSmsTemplate from '../config/smsTemplate';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

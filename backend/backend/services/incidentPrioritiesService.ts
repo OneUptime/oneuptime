@@ -5,17 +5,19 @@ export default {
         skip,
         populate,
         select,
-    }: $TSFixMe) {
+        sort,
+    }: FindBy) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         if (!query) query = {};
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let incidentPrioritiesQuery = incidentPriorityModel
             .find(query)
+            .sort(sort)
             .lean()
-            .limit(limit)
-            .skip(skip);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         incidentPrioritiesQuery = handleSelect(select, incidentPrioritiesQuery);
 
@@ -28,13 +30,14 @@ export default {
 
         return incidentPriorities;
     },
-    findOne: async function ({ query, select, populate }: $TSFixMe) {
+    findOne: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         let incidentPrioritiesQuery = incidentPriorityModel
             .findOne(query)
+            .sort(sort)
             .lean();
 
         incidentPrioritiesQuery = handleSelect(select, incidentPrioritiesQuery);
@@ -48,11 +51,11 @@ export default {
 
         return incidentPriorities;
     },
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const count = await incidentPriorityModel.countDocuments(query);
 
@@ -70,11 +73,11 @@ export default {
         await incidentPriority.save();
         return incidentPriority;
     },
-    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const updatedIncidentPriority =
             await incidentPriorityModel.findOneAndUpdate(
                 query,
@@ -85,7 +88,7 @@ export default {
             );
         return updatedIncidentPriority;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -121,7 +124,7 @@ export default {
         ]);
         return incidentPriority;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await incidentPriorityModel.deleteMany(query);
         return 'Incident priorities removed successfully!';
     },
@@ -132,3 +135,6 @@ import IncidentService from './incidentService';
 import incidentPriorityModel from 'common-server/models/incidentPriority';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

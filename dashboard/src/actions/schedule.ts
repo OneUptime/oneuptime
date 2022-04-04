@@ -618,7 +618,7 @@ export const userScheduleError = (error: ErrorPayload) => {
     };
 };
 
-export const fetchUserSchedule = (projectId: $TSFixMe, userId: $TSFixMe) => {
+export const fetchUserSchedule = (projectId: $TSFixMe, userId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
             `schedule/${projectId}/${userId}/getescalations`

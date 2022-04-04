@@ -4,6 +4,9 @@ import DateTime from '../utils/DateTime';
 import ScheduleService from './scheduleService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     findBy: async function ({
@@ -13,7 +16,7 @@ export default {
         sort,
         select,
         populate,
-    }: $TSFixMe) {
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -24,12 +27,12 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let escalationsQuery = EscalationModel.find(query)
             .lean()
             .sort(sort)
-            .limit(limit)
-            .skip(skip);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         escalationsQuery = handleSelect(select, escalationsQuery);
         escalationsQuery = handlePopulate(populate, escalationsQuery);
@@ -38,13 +41,13 @@ export default {
         return escalations;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let escalationQuery = EscalationModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let escalationQuery = EscalationModel.findOne(query).sort(sort).lean();
 
         escalationQuery = handleSelect(select, escalationQuery);
         escalationQuery = handlePopulate(populate, escalationQuery);
@@ -83,7 +86,7 @@ export default {
         return escalation;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -93,7 +96,7 @@ export default {
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -110,12 +113,12 @@ export default {
         return escalation;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -128,12 +131,12 @@ export default {
         return escalation;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await EscalationModel.updateMany(query, {
             $set: data,
         });
@@ -244,12 +247,12 @@ export default {
         }
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await EscalationModel.deleteMany(query);
         return 'Escalation(s) removed successfully';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         let escalation = await _this.findBy({ query, select: '_id' });

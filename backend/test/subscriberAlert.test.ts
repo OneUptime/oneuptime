@@ -25,7 +25,7 @@ import EmailSmtpService from '../backend/services/emailSmtpService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,

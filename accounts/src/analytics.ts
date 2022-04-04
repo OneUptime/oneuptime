@@ -1,9 +1,9 @@
 /* eslint-disable */
 
-export const setUserId = (userId: $TSFixMe) => {
+export const setUserId = (userId: string) => {
     
 };
-export const identify = (userId: $TSFixMe) => {
+export const identify = (userId: string) => {
     
 };
 export const setUserProperties = (properties: $TSFixMe) => {

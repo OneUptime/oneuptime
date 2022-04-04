@@ -1,6 +1,7 @@
 import LeadsModel from 'common-server/models/lead';
 import MailService from './mailService';
 import AirtableService from './airtableService';
+import Query from 'common-server/types/db/Query';
 
 export default {
     //Description: Create new project for user.
@@ -67,7 +68,7 @@ export default {
         return lead;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await LeadsModel.deleteMany(query);
         return 'Lead(s) Removed Successfully!';
     },

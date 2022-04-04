@@ -1,18 +1,20 @@
 import ApiStatusModel from 'common-server/models/apiStatus';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
         const apiStatus = await ApiStatusModel.create(data);
         return apiStatus;
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let apiStatusQuery = ApiStatusModel.findOne(query).lean();
+        let apiStatusQuery = ApiStatusModel.findOne(query).sort(sort).lean();
 
         apiStatusQuery = handleSelect(select, apiStatusQuery);
         apiStatusQuery = handlePopulate(populate, apiStatusQuery);
@@ -20,11 +22,11 @@ export default {
         const apiStatus = await apiStatusQuery;
         return apiStatus;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let apiStatus = await ApiStatusModel.findOneAndUpdate(
             query,
@@ -41,7 +43,7 @@ export default {
 
         return apiStatus;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const apiStatus = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),

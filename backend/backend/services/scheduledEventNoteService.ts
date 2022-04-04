@@ -3,6 +3,9 @@ import ErrorService from 'common-server/utils/error';
 import RealTimeService from './realTimeService';
 import AlertService from './alertService';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';
 
 export default {
@@ -61,7 +64,7 @@ export default {
         return scheduledEventMessage;
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         projectId: $TSFixMe
     ) {
@@ -69,7 +72,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         /** This deletes the scheduled notes*/
         let eventMessage = await ScheduledEventNoteModel.findOneAndUpdate(
             query,
@@ -116,12 +119,14 @@ export default {
 
         return eventMessage;
     },
-    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let eventMessageQuery = ScheduledEventNoteModel.findOne(query).lean();
+        let eventMessageQuery = ScheduledEventNoteModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         eventMessageQuery = handleSelect(select, eventMessageQuery);
         eventMessageQuery = handlePopulate(populate, eventMessageQuery);
@@ -134,7 +139,8 @@ export default {
         skip,
         populate,
         select,
-    }: $TSFixMe) {
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -151,9 +157,9 @@ export default {
 
         let eventMessageQuery = ScheduledEventNoteModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 });
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort);
 
         eventMessageQuery = handleSelect(select, eventMessageQuery);
         eventMessageQuery = handlePopulate(populate, eventMessageQuery);
@@ -161,7 +167,7 @@ export default {
         const eventMessage = await eventMessageQuery;
         return eventMessage;
     },
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -169,8 +175,8 @@ export default {
         return count;
     },
     deleteBy: async function (
-        query: $TSFixMe,
-        userId: $TSFixMe,
+        query: Query,
+        userId: string,
         projectId: $TSFixMe
     ) {
         const data = {
@@ -202,7 +208,7 @@ export default {
 
         return deletedEventMessage;
     },
-    hardDelete: async function (query: $TSFixMe) {
+    hardDelete: async function (query: Query) {
         await ScheduledEventNoteModel.deleteMany(query);
         return 'Scheduled Event Note(s) removed successfully!';
     },

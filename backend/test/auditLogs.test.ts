@@ -17,7 +17,7 @@ import ProjectService from '../backend/services/projectService';
 import AirtableService from '../backend/services/airtableService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
+let token: $TSFixMe, projectId: $TSFixMe, userId: string;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
 describe('Audit Logs API', function () {

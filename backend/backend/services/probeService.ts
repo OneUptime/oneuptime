@@ -14,6 +14,8 @@ import vm from 'vm';
 import AutomatedScriptService from './automatedScriptService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
 
 export default {
     create: async function (data) {
@@ -68,7 +70,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await ProbeModel.updateMany(query, {
             $set: data,
         });
@@ -80,7 +82,14 @@ export default {
         return updatedData;
     },
 
-    findBy: async function ({ query, limit, skip, populate, select }) {
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        populate,
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -100,9 +109,9 @@ export default {
         query.deleted = false;
         let probeQuery = ProbeModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         probeQuery = handleSelect(select, probeQuery);
         probeQuery = handlePopulate(populate, probeQuery);
@@ -112,13 +121,13 @@ export default {
         return probe;
     },
 
-    findOneBy: async function ({ query, populate, select }) {
+    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let probeQuery = ProbeModel.findOne(query).lean();
+        let probeQuery = ProbeModel.findOne(query).sort(sort).lean();
 
         probeQuery = handleSelect(select, probeQuery);
         probeQuery = handlePopulate(populate, probeQuery);

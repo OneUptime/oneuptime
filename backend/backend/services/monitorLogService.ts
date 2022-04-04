@@ -6,6 +6,9 @@ import MonitorService from '../services/monitorService';
 import RealTimeService from './realTimeService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import moment from 'moment';
 
 export default {
@@ -217,7 +220,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -233,7 +236,7 @@ export default {
         return monitorLog;
     },
 
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -252,9 +255,9 @@ export default {
 
         let monitorLogsQuery = MonitorLogModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         monitorLogsQuery = handleSelect(select, monitorLogsQuery);
         monitorLogsQuery = handlePopulate(populate, monitorLogsQuery);
 
@@ -262,12 +265,12 @@ export default {
         return monitorLogs;
     },
 
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogModel.findOne(query).lean();
+        let monitorLogQuery = MonitorLogModel.findOne(query).sort(sort).lean();
         monitorLogQuery = handleSelect(select, monitorLogQuery);
         monitorLogQuery = handlePopulate(populate, monitorLogQuery);
 
@@ -275,7 +278,7 @@ export default {
         return monitorLog;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }

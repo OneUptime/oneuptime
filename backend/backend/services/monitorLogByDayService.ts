@@ -55,7 +55,7 @@ export default {
         return savedLogDay;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -92,9 +92,8 @@ export default {
 
         let monitorLogsByDayQuery = MonitorLogByDayModel.find(query, filter)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         monitorLogsByDayQuery = handleSelect(select, monitorLogsByDayQuery);
         monitorLogsByDayQuery = handlePopulate(populate, monitorLogsByDayQuery);
@@ -103,12 +102,14 @@ export default {
         return monitorLogsByDay;
     },
 
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogByDayModel.findOne(query).lean();
+        let monitorLogQuery = MonitorLogByDayModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         monitorLogQuery = handleSelect(select, monitorLogQuery);
         monitorLogQuery = handlePopulate(populate, monitorLogQuery);
@@ -118,7 +119,7 @@ export default {
         return monitorLog;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -132,3 +133,5 @@ export default {
 import MonitorLogByDayModel from 'common-server/models/monitorLogByDay';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import Query from 'common-server/types/db/Query';

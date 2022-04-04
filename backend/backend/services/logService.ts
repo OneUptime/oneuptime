@@ -2,6 +2,9 @@ import LogModel from 'common-server/models/log';
 import ApplicationLogService from './applicationLogService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import PositiveNumber from 'common/types/positive-number';
 
 export default {
@@ -49,13 +52,13 @@ export default {
         });
         return log;
     },
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let logQuery = LogModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let logQuery = LogModel.findOne(query).sort(sort).lean();
 
         logQuery = handleSelect(select, logQuery);
         logQuery = handlePopulate(populate, logQuery);
@@ -64,7 +67,7 @@ export default {
 
         return log;
     },
-    async findBy({ query, limit, skip, populate, select }: $TSFixMe) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -81,12 +84,12 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let logsQuery = LogModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         logsQuery = handleSelect(select, logsQuery);
         logsQuery = handlePopulate(populate, logsQuery);
@@ -131,7 +134,7 @@ export default {
         });
         return logs;
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -141,7 +144,7 @@ export default {
         return count;
     },
     search: async function (
-        query: $TSFixMe,
+        query: Query,
         filter: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -168,13 +171,13 @@ export default {
 
         return { searchedLogs, totalSearchCount };
     },
-    searchByDuration: async function (query: $TSFixMe) {
+    searchByDuration: async function (query: Query) {
         const _this = this;
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const { startTime, endTime } = query;
         query = {
             ...query,
@@ -201,12 +204,12 @@ export default {
         return { searchedLogs, totalSearchCount };
     },
     // Introduce this to know the current date range of the query incase it wasnt given by the user
-    async getDateRange(query: $TSFixMe) {
+    async getDateRange(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let dateRange = { startDate: '', endDate: '' };
         // if date range is given, it returns it
         if (query.createdAt)
@@ -218,9 +221,7 @@ export default {
             // first and last log based on the query is fetched
             const [start_date, end_date] = await Promise.all([
                 LogModel.find(query).limit(1),
-                LogModel.find(query)
-                    .sort([['createdAt', -1]])
-                    .limit(1),
+                LogModel.find(query).limit(1),
             ]);
             // if query returns anything, extrate date from both.
             start_date[0] && end_date[0]

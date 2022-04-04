@@ -55,7 +55,7 @@ export default {
         return savedLogWeek;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -71,7 +71,7 @@ export default {
         return monitorLogByWeek;
     },
 
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -90,9 +90,9 @@ export default {
 
         let monitorLogsByWeekQuery = MonitorLogByWeekModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         monitorLogsByWeekQuery = handleSelect(select, monitorLogsByWeekQuery);
         monitorLogsByWeekQuery = handlePopulate(
@@ -105,12 +105,14 @@ export default {
         return monitorLogsByWeek;
     },
 
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogByWeekModel.findOne(query).lean();
+        let monitorLogQuery = MonitorLogByWeekModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         monitorLogQuery = handleSelect(select, monitorLogQuery);
         monitorLogQuery = handlePopulate(populate, monitorLogQuery);
@@ -119,7 +121,7 @@ export default {
         return monitorLog;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -133,3 +135,6 @@ export default {
 import MonitorLogByWeekModel from 'common-server/models/monitorLogByWeek';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

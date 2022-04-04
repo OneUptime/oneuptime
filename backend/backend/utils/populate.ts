@@ -1,4 +1,5 @@
-export default (populateArray: $TSFixMe, query: $TSFixMe) => {
+import Query from 'common-server/types/db/Query';
+export default (populateArray: $TSFixMe, query: Query) => {
     /**
      * populate should be an array of object, no matter the depth it exist in
      *

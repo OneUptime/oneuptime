@@ -485,8 +485,7 @@ router.post(
                         if (
                             teamMember.userId &&
                             teamMemberUserIds.filter(
-                                (userId: $TSFixMe) =>
-                                    userId == teamMember.userId
+                                (userId: string) => userId == teamMember.userId
                             ).length > 1
                         ) {
                             return sendErrorResponse(req, res, {

@@ -25,7 +25,7 @@ const ssoObject = {
     ipRanges: '127.0.0.1',
 };
 
-let token: $TSFixMe, userId: $TSFixMe;
+let token: $TSFixMe, userId: string;
 
 describe('SSO API', function () {
     this.timeout(300000);

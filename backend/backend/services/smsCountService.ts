@@ -3,9 +3,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -16,12 +17,12 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let smsCountQuery = SmsCountModel.find(query)
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         smsCountQuery = handleSelect(select, smsCountQuery);
         smsCountQuery = handlePopulate(populate, smsCountQuery);
@@ -30,16 +31,17 @@ export default {
         return SmsCount;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let smsCountQuery = SmsCountModel.findOne(query)
+            .sort(sort)
             .lean()
-            .sort([['createdAt', -1]]);
+            .sort(sort);
 
         smsCountQuery = handleSelect(select, smsCountQuery);
         smsCountQuery = handlePopulate(populate, smsCountQuery);
@@ -49,7 +51,7 @@ export default {
     },
 
     create: async function (
-        userId: $TSFixMe,
+        userId: string,
         sentTo: $TSFixMe,
         projectId: $TSFixMe,
         content: $TSFixMe,
@@ -73,12 +75,12 @@ export default {
         return smsCount;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await SmsCountModel.countDocuments(query);
         return count;
     },
@@ -103,7 +105,7 @@ export default {
         return { searchedSmsLogs, totalSearchCount };
     },
 
-    validateResend: async function (userId: $TSFixMe) {
+    validateResend: async function (userId: string) {
         const _this = this;
         let problem = '';
         const select = 'createdAt';
@@ -132,7 +134,7 @@ export default {
         };
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const smsCount = await SmsCountModel.findOneAndUpdate(
             query,
             {
@@ -149,7 +151,7 @@ export default {
         return smsCount;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await SmsCountModel.deleteMany(query);
         return 'SmsCount(s) removed successfully';
     },
@@ -159,3 +161,6 @@ import SmsCountModel from 'common-server/models/smsCount';
 import moment from 'moment';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

@@ -34,7 +34,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query: Query, data) {
         if (!query) {
             query = {};
         }
@@ -51,14 +51,15 @@ export default {
         return applicationScanner;
     },
 
-    findOneBy: async function ({ query, select, populate }) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let applicationScannerQuery =
-            ApplicationScannerModel.findOne(query).lean();
+        let applicationScannerQuery = ApplicationScannerModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         applicationScannerQuery = handleSelect(select, applicationScannerQuery);
         applicationScannerQuery = handlePopulate(
@@ -69,7 +70,9 @@ export default {
         return applicationScanner;
     },
 
-    updateApplicationScannerStatus: async function (applicationScannerId) {
+    updateApplicationScannerStatus: async function (
+        applicationScannerId: string
+    ) {
         const applicationScanner =
             await ApplicationScannerModel.findOneAndUpdate(
                 { _id: applicationScannerId },
@@ -91,3 +94,5 @@ import ApplicationScannerModel from 'common-server/models/applicationScanner';
 import { v1 as uuidv1 } from 'uuid';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import Query from 'common-server/types/db/Query';

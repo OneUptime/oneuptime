@@ -76,7 +76,7 @@ export const fetchUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch a user.
-export const fetchUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const fetchUser = (userId: string) => async (dispatch: Dispatch) => {
     dispatch(fetchUserRequest());
 
     try {
@@ -265,7 +265,7 @@ export const deleteUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to delete a user.
-export const deleteUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const deleteUser = (userId: string) => async (dispatch: Dispatch) => {
     dispatch(deleteUserRequest());
 
     try {
@@ -319,7 +319,7 @@ export const restoreUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to restore a user
-export const restoreUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const restoreUser = (userId: string) => async (dispatch: Dispatch) => {
     dispatch(restoreUserRequest());
 
     try {
@@ -373,7 +373,7 @@ export const blockUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to restore a user
-export const blockUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const blockUser = (userId: string) => async (dispatch: Dispatch) => {
     dispatch(blockUserRequest());
 
     try {
@@ -428,7 +428,7 @@ export const enableAdminModeReset = () => {
 
 // Enable admin mode
 export const enableAdminMode =
-    (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: Dispatch) => {
+    (userId: string, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(enableAdminModeRequest());
 
         try {
@@ -486,7 +486,7 @@ export const disableAdminModeReset = () => {
 
 // Disable admin mode
 export const disableAdminMode =
-    (userId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (userId: string) => async (dispatch: Dispatch) => {
         dispatch(disableAdminModeRequest());
 
         try {
@@ -542,7 +542,7 @@ export const unblockUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to unblock a user
-export const unblockUser = (userId: $TSFixMe) => async (dispatch: Dispatch) => {
+export const unblockUser = (userId: string) => async (dispatch: Dispatch) => {
     dispatch(unblockUserRequest());
 
     try {
@@ -597,7 +597,7 @@ export const addUserNoteError = (error: $TSFixMe) => {
 
 // Calls the API to add Admin Note
 export const addUserNote =
-    (userId: $TSFixMe, values: $TSFixMe) => async (dispatch: Dispatch) => {
+    (userId: string, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addUserNoteRequest());
 
         try {
@@ -712,7 +712,7 @@ export const twoFactorAuthTokenError = (error: $TSFixMe) => {
     };
 };
 
-export const updateTwoFactorAuthToken = (userId: $TSFixMe, data: $TSFixMe) => {
+export const updateTwoFactorAuthToken = (userId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
@@ -761,7 +761,7 @@ export const fetchUserHistoryError = (error: $TSFixMe) => {
 };
 
 export function fetchUserloginHistory(
-    userId: $TSFixMe,
+    userId: string,
     skip: PositiveNumber,
     limit = 10
 ) {

@@ -3,25 +3,16 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+        select,
+        sort,
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
         let schedulesQuery = ScheduleModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         schedulesQuery = handleSelect(select, schedulesQuery);
         schedulesQuery = handlePopulate(populate, schedulesQuery);
@@ -30,15 +21,16 @@ export default {
         return schedules;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let scheduleQuery = ScheduleModel.findOne(query)
+            .sort(sort)
             .lean()
-            .sort([['createdAt', -1]]);
+            .sort(sort);
 
         scheduleQuery = handleSelect(select, scheduleQuery);
         scheduleQuery = handlePopulate(populate, scheduleQuery);
@@ -106,17 +98,17 @@ export default {
         return newSchedule;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await ScheduleModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const schedule = await ScheduleModel.findOneAndUpdate(
             query,
             {
@@ -170,12 +162,12 @@ export default {
         return schedule;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const _this = this;
         let schedule = await _this.findOneBy({
             query,
@@ -259,12 +251,12 @@ export default {
         return schedule;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await ScheduleModel.updateMany(query, {
             $set: data,
         });
@@ -308,7 +300,7 @@ export default {
     addEscalation: async function (
         scheduleId: $TSFixMe,
         escalations: $TSFixMe,
-        userId: $TSFixMe
+        userId: string
     ) {
         const _this = this;
         const escalationIds = [];
@@ -386,7 +378,7 @@ export default {
 
     getUserEscalations: async function (
         subProjectIds: $TSFixMe,
-        userId: $TSFixMe
+        userId: string
     ) {
         const selectEscalation =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
@@ -417,7 +409,7 @@ export default {
     escalationCheck: async function (
         escalationIds: $TSFixMe,
         scheduleId: $TSFixMe,
-        userId: $TSFixMe
+        userId: string
     ) {
         const _this = this;
         let scheduleIds = await _this.findOneBy({
@@ -492,12 +484,12 @@ export default {
         return subProjectSchedules;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await ScheduleModel.deleteMany(query);
         return 'Schedule(s) removed successfully';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         const populate = [
@@ -550,4 +542,7 @@ import ScheduleModel from 'common-server/models/schedule';
 import EscalationService from '../services/escalationService';
 import getSlug from '../utils/getSlug';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';

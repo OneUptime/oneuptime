@@ -1,5 +1,6 @@
+import Query from 'common-server/types/db/Query';
 export default {
-    findOneBy: async function (query: $TSFixMe) {
+    findOneBy: async function (query: Query) {
         const gfs = await Grid(mongoose.connection.db, mongoose.mongo);
         gfs.collection('uploads');
         if (!query) {
@@ -15,7 +16,7 @@ export default {
         }
         return file;
     },
-    deleteOneBy: async function (query: $TSFixMe) {
+    deleteOneBy: async function (query: Query) {
         const gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
             bucketName: 'uploads',
         });

@@ -23,7 +23,6 @@ async function run() {
             .collection(incidentCollection)
             .find(query)
             .limit(1) // should return only one item if it exist
-            .sort({ createdAt: -1 })
             .toArray();
 
         // grab the latest incident and check if it's resolved

@@ -8,11 +8,11 @@ import UserService from './userService';
 import SmsCountService from './smsCountService';
 import CallLogsService from './callLogsService';
 import AlertService from './alertService';
-
+import FindOneBy from 'common-server/types/db/FindOneBy';
 import { IS_TESTING } from '../config/server';
 
 const _this = {
-    findByOne: async function ({ query, select, populate }: $TSFixMe) {
+    findByOne: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -22,6 +22,7 @@ const _this = {
             query,
             select,
             populate,
+            sort,
         });
         return twilioSettings;
     },
@@ -56,7 +57,7 @@ const _this = {
         monitorName: $TSFixMe,
         number: $TSFixMe,
         incidentId: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         name: $TSFixMe,
         incidentType: $TSFixMe,
         projectId: $TSFixMe,
@@ -1538,7 +1539,7 @@ const _this = {
     },
     sendVerificationSMS: async function (
         to: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         projectId: $TSFixMe,
         validationResult: $TSFixMe
     ) {

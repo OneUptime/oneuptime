@@ -1,22 +1,47 @@
+import ProjectModel from 'common-server/models/project';
+
+import { v1 as uuidv1 } from 'uuid';
+import MonitorService from '../services/monitorService';
+import PaymentService from './paymentService';
+import UserService from './userService';
+import IncidentPrioritiesService from './incidentPrioritiesService';
+import integrationService from './integrationService';
+import ScheduleService from './scheduleService';
+import domains from '../config/domains'; // removal of 'moment' due to declaration but not used.
+import EscalationService from './escalationService';
+import StripeService from './stripeService';
+import TeamService from './teamService';
+import StatusPageService from './statusPageService';
+
+import { IS_SAAS_SERVICE } from '../config/server';
+import componentService from './componentService';
+import DomainVerificationService from './domainVerificationService';
+import SsoDefaultRolesService from './ssoDefaultRolesService';
+import getSlug from '../utils/getSlug';
+import flattenArray from '../utils/flattenArray';
+import IncidentSettingsService from './incidentSettingsService';
+import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
+import handleSelect from '../utils/select';
+
 export default {
-    findBy: async function ({ query, limit, skip, select, populate }) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+    findBy: async function ({
+        query,
+        limit,
+        skip,
+        select,
+        populate,
+        sort,
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
 
         let projectQuery = ProjectModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         projectQuery = handleSelect(select, projectQuery);
         projectQuery = handlePopulate(populate, projectQuery);
@@ -127,11 +152,11 @@ export default {
         return project;
     },
 
-    countBy: async function (query) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const count = await ProjectModel.countDocuments(query);
         return count;
@@ -300,15 +325,16 @@ export default {
         return project;
     },
 
-    findOneBy: async function ({ query, select, populate }) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let projectQuery = ProjectModel.findOne(query)
+            .sort(sort)
             .lean()
-            .sort([['createdAt', -1]]);
+            .sort(sort);
 
         projectQuery = handleSelect(select, projectQuery);
         projectQuery = handlePopulate(populate, projectQuery);
@@ -367,7 +393,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await ProjectModel.updateMany(query, {
             $set: data,
         });
@@ -974,28 +1000,3 @@ export default {
         return projects;
     },
 };
-
-import ProjectModel from 'common-server/models/project';
-
-import { v1 as uuidv1 } from 'uuid';
-import MonitorService from '../services/monitorService';
-import PaymentService from './paymentService';
-import UserService from './userService';
-import IncidentPrioritiesService from './incidentPrioritiesService';
-import integrationService from './integrationService';
-import ScheduleService from './scheduleService';
-import domains from '../config/domains'; // removal of 'moment' due to declaration but not used.
-import EscalationService from './escalationService';
-import StripeService from './stripeService';
-import TeamService from './teamService';
-import StatusPageService from './statusPageService';
-
-import { IS_SAAS_SERVICE } from '../config/server';
-import componentService from './componentService';
-import DomainVerificationService from './domainVerificationService';
-import SsoDefaultRolesService from './ssoDefaultRolesService';
-import getSlug from '../utils/getSlug';
-import flattenArray from '../utils/flattenArray';
-import IncidentSettingsService from './incidentSettingsService';
-import handlePopulate from '../utils/populate';
-import handleSelect from '../utils/select';

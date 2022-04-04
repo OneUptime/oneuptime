@@ -108,21 +108,18 @@ export default {
         select,
         populate,
         skip,
-        limit,
         sort,
     }: $TSFixMe) {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
-
-            limit,
             populate,
             select,
             sort,
         });
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         return await StatusPageServiceBase.countBy({ query });
     },
 
@@ -546,7 +543,7 @@ export default {
         return this.create(data);
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -638,7 +635,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         const existingStatusPage = await this.findBy({
             query: {
                 name: data.name,
@@ -664,7 +661,7 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // run this in the background
 
@@ -714,12 +711,12 @@ export default {
         return updatedStatusPage;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await StatusPageModel.updateMany(query, {
             $set: data,
         });
@@ -752,7 +749,7 @@ export default {
     },
 
     getNotes: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -847,7 +844,7 @@ export default {
         }
     },
 
-    getIncident: async function (query: $TSFixMe) {
+    getIncident: async function (query: Query) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -880,7 +877,7 @@ export default {
     },
 
     getIncidentNotes: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -921,7 +918,7 @@ export default {
     },
 
     getNotesByDate: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -966,7 +963,7 @@ export default {
     },
 
     getEvents: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1070,7 +1067,7 @@ export default {
     },
 
     getFutureEvents: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1176,7 +1173,7 @@ export default {
     },
 
     getPastEvents: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1278,7 +1275,7 @@ export default {
         }
     },
 
-    getEvent: async function (query: $TSFixMe) {
+    getEvent: async function (query: Query) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1304,7 +1301,7 @@ export default {
     },
 
     getEventNotes: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1348,7 +1345,7 @@ export default {
     },
 
     getEventsByDate: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1395,9 +1392,7 @@ export default {
 
         query.deleted = false;
 
-        let statusPagesQuery = StatusPageModel.find(query)
-            .sort([['createdAt', -1]])
-            .lean();
+        let statusPagesQuery = StatusPageModel.find(query).lean();
 
         statusPagesQuery = handleSelect(select, statusPagesQuery);
         statusPagesQuery = handlePopulate(populate, statusPagesQuery);
@@ -1487,7 +1482,7 @@ export default {
         return statusPage;
     },
 
-    getIncidents: async function (query: $TSFixMe) {
+    getIncidents: async function (query: Query) {
         const _this = this;
 
         if (!query) query = {};
@@ -1551,7 +1546,7 @@ export default {
             throw error;
         }
     },
-    isPermitted: async function (userId: $TSFixMe, statusPage: $TSFixMe) {
+    isPermitted: async function (userId: string, statusPage: $TSFixMe) {
         const fn = async (resolve: $TSFixMe) => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1608,12 +1603,12 @@ export default {
         };
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await StatusPageModel.deleteMany(query);
         return 'Status Page(s) Removed Successfully!';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
 
@@ -1767,7 +1762,7 @@ export default {
         return newExternalStatusPage;
     },
     getExternalStatusPage: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1813,7 +1808,7 @@ export default {
     deleteExternalStatusPage: async function (
         projectId: $TSFixMe,
         _id: $TSFixMe,
-        userId: $TSFixMe
+        userId: string
     ) {
         const query = { projectId, _id };
 
@@ -1865,7 +1860,7 @@ export default {
     },
 
     getAnnouncements: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1888,15 +1883,14 @@ export default {
         query.deleted = false;
         const allAnnouncements = await AnnouncementModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .populate('createdById', 'name')
             .populate('monitors.monitorId', 'name');
         return allAnnouncements;
     },
 
-    countAnnouncements: async function (query: $TSFixMe) {
+    countAnnouncements: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -1905,7 +1899,7 @@ export default {
         return count;
     },
 
-    getSingleAnnouncement: async function (query: $TSFixMe) {
+    getSingleAnnouncement: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -1914,7 +1908,7 @@ export default {
         return response;
     },
 
-    updateAnnouncement: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateAnnouncement: async function (query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -1956,7 +1950,7 @@ export default {
         return response;
     },
 
-    updateManyAnnouncement: async function (query: $TSFixMe) {
+    updateManyAnnouncement: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -1973,7 +1967,7 @@ export default {
         return response;
     },
 
-    deleteAnnouncement: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteAnnouncement: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -2012,7 +2006,7 @@ export default {
         return newAnnouncementLog;
     },
 
-    updateAnnouncementLog: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateAnnouncementLog: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -2030,7 +2024,7 @@ export default {
     },
 
     getAnnouncementLogs: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -2053,9 +2047,8 @@ export default {
         query.deleted = false;
         const announcementLogs = await AnnouncementLogModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .populate({
                 path: 'announcementId',
                 select: 'name description',
@@ -2064,7 +2057,7 @@ export default {
         return announcementLogs;
     },
 
-    deleteAnnouncementLog: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteAnnouncementLog: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -2085,7 +2078,7 @@ export default {
         return response;
     },
 
-    countAnnouncementLogs: async function (query: $TSFixMe) {
+    countAnnouncementLogs: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -2222,5 +2215,6 @@ import getSlug from '../utils/getSlug';
 import AnnouncementLogModel from 'common-server/models/announcementLogs';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import Query from 'common-server/types/db/Query';
 import axios from 'axios';
 const bearer = process.env.TWITTER_BEARER_TOKEN;

@@ -2,6 +2,9 @@ import SubscriberModel from 'common-server/models/subscriber';
 import StatusPageService from './statusPageService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -42,12 +45,12 @@ export default {
         });
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const updatedSubscriber = await SubscriberModel.findOneAndUpdate(
             query,
             {
@@ -60,12 +63,12 @@ export default {
         return updatedSubscriber;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await SubscriberModel.updateMany(query, {
             $set: data,
         });
@@ -81,7 +84,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const subscriber = await SubscriberModel.findOneAndUpdate(
             query,
             {
@@ -100,11 +103,12 @@ export default {
 
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 10;
         if (typeof skip === 'string') {
@@ -123,9 +127,9 @@ export default {
 
         let subscriberQuery = SubscriberModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         subscriberQuery = handleSelect(select, subscriberQuery);
         subscriberQuery = handlePopulate(populate, subscriberQuery);
@@ -171,7 +175,7 @@ export default {
         return subscribersArr;
     },
 
-    subscribersForAlert: async function (query: $TSFixMe) {
+    subscribersForAlert: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -179,7 +183,6 @@ export default {
         query.deleted = false;
         const subscribers = await SubscriberModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
             .populate('projectId')
             .populate('monitorId')
             .populate('statusPageId');
@@ -329,15 +332,16 @@ export default {
         return existingSubscriber !== null;
     },
 
-    findByOne: async function ({ query, select, populate }: $TSFixMe) {
+    findByOne: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
 
         let subscriberQuery = SubscriberModel.findOne(query)
+            .sort(sort)
             .lean()
-            .sort([['createdAt', -1]]);
+            .sort(sort);
 
         subscriberQuery = handleSelect(select, subscriberQuery);
         subscriberQuery = handlePopulate(populate, subscriberQuery);
@@ -346,7 +350,7 @@ export default {
         return subscriber;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -356,17 +360,17 @@ export default {
         return count;
     },
 
-    removeBy: async function (query: $TSFixMe) {
+    removeBy: async function (query: Query) {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         let subscriber = await _this.findBy({ query, select: '_id' });

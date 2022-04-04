@@ -2,31 +2,18 @@ import NotificationModel from 'common-server/models/notification';
 import RealTimeService from '../services/realTimeService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
-    async findBy({ query, skip, limit, populate, select }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 20;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
+    async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
         query.deleted = false;
         let notificationsQuery = NotificationModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 });
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort);
 
         notificationsQuery = handleSelect(select, notificationsQuery);
         notificationsQuery = handlePopulate(populate, notificationsQuery);
@@ -35,7 +22,7 @@ export default {
         return notifications;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -48,7 +35,7 @@ export default {
     create: async function (
         projectId: $TSFixMe,
         message: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         icon: $TSFixMe,
         meta: $TSFixMe
     ) {
@@ -95,20 +82,20 @@ export default {
         return populatedNotification || notification;
     },
 
-    updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateManyBy: async function (query: Query, data: $TSFixMe) {
         const notifications = await NotificationModel.updateMany(query, {
             $addToSet: data,
         });
         return notifications;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let notification = await _this.findOneBy({
             query,
             select: 'read closed',
@@ -142,12 +129,12 @@ export default {
         return notification;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await NotificationModel.updateMany(query, {
             $set: data,
         });
@@ -164,18 +151,20 @@ export default {
         return result;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await NotificationModel.deleteMany(query);
         return 'Notification(s) removed successfully!';
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let notificationQuery = NotificationModel.findOne(query).lean();
+        let notificationQuery = NotificationModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         notificationQuery = handleSelect(select, notificationQuery);
         notificationQuery = handlePopulate(populate, notificationQuery);

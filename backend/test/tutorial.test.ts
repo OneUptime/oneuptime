@@ -18,7 +18,7 @@ import AirtableService from '../backend/services/airtableService';
 
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let projectId: $TSFixMe, userId: $TSFixMe, token: $TSFixMe;
+let projectId: $TSFixMe, userId: string, token: $TSFixMe;
 
 describe('Tutorial API', function () {
     this.timeout(80000);

@@ -178,7 +178,7 @@ export const generateTwoFactorQRCodeError = (error: ErrorPayload) => {
     };
 };
 
-export const generateTwoFactorQRCode = (userId: $TSFixMe) => {
+export const generateTwoFactorQRCode = (userId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
@@ -573,7 +573,7 @@ export const deleteAccountFailure = (error: ErrorPayload) => {
     };
 };
 
-export const deleteAccount = (userId: $TSFixMe, confirmation: $TSFixMe) => {
+export const deleteAccount = (userId: string, confirmation: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());

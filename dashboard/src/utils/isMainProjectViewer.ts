@@ -5,7 +5,7 @@
  * @param {object} currentProject the currentProject
  */
 const isMainProjectViewer = (
-    userId: $TSFixMe,
+    userId: string,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ) => {

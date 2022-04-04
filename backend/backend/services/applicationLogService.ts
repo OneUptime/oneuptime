@@ -7,6 +7,9 @@ import ResourceCategoryService from './resourceCategoryService';
 import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';
 import PositiveNumber from 'common/types/positive-number';
 
@@ -71,7 +74,7 @@ export default {
         return applicationLog;
     },
     //Description: Gets all application logs by component.
-    async findBy({ query, limit, skip, populate, select }: $TSFixMe) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -88,13 +91,13 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let applicationLogQuery = ApplicationLogModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         applicationLogQuery = handleSelect(select, applicationLogQuery);
         applicationLogQuery = handlePopulate(populate, applicationLogQuery);
@@ -102,13 +105,15 @@ export default {
         return applicationLogs;
     },
 
-    async findOneBy({ query, populate, select }: $TSFixMe) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let applicationLogQuery = ApplicationLogModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let applicationLogQuery = ApplicationLogModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         applicationLogQuery = handleSelect(select, applicationLogQuery);
         applicationLogQuery = handlePopulate(populate, applicationLogQuery);
@@ -165,7 +170,7 @@ export default {
 
         return { applicationLogs, count, skip, limit };
     },
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -202,7 +207,7 @@ export default {
         }
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
@@ -210,7 +215,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -245,16 +250,16 @@ export default {
 
         return applicationLog;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await ApplicationLogModel.deleteMany(query);
         return 'Application Log(s) removed successfully!';
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await ApplicationLogModel.countDocuments(query);
         return count;
     },

@@ -4,6 +4,7 @@ import MailService from '../services/mailService';
 import UserService from '../services/userService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';
 
 export default {
     async create(
@@ -30,28 +31,12 @@ export default {
             status
         );
     },
-    async findBy({ query, skip, limit, select, populate }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
+    async findBy({ query, skip, limit, select, populate, sort }: FindBy) {
         let logsQuery = LoginHistoryModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         logsQuery = handleSelect(select, logsQuery);
         logsQuery = handlePopulate(populate, logsQuery);

@@ -40,12 +40,12 @@ export default {
         return emailSmtp;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (data.pass) {
             const iv = Crypto.randomBytes(16);
@@ -72,12 +72,12 @@ export default {
         return updatedEmailSmtp;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await EmailSmtpModel.updateMany(query, {
             $set: data,
         });
@@ -101,7 +101,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const emailSmtp = await EmailSmtpModel.findOneAndUpdate(
             query,
             {
@@ -120,32 +120,17 @@ export default {
 
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
+        select,
+        sort,
+    }: FindBy) {
         query.deleted = false;
         let emailSmtpQuery = EmailSmtpModel.find(query)
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip)
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .lean();
         emailSmtpQuery = handleSelect(select, emailSmtpQuery);
         emailSmtpQuery = handlePopulate(populate, emailSmtpQuery);
@@ -166,15 +151,13 @@ export default {
         return emailSmtp;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let emailSmtpQuery = EmailSmtpModel.findOne(query)
-            .sort([['createdAt', -1]])
-            .lean();
+        let emailSmtpQuery = EmailSmtpModel.findOne(query).sort(sort).lean();
         emailSmtpQuery = handleSelect(select, emailSmtpQuery);
         emailSmtpQuery = handlePopulate(populate, emailSmtpQuery);
         let emailSmtp = await emailSmtpQuery;
@@ -192,7 +175,7 @@ export default {
         return emailSmtp;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -202,7 +185,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await EmailSmtpModel.deleteMany(query);
         return 'Email Smtp(s) removed successfully';
     },
@@ -213,3 +196,6 @@ import EmailSmtpModel from 'common-server/models/smtp';
 import EncryptDecrypt from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

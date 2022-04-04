@@ -31,7 +31,7 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
         this.state = { subProjectModalId: uuidv4() };
     }
 
-    handleRevealAPIKey = (userId: $TSFixMe) => {
+    handleRevealAPIKey = (userId: string) => {
 
         const { openModal, subProject, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
@@ -54,7 +54,7 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
             });
     };
 
-    handleEdit = (userId: $TSFixMe) => {
+    handleEdit = (userId: string) => {
 
         const { openModal, subProject, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject) &&
@@ -78,7 +78,7 @@ export class SubProjectTable extends Component<SubProjectTableProps>{
             });
     };
 
-    handleRemove = (userId: $TSFixMe) => {
+    handleRemove = (userId: string) => {
 
         const { openModal, subProject, currentProject } = this.props;
         isOwnerOrAdmin(userId, currentProject) &&

@@ -8,6 +8,9 @@ import ResourceCategoryService from './resourceCategoryService';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import RealTimeService from './realTimeService';
 
 export default {
@@ -70,13 +73,14 @@ export default {
         const applicationSecurity = await ApplicationSecurityModel.create(data);
         return applicationSecurity;
     },
-    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
-        let applicationSecurityQuery = ApplicationSecurityModel.findOne(query);
+        let applicationSecurityQuery =
+            ApplicationSecurityModel.findOne(query).sort(sort);
 
         applicationSecurityQuery = handleSelect(
             select,
@@ -97,24 +101,15 @@ export default {
         skip,
         populate,
         select,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = Number(skip);
-
-        if (typeof limit === 'string') limit = Number(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+        sort,
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
         let applicationSecuritiesQuery = ApplicationSecurityModel.find(query)
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         applicationSecuritiesQuery = handleSelect(
             select,
@@ -129,13 +124,13 @@ export default {
         return applicationSecurities;
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -187,7 +182,7 @@ export default {
         });
         return applicationSecurity;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         let applicationSecurity = await this.countBy(query);
 
         if (!applicationSecurity) {
@@ -236,7 +231,7 @@ export default {
         });
         return applicationSecurity;
     },
-    hardDelete: async function (query: $TSFixMe) {
+    hardDelete: async function (query: Query) {
         await ApplicationSecurityModel.deleteMany(query);
         return 'Application Securities deleted successfully';
     },
@@ -279,7 +274,7 @@ export default {
         );
         return security;
     },
-    updateScanTime: async function (query: $TSFixMe) {
+    updateScanTime: async function (query: Query) {
         const newDate = new Date();
         const applicationSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -292,12 +287,12 @@ export default {
         });
         return applicationSecurity;
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await ApplicationSecurityModel.countDocuments(query);
         return count;
     },

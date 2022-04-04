@@ -19,7 +19,7 @@ import GlobalConfig from './utils/globalConfig';
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-let token: $TSFixMe, projectId: $TSFixMe, userId: $TSFixMe;
+let token: $TSFixMe, projectId: $TSFixMe, userId: string;
 
 describe('Feedback API', function () {
     this.timeout(50000);

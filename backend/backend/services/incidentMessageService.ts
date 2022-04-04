@@ -41,12 +41,12 @@ export default {
 
         return incidentMessage;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         data.updated = true;
         let incidentMessage = await IncidentMessageModel.findOneAndUpdate(
             query,
@@ -71,13 +71,15 @@ export default {
         RealTimeService.updateIncidentNote(incidentMessage);
         return incidentMessage;
     },
-    async findOneBy({ query, populate, select }: $TSFixMe) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let incidentMessageQuery = IncidentMessageModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let incidentMessageQuery = IncidentMessageModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         incidentMessageQuery = handleSelect(select, incidentMessageQuery);
         incidentMessageQuery = handlePopulate(populate, incidentMessageQuery);
@@ -91,7 +93,8 @@ export default {
         limit,
         populate,
         select,
-    }: $TSFixMe) {
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -101,28 +104,28 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let incidentMessagesQuery = IncidentMessageModel.find(query)
             .lean()
-            .sort([['createdAt', -1]]) // fetch from latest to oldest
-            .limit(limit)
-            .skip(skip);
+            .sort(sort) // fetch from latest to oldest
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         incidentMessagesQuery = handleSelect(select, incidentMessagesQuery);
         incidentMessagesQuery = handlePopulate(populate, incidentMessagesQuery);
         const incidentMessages = await incidentMessagesQuery;
         return incidentMessages;
     },
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const count = await IncidentMessageModel.countDocuments(query);
 
         return count;
     },
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -151,4 +154,7 @@ import IncidentMessageModel from 'common-server/models/incidentMessage';
 import RealTimeService from './realTimeService';
 import IncidentService from './incidentService';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';

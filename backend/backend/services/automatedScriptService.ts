@@ -6,15 +6,19 @@ import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -28,9 +32,9 @@ export default {
         query.deleted = false;
 
         let sortDataListQuery = ScriptModel.find(query)
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         sortDataListQuery = handleSelect(select, sortDataListQuery);
         sortDataListQuery = handlePopulate(populate, sortDataListQuery);
@@ -39,7 +43,7 @@ export default {
         return sortDataList;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -48,7 +52,7 @@ export default {
         return count;
     },
 
-    countLogsBy: async function (query: $TSFixMe) {
+    countLogsBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -101,7 +105,7 @@ export default {
         return newScriptLog;
     },
 
-    updateOne: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOne: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -119,7 +123,7 @@ export default {
     },
 
     findAllLogs: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -135,9 +139,8 @@ export default {
         }
         query.deleted = false;
         const response = await ScriptModelLog.find(query)
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .populate('automationScriptId', 'name')
             .populate('triggerByUser', 'name')
             .populate('triggerByIncident', 'idNumber slug')
@@ -145,13 +148,13 @@ export default {
         return response;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let responseQuery = ScriptModel.findOne(query).lean();
+        let responseQuery = ScriptModel.findOne(query).sort(sort).lean();
 
         responseQuery = handleSelect(select, responseQuery);
         responseQuery = handlePopulate(populate, responseQuery);
@@ -161,7 +164,7 @@ export default {
     },
 
     getAutomatedLogs: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -341,7 +344,7 @@ export default {
         );
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }

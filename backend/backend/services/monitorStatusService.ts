@@ -123,7 +123,7 @@ export default {
         return null;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -140,7 +140,7 @@ export default {
         return updatedMonitorStatus;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -159,9 +159,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -183,9 +184,9 @@ export default {
 
         let monitorStatusQuery = MonitorStatusModel.find(query)
             .lean()
-            .sort({ createdAt: -1 })
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         monitorStatusQuery = handleSelect(select, monitorStatusQuery);
         monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
 
@@ -193,14 +194,16 @@ export default {
         return monitorStatus;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
-        let monitorStatusQuery = MonitorStatusModel.findOne(query).lean();
+        let monitorStatusQuery = MonitorStatusModel.findOne(query)
+            .sort(sort)
+            .lean();
         monitorStatusQuery = handleSelect(select, monitorStatusQuery);
         monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
 
@@ -219,7 +222,7 @@ export default {
             RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
         }
     },
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const _this = this;
         if (!query) {
             query = {};
@@ -246,7 +249,7 @@ export default {
                 probeId,
                 deleted: false,
                 createdAt: { $lte: createdAt },
-            }).sort([['createdAt', -1]]);
+            });
             if (previousMonitorStatuses && previousMonitorStatuses.length) {
                 const previousMonitorStatus = previousMonitorStatuses[0];
                 await _this.updateOneBy(
@@ -264,3 +267,6 @@ import MonitorService from '../services/monitorService';
 import RealTimeService from './realTimeService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

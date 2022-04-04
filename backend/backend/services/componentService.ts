@@ -11,6 +11,9 @@ import { IS_SAAS_SERVICE } from '../config/server';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     //Description: Upsert function for component.
@@ -137,7 +140,7 @@ export default {
     },
 
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData: $TSFixMe
     ) {
@@ -145,7 +148,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -186,12 +189,12 @@ export default {
         return component;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await ComponentModel.updateMany(query, {
             $set: data,
         });
@@ -214,7 +217,7 @@ export default {
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -231,12 +234,12 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let componentsQuery = ComponentModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         componentsQuery = handleSelect(select, componentsQuery);
         componentsQuery = handlePopulate(populate, componentsQuery);
@@ -245,13 +248,13 @@ export default {
         return components;
     },
 
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let componentQuery = ComponentModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let componentQuery = ComponentModel.findOne(query).sort(sort).lean();
 
         componentQuery = handleSelect(select, componentQuery);
         componentQuery = handlePopulate(populate, componentQuery);
@@ -260,17 +263,17 @@ export default {
         return component;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await ComponentModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -434,7 +437,7 @@ export default {
         return { components, count, _id: projectId, skip, limit };
     },
 
-    addSeat: async function (query: $TSFixMe) {
+    addSeat: async function (query: Query) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -457,12 +460,12 @@ export default {
         return 'A new seat added. Now you can add a component';
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await ComponentModel.deleteMany(query);
         return 'Component(s) removed successfully!';
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         const populateComponent = [

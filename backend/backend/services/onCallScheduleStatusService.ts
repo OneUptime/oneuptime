@@ -6,7 +6,7 @@ export default {
         sort,
         populate,
         select,
-    }: $TSFixMe) {
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -29,11 +29,11 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let itemsQuery = OnCallScheduleStatusModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         itemsQuery = handleSelect(select, itemsQuery);
         itemsQuery = handlePopulate(populate, itemsQuery);
@@ -74,7 +74,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await OnCallScheduleStatusModel.countDocuments(query);
         return count;
     },
@@ -84,7 +84,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const item = await OnCallScheduleStatusModel.findOneAndUpdate(
             query,
             {
@@ -102,7 +102,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         await OnCallScheduleStatusModel.updateMany(query, {
             $set: data,
         });
@@ -158,3 +158,4 @@ export default {
 import OnCallScheduleStatusModel from 'common-server/models/onCallScheduleStatus';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';

@@ -27,7 +27,7 @@ import ComponentModel from '../backend/models/component';
 import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
     componentId: $TSFixMe,

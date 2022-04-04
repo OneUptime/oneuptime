@@ -1,18 +1,21 @@
 import SslModel from 'common-server/models/ssl';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
         const sslChallenge = await SslModel.create(data);
         return sslChallenge;
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let sslChallengeQuery = SslModel.findOne(query).lean();
+        let sslChallengeQuery = SslModel.findOne(query).sort(sort).lean();
 
         sslChallengeQuery = handleSelect(select, sslChallengeQuery);
         sslChallengeQuery = handlePopulate(populate, sslChallengeQuery);
@@ -24,9 +27,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -37,13 +41,13 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let sslChallengeQuery = SslModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         sslChallengeQuery = handleSelect(select, sslChallengeQuery);
         sslChallengeQuery = handlePopulate(populate, sslChallengeQuery);
@@ -51,10 +55,10 @@ export default {
         const sslChallenges = await sslChallengeQuery;
         return sslChallenges;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const sslChallenge = await SslModel.findOneAndUpdate(
             query,
@@ -66,23 +70,23 @@ export default {
 
         return sslChallenge;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const acmeChallenge = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
         return acmeChallenge;
     },
-    hardDelete: async function (query: $TSFixMe) {
+    hardDelete: async function (query: Query) {
         await SslModel.deleteMany(query);
         return 'Acme challenges successfully deleted';
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await SslModel.countDocuments(query);
         return count;
     },

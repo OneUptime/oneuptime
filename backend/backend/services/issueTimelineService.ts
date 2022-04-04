@@ -1,3 +1,9 @@
+import IssueTimelineModel from 'common-server/models/issueTimeline';
+import handleSelect from '../utils/select';
+import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -27,13 +33,15 @@ export default {
         });
         return savedIssueTimeline;
     },
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let issueTimelineQuery = IssueTimelineModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let issueTimelineQuery = IssueTimelineModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         issueTimelineQuery = handleSelect(select, issueTimelineQuery);
         issueTimelineQuery = handlePopulate(populate, issueTimelineQuery);
@@ -43,13 +51,13 @@ export default {
         return issueTimeline;
     },
     // get a list of IssueTimeline
-    async findBy({ query, select, populate }: $TSFixMe) {
+    async findBy({ query, select, populate, sort }: FindBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let issuesQuery = IssueTimelineModel.find(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let issuesQuery = IssueTimelineModel.find(query).sort(sort).lean();
 
         issuesQuery = handleSelect(select, issuesQuery);
         issuesQuery = handlePopulate(populate, issuesQuery);
@@ -58,7 +66,3 @@ export default {
         return issues;
     },
 };
-
-import IssueTimelineModel from 'common-server/models/issueTimeline';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';

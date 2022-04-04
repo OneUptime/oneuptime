@@ -1,6 +1,9 @@
 import ContainerSecurityLogModel from 'common-server/models/containerSecurityLog';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function ({ securityId, componentId, data }: $TSFixMe) {
@@ -45,12 +48,14 @@ export default {
 
         return securityLog;
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let securityLogQuery = ContainerSecurityLogModel.findOne(query).lean();
+        let securityLogQuery = ContainerSecurityLogModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         securityLogQuery = handleSelect(select, securityLogQuery);
         securityLogQuery = handlePopulate(populate, securityLogQuery);
@@ -62,9 +67,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -75,13 +81,13 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let securityLogsQuery = ContainerSecurityLogModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         securityLogsQuery = handleSelect(select, securityLogsQuery);
         securityLogsQuery = handlePopulate(populate, securityLogsQuery);
@@ -89,10 +95,10 @@ export default {
         const securityLogs = await securityLogsQuery;
         return securityLogs;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const containerSecurityLog =
             await ContainerSecurityLogModel.findOneAndUpdate(
@@ -114,7 +120,7 @@ export default {
 
         return containerSecurityLog;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         let securityLog = await this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
@@ -133,7 +139,7 @@ export default {
 
         return securityLog;
     },
-    hardDelete: async function (query: $TSFixMe) {
+    hardDelete: async function (query: Query) {
         await ContainerSecurityLogModel.deleteMany(query);
         return 'Container Security logs deleted successfully';
     },

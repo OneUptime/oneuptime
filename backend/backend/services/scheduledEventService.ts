@@ -9,6 +9,9 @@ import getSlug from '../utils/getSlug';
 import MonitorService from './monitorService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (
@@ -151,12 +154,12 @@ export default {
         return scheduledEvent;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
@@ -243,12 +246,12 @@ export default {
         return updatedScheduledEvent;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await ScheduledEventModel.updateMany(query, {
             $set: data,
         });
@@ -274,7 +277,7 @@ export default {
         return updatedData;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
             query,
             {
@@ -316,7 +319,8 @@ export default {
         skip,
         populate,
         select,
-    }: $TSFixMe) {
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -335,9 +339,9 @@ export default {
 
         query.deleted = false;
         let scheduledEventQuery = ScheduledEventModel.find(query)
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 })
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort)
             .lean();
 
         scheduledEventQuery = handleSelect(select, scheduledEventQuery);
@@ -348,13 +352,15 @@ export default {
         return scheduledEvents;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         query.deleted = false;
-        let scheduledEventQuery = ScheduledEventModel.findOne(query).lean();
+        let scheduledEventQuery = ScheduledEventModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         scheduledEventQuery = handleSelect(select, scheduledEventQuery);
         scheduledEventQuery = handlePopulate(populate, scheduledEventQuery);
@@ -420,7 +426,7 @@ export default {
 
     getSubProjectOngoingScheduledEvents: async function (
         subProjectIds: $TSFixMe,
-        query: $TSFixMe
+        query: Query
     ) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
@@ -457,7 +463,7 @@ export default {
         return subProjectOngoingScheduledEvents;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -466,7 +472,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await ScheduledEventModel.deleteMany(query);
         return 'Event(s) removed successfully!';
     },
@@ -477,7 +483,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function (monitorId: $TSFixMe, userId: $TSFixMe) {
+    removeMonitor: async function (monitorId: $TSFixMe, userId: string) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -556,7 +562,7 @@ export default {
      * @param {object} query query parameter to use for db manipulation
      * @param {object} data data to be used to update the schedule
      */
-    resolveScheduledEvent: async function (query: $TSFixMe, data: $TSFixMe) {
+    resolveScheduledEvent: async function (query: Query, data: $TSFixMe) {
         const _this = this;
         data.resolved = true;
         data.resolvedAt = Date.now();

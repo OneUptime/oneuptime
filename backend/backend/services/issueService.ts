@@ -5,6 +5,9 @@ import RealTimeService from './realTimeService';
 import NotificationService from './notificationService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -46,7 +49,7 @@ export default {
         return issue;
     },
     // find a list of Issues
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -63,12 +66,12 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let issuesQuery = IssueModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         issuesQuery = handleSelect(select, issuesQuery);
         issuesQuery = handlePopulate(populate, issuesQuery);
@@ -78,13 +81,13 @@ export default {
         return issues;
     },
 
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let issueQuery = IssueModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let issueQuery = IssueModel.findOne(query).sort(sort).lean();
 
         issueQuery = handleSelect(select, issueQuery);
         issueQuery = handlePopulate(populate, issueQuery);
@@ -99,7 +102,7 @@ export default {
         const query = {};
         const hash = sha256(fingerprint.join('')).toString();
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         query.fingerprintHash = hash;
 
@@ -111,7 +114,7 @@ export default {
         return issue;
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
@@ -119,7 +122,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let issue = await IssueModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -156,8 +159,8 @@ export default {
         return issue;
     },
     deleteBy: async function (
-        query: $TSFixMe,
-        userId: $TSFixMe,
+        query: Query,
+        userId: string,
         componentId: $TSFixMe
     ) {
         if (!query) {
@@ -196,12 +199,12 @@ export default {
         }
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await IssueModel.countDocuments(query);
         return count;
     },

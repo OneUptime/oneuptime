@@ -147,7 +147,7 @@ class ErrorTrackerDetail extends Component<ComponentProps> {
             ignore
         );
     };
-    updateErrorEventMember = (issueId: $TSFixMe, userId: $TSFixMe, type: $TSFixMe) => {
+    updateErrorEventMember = (issueId: $TSFixMe, userId: string, type: $TSFixMe) => {
         const {
 
             currentProject,

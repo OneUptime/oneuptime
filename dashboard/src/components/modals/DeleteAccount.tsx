@@ -77,7 +77,7 @@ class DeleteAccount extends Component<ComponentProps> {
         }
     };
 
-    ownProjects = (userId: $TSFixMe) => {
+    ownProjects = (userId: string) => {
 
         const { projects } = this.props;
         return projects.filter((project: $TSFixMe) => {
@@ -89,7 +89,7 @@ class DeleteAccount extends Component<ComponentProps> {
         });
     };
 
-    projectsWithoutMultipleOwners = (userId: $TSFixMe) => {
+    projectsWithoutMultipleOwners = (userId: string) => {
         const projects = this.ownProjects(userId);
         return projects.filter((project: $TSFixMe) => {
             const otherOwner = project.users.find(
@@ -99,7 +99,7 @@ class DeleteAccount extends Component<ComponentProps> {
         });
     };
 
-    renderOwnProjects = (userId: $TSFixMe) => {
+    renderOwnProjects = (userId: string) => {
         const projects = this.projectsWithoutMultipleOwners(userId);
         return projects.map((project: $TSFixMe) => {
             return <li key={project._id}>{project.name}</li>;

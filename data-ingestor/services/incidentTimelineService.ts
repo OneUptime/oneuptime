@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
 
 import { post } from '../utils/api';
 import moment from 'moment';
-
+import Query from 'common-server/types/db/Query';
 import { realtimeUrl } from '../utils/config';
 import ProjectService from './projectService';
 
@@ -86,7 +86,7 @@ export default {
         return incidentTimeline;
     },
 
-    findOneBy: async function (query: $TSFixMe) {
+    findOneBy: async function (query: Query) {
         if (!query) {
             query = {};
         }

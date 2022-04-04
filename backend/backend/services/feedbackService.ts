@@ -3,7 +3,7 @@ import MailService from './mailService';
 import UserService from './userService';
 import ProjectService from './projectService';
 import AirtableService from './airtableService';
-
+import Query from 'common-server/types/db/Query';
 export default {
     //Description: Create new project for user.
     //Params:
@@ -65,7 +65,7 @@ export default {
         return feedback;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await FeedbackModel.deleteMany(query);
         return 'Feedback(s) removed successfully!';
     },

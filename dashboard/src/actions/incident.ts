@@ -399,7 +399,7 @@ export const setActiveIncident = (incidentId: $TSFixMe) => {
 export function acknowledgeIncident(
     projectId: $TSFixMe,
     incidentId: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     multiple: $TSFixMe
 ) {
     //This fucntion will switch to incidentId of the params beig passed.
@@ -497,7 +497,7 @@ export function acknowledgeIncident(
 export function resolveIncident(
     projectId: $TSFixMe,
     incidentId: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     multiple: $TSFixMe
 ) {
     //This function will switch to incidentId of the params being passed.

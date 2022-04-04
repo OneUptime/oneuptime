@@ -19,7 +19,7 @@ import AirtableService from '../backend/services/airtableService';
 const sleep = (waitTimeInMs: $TSFixMe) =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let userId: $TSFixMe, projectId: $TSFixMe;
+let userId: string, projectId: $TSFixMe;
 
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';

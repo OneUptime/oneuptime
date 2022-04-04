@@ -5,7 +5,7 @@ import getSlug from '../utils/getSlug';
 class ServiceBase {
     adminItemProps: $TSFixMe;
     adminListProps: $TSFixMe;
-    friendlyName: $TSFixMe;
+    friendlyName: string;
     memberItemProps: $TSFixMe;
     memberListProps: $TSFixMe;
     model: $TSFixMe;
@@ -260,8 +260,8 @@ class ServiceBase {
 
         query = this.model[functionToCall](query)
             .sort(sort)
-            .limit(limit)
-            .skip(skip)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .lean();
 
         query = handleSelect(select, query);
@@ -294,7 +294,7 @@ class ServiceBase {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let functionToCall = 'updateMany';
 

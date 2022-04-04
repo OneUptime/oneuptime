@@ -5,22 +5,13 @@ export default {
         limit,
         populate,
         select,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
+        sort,
+    }: FindBy) {
         let auditLogsQuery = AuditLogsModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         auditLogsQuery = handleSelect(select, auditLogsQuery);
         auditLogsQuery = handlePopulate(populate, auditLogsQuery);
@@ -30,7 +21,7 @@ export default {
         return auditLogs;
     },
 
-    countBy: async function ({ query }: $TSFixMe) {
+    countBy: async function ({ query }: Query) {
         if (!query) {
             query = {};
         }
@@ -88,4 +79,6 @@ export default {
 
 import AuditLogsModel from 'common-server/models/auditLogs';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';

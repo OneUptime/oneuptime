@@ -24,7 +24,7 @@ import NotificationService from '../backend/services/notificationService';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     subProjectId: $TSFixMe,
     incidentId: $TSFixMe,

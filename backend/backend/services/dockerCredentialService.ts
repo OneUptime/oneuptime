@@ -5,15 +5,19 @@ import { encrypt, decrypt } from '../config/encryptDecrypt';
 import axios from 'axios';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     findBy: async function ({
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,24 +28,26 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let dockerCredentialQuery = DockerCredentialModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         dockerCredentialQuery = handleSelect(select, dockerCredentialQuery);
         dockerCredentialQuery = handlePopulate(populate, dockerCredentialQuery);
 
         const dockerCredentials = await dockerCredentialQuery;
         return dockerCredentials;
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let dockerCredentialQuery = DockerCredentialModel.findOne(query).lean();
+        let dockerCredentialQuery = DockerCredentialModel.findOne(query)
+            .sort(sort)
+            .lean();
         dockerCredentialQuery = handleSelect(select, dockerCredentialQuery);
         dockerCredentialQuery = handlePopulate(populate, dockerCredentialQuery);
 
@@ -75,10 +81,10 @@ export default {
         const response = await DockerCredentialModel.create(data);
         return response;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let dockerCredential = await this.findOneBy({
             query,
@@ -139,7 +145,7 @@ export default {
 
         return dockerCredential;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         let dockerCredential = await this.findOneBy({
             query,
             select: '_id',
@@ -161,7 +167,7 @@ export default {
 
         return dockerCredential;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await DockerCredentialModel.deleteMany(query);
         return 'Docker credential(s) successfully deleted';
     },

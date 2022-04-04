@@ -1,18 +1,18 @@
+import incidentSMSActionModel from 'common-server/models/incidentSMSAction';
+import Query from 'common-server/types/db/Query';
+
 export default {
-    get: async function (query: $TSFixMe) {
-        const alerts = await incidentSMSActionModel
-            .find(query)
-            .lean()
-            .sort([['createdAt', -1]]);
+    findBy: async function (query: Query) {
+        const alerts = await incidentSMSActionModel.find(query).lean();
         return alerts;
     },
 
-    updateOneBy: async (query: $TSFixMe, data: $TSFixMe) => {
+    updateOneBy: async (query: Query, data: $TSFixMe) => {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const incidentafter = await incidentSMSActionModel.findOneAndUpdate(
             query,
             {
@@ -25,5 +25,3 @@ export default {
         return incidentafter;
     },
 };
-
-import incidentSMSActionModel from 'common-server/models/incidentSMSAction';

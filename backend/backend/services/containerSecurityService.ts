@@ -8,6 +8,9 @@ import ResourceCategoryService from './resourceCategoryService';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import RealTimeService from './realTimeService';
 
 export default {
@@ -67,13 +70,14 @@ export default {
         const containerSecurity = await ContainerSecurityModel.create(data);
         return containerSecurity;
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
-        let containerSecurityQuery = ContainerSecurityModel.findOne(query);
+        let containerSecurityQuery =
+            ContainerSecurityModel.findOne(query).sort(sort);
         containerSecurityQuery = handleSelect(select, containerSecurityQuery);
         containerSecurityQuery = handlePopulate(
             populate,
@@ -87,9 +91,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -100,13 +105,13 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
         let containerSecurityQuery = ContainerSecurityModel.find(query)
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         containerSecurityQuery = handleSelect(select, containerSecurityQuery);
         containerSecurityQuery = handlePopulate(
             populate,
@@ -117,13 +122,13 @@ export default {
         return containerSecurities;
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // The received value from probe service is '{ scanning: true }'
         if (data && data.name) {
@@ -174,7 +179,7 @@ export default {
         });
         return containerSecurity;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         let containerSecurity = await this.findOneBy({
             query,
             select: '_id',
@@ -211,7 +216,7 @@ export default {
         });
         return containerSecurity;
     },
-    hardDelete: async function (query: $TSFixMe) {
+    hardDelete: async function (query: Query) {
         await ContainerSecurityModel.deleteMany(query);
         return 'Container Securities deleted successfully';
     },
@@ -248,7 +253,7 @@ export default {
         );
         return security;
     },
-    updateScanTime: async function (query: $TSFixMe) {
+    updateScanTime: async function (query: Query) {
         const newDate = new Date();
         const containerSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -259,12 +264,12 @@ export default {
         RealTimeService.handleScanning({ security: containerSecurity });
         return containerSecurity;
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await ContainerSecurityModel.countDocuments(query);
         return count;
     },

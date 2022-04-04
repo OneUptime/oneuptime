@@ -59,7 +59,7 @@ export default {
         return globalConfig;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -135,7 +135,7 @@ export default {
         return globalConfig;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -156,7 +156,8 @@ export default {
         limit,
         populate,
         select,
-    }: $TSFixMe) {
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -169,9 +170,9 @@ export default {
 
         let globalConfigsQuery = GlobalConfigModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         globalConfigsQuery = handleSelect(select, globalConfigsQuery);
         globalConfigsQuery = handlePopulate(populate, globalConfigsQuery);
@@ -213,13 +214,13 @@ export default {
         return globalConfigs;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         // we won't use lean here because of iv that should be a buffer
-        let globalConfigQuery = GlobalConfigModel.findOne(query);
+        let globalConfigQuery = GlobalConfigModel.findOne(query).sort(sort);
 
         globalConfigQuery = handleSelect(select, globalConfigQuery);
         globalConfigQuery = handlePopulate(populate, globalConfigQuery);
@@ -256,7 +257,7 @@ export default {
         return globalConfig;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -266,7 +267,7 @@ export default {
         return count;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await GlobalConfigModel.deleteMany(query);
         return 'Global Config(s) Removed Successfully!';
     },
@@ -277,3 +278,6 @@ import GlobalConfigModel from 'common-server/models/globalConfig';
 import EncryptDecrypt from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

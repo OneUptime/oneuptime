@@ -47,7 +47,7 @@ const sleep = (waitTimeInMs: $TSFixMe) =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let token: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,

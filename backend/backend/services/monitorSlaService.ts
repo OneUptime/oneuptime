@@ -2,6 +2,9 @@ import MonitorSlaModel from 'common-server/models/monitorSla';
 import MonitorService from './monitorService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -44,12 +47,12 @@ export default {
 
         return createdMonitorSla;
     },
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let monitorSlaQuery = MonitorSlaModel.findOne(query).lean();
+        let monitorSlaQuery = MonitorSlaModel.findOne(query).sort(sort).lean();
 
         monitorSlaQuery = handleSelect(select, monitorSlaQuery);
         monitorSlaQuery = handlePopulate(populate, monitorSlaQuery);
@@ -61,9 +64,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -74,13 +78,13 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let monitorSlaQuery = MonitorSlaModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         monitorSlaQuery = handleSelect(select, monitorSlaQuery);
         monitorSlaQuery = handlePopulate(populate, monitorSlaQuery);
@@ -89,10 +93,10 @@ export default {
 
         return monitorSla;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // check if we are only setting default sla
         // or using update modal for editing the details
@@ -194,7 +198,7 @@ export default {
 
         return updatedMonitorSla;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         const deletedSla = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
@@ -208,16 +212,16 @@ export default {
 
         return deletedSla;
     },
-    hardDelete: async function (query: $TSFixMe) {
+    hardDelete: async function (query: Query) {
         await MonitorSlaModel.deleteMany(query);
         return 'Monitor SLA(s) deleted successfully';
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await MonitorSlaModel.countDocuments(query);
         return count;
     },

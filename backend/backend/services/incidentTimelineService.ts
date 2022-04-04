@@ -62,7 +62,7 @@ export default {
         return incidentTimeline;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -94,7 +94,7 @@ export default {
         return incidentTimeline;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -124,11 +124,12 @@ export default {
 
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -142,9 +143,9 @@ export default {
 
         let incidentTimelinesQuery = IncidentTimelineModel.find(query)
             .lean()
-            .sort({ createdAt: 1 })
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         incidentTimelinesQuery = handleSelect(select, incidentTimelinesQuery);
         incidentTimelinesQuery = handlePopulate(
@@ -157,13 +158,15 @@ export default {
         return incidentTimelines;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
 
-        let incidentTimelineQuery = IncidentTimelineModel.findOne(query).lean();
+        let incidentTimelineQuery = IncidentTimelineModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         incidentTimelineQuery = handleSelect(select, incidentTimelineQuery);
         incidentTimelineQuery = handlePopulate(populate, incidentTimelineQuery);
@@ -172,7 +175,7 @@ export default {
         return incidentTimeline;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -215,7 +218,7 @@ export default {
         timelines = flattenArray(timelines);
         return timelines;
     },
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -246,3 +249,6 @@ import ErrorService from 'common-server/utils/error';
 import flattenArray from '../utils/flattenArray';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

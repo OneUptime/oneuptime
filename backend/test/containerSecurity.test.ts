@@ -26,7 +26,7 @@ describe('Container Security API', function () {
     const timeout = 30000;
     let projectId: $TSFixMe,
         componentId: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         token: $TSFixMe,
         containerSecurityId: $TSFixMe,
         credentialId: $TSFixMe;

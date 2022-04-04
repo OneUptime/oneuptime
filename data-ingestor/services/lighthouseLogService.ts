@@ -3,7 +3,7 @@ import probeService from './probeService';
 import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';
 import MonitorService from './monitorService';
-
+import Query from 'common-server/types/db/Query';
 import { post } from '../utils/api';
 import moment from 'moment';
 
@@ -40,7 +40,7 @@ export default {
         return savedLog;
     },
 
-    findOneBy: async function (query: $TSFixMe) {
+    findOneBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -89,7 +89,7 @@ export default {
         }
     },
 
-    updateManyBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateManyBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -105,7 +105,7 @@ export default {
         return lighthouseLog;
     },
 
-    async updateAllLighthouseLogs(monitorId: $TSFixMe, query: $TSFixMe) {
+    async updateAllLighthouseLogs(monitorId: $TSFixMe, query: Query) {
         await this.updateManyBy({ monitorId: monitorId }, query);
     },
 };

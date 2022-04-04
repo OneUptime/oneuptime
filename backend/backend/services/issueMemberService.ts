@@ -29,12 +29,12 @@ export default {
         return issueMember;
     },
     // find a list of Members assigned to an Issue
-    async findBy({ query, select, populate }: $TSFixMe) {
+    async findBy({ query, select, populate, sort }: FindBy) {
         if (!query) {
             query = {};
         }
 
-        let issuesQuery = IssueMemberModel.find(query).lean();
+        let issuesQuery = IssueMemberModel.find(query).sort(sort).lean();
 
         issuesQuery = handleSelect(select, issuesQuery);
         issuesQuery = handlePopulate(populate, issuesQuery);
@@ -42,12 +42,14 @@ export default {
         const issues = await issuesQuery;
         return issues;
     },
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        let issueMemberQuery = IssueMemberModel.findOne(query).lean();
+        let issueMemberQuery = IssueMemberModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         issueMemberQuery = handleSelect(select, issueMemberQuery);
         issueMemberQuery = handlePopulate(populate, issueMemberQuery);
@@ -57,7 +59,7 @@ export default {
         return issueMember;
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
@@ -105,3 +107,6 @@ export default {
 import IssueMemberModel from 'common-server/models/issueMember';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

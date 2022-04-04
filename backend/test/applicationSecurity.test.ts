@@ -26,7 +26,7 @@ describe('Application Security API', function () {
     const timeout = 300000;
     let projectId: $TSFixMe,
         componentId: $TSFixMe,
-        userId: $TSFixMe,
+        userId: string,
         token: $TSFixMe,
         applicationSecurityId: $TSFixMe,
         credentialId: $TSFixMe;

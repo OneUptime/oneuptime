@@ -29,8 +29,11 @@ import IncomingRequestService from './incomingRequestService';
 import componentService from './componentService';
 import getSlug from '../utils/getSlug';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import Query from 'common-server/types/db/Query';
 import handleSelect from '../utils/select';
 import PositiveNumber from 'common/types/positive-number';
+import FindBy from 'common-server/types/db/FindBy';
 
 export default {
     //Description: Upsert function for monitor.
@@ -88,7 +91,7 @@ export default {
         ]);
         let userCount = 0;
         if (subProjects && subProjects.length > 0) {
-            const userId: $TSFixMe = [];
+            const userId: string = [];
             subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
             subProjects.map((subProject: $TSFixMe) => {
                 subProject.users.map((user: $TSFixMe) => {
@@ -415,7 +418,7 @@ export default {
     },
 
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData: $TSFixMe
     ) {
@@ -425,7 +428,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         await this.updateMonitorSlaStat(query);
 
@@ -509,12 +512,12 @@ export default {
         return monitor;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await MonitorModel.updateMany(query, {
             $set: data,
         });
@@ -534,12 +537,12 @@ export default {
 
     // To be used to know the current status of a monitor
     // online, offline or degraded
-    updateAllMonitorStatus: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateAllMonitorStatus: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const updatedData = await MonitorModel.updateMany(query, {
             $set: data,
         });
@@ -550,7 +553,7 @@ export default {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    async findBy({ query, limit, skip, populate = null, select }: $TSFixMe) {
+    async findBy({ query, limit, skip, sort, populate, select }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -567,13 +570,13 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let monitorQuery = MonitorModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         monitorQuery = handleSelect(select, monitorQuery);
         monitorQuery = handlePopulate(populate, monitorQuery);
@@ -582,14 +585,14 @@ export default {
         return monitors;
     },
 
-    async findOneBy({ query, populate, select }: $TSFixMe) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let monitorQuery = MonitorModel.findOne(query).lean();
+        let monitorQuery = MonitorModel.findOne(query).sort(sort).lean();
 
         monitorQuery = handleSelect(select, monitorQuery);
         monitorQuery = handlePopulate(populate, monitorQuery);
@@ -598,17 +601,17 @@ export default {
         return monitor;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await MonitorModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -1112,8 +1115,8 @@ export default {
                 },
             ],
         })
-            .limit(limit)
-            .skip(skip);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         // update state of selected script monitors to inProgress
         if (monitors && monitors.length) {
@@ -1413,7 +1416,7 @@ export default {
         return probeStatuses;
     },
 
-    addSeat: async function (query: $TSFixMe) {
+    addSeat: async function (query: Query) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -1436,7 +1439,7 @@ export default {
         return 'A new seat added. Now you can add a monitor';
     },
 
-    addSiteUrl: async function (query: $TSFixMe, data: $TSFixMe) {
+    addSiteUrl: async function (query: Query, data: $TSFixMe) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
 
         if (
@@ -1457,7 +1460,7 @@ export default {
         return monitor;
     },
 
-    removeSiteUrl: async function (query: $TSFixMe, data: $TSFixMe) {
+    removeSiteUrl: async function (query: Query, data: $TSFixMe) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
         const siteUrlIndex =
             monitor.siteUrls && monitor.siteUrls.length > 0
@@ -1481,7 +1484,7 @@ export default {
         return monitor;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await MonitorModel.deleteMany(query);
         return 'Monitor(s) removed successfully!';
     },
@@ -1608,7 +1611,7 @@ export default {
         return times;
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
         const select = '_id';
@@ -1645,7 +1648,7 @@ export default {
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
-    updateMonitorSlaStat: async function (query: $TSFixMe) {
+    updateMonitorSlaStat: async function (query: Query) {
         const _this = this;
         const currentDate = moment().format();
         let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
@@ -1947,7 +1950,7 @@ export default {
     closeBreachedMonitorSla: async function (
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
-        userId: $TSFixMe
+        userId: string
     ) {
         const monitor = await MonitorModel.findOneAndUpdate(
             {

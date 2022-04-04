@@ -142,7 +142,7 @@ const Services = {
         return { projectDeleted: true };
     },
 
-    charges: async function (userId: $TSFixMe) {
+    charges: async function (userId: string) {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -155,7 +155,7 @@ const Services = {
     },
 
     creditCard: {
-        create: async function (tok: $TSFixMe, userId: $TSFixMe) {
+        create: async function (tok: $TSFixMe, userId: string) {
             const [tokenCard, cards] = await Promise.all([
                 stripe.tokens.retrieve(tok),
 
@@ -209,7 +209,7 @@ const Services = {
             }
         },
 
-        update: async function (userId: $TSFixMe, cardId: $TSFixMe) {
+        update: async function (userId: string, cardId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -221,7 +221,7 @@ const Services = {
             return card;
         },
 
-        delete: async function (cardId: $TSFixMe, userId: $TSFixMe) {
+        delete: async function (cardId: $TSFixMe, userId: string) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -242,7 +242,7 @@ const Services = {
             return card;
         },
 
-        get: async function (userId: $TSFixMe, cardId: $TSFixMe) {
+        get: async function (userId: string, cardId: $TSFixMe) {
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
@@ -274,7 +274,7 @@ const Services = {
         },
     },
     chargeCustomerForBalance: async function (
-        userId: $TSFixMe,
+        userId: string,
         chargeAmount: $TSFixMe,
         projectId: $TSFixMe,
         alertOptions: $TSFixMe
@@ -372,7 +372,7 @@ const Services = {
         return false;
     },
     addBalance: async function (
-        userId: $TSFixMe,
+        userId: string,
         chargeAmount: $TSFixMe,
         projectId: $TSFixMe
     ) {

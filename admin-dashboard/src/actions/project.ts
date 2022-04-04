@@ -399,7 +399,7 @@ export const resetTeamDelete = () => {
 
 // Calls the API to fetch all user projects.
 export const fetchUserProjects =
-    (userId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
+    (userId: string, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;

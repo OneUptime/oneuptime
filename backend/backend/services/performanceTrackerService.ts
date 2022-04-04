@@ -10,6 +10,9 @@ import NotificationService from './notificationService';
 import uuid from 'uuid';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -74,9 +77,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -92,13 +96,13 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let performanceTrackerQuery = PerformanceTrackerModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .skip(skip)
-            .limit(limit);
+            .sort(sort)
+            .skip(skip.toNumber())
+            .limit(limit.toNumber());
         performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
         performanceTrackerQuery = handlePopulate(
             populate,
@@ -109,11 +113,11 @@ export default {
         return performanceTracker;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         // .populate({
         //     path: 'componentId',
@@ -125,8 +129,9 @@ export default {
         // })
         // .populate('createdById', 'name email');
 
-        let performanceTrackerQuery =
-            PerformanceTrackerModel.findOne(query).lean();
+        let performanceTrackerQuery = PerformanceTrackerModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
         performanceTrackerQuery = handlePopulate(
@@ -178,7 +183,7 @@ export default {
         });
         return performanceTracker;
     },
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -223,14 +228,14 @@ export default {
         }
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (data && data.name) {
             let name = data.name;
@@ -277,15 +282,15 @@ export default {
 
         return performanceTracker;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await PerformanceTrackerModel.deleteMany(query);
         return 'Performance Tracker removed successfully!';
     },
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         const count = await PerformanceTrackerModel.countDocuments(query);
         return count;

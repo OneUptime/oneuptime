@@ -21,7 +21,7 @@ import testUtils from './utils/test-utils';
 
 testUtils.setShared({ request });
 let adminId: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     adminAuthorizationHeader: $TSFixMe,
     projectId1: $TSFixMe,
     projectId2: $TSFixMe,

@@ -1,10 +1,12 @@
+import Query from 'common-server/types/db/Query';
+
 export default {
     //Description: Get all team members of Project or Subproject.
     //Params:
     //Param 1: projectId: Project id.
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
-    getTeamMembersBy: async function (query: $TSFixMe) {
+    getTeamMembersBy: async function (query: Query) {
         let projectMembers: $TSFixMe = [];
 
         const projects = await ProjectService.findBy({
@@ -67,7 +69,7 @@ export default {
 
     getTeamMemberBy: async function (
         projectId: $TSFixMe,
-        teamMemberUserId: $TSFixMe
+        teamMemberUserId: string
     ) {
         let index;
         let subProject = null;
@@ -150,7 +152,7 @@ export default {
     //Param 3: role: Role set by Admin.
     //Returns: promise
     inviteTeamMembers: async function (
-        addedByUserId: $TSFixMe,
+        addedByUserId: string,
         projectId: $TSFixMe,
         emails: $TSFixMe,
         role: $TSFixMe
@@ -581,8 +583,8 @@ export default {
     //Returns: promise
     removeTeamMember: async function (
         projectId: $TSFixMe,
-        userId: $TSFixMe,
-        teamMemberUserId: $TSFixMe
+        userId: string,
+        teamMemberUserId: string
     ) {
         const _this = this;
         let index;
@@ -765,8 +767,8 @@ export default {
     //Returns: promise
     updateTeamMemberRole: async function (
         projectId: $TSFixMe,
-        userId: $TSFixMe,
-        teamMemberUserId: $TSFixMe,
+        userId: string,
+        teamMemberUserId: string,
         role: $TSFixMe
     ) {
         const _this = this;

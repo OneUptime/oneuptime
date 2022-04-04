@@ -6,35 +6,13 @@ export default {
         sort,
         select,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) {
-            query = {};
-        }
-
-        if (!sort) {
-            sort = { createdAt: 'desc' };
-        }
-
-        if (!query.deleted) query.deleted = false;
-        // const items = await CallLogsModel.find(query)
-        //     .lean()
-        //     .limit(limit)
-        //     .skip(skip)
-        //     .sort(sort)
-        //     .populate('projectId', 'name');
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
 
         let itemQuery = CallLogsModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .sort(sort);
         itemQuery = handleSelect(select, itemQuery);
         itemQuery = handlePopulate(populate, itemQuery);
@@ -69,17 +47,17 @@ export default {
         return item;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await CallLogsModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -119,3 +97,5 @@ export default {
 import CallLogsModel from 'common-server/models/callLogs';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

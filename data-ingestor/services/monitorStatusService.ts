@@ -1,6 +1,6 @@
 const monitorStatusCollection = global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
-
+import Query from 'common-server/types/db/Query';
 import { post } from '../utils/api';
 import MonitorService from './monitorService';
 import moment from 'moment';
@@ -78,7 +78,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -93,7 +93,7 @@ export default {
         return updatedMonitorStatus;
     },
 
-    findOneBy: async function (query: $TSFixMe) {
+    findOneBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
@@ -105,27 +105,15 @@ export default {
         return monitorStatus;
     },
 
-    findBy: async function ({ query, limit, skip }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) {
-            query = {};
-        }
-
+    findBy: async function ({ query, limit, skip, sort }: $TSFixMe) {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
         const incidents = await monitorStatusCollection
             .find(query)
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 })
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort)
             .toArray();
 
         return incidents;

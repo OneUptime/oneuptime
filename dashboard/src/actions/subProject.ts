@@ -298,7 +298,7 @@ export const exitSubProjectRequest = () => {
     };
 };
 
-export const exitSubProjectSuccess = (userId: $TSFixMe) => {
+export const exitSubProjectSuccess = (userId: string) => {
     return {
         type: types.EXIT_SUBPROJECT_SUCCESS,
         payload: userId,
@@ -315,7 +315,7 @@ export const exitSubProjectError = (error: ErrorPayload) => {
 export function exitSubProject(
     projectId: $TSFixMe,
     subProjectId: $TSFixMe,
-    userId: $TSFixMe
+    userId: string
 ) {
     return function (dispatch: Dispatch) {
         const promise =

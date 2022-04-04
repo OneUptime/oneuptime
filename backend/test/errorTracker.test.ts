@@ -15,7 +15,7 @@ import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     componentId: $TSFixMe,
     errorTracker: $TSFixMe,

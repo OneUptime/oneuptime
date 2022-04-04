@@ -1,6 +1,6 @@
 const incidentCollection = global.db.collection('incidents');
 import { ObjectId } from 'mongodb';
-
+import Query from 'common-server/types/db/Query';
 import { post } from '../utils/api';
 
 import { realtimeUrl } from '../utils/config';
@@ -9,27 +9,15 @@ import ProjectService from './projectService';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    findBy: async function ({ query, limit, skip }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) {
-            query = {};
-        }
-
+    findBy: async function ({ query, limit, skip, sort }: $TSFixMe) {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
         const incidents = await incidentCollection
             .find(query)
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 })
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort)
             .toArray();
 
         return incidents;
@@ -51,7 +39,7 @@ export default {
         return incident;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }

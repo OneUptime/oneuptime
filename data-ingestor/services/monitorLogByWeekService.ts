@@ -1,3 +1,5 @@
+import Query from 'common-server/types/db/Query';
+
 export default {
     create: async function (data: $TSFixMe) {
         const LogWeek = {};
@@ -60,7 +62,7 @@ export default {
         return savedLogWeek;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -76,7 +78,7 @@ export default {
         return monitorLogByWeek;
     },
 
-    async findOneBy(query: $TSFixMe) {
+    async findOneBy(query: Query) {
         if (!query) {
             query = {};
         }

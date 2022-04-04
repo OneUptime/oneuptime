@@ -4,14 +4,19 @@ import GitCredentialModel from 'common-server/models/gitCredential';
 import { encrypt } from '../config/encryptDecrypt';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
 import fs from 'fs';
 
 export default {
-    findOneBy: async function ({ query, populate, select }: $TSFixMe) {
+    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
         if (!query) query = {};
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
-        let gitCredentialQuery = GitCredentialModel.findOne(query).lean();
+        let gitCredentialQuery = GitCredentialModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         gitCredentialQuery = handleSelect(select, gitCredentialQuery);
         gitCredentialQuery = handlePopulate(populate, gitCredentialQuery);
@@ -24,9 +29,10 @@ export default {
         query,
         limit,
         skip,
-        select,
         populate,
-    }: $TSFixMe) {
+        select,
+        sort,
+    }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -37,13 +43,13 @@ export default {
 
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         let gitCredentialsQuery = GitCredentialModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip)
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
             .populate('projectId');
 
         gitCredentialsQuery = handleSelect(select, gitCredentialsQuery);
@@ -102,10 +108,10 @@ export default {
             return response;
         }
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (data.gitPassword) {
             const iv = Crypto.randomBytes(16);
@@ -150,7 +156,7 @@ export default {
 
         return gitCredential;
     },
-    deleteBy: async function (query: $TSFixMe) {
+    deleteBy: async function (query: Query) {
         let gitCredential = await this.findOneBy({ query, select: '_id' });
 
         if (!gitCredential) {
@@ -169,7 +175,7 @@ export default {
 
         return gitCredential;
     },
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await GitCredentialModel.deleteMany(query);
         return 'Git credential(s) successfully deleted';
     },

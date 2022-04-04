@@ -67,18 +67,18 @@ export default {
         return errorTracker;
     },
 
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await ErrorTrackerModel.countDocuments(query);
         return count;
     },
 
     // find a list of error trackers
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -95,12 +95,12 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let errorTrackersQuery = ErrorTrackerModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
 
         errorTrackersQuery = handleSelect(select, errorTrackersQuery);
         errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
@@ -108,13 +108,15 @@ export default {
         return result;
     },
     // find a particular error tracker
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
-        let errorTrackersQuery = ErrorTrackerModel.findOne(query).lean();
+        if (!query['deleted']) query['deleted'] = false;
+        let errorTrackersQuery = ErrorTrackerModel.findOne(query)
+            .sort(sort)
+            .lean();
         errorTrackersQuery = handleSelect(select, errorTrackersQuery);
         errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
         const result = await errorTrackersQuery;
@@ -160,7 +162,7 @@ export default {
 
         return { errorTrackers, count, skip, limit };
     },
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -196,7 +198,7 @@ export default {
         }
     },
     updateOneBy: async function (
-        query: $TSFixMe,
+        query: Query,
         data: $TSFixMe,
         unsetData = null
     ) {
@@ -204,7 +206,7 @@ export default {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -251,3 +253,6 @@ import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

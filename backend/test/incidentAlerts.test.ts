@@ -71,7 +71,7 @@ const sleep = (waitTimeInMs: $TSFixMe) =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let authorization: $TSFixMe,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,

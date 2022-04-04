@@ -42,20 +42,20 @@ export default {
 
         return savedErrorEvent;
     },
-    async findOneBy({ query, select, populate }: $TSFixMe) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
 
         if (!query.deleted) delete query.deleted;
-        let errorEventQuery = ErrorEventModel.findOne(query).lean();
+        let errorEventQuery = ErrorEventModel.findOne(query).sort(sort).lean();
         errorEventQuery = handleSelect(select, errorEventQuery);
         errorEventQuery = handlePopulate(populate, errorEventQuery);
         const result = await errorEventQuery;
         return result;
     },
     // get all error events that matches the specified query
-    async findBy({ query, limit, skip, select, populate }: $TSFixMe) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -75,9 +75,9 @@ export default {
         if (!query.deleted) delete query.deleted;
         let errorEventsQuery = ErrorEventModel.find(query)
             .lean()
-            .sort([['createdAt', -1]])
-            .limit(limit)
-            .skip(skip);
+            .sort(sort)
+            .limit(limit.toNumber())
+            .skip(skip.toNumber());
         errorEventsQuery = handleSelect(select, errorEventsQuery);
         errorEventsQuery = handlePopulate(populate, errorEventsQuery);
         const result = await errorEventsQuery;
@@ -85,26 +85,10 @@ export default {
     },
     // get all error events that matches the specified query
     async findDistinct(
-        query: $TSFixMe,
+        query: Query,
         limit: PositiveNumber,
         skip: PositiveNumber
     ) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 10;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
         if (!query.deleted) delete query.deleted;
         // get all unique hashes by error tracker Id
 
@@ -355,7 +339,7 @@ export default {
             totalEvents: totalEvents,
         };
     },
-    async countBy(query: $TSFixMe) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -364,12 +348,12 @@ export default {
 
         return count;
     },
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let errorEvent = await ErrorEventModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -388,12 +372,12 @@ export default {
 
         return errorEvent;
     },
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const updateProcess = await ErrorEventModel.updateMany(query, {
             $set: data,
         });
@@ -409,3 +393,6 @@ import IssueTimelineService from './issueTimelineService';
 import moment from 'moment';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';

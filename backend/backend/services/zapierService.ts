@@ -1,10 +1,10 @@
 export default {
-    findBy: async function ({ query, select, populate }: $TSFixMe) {
+    findBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
-        let zapierQuery = ZapierModel.find(query).lean();
+        let zapierQuery = ZapierModel.find(query).sort(sort).lean();
 
         zapierQuery = handleSelect(select, zapierQuery);
         zapierQuery = handlePopulate(populate, zapierQuery);
@@ -931,7 +931,7 @@ export default {
         }
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await ZapierModel.deleteMany(query);
         return 'Zapier(s) removed successfully';
     },
@@ -951,3 +951,5 @@ import IncidentMessageService from '../services/incidentMessageService';
 import IncidentMessageModel from 'common-server/models/incidentMessage';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import Query from 'common-server/types/db/Query';

@@ -42,7 +42,7 @@ const sleep = (waitTimeInMs: $TSFixMe) =>
 
 let authorization: $TSFixMe,
     token,
-    userId: $TSFixMe,
+    userId: string,
     projectId: $TSFixMe,
     componentId,
     monitorId: $TSFixMe,

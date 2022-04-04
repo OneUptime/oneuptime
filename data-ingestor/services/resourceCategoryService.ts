@@ -2,7 +2,7 @@ const resourceCategoryCollection = global.db.collection('resourcecategories');
 import { ObjectId } from 'mongodb';
 
 export default {
-    findBy: async function ({ query, limit, skip }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip, sort }: $TSFixMe) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -24,9 +24,9 @@ export default {
 
         let resourceCategories = await resourceCategoryCollection
             .find(query)
-            .limit(limit)
-            .skip(skip)
-            .sort({ createdAt: -1 })
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort)
             .toArray();
 
         resourceCategories = resourceCategories.map(

@@ -2,27 +2,22 @@ import PositiveNumber from 'common/types/positive-number';
 export default {
     findBy: async function ({
         query,
-        skip,
         limit,
-        select,
+        skip,
         populate,
-    }: $TSFixMe) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = parseInt(skip);
-
-        if (typeof limit === 'string') limit = parseInt(limit);
-
-        if (!query) query = {};
-
-        if (!query.deleted) query.deleted = false;
+        select,
+        sort = [
+            {
+                lastActive: SortOrder.Descending,
+            },
+        ],
+    }: FindBy) {
+        if (!query['deleted']) query['deleted'] = false;
         let userQuery = UserModel.find(query)
             .lean()
-            .limit(limit)
-            .skip(skip)
-            .sort([['lastActive', -1]]);
+            .limit(limit.toNumber())
+            .skip(skip.toNumber())
+            .sort(sort);
 
         userQuery = handleSelect(select, userQuery);
         userQuery = handlePopulate(populate, userQuery);
@@ -102,17 +97,17 @@ export default {
         return user;
     },
 
-    countBy: async function (query: $TSFixMe) {
+    countBy: async function (query: Query) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         const count = await UserModel.countDocuments(query);
         return count;
     },
 
-    deleteBy: async function (query: $TSFixMe, userId: $TSFixMe) {
+    deleteBy: async function (query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -134,14 +129,12 @@ export default {
         return user;
     },
 
-    findOneBy: async function ({ query, select, populate }: $TSFixMe) {
+    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
-        if (!query.deleted) query.deleted = false;
-        let userQuery = UserModel.findOne(query)
-            .lean()
-            .sort([['createdAt', -1]]);
+        if (!query['deleted']) query['deleted'] = false;
+        let userQuery = UserModel.findOne(query).sort(sort).lean().sort(sort);
 
         userQuery = handleSelect(select, userQuery);
         userQuery = handlePopulate(populate, userQuery);
@@ -198,12 +191,12 @@ export default {
         return user;
     },
 
-    updateOneBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
 
         if (data.role) delete data.role;
         if (data.airtableId) delete data.airtableId;
@@ -226,12 +219,12 @@ export default {
         return updatedUser;
     },
 
-    updateBy: async function (query: $TSFixMe, data: $TSFixMe) {
+    updateBy: async function (query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
 
-        if (!query.deleted) query.deleted = false;
+        if (!query['deleted']) query['deleted'] = false;
         let updatedData = await UserModel.updateMany(query, {
             $set: data,
         });
@@ -266,7 +259,7 @@ export default {
     },
 
     closeTutorialBy: async function (
-        query: $TSFixMe,
+        query: Query,
         type: $TSFixMe,
         data: $TSFixMe,
         projectId: $TSFixMe
@@ -479,7 +472,7 @@ export default {
         return isValid;
     },
 
-    generateTwoFactorSecret: async function (userId: $TSFixMe) {
+    generateTwoFactorSecret: async function (userId: string) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -502,7 +495,7 @@ export default {
         return { otpauth_url: secretCode.otpauth_url };
     },
 
-    verifyAuthToken: async function (token: $TSFixMe, userId: $TSFixMe) {
+    verifyAuthToken: async function (token: $TSFixMe, userId: string) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -783,7 +776,7 @@ export default {
 
     // Description: replace password temporarily in "admin mode"
     switchToAdminMode: async function (
-        userId: $TSFixMe,
+        userId: string,
         temporaryPassword: $TSFixMe
     ) {
         if (!temporaryPassword) {
@@ -833,7 +826,7 @@ export default {
     },
 
     // Descripiton: revert from admin mode and replce user password
-    exitAdminMode: async function (userId: $TSFixMe) {
+    exitAdminMode: async function (userId: string) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -1007,7 +1000,7 @@ export default {
         return users;
     },
 
-    restoreBy: async function (query: $TSFixMe) {
+    restoreBy: async function (query: Query) {
         const _this = this;
         query.deleted = true;
 
@@ -1040,7 +1033,7 @@ export default {
         }
     },
 
-    addNotes: async function (userId: $TSFixMe, notes: $TSFixMe) {
+    addNotes: async function (userId: string, notes: $TSFixMe) {
         const _this = this;
         const user = await _this.updateOneBy(
             {
@@ -1054,7 +1047,7 @@ export default {
     },
 
     searchUsers: async function (
-        query: $TSFixMe,
+        query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
@@ -1114,7 +1107,7 @@ export default {
         return users;
     },
 
-    hardDeleteBy: async function (query: $TSFixMe) {
+    hardDeleteBy: async function (query: Query) {
         await UserModel.deleteMany(query);
         return 'User(s) Removed Successfully!';
     },
@@ -1157,3 +1150,7 @@ import { hotp } from 'otplib';
 import LoginHistoryService from './loginHistoryService';
 import handleSelect from '../utils/select';
 import handlePopulate from '../utils/populate';
+import FindOneBy from 'common-server/types/db/FindOneBy';
+import FindBy from 'common-server/types/db/FindBy';
+import Query from 'common-server/types/db/Query';
+import SortOrder from 'common-server/types/db/SortOrder';

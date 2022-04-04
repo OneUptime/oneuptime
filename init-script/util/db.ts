@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 const url = process.env['MONGO_URL'] || 'mongodb://localhost/oneuptimedb';
-
+import Query from 'common-server/types/db/Query';
 global.client = global.client || MongoClient;
 
 async function connectToDb() {
@@ -28,32 +28,28 @@ async function save(collection: $TSFixMe, docs: $TSFixMe) {
     return global.db.collection(collection).insertMany(docs);
 }
 
-async function update(collection: $TSFixMe, query: $TSFixMe, value: $TSFixMe) {
+async function update(collection: $TSFixMe, query: Query, value: $TSFixMe) {
     return global.db.collection(collection).updateOne(query, { $set: value });
 }
 
-async function updateMany(
-    collection: $TSFixMe,
-    query: $TSFixMe,
-    value: $TSFixMe
-) {
+async function updateMany(collection: $TSFixMe, query: Query, value: $TSFixMe) {
     return global.db.collection(collection).updateMany(query, { $set: value });
 }
 
 async function customUpdate(
     collection: $TSFixMe,
-    query: $TSFixMe,
+    query: Query,
     value: $TSFixMe
 ) {
     return global.db.collection(collection).updateMany(query, value);
 }
-async function removeMany(collection: $TSFixMe, query: $TSFixMe) {
+async function removeMany(collection: $TSFixMe, query: Query) {
     return global.db.collection(collection).remove(query, { multi: true });
 }
 
 async function removeField(
     collection: $TSFixMe,
-    query: $TSFixMe,
+    query: Query,
     field: $TSFixMe
 ) {
     return global.db
@@ -62,7 +58,7 @@ async function removeField(
 }
 async function removeFieldsFromMany(
     collection: $TSFixMe,
-    query: $TSFixMe,
+    query: Query,
     field: $TSFixMe
 ) {
     return global.db
