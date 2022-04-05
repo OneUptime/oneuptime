@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const twilioSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true }, //which project does this belong to.
     accountSid: String,
     authToken: String,
@@ -21,4 +21,7 @@ const twilioSchema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
 });
-export default mongoose.model('Twilio', twilioSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Twilio', schema);

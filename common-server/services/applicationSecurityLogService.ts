@@ -1,9 +1,8 @@
-import ApplicationSecurityLogModel from 'common-server/models/applicationSecurityLog';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import ApplicationSecurityLogModel from '../models/applicationSecurityLog';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function ({ securityId, componentId, data }: $TSFixMe) {
@@ -53,12 +52,12 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let securityLogQuery = ApplicationSecurityLogModel.findOne(query)
+        const securityLogQuery = ApplicationSecurityLogModel.findOne(query)
             .sort(sort)
             .lean();
 
-        securityLogQuery = handleSelect(select, securityLogQuery);
-        securityLogQuery = handlePopulate(populate, securityLogQuery);
+        securityLogQuery.select(select);
+        securityLogQuery.populate(populate);
 
         const securityLog = await securityLogQuery;
         return securityLog;
@@ -73,14 +72,14 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let securityLogsQuery = ApplicationSecurityLogModel.find(query)
+        const securityLogsQuery = ApplicationSecurityLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        securityLogsQuery = handleSelect(select, securityLogsQuery);
-        securityLogsQuery = handlePopulate(populate, securityLogsQuery);
+        securityLogsQuery.select(select);
+        securityLogsQuery.populate(populate);
 
         const securityLogs = await securityLogsQuery;
         return securityLogs;

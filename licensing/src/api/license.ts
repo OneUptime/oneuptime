@@ -2,7 +2,7 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/Express';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 const router = Express.getRouter();
 import {
     sendErrorResponse,

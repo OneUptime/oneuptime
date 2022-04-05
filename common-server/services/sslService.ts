@@ -1,9 +1,8 @@
-import SslModel from 'common-server/models/ssl';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import SslModel from '../models/ssl';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -15,10 +14,10 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let sslChallengeQuery = SslModel.findOne(query).sort(sort).lean();
+        const sslChallengeQuery = SslModel.findOne(query).sort(sort).lean();
 
-        sslChallengeQuery = handleSelect(select, sslChallengeQuery);
-        sslChallengeQuery = handlePopulate(populate, sslChallengeQuery);
+        sslChallengeQuery.select(select);
+        sslChallengeQuery.populate(populate);
 
         const sslChallenge = await sslChallengeQuery;
         return sslChallenge;
@@ -43,14 +42,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let sslChallengeQuery = SslModel.find(query)
+        const sslChallengeQuery = SslModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        sslChallengeQuery = handleSelect(select, sslChallengeQuery);
-        sslChallengeQuery = handlePopulate(populate, sslChallengeQuery);
+        sslChallengeQuery.select(select);
+        sslChallengeQuery.populate(populate);
 
         const sslChallenges = await sslChallengeQuery;
         return sslChallenges;

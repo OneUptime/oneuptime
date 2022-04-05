@@ -1,13 +1,12 @@
-import IssueModel from 'common-server/models/issue';
+import IssueModel from '../models/issue';
 import sha256 from 'crypto-js/sha256';
-import ComponentService from './componentService';
+import ComponentService from './ComponentService';
 import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import NotificationService from './NotificationService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -67,14 +66,14 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let issuesQuery = IssueModel.find(query)
+        const issuesQuery = IssueModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        issuesQuery = handleSelect(select, issuesQuery);
-        issuesQuery = handlePopulate(populate, issuesQuery);
+        issuesQuery.select(select);
+        issuesQuery.populate(populate);
 
         const issues = await issuesQuery;
 
@@ -87,10 +86,10 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let issueQuery = IssueModel.findOne(query).sort(sort).lean();
+        const issueQuery = IssueModel.findOne(query).sort(sort).lean();
 
-        issueQuery = handleSelect(select, issueQuery);
-        issueQuery = handlePopulate(populate, issueQuery);
+        issueQuery.select(select);
+        issueQuery.populate(populate);
 
         const issue = await issueQuery;
         return issue;

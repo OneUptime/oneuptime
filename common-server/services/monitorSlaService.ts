@@ -1,10 +1,9 @@
-import MonitorSlaModel from 'common-server/models/monitorSla';
-import MonitorService from './monitorService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import MonitorSlaModel from '../models/monitorSla';
+import MonitorService from './MonitorService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -52,10 +51,12 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let monitorSlaQuery = MonitorSlaModel.findOne(query).sort(sort).lean();
+        const monitorSlaQuery = MonitorSlaModel.findOne(query)
+            .sort(sort)
+            .lean();
 
-        monitorSlaQuery = handleSelect(select, monitorSlaQuery);
-        monitorSlaQuery = handlePopulate(populate, monitorSlaQuery);
+        monitorSlaQuery.select(select);
+        monitorSlaQuery.populate(populate);
 
         const monitorSla = await monitorSlaQuery;
         return monitorSla;
@@ -80,14 +81,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let monitorSlaQuery = MonitorSlaModel.find(query)
+        const monitorSlaQuery = MonitorSlaModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        monitorSlaQuery = handleSelect(select, monitorSlaQuery);
-        monitorSlaQuery = handlePopulate(populate, monitorSlaQuery);
+        monitorSlaQuery.select(select);
+        monitorSlaQuery.populate(populate);
 
         const monitorSla = await monitorSlaQuery;
 

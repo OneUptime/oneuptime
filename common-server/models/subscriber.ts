@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const subscriberSchema = new Schema({
+const schema = new Schema({
     monitorId: { type: Schema.Types.ObjectId, ref: 'Monitor', index: true },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
     statusPageId: {
@@ -36,4 +36,7 @@ const subscriberSchema = new Schema({
     subscribed: { type: Boolean, default: true },
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
-export default mongoose.model('Subscriber', subscriberSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Subscriber', schema);

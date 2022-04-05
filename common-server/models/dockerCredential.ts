@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const dockerCredentialSchema = new Schema(
+const schema = new Schema(
     {
         dockerRegistryurl: URL,
         dockerUsername: String,
@@ -17,5 +17,6 @@ const dockerCredentialSchema = new Schema(
     },
     { timestamps: true }
 );
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('DockerCredential', dockerCredentialSchema);
+export default mongoose.model('DockerCredential', schema);

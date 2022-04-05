@@ -38,4 +38,4 @@ export default {
 import payment from '../config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
-import UserService from './userService';
+import UserService from './UserService';

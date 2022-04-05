@@ -9,13 +9,13 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let callRoutingLogQuery = CallRoutingLogModel.find(query)
+        const callRoutingLogQuery = CallRoutingLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        callRoutingLogQuery = handleSelect(select, callRoutingLogQuery);
-        callRoutingLogQuery = handlePopulate(populate, callRoutingLogQuery);
+        callRoutingLogQuery.select(select);
+        callRoutingLogQuery.populate(populate);
 
         const callRoutingLog = await callRoutingLogQuery;
         return callRoutingLog;
@@ -76,12 +76,12 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let logQuery = CallRoutingLogModel.findOne(query)
+        const logQuery = CallRoutingLogModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
-        logQuery = handleSelect(select, logQuery);
-        logQuery = handlePopulate(populate, logQuery);
+        logQuery.select(select);
+        logQuery.populate(populate);
 
         const log = await logQuery;
         return log;
@@ -128,9 +128,8 @@ export default {
     },
 };
 
-import CallRoutingLogModel from 'common-server/models/callRoutingLog';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import CallRoutingLogModel from '../models/callRoutingLog';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

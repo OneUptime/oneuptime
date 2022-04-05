@@ -2,7 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/status';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 import { loginRequired, loginError } from '../actions/login';
 import { probeRequest } from './probe';
 

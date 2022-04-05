@@ -3,10 +3,10 @@ import payment from '../config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 import Plans from '../config/plans';
-import ProjectService from './projectService';
-import ProjectModel from 'common-server/models/project';
-import StripeService from './stripeService';
-import NotificationService from './notificationService';
+import ProjectService from './ProjectService';
+import ProjectModel from '../models/project';
+import StripeService from './StripeService';
+import NotificationService from './NotificationService';
 import {
     getAlertChargeAmount,
     getCountryType,

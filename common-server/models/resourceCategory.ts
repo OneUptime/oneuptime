@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const resourceCategorySchema = new Schema({
+const schema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',
@@ -31,5 +31,6 @@ const resourceCategorySchema = new Schema({
         index: true,
     },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('ResourceCategory', resourceCategorySchema);
+export default mongoose.model('ResourceCategory', schema);

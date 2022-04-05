@@ -1,7 +1,7 @@
-import LeadsModel from 'common-server/models/lead';
-import MailService from './mailService';
-import AirtableService from './airtableService';
-import Query from 'common-server/types/db/Query';
+import LeadsModel from '../models/lead';
+import MailService from './MailService';
+import AirtableService from './AirtableService';
+import Query from '../types/db/Query';
 
 export default {
     //Description: Create new project for user.

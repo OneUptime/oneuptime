@@ -25,3 +25,7 @@ mongoose
     });
 
 export default mongoose;
+
+export interface Model<T> extends mongoose.Model<T> {}
+
+export interface RequiredFields extends Array<string> {}

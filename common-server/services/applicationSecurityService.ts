@@ -1,16 +1,15 @@
-import ApplicationSecurityModel from 'common-server/models/applicationSecurity';
+import ApplicationSecurityModel from '../models/applicationSecurity';
 import moment from 'moment';
 
 import { decrypt } from '../config/encryptDecrypt';
-import ApplicationSecurityLogService from './applicationSecurityLogService';
-import GitCredentialService from './gitCredentialService';
-import ResourceCategoryService from './resourceCategoryService';
+import ApplicationSecurityLogService from './ApplicationSecurityLogService';
+import GitCredentialService from './GitCredentialService';
+import ResourceCategoryService from './ResourceCategoryService';
 import getSlug from '../utils/getSlug';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 import RealTimeService from './realTimeService';
 
 export default {
@@ -79,18 +78,12 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
-        let applicationSecurityQuery =
+        const applicationSecurityQuery =
             ApplicationSecurityModel.findOne(query).sort(sort);
 
-        applicationSecurityQuery = handleSelect(
-            select,
-            applicationSecurityQuery
-        );
+        applicationSecurityQuery.select(select);
 
-        applicationSecurityQuery = handlePopulate(
-            populate,
-            applicationSecurityQuery
-        );
+        applicationSecurityQuery.populate(populate);
 
         const applicationSecurity = await applicationSecurityQuery;
         return applicationSecurity;
@@ -106,19 +99,13 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
-        let applicationSecuritiesQuery = ApplicationSecurityModel.find(query)
+        const applicationSecuritiesQuery = ApplicationSecurityModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        applicationSecuritiesQuery = handleSelect(
-            select,
-            applicationSecuritiesQuery
-        );
-        applicationSecuritiesQuery = handlePopulate(
-            populate,
-            applicationSecuritiesQuery
-        );
+        applicationSecuritiesQuery.select(select);
+        applicationSecuritiesQuery.populate(populate);
 
         const applicationSecurities = await applicationSecuritiesQuery;
         return applicationSecurities;

@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const integrationSchema = new Schema({
+const schema = new Schema({
     webHookName: { type: String },
     projectId: {
         type: Schema.Types.ObjectId,
@@ -44,6 +44,8 @@ const integrationSchema = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
 });
 
-integrationSchema.index({ projectId: 1, teamId: -1 });
+schema.index({ projectId: 1, teamId: -1 });
 
-export default mongoose.model('Integrations', integrationSchema);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Integrations', schema);

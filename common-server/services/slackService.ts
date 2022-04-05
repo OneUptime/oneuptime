@@ -299,9 +299,9 @@ export default {
     },
 };
 
-import IntegrationService from './integrationService';
+import IntegrationService from './IntegrationService';
 import axios from 'axios';
-import ProjectService from './projectService';
+import ProjectService from './ProjectService';
 import {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,

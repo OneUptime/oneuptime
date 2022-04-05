@@ -1,7 +1,7 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 // Fetch Projects
 
 export const fetchProjectsRequest = () => {

@@ -1,9 +1,9 @@
-import IncomingRequestModel from 'common-server/models/incomingRequest';
-import IncidentService from '../services/incidentService';
-import MonitorService from '../services/monitorService';
-import AlertService from '../services/alertService';
-import ErrorService from 'common-server/utils/error';
-import ProjectService from '../services/projectService';
+import IncomingRequestModel from '../models/incomingRequest';
+import IncidentService from './IncidentService';
+import MonitorService from './MonitorService';
+import AlertService from './AlertService';
+import ErrorService from '../utils/error';
+import ProjectService from './ProjectService';
 
 import createDOMPurify from 'dompurify';
 const jsdom = require('jsdom').jsdom;
@@ -11,16 +11,15 @@ const window = jsdom('').defaultView;
 const DOMPurify = createDOMPurify(window);
 
 import { isEmpty } from 'lodash';
-import IncidentMessageService from '../services/incidentMessageService';
-import IncidentPrioritiesService from '../services/incidentPrioritiesService';
-import IncidentSettingsService from '../services/incidentSettingsService';
+import IncidentMessageService from './IncidentMessageService';
+import IncidentPrioritiesService from './IncidentPrioritiesService';
+import IncidentSettingsService from './IncidentSettingsService';
 import joinNames from '../utils/joinNames';
 import vm from 'vm';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 // import RealTimeService from './realTimeService'
 
 export default {
@@ -30,12 +29,12 @@ export default {
         }
 
         query.deleted = false;
-        let incomingRequestQuery = IncomingRequestModel.findOne(query)
+        const incomingRequestQuery = IncomingRequestModel.findOne(query)
             .sort(sort)
             .lean();
 
-        incomingRequestQuery = handleSelect(select, incomingRequestQuery);
-        incomingRequestQuery = handlePopulate(populate, incomingRequestQuery);
+        incomingRequestQuery.select(select);
+        incomingRequestQuery.populate(populate);
         const result = await incomingRequestQuery;
 
         return result;
@@ -397,14 +396,14 @@ export default {
         }
 
         query.deleted = false;
-        let allIncomingRequest = IncomingRequestModel.find(query)
+        const allIncomingRequest = IncomingRequestModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
             .lean();
 
-        allIncomingRequest = handleSelect(select, allIncomingRequest);
-        allIncomingRequest = handlePopulate(populate, allIncomingRequest);
+        allIncomingRequest.select(select);
+        allIncomingRequest.populate(populate);
         const result = await allIncomingRequest;
 
         return result;

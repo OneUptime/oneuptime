@@ -30,13 +30,13 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let itemsQuery = OnCallScheduleStatusModel.find(query)
+        const itemsQuery = OnCallScheduleStatusModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        itemsQuery = handleSelect(select, itemsQuery);
-        itemsQuery = handlePopulate(populate, itemsQuery);
+        itemsQuery.select(select);
+        itemsQuery.populate(populate);
 
         const items = await itemsQuery;
 
@@ -155,7 +155,6 @@ export default {
     },
 };
 
-import OnCallScheduleStatusModel from 'common-server/models/onCallScheduleStatus';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
+import OnCallScheduleStatusModel from '../models/onCallScheduleStatus';
+
+import FindBy from '../types/db/FindBy';

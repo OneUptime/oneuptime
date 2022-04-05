@@ -80,14 +80,14 @@ export default {
             query = {};
         }
 
-        let lighthouseLogsQuery = LighthouseLogModel.find(query)
+        const lighthouseLogsQuery = LighthouseLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        lighthouseLogsQuery = handleSelect(select, lighthouseLogsQuery);
-        lighthouseLogsQuery = handlePopulate(populate, lighthouseLogsQuery);
+        lighthouseLogsQuery.select(select);
+        lighthouseLogsQuery.populate(populate);
 
         const lighthouseLogs = await lighthouseLogsQuery;
 
@@ -99,13 +99,13 @@ export default {
             query = {};
         }
 
-        let lighthouseLogQuery = LighthouseLogModel.findOne(query)
+        const lighthouseLogQuery = LighthouseLogModel.findOne(query)
             .sort(sort)
             .lean()
             .populate('probeId');
 
-        lighthouseLogQuery = handleSelect(select, lighthouseLogQuery);
-        lighthouseLogQuery = handlePopulate(populate, lighthouseLogQuery);
+        lighthouseLogQuery.select(select);
+        lighthouseLogQuery.populate(populate);
 
         const lighthouseLog = await lighthouseLogQuery;
 
@@ -226,12 +226,11 @@ export default {
     },
 };
 
-import LighthouseLogModel from 'common-server/models/lighthouseLog';
-import MonitorService from './monitorService';
+import LighthouseLogModel from '../models/lighthouseLog';
+import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
-import probeService from './probeService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import probeService from './ProbeService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

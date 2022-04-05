@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const containerScannerSchema = new Schema({
+const schema = new Schema({
     createdAt: { type: Date, default: Date.now },
     containerScannerKey: { type: String },
     containerScannerName: { type: String },
@@ -10,5 +10,6 @@ const containerScannerSchema = new Schema({
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('containerScanner', containerScannerSchema);
+export default mongoose.model('containerScanner', schema);

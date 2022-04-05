@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const announcementLogSchema = new Schema(
+const schema = new Schema(
     {
         announcementId: {
             type: Schema.Types.ObjectId,
@@ -48,4 +48,7 @@ const announcementLogSchema = new Schema(
     },
     { timestamps: true }
 );
-export default mongoose.model('AnnouncementLog', announcementLogSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('AnnouncementLog', schema);

@@ -1,7 +1,7 @@
-import IntegrationService from './integrationService';
+import IntegrationService from './IntegrationService';
 import axios from 'axios';
-import ProjectService from './projectService';
-import MonitorStatusService from './monitorStatusService';
+import ProjectService from './ProjectService';
+import MonitorStatusService from './MonitorStatusService';
 
 import {
     PROJECT_WEBHOOK,

@@ -1,9 +1,9 @@
 import payment from '../config/payment';
-import UserService from '../services/userService';
-import PaymentService from '../services/paymentService';
-import ProjectService from '../services/projectService';
-import ProjectModel from 'common-server/models/project';
-import MailService from '../services/mailService';
+import UserService from './UserService';
+import PaymentService from './PaymentService';
+import ProjectService from './ProjectService';
+import ProjectModel from '../models/project';
+import MailService from './MailService';
 
 import { sendSlackAlert } from '../utils/stripeHandlers';
 const stripe = require('stripe')(payment.paymentPrivateKey, {

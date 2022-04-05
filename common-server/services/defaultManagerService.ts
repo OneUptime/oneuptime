@@ -1,9 +1,8 @@
-import DefaultManagerModel from 'common-server/models/defaultManager';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import DefaultManagerModel from '../models/defaultManager';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -15,10 +14,11 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let defaultManagerQuery = DefaultManagerModel.findOne(query).sort(sort);
+        const defaultManagerQuery =
+            DefaultManagerModel.findOne(query).sort(sort);
 
-        defaultManagerQuery = handleSelect(select, defaultManagerQuery);
-        defaultManagerQuery = handlePopulate(populate, defaultManagerQuery);
+        defaultManagerQuery.select(select);
+        defaultManagerQuery.populate(populate);
 
         const defaultManager = await defaultManagerQuery;
         return defaultManager;
@@ -43,14 +43,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let defaultManagerQuery = DefaultManagerModel.find(query)
+        const defaultManagerQuery = DefaultManagerModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        defaultManagerQuery = handleSelect(select, defaultManagerQuery);
-        defaultManagerQuery = handlePopulate(populate, defaultManagerQuery);
+        defaultManagerQuery.select(select);
+        defaultManagerQuery.populate(populate);
 
         const defaultManagers = await defaultManagerQuery;
         return defaultManagers;

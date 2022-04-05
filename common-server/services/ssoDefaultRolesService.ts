@@ -9,7 +9,7 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let ssosQuery = ssoDefaultRolesModel
+        const ssosQuery = ssoDefaultRolesModel
             .find(query, {
                 _id: 1,
                 project: 1,
@@ -22,8 +22,8 @@ export default {
             .skip(skip.toNumber())
             .limit(limit.toNumber());
 
-        ssosQuery = handleSelect(select, ssosQuery);
-        ssosQuery = handlePopulate(populate, ssosQuery);
+        ssosQuery.select(select);
+        ssosQuery.populate(populate);
 
         const ssos = await ssosQuery;
         return ssos;
@@ -160,10 +160,10 @@ export default {
         if (!query.deleted) {
             query.deleted = false;
         }
-        let ssoQuery = ssoDefaultRolesModel.findOne(query).sort(sort).lean();
+        const ssoQuery = ssoDefaultRolesModel.findOne(query).sort(sort).lean();
 
-        ssoQuery = handleSelect(select, ssoQuery);
-        ssoQuery = handlePopulate(populate, ssoQuery);
+        ssoQuery.select(select);
+        ssoQuery.populate(populate);
 
         const sso = await ssoQuery;
 
@@ -310,13 +310,12 @@ export default {
     },
 };
 
-import ssoDefaultRolesModel from 'common-server/models/ssoDefaultRoles';
+import ssoDefaultRolesModel from '../models/ssoDefaultRoles';
 import mongoose from 'mongoose';
-import ProjectService from './projectService';
-import SsoService from './ssoService';
-import UserService from './userService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import ProjectService from './ProjectService';
+import SsoService from './SsoService';
+import UserService from './UserService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

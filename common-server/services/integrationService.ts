@@ -8,13 +8,13 @@ export default {
         sort,
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
-        let integrationQuery = IntegrationModel.find(query)
+        const integrationQuery = IntegrationModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        integrationQuery = handleSelect(select, integrationQuery);
-        integrationQuery = handlePopulate(populate, integrationQuery);
+        integrationQuery.select(select);
+        integrationQuery.populate(populate);
         const result = await integrationQuery;
 
         return result;
@@ -100,11 +100,11 @@ export default {
         if (!query) query = {};
 
         if (query.deleted) query.deleted = false;
-        let integrationQuery = IntegrationModel.findOne(query)
+        const integrationQuery = IntegrationModel.findOne(query)
             .lean()
             .sort(sort);
-        integrationQuery = handleSelect(select, integrationQuery);
-        integrationQuery = handlePopulate(populate, integrationQuery);
+        integrationQuery.select(select);
+        integrationQuery.populate(populate);
         const result = await integrationQuery;
 
         return result;
@@ -249,9 +249,8 @@ export default {
         return 'Integration(s) Removed Successfully!';
     },
 };
-import IntegrationModel from 'common-server/models/integration';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import IntegrationModel from '../models/integration';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

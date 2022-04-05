@@ -7,14 +7,14 @@ export default {
         select,
         sort,
     }: FindBy) {
-        let auditLogsQuery = AuditLogsModel.find(query)
+        const auditLogsQuery = AuditLogsModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        auditLogsQuery = handleSelect(select, auditLogsQuery);
-        auditLogsQuery = handlePopulate(populate, auditLogsQuery);
+        auditLogsQuery.select(select);
+        auditLogsQuery.populate(populate);
 
         const auditLogs = await auditLogsQuery;
 
@@ -77,8 +77,7 @@ export default {
     },
 };
 
-import AuditLogsModel from 'common-server/models/auditLogs';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
+import AuditLogsModel from '../models/auditLogs';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

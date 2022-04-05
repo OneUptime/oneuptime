@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const IncidentPriority = new Schema({
+const schema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -26,5 +26,6 @@ const IncidentPriority = new Schema({
     },
     deletedById: { type: String, ref: 'User', index: true },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('IncidentPriority', IncidentPriority);
+export default mongoose.model('IncidentPriority', schema);

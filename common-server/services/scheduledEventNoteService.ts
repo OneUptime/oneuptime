@@ -1,12 +1,11 @@
-import ScheduledEventNoteModel from 'common-server/models/scheduledEventNote';
-import ErrorService from 'common-server/utils/error';
+import ScheduledEventNoteModel from '../models/scheduledEventNote';
+import ErrorService from '../utils/error';
 import RealTimeService from './realTimeService';
-import AlertService from './alertService';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
+import AlertService from './AlertService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe, projectId: $TSFixMe) {
@@ -124,12 +123,12 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let eventMessageQuery = ScheduledEventNoteModel.findOne(query)
+        const eventMessageQuery = ScheduledEventNoteModel.findOne(query)
             .sort(sort)
             .lean();
 
-        eventMessageQuery = handleSelect(select, eventMessageQuery);
-        eventMessageQuery = handlePopulate(populate, eventMessageQuery);
+        eventMessageQuery.select(select);
+        eventMessageQuery.populate(populate);
         const eventMessage = await eventMessageQuery;
         return eventMessage;
     },
@@ -155,14 +154,14 @@ export default {
 
         if (!query) query = {};
 
-        let eventMessageQuery = ScheduledEventNoteModel.find(query)
+        const eventMessageQuery = ScheduledEventNoteModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        eventMessageQuery = handleSelect(select, eventMessageQuery);
-        eventMessageQuery = handlePopulate(populate, eventMessageQuery);
+        eventMessageQuery.select(select);
+        eventMessageQuery.populate(populate);
 
         const eventMessage = await eventMessageQuery;
         return eventMessage;

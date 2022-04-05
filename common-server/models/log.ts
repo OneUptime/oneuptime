@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const logSchema = new Schema({
+const schema = new Schema({
     applicationLogId: {
         type: Schema.Types.ObjectId,
         ref: 'ApplicationLog',
@@ -34,11 +34,12 @@ const logSchema = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
 });
 
-logSchema.virtual('applicationLog', {
+schema.virtual('applicationLog', {
     localField: '_id',
     foreignField: 'applicationLogId',
     ref: 'ApplicationLog',
     justOne: true,
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Log', logSchema);
+export default mongoose.model('Log', schema);

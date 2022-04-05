@@ -1,14 +1,13 @@
-import ScriptModel from 'common-server/models/automatedScripts';
-import ScriptModelLog from 'common-server/models/automationScriptsLog';
-import PositiveNumber from 'common/types/positive-number';
+import ScriptModel from '../models/automatedScripts';
+import ScriptModelLog from '../models/automationScriptsLog';
+import PositiveNumber from 'common/types/PositiveNumber';
 import BackendAPI from '../utils/api';
 import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     findBy: async function ({
@@ -31,13 +30,13 @@ export default {
 
         query.deleted = false;
 
-        let sortDataListQuery = ScriptModel.find(query)
+        const sortDataListQuery = ScriptModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        sortDataListQuery = handleSelect(select, sortDataListQuery);
-        sortDataListQuery = handlePopulate(populate, sortDataListQuery);
+        sortDataListQuery.select(select);
+        sortDataListQuery.populate(populate);
 
         const sortDataList = await sortDataListQuery;
         return sortDataList;
@@ -154,10 +153,10 @@ export default {
         }
 
         query.deleted = false;
-        let responseQuery = ScriptModel.findOne(query).sort(sort).lean();
+        const responseQuery = ScriptModel.findOne(query).sort(sort).lean();
 
-        responseQuery = handleSelect(select, responseQuery);
-        responseQuery = handlePopulate(populate, responseQuery);
+        responseQuery.select(select);
+        responseQuery.populate(populate);
 
         const response = await responseQuery;
         return response;

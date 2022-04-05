@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const callRoutingSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true },
     createdAt: {
         type: Date,
@@ -39,5 +39,6 @@ const callRoutingSchema = new Schema({
     numberType: String,
     stripeSubscriptionId: String,
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('CallRouting', callRoutingSchema);
+export default mongoose.model('CallRouting', schema);

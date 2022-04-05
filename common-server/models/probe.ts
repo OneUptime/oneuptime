@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const probeSchema = new Schema({
+const schema = new Schema({
     createdAt: { type: Date, default: Date.now },
     probeKey: { type: String },
     probeName: { type: String },
@@ -11,5 +11,6 @@ const probeSchema = new Schema({
     deletedAt: { type: Date },
     probeImage: { type: String },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Probe', probeSchema);
+export default mongoose.model('Probe', schema);

@@ -1,10 +1,9 @@
-import IncidentCommunicationSlaModel from 'common-server/models/incidentCommunicationSla';
-import MonitorService from './monitorService';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
+import IncidentCommunicationSlaModel from '../models/incidentCommunicationSla';
+import MonitorService from './MonitorService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -53,18 +52,12 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let incidentCommunicationSlaQuery =
+        const incidentCommunicationSlaQuery =
             IncidentCommunicationSlaModel.findOne(query).sort(sort).lean();
 
-        incidentCommunicationSlaQuery = handleSelect(
-            select,
-            incidentCommunicationSlaQuery
-        );
+        incidentCommunicationSlaQuery.select(select);
 
-        incidentCommunicationSlaQuery = handlePopulate(
-            populate,
-            incidentCommunicationSlaQuery
-        );
+        incidentCommunicationSlaQuery.populate(populate);
 
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
@@ -79,23 +72,16 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let incidentCommunicationSlaQuery = IncidentCommunicationSlaModel.find(
-            query
-        )
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
+        const incidentCommunicationSlaQuery =
+            IncidentCommunicationSlaModel.find(query)
+                .lean()
+                .sort(sort)
+                .limit(limit.toNumber())
+                .skip(skip.toNumber());
 
-        incidentCommunicationSlaQuery = handleSelect(
-            select,
-            incidentCommunicationSlaQuery
-        );
+        incidentCommunicationSlaQuery.select(select);
 
-        incidentCommunicationSlaQuery = handlePopulate(
-            populate,
-            incidentCommunicationSlaQuery
-        );
+        incidentCommunicationSlaQuery.populate(populate);
 
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;

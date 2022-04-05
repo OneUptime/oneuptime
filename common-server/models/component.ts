@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const componentSchema = new Schema({
+const schema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -26,11 +26,12 @@ const componentSchema = new Schema({
     },
 });
 
-componentSchema.virtual('project', {
+schema.virtual('project', {
     localField: '_id',
     foreignField: 'projectId',
     ref: 'Project',
     justOne: true,
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Component', componentSchema);
+export default mongoose.model('Component', schema);

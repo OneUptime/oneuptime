@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const notificationSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true },
     createdAt: { type: Date, default: Date.now },
     createdBy: { type: String, ref: 'User', index: true },
@@ -18,4 +18,7 @@ const notificationSchema = new Schema({
     },
     deletedById: { type: String, ref: 'User', index: true },
 });
-export default mongoose.model('Notification', notificationSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Notification', schema);

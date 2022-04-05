@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const applicationScannerSchema = new Schema({
+const schema = new Schema({
     createdAt: { type: Date, default: Date.now },
     applicationScannerKey: { type: String },
     applicationScannerName: { type: String },
@@ -11,5 +11,6 @@ const applicationScannerSchema = new Schema({
     deletedAt: { type: Date },
     applicationScannerImage: { type: String },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('applicationScanner', applicationScannerSchema);
+export default mongoose.model('applicationScanner', schema);

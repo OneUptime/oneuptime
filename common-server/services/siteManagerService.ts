@@ -1,9 +1,8 @@
-import SiteManagerModel from 'common-server/models/siteManager';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import SiteManagerModel from '../models/siteManager';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -15,12 +14,12 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let siteManagerQuery = SiteManagerModel.findOne(query)
+        const siteManagerQuery = SiteManagerModel.findOne(query)
             .sort(sort)
             .lean();
 
-        siteManagerQuery = handleSelect(select, siteManagerQuery);
-        siteManagerQuery = handlePopulate(populate, siteManagerQuery);
+        siteManagerQuery.select(select);
+        siteManagerQuery.populate(populate);
 
         const siteManager = await siteManagerQuery;
         return siteManager;
@@ -45,14 +44,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let siteManagerQuery = SiteManagerModel.find(query)
+        const siteManagerQuery = SiteManagerModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        siteManagerQuery = handleSelect(select, siteManagerQuery);
-        siteManagerQuery = handlePopulate(populate, siteManagerQuery);
+        siteManagerQuery.select(select);
+        siteManagerQuery.populate(populate);
 
         const siteManagers = await siteManagerQuery;
         return siteManagers;

@@ -127,13 +127,13 @@ export default {
         sort,
     }: FindBy) {
         query.deleted = false;
-        let emailSmtpQuery = EmailSmtpModel.find(query)
+        const emailSmtpQuery = EmailSmtpModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .lean();
-        emailSmtpQuery = handleSelect(select, emailSmtpQuery);
-        emailSmtpQuery = handlePopulate(populate, emailSmtpQuery);
+        emailSmtpQuery.select(select);
+        emailSmtpQuery.populate(populate);
         const emailSmtp = await emailSmtpQuery;
         for (const updatedEmailSmtp of emailSmtp) {
             if (
@@ -157,9 +157,9 @@ export default {
         }
 
         query.deleted = false;
-        let emailSmtpQuery = EmailSmtpModel.findOne(query).sort(sort).lean();
-        emailSmtpQuery = handleSelect(select, emailSmtpQuery);
-        emailSmtpQuery = handlePopulate(populate, emailSmtpQuery);
+        const emailSmtpQuery = EmailSmtpModel.findOne(query).sort(sort).lean();
+        emailSmtpQuery.select(select);
+        emailSmtpQuery.populate(populate);
         let emailSmtp = await emailSmtpQuery;
         if (emailSmtp && emailSmtp.pass && emailSmtp.iv) {
             emailSmtp.pass = await EncryptDecrypt.decrypt(
@@ -192,10 +192,9 @@ export default {
 };
 
 import Crypto from 'crypto';
-import EmailSmtpModel from 'common-server/models/smtp';
+import EmailSmtpModel from '../models/smtp';
 import EncryptDecrypt from '../config/encryptDecrypt';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

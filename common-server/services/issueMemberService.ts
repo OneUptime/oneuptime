@@ -34,10 +34,10 @@ export default {
             query = {};
         }
 
-        let issuesQuery = IssueMemberModel.find(query).sort(sort).lean();
+        const issuesQuery = IssueMemberModel.find(query).sort(sort).lean();
 
-        issuesQuery = handleSelect(select, issuesQuery);
-        issuesQuery = handlePopulate(populate, issuesQuery);
+        issuesQuery.select(select);
+        issuesQuery.populate(populate);
 
         const issues = await issuesQuery;
         return issues;
@@ -47,12 +47,12 @@ export default {
             query = {};
         }
 
-        let issueMemberQuery = IssueMemberModel.findOne(query)
+        const issueMemberQuery = IssueMemberModel.findOne(query)
             .sort(sort)
             .lean();
 
-        issueMemberQuery = handleSelect(select, issueMemberQuery);
-        issueMemberQuery = handlePopulate(populate, issueMemberQuery);
+        issueMemberQuery.select(select);
+        issueMemberQuery.populate(populate);
 
         const issueMember = await issueMemberQuery;
 
@@ -104,9 +104,8 @@ export default {
     },
 };
 
-import IssueMemberModel from 'common-server/models/issueMember';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import IssueMemberModel from '../models/issueMember';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

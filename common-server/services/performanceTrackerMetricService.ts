@@ -1,10 +1,9 @@
-import PerformanceTrackerMetricModel from 'common-server/models/performanceTrackerMetric';
+import PerformanceTrackerMetricModel from '../models/performanceTrackerMetric';
 import moment from 'moment';
 import RealTimeService from './realTimeService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -45,21 +44,14 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let performanceTrackerMetricQuery = PerformanceTrackerMetricModel.find(
-            query
-        )
-            .lean()
-            .sort([[sortCriteria, sort]])
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-        performanceTrackerMetricQuery = handleSelect(
-            select,
-            performanceTrackerMetricQuery
-        );
-        performanceTrackerMetricQuery = handlePopulate(
-            populate,
-            performanceTrackerMetricQuery
-        );
+        const performanceTrackerMetricQuery =
+            PerformanceTrackerMetricModel.find(query)
+                .lean()
+                .sort([[sortCriteria, sort]])
+                .limit(limit.toNumber())
+                .skip(skip.toNumber());
+        performanceTrackerMetricQuery.select(select);
+        performanceTrackerMetricQuery.populate(populate);
 
         const performanceTrackerMetrics = await performanceTrackerMetricQuery;
         return performanceTrackerMetrics;
@@ -81,19 +73,12 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let performanceTrackerMetricQuery = PerformanceTrackerMetricModel.find(
-            query
-        )
-            .lean()
-            .sort([[sortCriteria, sort]]);
-        performanceTrackerMetricQuery = handleSelect(
-            select,
-            performanceTrackerMetricQuery
-        );
-        performanceTrackerMetricQuery = handlePopulate(
-            populate,
-            performanceTrackerMetricQuery
-        );
+        const performanceTrackerMetricQuery =
+            PerformanceTrackerMetricModel.find(query)
+                .lean()
+                .sort([[sortCriteria, sort]]);
+        performanceTrackerMetricQuery.select(select);
+        performanceTrackerMetricQuery.populate(populate);
 
         const performanceTrackerMetrics = await performanceTrackerMetricQuery;
 
@@ -161,16 +146,10 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let performanceTrackerMetricQuery =
+        const performanceTrackerMetricQuery =
             PerformanceTrackerMetricModel.findOne(query).sort(sort).lean();
-        performanceTrackerMetricQuery = handleSelect(
-            select,
-            performanceTrackerMetricQuery
-        );
-        performanceTrackerMetricQuery = handlePopulate(
-            populate,
-            performanceTrackerMetricQuery
-        );
+        performanceTrackerMetricQuery.select(select);
+        performanceTrackerMetricQuery.populate(populate);
 
         const performanceTrackerMetric = await performanceTrackerMetricQuery;
         return performanceTrackerMetric;

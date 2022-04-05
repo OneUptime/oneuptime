@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const monitorStatusSchema = new Schema({
+const schema = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, //which monitor does this belong to.
     probeId: { type: String, ref: 'Probe', index: true }, //which probe does this belong to.
     incidentId: { type: String, ref: 'Incident', index: true },
@@ -27,4 +27,7 @@ const monitorStatusSchema = new Schema({
     deletedAt: { type: Date },
     deletedById: { type: String, ref: 'User', index: true },
 });
-export default mongoose.model('MonitorStatus', monitorStatusSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('MonitorStatus', schema);

@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const groupSchema = new Schema({
+const schema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',
@@ -33,5 +33,6 @@ const groupSchema = new Schema({
         index: true,
     },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Groups', groupSchema);
+export default mongoose.model('Groups', schema);

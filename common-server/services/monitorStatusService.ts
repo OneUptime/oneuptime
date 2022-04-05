@@ -182,13 +182,13 @@ export default {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
-        let monitorStatusQuery = MonitorStatusModel.find(query)
+        const monitorStatusQuery = MonitorStatusModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        monitorStatusQuery = handleSelect(select, monitorStatusQuery);
-        monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
+        monitorStatusQuery.select(select);
+        monitorStatusQuery.populate(populate);
 
         const monitorStatus = await monitorStatusQuery;
         return monitorStatus;
@@ -201,11 +201,11 @@ export default {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
-        let monitorStatusQuery = MonitorStatusModel.findOne(query)
+        const monitorStatusQuery = MonitorStatusModel.findOne(query)
             .sort(sort)
             .lean();
-        monitorStatusQuery = handleSelect(select, monitorStatusQuery);
-        monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
+        monitorStatusQuery.select(select);
+        monitorStatusQuery.populate(populate);
 
         const monitorStatus = await monitorStatusQuery;
         return monitorStatus;
@@ -262,11 +262,10 @@ export default {
     },
 };
 
-import MonitorStatusModel from 'common-server/models/monitorStatus';
-import MonitorService from '../services/monitorService';
+import MonitorStatusModel from '../models/monitorStatus';
+import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

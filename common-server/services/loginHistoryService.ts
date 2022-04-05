@@ -1,10 +1,9 @@
-import LoginHistoryModel from 'common-server/models/loginIPLog';
+import LoginHistoryModel from '../models/loginIPLog';
 import DeviceDetector from 'node-device-detector';
-import MailService from '../services/mailService';
-import UserService from '../services/userService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
+import MailService from './MailService';
+import UserService from './UserService';
+
+import FindBy from '../types/db/FindBy';
 
 export default {
     async create(
@@ -32,14 +31,14 @@ export default {
         );
     },
     async findBy({ query, skip, limit, select, populate, sort }: FindBy) {
-        let logsQuery = LoginHistoryModel.find(query)
+        const logsQuery = LoginHistoryModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        logsQuery = handleSelect(select, logsQuery);
-        logsQuery = handlePopulate(populate, logsQuery);
+        logsQuery.select(select);
+        logsQuery.populate(populate);
 
         const [logs, count] = await Promise.all([
             logsQuery,

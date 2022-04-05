@@ -1,7 +1,7 @@
 import { JSONArray, JSONObject } from './JSON';
 import PositiveNumber from './PositiveNumber';
 
-export class ListData {
+export default class ListData {
     constructor(obj: {
         data: JSONArray;
         count: PositiveNumber;

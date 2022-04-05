@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const IncidentNoteTemplateSchema = new Schema(
+const schema = new Schema(
     {
         projectId: {
             type: Schema.Types.ObjectId,
@@ -24,7 +24,6 @@ const IncidentNoteTemplateSchema = new Schema(
     { timestamps: true }
 );
 
-export default mongoose.model(
-    'IncidentNoteTemplate',
-    IncidentNoteTemplateSchema
-);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('IncidentNoteTemplate', schema);

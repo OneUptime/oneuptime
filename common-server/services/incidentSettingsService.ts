@@ -72,15 +72,15 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let responseQuery = incidentSettingsModel
+        const responseQuery = incidentSettingsModel
             .find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        responseQuery = handleSelect(select, responseQuery);
-        responseQuery = handlePopulate(populate, responseQuery);
+        responseQuery.select(select);
+        responseQuery.populate(populate);
         const result = await responseQuery;
 
         return result;
@@ -97,12 +97,12 @@ export default {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
-        let responseQuery = incidentSettingsModel
+        const responseQuery = incidentSettingsModel
             .findOne(query)
             .sort(sort)
             .lean();
-        responseQuery = handleSelect(select, responseQuery);
-        responseQuery = handlePopulate(populate, responseQuery);
+        responseQuery.select(select);
+        responseQuery.populate(populate);
 
         const incidentSettings = await responseQuery;
         return incidentSettings;
@@ -207,9 +207,8 @@ export default {
     },
 };
 
-import incidentSettingsModel from 'common-server/models/incidentSettings';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import incidentSettingsModel from '../models/incidentSettings';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

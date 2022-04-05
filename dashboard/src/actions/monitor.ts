@@ -4,7 +4,7 @@ import * as types from '../constants/monitor';
 import Route from 'common/types/api/route';
 import { change, autofill } from 'redux-form';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 
 //import { PricingPlan } from '../config';
 //import { User } from '../config';

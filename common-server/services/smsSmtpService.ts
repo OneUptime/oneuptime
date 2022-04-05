@@ -115,14 +115,14 @@ export default {
     }: FindBy) {
         query.deleted = false;
 
-        let twilioSettingQuery = TwilioModel.find(query)
+        const twilioSettingQuery = TwilioModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        twilioSettingQuery = handleSelect(select, twilioSettingQuery);
-        twilioSettingQuery = handlePopulate(populate, twilioSettingQuery);
+        twilioSettingQuery.select(select);
+        twilioSettingQuery.populate(populate);
 
         const twilioSettings = await twilioSettingQuery;
 
@@ -145,9 +145,9 @@ export default {
 
         query.deleted = false;
 
-        let twilioQuery = TwilioModel.findOne(query).sort(sort).lean();
-        twilioQuery = handleSelect(select, twilioQuery);
-        twilioQuery = handlePopulate(populate, twilioQuery);
+        const twilioQuery = TwilioModel.findOne(query).sort(sort).lean();
+        twilioQuery.select(select);
+        twilioQuery.populate(populate);
 
         const twilio = await twilioQuery;
 
@@ -179,10 +179,9 @@ export default {
 };
 
 import Crypto from 'crypto';
-import TwilioModel from 'common-server/models/twilio';
+import TwilioModel from '../models/twilio';
 import EncryptDecrypt from '../config/encryptDecrypt';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

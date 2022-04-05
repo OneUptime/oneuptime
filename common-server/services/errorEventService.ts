@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 export default {
     create: async function (data: $TSFixMe) {
         // prepare error event model
@@ -48,9 +48,11 @@ export default {
         }
 
         if (!query.deleted) delete query.deleted;
-        let errorEventQuery = ErrorEventModel.findOne(query).sort(sort).lean();
-        errorEventQuery = handleSelect(select, errorEventQuery);
-        errorEventQuery = handlePopulate(populate, errorEventQuery);
+        const errorEventQuery = ErrorEventModel.findOne(query)
+            .sort(sort)
+            .lean();
+        errorEventQuery.select(select);
+        errorEventQuery.populate(populate);
         const result = await errorEventQuery;
         return result;
     },
@@ -73,13 +75,13 @@ export default {
         }
 
         if (!query.deleted) delete query.deleted;
-        let errorEventsQuery = ErrorEventModel.find(query)
+        const errorEventsQuery = ErrorEventModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        errorEventsQuery = handleSelect(select, errorEventsQuery);
-        errorEventsQuery = handlePopulate(populate, errorEventsQuery);
+        errorEventsQuery.select(select);
+        errorEventsQuery.populate(populate);
         const result = await errorEventsQuery;
         return result;
     },
@@ -386,13 +388,12 @@ export default {
     },
 };
 
-import ErrorEventModel from 'common-server/models/errorEvent';
-import IssueService from './issueService';
-import IssueMemberService from './issueMemberService';
-import IssueTimelineService from './issueTimelineService';
+import ErrorEventModel from '../models/errorEvent';
+import IssueService from './IssueService';
+import IssueMemberService from './IssueMemberService';
+import IssueTimelineService from './IssueTimelineService';
 import moment from 'moment';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

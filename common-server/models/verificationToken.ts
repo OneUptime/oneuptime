@@ -1,9 +1,9 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 const Schema = mongoose.Schema;
 
 const { EMAIL_VERIFY_TIME } = process.env;
 
-const verificationToken = new Schema({
+const schema = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
@@ -21,5 +21,6 @@ const verificationToken = new Schema({
         expires: Number(EMAIL_VERIFY_TIME) || 3600,
     },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('VerificationToken', verificationToken);
+export default mongoose.model('VerificationToken', schema);

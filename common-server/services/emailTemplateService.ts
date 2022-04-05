@@ -82,13 +82,13 @@ export default {
         sort,
     }: FindBy) {
         query.deleted = false;
-        let emailTemplates = EmailTemplateModel.find(query)
+        const emailTemplates = EmailTemplateModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        emailTemplates = handleSelect(select, emailTemplates);
-        emailTemplates = handlePopulate(populate, emailTemplates);
+        emailTemplates.select(select);
+        emailTemplates.populate(populate);
         const result = await emailTemplates;
 
         return result;
@@ -100,13 +100,13 @@ export default {
         }
 
         query.deleted = false;
-        let emailTemplate = EmailTemplateModel.findOne(query)
+        const emailTemplate = EmailTemplateModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
 
-        emailTemplate = handleSelect(select, emailTemplate);
-        emailTemplate = handlePopulate(populate, emailTemplate);
+        emailTemplate.select(select);
+        emailTemplate.populate(populate);
         const result = await emailTemplate;
         return result;
     },
@@ -173,11 +173,10 @@ export default {
     },
 };
 
-import EmailTemplateModel from 'common-server/models/emailTemplate';
+import EmailTemplateModel from '../models/emailTemplate';
 import emailTemplateVariables from '../config/emailTemplateVariables';
 import defaultTemplate from '../config/emailTemplate';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

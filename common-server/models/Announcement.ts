@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const announcementSchema = new Schema(
+const schema = new Schema(
     {
         monitors: [
             {
@@ -47,4 +47,7 @@ const announcementSchema = new Schema(
     },
     { timestamps: true }
 );
-export default mongoose.model('Announcement', announcementSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Announcement', schema);

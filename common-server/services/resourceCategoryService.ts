@@ -107,17 +107,14 @@ export default {
         }
 
         query.deleted = false;
-        let resourceCategoriesQuery = ResourceCategoryModel.find(query)
+        const resourceCategoriesQuery = ResourceCategoryModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        resourceCategoriesQuery = handleSelect(select, resourceCategoriesQuery);
-        resourceCategoriesQuery = handlePopulate(
-            populate,
-            resourceCategoriesQuery
-        );
+        resourceCategoriesQuery.select(select);
+        resourceCategoriesQuery.populate(populate);
 
         let resourceCategories = await resourceCategoriesQuery;
 
@@ -190,13 +187,12 @@ export default {
     },
 };
 
-import ResourceCategoryModel from 'common-server/models/resourceCategory';
-import MonitorModel from 'common-server/models/monitor';
-import ApplicationLogModel from 'common-server/models/applicationLog';
-import ErrorTrackerModel from 'common-server/models/errorTracker';
-import ApplicationSecurityModel from 'common-server/models/applicationSecurity';
-import ContainerSecurityModel from 'common-server/models/containerSecurity';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import ResourceCategoryModel from '../models/resourceCategory';
+import MonitorModel from '../models/monitor';
+import ApplicationLogModel from '../models/applicationLog';
+import ErrorTrackerModel from '../models/errorTracker';
+import ApplicationSecurityModel from '../models/applicationSecurity';
+import ContainerSecurityModel from '../models/containerSecurity';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

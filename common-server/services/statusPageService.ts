@@ -1,9 +1,7 @@
-import PositiveNumber from 'common/types/positive-number';
-import ServiceBase from './base';
-import {
-    schema as StatusPageModel,
-    requiredFields,
-} from '../models/statusPage';
+import PositiveNumber from 'common/types/PositiveNumber';
+import ServiceBase from './DatabaseService';
+
+import { model as StatusPageModel, requiredFields } from '../models/StatusPage';
 
 const publicListProps = {
     populate: [],
@@ -1392,10 +1390,10 @@ export default {
 
         query.deleted = false;
 
-        let statusPagesQuery = StatusPageModel.find(query).lean();
+        const statusPagesQuery = StatusPageModel.find(query).lean();
 
-        statusPagesQuery = handleSelect(select, statusPagesQuery);
-        statusPagesQuery = handlePopulate(populate, statusPagesQuery);
+        statusPagesQuery.select(select);
+        statusPagesQuery.populate(populate);
 
         const statusPages = await statusPagesQuery;
 
@@ -2189,32 +2187,31 @@ const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     }
 };
 
-import IncidentModel from 'common-server/models/incident';
+import IncidentModel from '../models/incident';
 
-import IncidentService from './incidentService';
-import ScheduledEventsService from './scheduledEventService';
-import MonitorService from './monitorService';
-import ErrorService from 'common-server/utils/error';
-import SubscriberService from './subscriberService';
-import ProjectService from './projectService';
-import AlertService from './alertService';
+import IncidentService from './IncidentService';
+import ScheduledEventsService from './ScheduledEventService';
+import MonitorService from './MonitorService';
+import ErrorService from '../utils/error';
+import SubscriberService from './SubscriberService';
+import ProjectService from './ProjectService';
+import AlertService from './AlertService';
 
 import _ from 'lodash';
 import defaultStatusPageColors from '../config/statusPageColors';
-import DomainVerificationService from './domainVerificationService';
+import DomainVerificationService from './DomainVerificationService';
 import flattenArray from '../utils/flattenArray';
-import ScheduledEventNoteService from './scheduledEventNoteService';
-import IncidentMessageService from './incidentMessageService';
+import ScheduledEventNoteService from './ScheduledEventNoteService';
+import IncidentMessageService from './IncidentMessageService';
 import moment from 'moment';
 
 import uuid from 'uuid';
-import CertificateStoreService from './certificateStoreService';
-import AnnouncementModel from 'common-server/models/announcements';
-import ExternalStatusPageModel from 'common-server/models/externalStatusPage';
+import CertificateStoreService from './CertificateStoreService';
+import AnnouncementModel from '../models/announcements';
+import ExternalStatusPageModel from '../models/externalStatusPage';
 import getSlug from '../utils/getSlug';
-import AnnouncementLogModel from 'common-server/models/announcementLogs';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import Query from 'common-server/types/db/Query';
+import AnnouncementLogModel from '../models/announcementLogs';
+
+import Query from '../types/db/Query';
 import axios from 'axios';
 const bearer = process.env.TWITTER_BEARER_TOKEN;

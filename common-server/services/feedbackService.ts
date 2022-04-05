@@ -1,9 +1,9 @@
-import FeedbackModel from 'common-server/models/feedback';
-import MailService from './mailService';
-import UserService from './userService';
-import ProjectService from './projectService';
-import AirtableService from './airtableService';
-import Query from 'common-server/types/db/Query';
+import FeedbackModel from '../models/feedback';
+import MailService from './MailService';
+import UserService from './UserService';
+import ProjectService from './ProjectService';
+import AirtableService from './AirtableService';
+import Query from '../types/db/Query';
 export default {
     //Description: Create new project for user.
     //Params:

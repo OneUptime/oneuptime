@@ -1,21 +1,20 @@
-import ProbeModel from 'common-server/models/probe';
+import ProbeModel from '../models/probe';
 import RealTimeService from './realTimeService';
 
 import { v1 as uuidv1 } from 'uuid';
-import MonitorService from './monitorService';
-import MonitorStatusService from './monitorStatusService';
-import MonitorLogService from './monitorLogService';
-import LighthouseLogService from './lighthouseLogService';
-import IncidentService from './incidentService';
-import IncidentTimelineService from './incidentTimelineService';
+import MonitorService from './MonitorService';
+import MonitorStatusService from './MonitorStatusService';
+import MonitorLogService from './MonitorLogService';
+import LighthouseLogService from './LighthouseLogService';
+import IncidentService from './IncidentService';
+import IncidentTimelineService from './IncidentTimelineService';
 import moment from 'moment';
 import { some, forEach } from 'p-iteration';
 import vm from 'vm';
-import AutomatedScriptService from './automatedScriptService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
+import AutomatedScriptService from './AutomatedScriptService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
 
 export default {
     create: async function (data) {
@@ -107,14 +106,14 @@ export default {
         }
 
         query.deleted = false;
-        let probeQuery = ProbeModel.find(query)
+        const probeQuery = ProbeModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        probeQuery = handleSelect(select, probeQuery);
-        probeQuery = handlePopulate(populate, probeQuery);
+        probeQuery.select(select);
+        probeQuery.populate(populate);
 
         const probe = await probeQuery;
 
@@ -127,10 +126,10 @@ export default {
         }
 
         query.deleted = false;
-        let probeQuery = ProbeModel.findOne(query).sort(sort).lean();
+        const probeQuery = ProbeModel.findOne(query).sort(sort).lean();
 
-        probeQuery = handleSelect(select, probeQuery);
-        probeQuery = handlePopulate(populate, probeQuery);
+        probeQuery.select(select);
+        probeQuery.populate(populate);
 
         const probe = await probeQuery;
         return probe;

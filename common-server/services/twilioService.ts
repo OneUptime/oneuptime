@@ -1,15 +1,15 @@
-import incidentSMSActionModel from 'common-server/models/incidentSMSAction';
+import incidentSMSActionModel from '../models/incidentSMSAction';
 import twilio from 'twilio';
-import SmsSmtpService from './smsSmtpService';
+import SmsSmtpService from './SmsSmtpService';
 import Handlebars from 'handlebars';
 import defaultSmsTemplates from '../config/smsTemplate';
 import BadDataException from 'common/types/exception/BadDataException';
-import GlobalConfigService from './globalConfigService';
-import UserService from './userService';
-import SmsCountService from './smsCountService';
-import CallLogsService from './callLogsService';
-import AlertService from './alertService';
-import FindOneBy from 'common-server/types/db/FindOneBy';
+import GlobalConfigService from './GlobalConfigService';
+import UserService from './UserService';
+import SmsCountService from './SmsCountService';
+import CallLogsService from './CallLogsService';
+import AlertService from './AlertService';
+import FindOneBy from '../types/db/FindOneBy';
 import { IS_TESTING } from '../config/server';
 
 const _this = {

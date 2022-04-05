@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 
 export default {
     /**
@@ -422,6 +422,6 @@ export default {
 };
 
 import moment from 'moment';
-import IncidentModel from 'common-server/models/incident';
-import UserService from './userService';
-import MonitorService from './monitorService';
+import IncidentModel from '../models/incident';
+import UserService from './UserService';
+import MonitorService from './MonitorService';

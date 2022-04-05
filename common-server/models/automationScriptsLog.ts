@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const automationSriptLogSchema = new Schema(
+const schema = new Schema(
     {
         automationScriptId: {
             type: Schema.Types.ObjectId,
@@ -43,4 +43,7 @@ const automationSriptLogSchema = new Schema(
     },
     { timestamps: true }
 );
-export default mongoose.model('AutomationSriptLog', automationSriptLogSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('AutomationSriptLog', schema);

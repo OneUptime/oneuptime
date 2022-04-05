@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const monitorLogByHourSchema = new Schema({
+const schema = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
     probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
     status: String, // current status based on criteria.
@@ -31,4 +31,7 @@ const monitorLogByHourSchema = new Schema({
     sslCertificate: Object,
     kubernetesLog: Object,
 });
-export default mongoose.model('MonitorLogByHour', monitorLogByHourSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('MonitorLogByHour', schema);

@@ -1,19 +1,18 @@
-import PositiveNumber from 'common/types/positive-number';
-import ComponentModel from 'common-server/models/component';
+import PositiveNumber from 'common/types/PositiveNumber';
+import ComponentModel from '../models/component';
 import Plans from '../config/plans';
 import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import ProjectService from './projectService';
-import PaymentService from './paymentService';
-import MonitorService from './monitorService';
-import TeamService from './teamService';
+import NotificationService from './NotificationService';
+import ProjectService from './ProjectService';
+import PaymentService from './PaymentService';
+import MonitorService from './MonitorService';
+import TeamService from './TeamService';
 import { IS_SAAS_SERVICE } from '../config/server';
 import getSlug from '../utils/getSlug';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     //Description: Upsert function for component.
@@ -235,14 +234,14 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let componentsQuery = ComponentModel.find(query)
+        const componentsQuery = ComponentModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        componentsQuery = handleSelect(select, componentsQuery);
-        componentsQuery = handlePopulate(populate, componentsQuery);
+        componentsQuery.select(select);
+        componentsQuery.populate(populate);
 
         const components = await componentsQuery;
         return components;
@@ -254,10 +253,10 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let componentQuery = ComponentModel.findOne(query).sort(sort).lean();
+        const componentQuery = ComponentModel.findOne(query).sort(sort).lean();
 
-        componentQuery = handleSelect(select, componentQuery);
-        componentQuery = handlePopulate(populate, componentQuery);
+        componentQuery.select(select);
+        componentQuery.populate(populate);
 
         const component = await componentQuery;
         return component;

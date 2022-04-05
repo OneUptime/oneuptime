@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const sslSchema = new Schema(
+const schema = new Schema(
     {
         token: String,
         keyAuthorization: String,
@@ -11,4 +11,7 @@ const sslSchema = new Schema(
     },
     { timestamps: true }
 );
-export default mongoose.model('Ssl', sslSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Ssl', schema);

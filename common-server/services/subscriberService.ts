@@ -1,10 +1,9 @@
-import SubscriberModel from 'common-server/models/subscriber';
-import StatusPageService from './statusPageService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import SubscriberModel from '../models/subscriber';
+import StatusPageService from './StatusPageService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -125,14 +124,14 @@ export default {
 
         query.deleted = false;
 
-        let subscriberQuery = SubscriberModel.find(query)
+        const subscriberQuery = SubscriberModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        subscriberQuery = handleSelect(select, subscriberQuery);
-        subscriberQuery = handlePopulate(populate, subscriberQuery);
+        subscriberQuery.select(select);
+        subscriberQuery.populate(populate);
 
         const subscribers = await subscriberQuery;
         const subscribersArr = [];
@@ -338,13 +337,13 @@ export default {
         }
         query.deleted = false;
 
-        let subscriberQuery = SubscriberModel.findOne(query)
+        const subscriberQuery = SubscriberModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
 
-        subscriberQuery = handleSelect(select, subscriberQuery);
-        subscriberQuery = handlePopulate(populate, subscriberQuery);
+        subscriberQuery.select(select);
+        subscriberQuery.populate(populate);
 
         const subscriber = await subscriberQuery;
         return subscriber;

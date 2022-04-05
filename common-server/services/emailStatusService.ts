@@ -1,10 +1,9 @@
-import EmailStatusModel from 'common-server/models/emailStatus';
-import GlobalConfigService from './globalConfigService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
-import FindBy from 'common-server/types/db/FindBy';
+import EmailStatusModel from '../models/emailStatus';
+import GlobalConfigService from './GlobalConfigService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';
+import FindBy from '../types/db/FindBy';
 
 export default {
     findBy: async function ({
@@ -16,14 +15,14 @@ export default {
         select,
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
-        let itemsQuery = EmailStatusModel.find(query)
+        const itemsQuery = EmailStatusModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        itemsQuery = handleSelect(select, itemsQuery);
-        itemsQuery = handlePopulate(populate, itemsQuery);
+        itemsQuery.select(select);
+        itemsQuery.populate(populate);
 
         const items = await itemsQuery;
 
@@ -112,10 +111,10 @@ export default {
         }
 
         query.deleted = false;
-        let itemQuery = EmailStatusModel.findOne(query).sort(sort).lean();
+        const itemQuery = EmailStatusModel.findOne(query).sort(sort).lean();
 
-        itemQuery = handleSelect(select, itemQuery);
-        itemQuery = handlePopulate(populate, itemQuery);
+        itemQuery.select(select);
+        itemQuery.populate(populate);
 
         const item = await itemQuery;
         return item;

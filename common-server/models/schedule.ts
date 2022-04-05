@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const scheduleSchema = new Schema({
+const schema = new Schema({
     name: String,
     slug: String,
     projectId: {
@@ -38,4 +38,7 @@ const scheduleSchema = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
     isDefault: { type: Boolean, default: false },
 });
-export default mongoose.model('Schedule', scheduleSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Schedule', schema);

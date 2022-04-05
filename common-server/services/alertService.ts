@@ -117,14 +117,14 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let alertsQuery = AlertModel.find(query)
+        const alertsQuery = AlertModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        alertsQuery = handleSelect(select, alertsQuery);
-        alertsQuery = handlePopulate(populate, alertsQuery);
+        alertsQuery.select(select);
+        alertsQuery.populate(populate);
         const alerts = await alertsQuery;
         return alerts;
     },
@@ -5472,38 +5472,38 @@ function calcSmsSegments(sms: $TSFixMe) {
     return Math.ceil(smsLength / 160);
 }
 
-import AlertModel from 'common-server/models/alert';
-import ProjectService from './projectService';
-import PaymentService from './paymentService';
+import AlertModel from '../models/alert';
+import ProjectService from './ProjectService';
+import PaymentService from './PaymentService';
 import AlertType from '../config/alertType';
-import ScheduleService from './scheduleService';
-import SubscriberService from './subscriberService';
-import SubscriberAlertService from './subscriberAlertService';
-import EmailTemplateService from './emailTemplateService';
-import SmsTemplateService from './smsTemplateService';
-import EscalationService from './escalationService';
-import MailService from './mailService';
-import UserService from './userService';
-import MonitorService from './monitorService';
-import TwilioService from './twilioService';
-import ErrorService from 'common-server/utils/error';
-import StatusPageService from './statusPageService';
-import AlertChargeService from './alertChargeService';
+import ScheduleService from './ScheduleService';
+import SubscriberService from './SubscriberService';
+import SubscriberAlertService from './SubscriberAlertService';
+import EmailTemplateService from './EmailTemplateService';
+import SmsTemplateService from './SmsTemplateService';
+import EscalationService from './EscalationService';
+import MailService from './MailService';
+import UserService from './UserService';
+import MonitorService from './MonitorService';
+import TwilioService from './TwilioService';
+import ErrorService from '../utils/error';
+import StatusPageService from './StatusPageService';
+import AlertChargeService from './AlertChargeService';
 import countryCode from '../config/countryCode';
 
 import { getCountryType } from '../config/alertType';
-import SmsCountService from './smsCountService';
+import SmsCountService from './SmsCountService';
 import DateTime from '../utils/DateTime';
 import moment from 'moment-timezone';
 const TimeZoneNames = moment.tz.names();
-import OnCallScheduleStatusService from './onCallScheduleStatusService';
+import OnCallScheduleStatusService from './OnCallScheduleStatusService';
 
 import { IS_SAAS_SERVICE } from '../config/server';
-import ComponentService from './componentService';
-import GlobalConfigService from './globalConfigService';
-import WebHookService from '../services/webHookService';
+import ComponentService from './ComponentService';
+import GlobalConfigService from './GlobalConfigService';
+import WebHookService from './WebHookService';
 import IncidentUtility from '../utils/incident';
-import TeamService from './teamService';
+import TeamService from './TeamService';
 import secondsToHms from '../utils/secondsToHms';
 
 import { getPlanById, getPlanByExtraUserId } from '../config/plans';
@@ -5512,7 +5512,7 @@ import {
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
 } from '../constants/incidentEvents';
-import componentService from './componentService';
+import componentService from './ComponentService';
 
 import webpush from 'web-push';
 import {
@@ -5520,11 +5520,10 @@ import {
     getIncidentLength,
 } from '../utils/incident';
 //  import IncidentService from './incidentService' Declared but unused
-import IncidentMessageService from './incidentMessageService';
-import IncidentTimelineService from './incidentTimelineService';
+import IncidentMessageService from './IncidentMessageService';
+import IncidentTimelineService from './IncidentTimelineService';
 import Services from '../utils/services';
 import RealTimeService from './realTimeService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

@@ -83,14 +83,14 @@ export default {
     }: FindBy) {
         query.deleted = false;
 
-        let smsTemplateQuery = SmsTemplateModel.find(query)
+        const smsTemplateQuery = SmsTemplateModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        smsTemplateQuery = handleSelect(select, smsTemplateQuery);
-        smsTemplateQuery = handlePopulate(populate, smsTemplateQuery);
+        smsTemplateQuery.select(select);
+        smsTemplateQuery.populate(populate);
 
         const smsTemplates = await smsTemplateQuery;
         return smsTemplates;
@@ -103,12 +103,12 @@ export default {
 
         query.deleted = false;
 
-        let smsTemplateQuery = SmsTemplateModel.findOne(query)
+        const smsTemplateQuery = SmsTemplateModel.findOne(query)
             .lean()
             .sort(sort);
 
-        smsTemplateQuery = handleSelect(select, smsTemplateQuery);
-        smsTemplateQuery = handlePopulate(populate, smsTemplateQuery);
+        smsTemplateQuery.select(select);
+        smsTemplateQuery.populate(populate);
 
         const smsTemplate = await smsTemplateQuery;
         return smsTemplate;
@@ -174,11 +174,10 @@ export default {
     },
 };
 
-import SmsTemplateModel from 'common-server/models/smsTemplate';
+import SmsTemplateModel from '../models/smsTemplate';
 import smsTemplateVariables from '../config/smsTemplateVariables';
 import defaultSmsTemplate from '../config/smsTemplate';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

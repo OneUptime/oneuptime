@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const monitorSchema = new Schema({
+const schema = new Schema({
     idNumber: {
         type: Schema.Types.Number,
         index: true,
@@ -132,4 +132,7 @@ const monitorSchema = new Schema({
 
     slug: String,
 });
-export default mongoose.model('Incident', monitorSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Incident', schema);

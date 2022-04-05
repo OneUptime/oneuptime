@@ -1,18 +1,17 @@
 import dns from 'dns';
 
 import psl from 'psl';
-import DomainVerificationTokenModel from 'common-server/models/domainVerificationToken';
+import DomainVerificationTokenModel from '../models/domainVerificationToken';
 import flatten from '../utils/flattenArray';
 import randomChar from '../utils/randomChar';
-import StatusPageService from '../services/statusPageService';
-import ProjectService from '../services/projectService';
+import StatusPageService from './StatusPageService';
+import ProjectService from './ProjectService';
 const dnsPromises = dns.promises;
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import errorService from 'common-server/utils/error';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+import errorService from '../utils/error';
 
 export default {
     create: async function ({ domain, projectId }: $TSFixMe) {
@@ -56,12 +55,12 @@ export default {
             query.domain = parsed.domain;
         }
 
-        let domainQuery = DomainVerificationTokenModel.findOne(query)
+        const domainQuery = DomainVerificationTokenModel.findOne(query)
             .sort(sort)
             .lean();
 
-        domainQuery = handleSelect(select, domainQuery);
-        domainQuery = handlePopulate(populate, domainQuery);
+        domainQuery.select(select);
+        domainQuery.populate(populate);
 
         const domain = await domainQuery;
         return domain;
@@ -108,13 +107,13 @@ export default {
             query = { ...query, projectId: { $in: totalProjects } };
         }
 
-        let domainsQuery = DomainVerificationTokenModel.find(query)
+        const domainsQuery = DomainVerificationTokenModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        domainsQuery = handleSelect(select, domainsQuery);
-        domainsQuery = handlePopulate(populate, domainsQuery);
+        domainsQuery.select(select);
+        domainsQuery.populate(populate);
 
         const domains = await domainsQuery;
         return domains;

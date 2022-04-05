@@ -1,11 +1,10 @@
-import LogModel from 'common-server/models/log';
-import ApplicationLogService from './applicationLogService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import PositiveNumber from 'common/types/positive-number';
+import LogModel from '../models/log';
+import ApplicationLogService from './ApplicationLogService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+import PositiveNumber from 'common/types/PositiveNumber';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -58,10 +57,10 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let logQuery = LogModel.findOne(query).sort(sort).lean();
+        const logQuery = LogModel.findOne(query).sort(sort).lean();
 
-        logQuery = handleSelect(select, logQuery);
-        logQuery = handlePopulate(populate, logQuery);
+        logQuery.select(select);
+        logQuery.populate(populate);
 
         const log = await logQuery;
 
@@ -85,14 +84,14 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let logsQuery = LogModel.find(query)
+        const logsQuery = LogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        logsQuery = handleSelect(select, logsQuery);
-        logsQuery = handlePopulate(populate, logsQuery);
+        logsQuery.select(select);
+        logsQuery.populate(populate);
 
         const logs = await logsQuery;
 

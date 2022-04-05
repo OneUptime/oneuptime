@@ -1,36 +1,35 @@
-import PositiveNumber from 'common/types/positive-number';
-import IncidentModel from 'common-server/models/incident';
-import IncidentTimelineService from './incidentTimelineService';
-import MonitorService from './monitorService';
-import AlertService from './alertService';
+import PositiveNumber from 'common/types/PositiveNumber';
+import IncidentModel from '../models/incident';
+import IncidentTimelineService from './IncidentTimelineService';
+import MonitorService from './MonitorService';
+import AlertService from './AlertService';
 import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import WebHookService from './webHookService';
-import MsTeamsService from './msTeamsService';
-import SlackService from './slackService';
-import ZapierService from './zapierService';
-import ProjectService from './projectService';
-import MonitorStatusService from './monitorStatusService';
-import ComponentService from './componentService';
-import IncidentSettingsService from './incidentSettingsService';
+import NotificationService from './NotificationService';
+import WebHookService from './WebHookService';
+import MsTeamsService from './MsTeamsService';
+import SlackService from './SlackService';
+import ZapierService from './ZapierService';
+import ProjectService from './ProjectService';
+import MonitorStatusService from './MonitorStatusService';
+import ComponentService from './ComponentService';
+import IncidentSettingsService from './IncidentSettingsService';
 import Handlebars from 'handlebars';
 import Moment from 'moment';
-import IncidentMessageService from './incidentMessageService';
+import IncidentMessageService from './IncidentMessageService';
 import {
     INCIDENT_CREATED,
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_RESOLVED,
 } from '../constants/incidentEvents';
 import IncidentUtilitiy from '../utils/incident';
-import IncidentCommunicationSlaService from './incidentCommunicationSlaService';
+import IncidentCommunicationSlaService from './IncidentCommunicationSlaService';
 
 import { isEmpty } from 'lodash';
 import joinNames from '../utils/joinNames';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 import getSlug from '../utils/getSlug';
 
 export default {
@@ -44,14 +43,14 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let incidentQuery = IncidentModel.find(query)
+        const incidentQuery = IncidentModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        incidentQuery = handleSelect(select, incidentQuery);
-        incidentQuery = handlePopulate(populate, incidentQuery);
+        incidentQuery.select(select);
+        incidentQuery.populate(populate);
 
         const incidents = await incidentQuery;
         return incidents;
@@ -469,10 +468,10 @@ export default {
 
         query.deleted = false;
 
-        let incidentQuery = IncidentModel.findOne(query).sort(sort).lean();
+        const incidentQuery = IncidentModel.findOne(query).sort(sort).lean();
 
-        incidentQuery = handleSelect(select, incidentQuery);
-        incidentQuery = handlePopulate(populate, incidentQuery);
+        incidentQuery.select(select);
+        incidentQuery.populate(populate);
 
         const incident = await incidentQuery;
         return incident;

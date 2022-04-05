@@ -1,8 +1,7 @@
-import IssueTimelineModel from 'common-server/models/issueTimeline';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
+import IssueTimelineModel from '../models/issueTimeline';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -39,12 +38,12 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let issueTimelineQuery = IssueTimelineModel.findOne(query)
+        const issueTimelineQuery = IssueTimelineModel.findOne(query)
             .sort(sort)
             .lean();
 
-        issueTimelineQuery = handleSelect(select, issueTimelineQuery);
-        issueTimelineQuery = handlePopulate(populate, issueTimelineQuery);
+        issueTimelineQuery.select(select);
+        issueTimelineQuery.populate(populate);
 
         const issueTimeline = await issueTimelineQuery;
 
@@ -57,10 +56,10 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let issuesQuery = IssueTimelineModel.find(query).sort(sort).lean();
+        const issuesQuery = IssueTimelineModel.find(query).sort(sort).lean();
 
-        issuesQuery = handleSelect(select, issuesQuery);
-        issuesQuery = handlePopulate(populate, issuesQuery);
+        issuesQuery.select(select);
+        issuesQuery.populate(populate);
 
         const issues = await issuesQuery;
         return issues;

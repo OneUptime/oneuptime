@@ -4,10 +4,10 @@ export default {
             query = {};
         }
         query.deleted = false;
-        let zapierQuery = ZapierModel.find(query).sort(sort).lean();
+        const zapierQuery = ZapierModel.find(query).sort(sort).lean();
 
-        zapierQuery = handleSelect(select, zapierQuery);
-        zapierQuery = handlePopulate(populate, zapierQuery);
+        zapierQuery.select(select);
+        zapierQuery.populate(populate);
 
         const zap = await zapierQuery;
         return zap;
@@ -938,18 +938,17 @@ export default {
 };
 
 import axios from 'axios';
-import ProjectService from './projectService';
-import ErrorService from 'common-server/utils/error';
-import IncidentService from './incidentService';
-import IncidentTimelineService from './incidentTimelineService';
-import MonitorService from './monitorService';
-import ZapierModel from 'common-server/models/zapier';
-import IncidentModel from 'common-server/models/incident';
-import NotificationService from './notificationService';
+import ProjectService from './ProjectService';
+import ErrorService from '../utils/error';
+import IncidentService from './IncidentService';
+import IncidentTimelineService from './IncidentTimelineService';
+import MonitorService from './MonitorService';
+import ZapierModel from '../models/zapier';
+import IncidentModel from '../models/incident';
+import NotificationService from './NotificationService';
 import RealTimeService from './realTimeService';
-import IncidentMessageService from '../services/incidentMessageService';
-import IncidentMessageModel from 'common-server/models/incidentMessage';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
+import IncidentMessageService from './IncidentMessageService';
+import IncidentMessageModel from '../models/incidentMessage';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';

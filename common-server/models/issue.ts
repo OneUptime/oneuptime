@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const issueSchema = new Schema({
+const schema = new Schema({
     name: String,
     description: String,
     errorTrackerId: {
@@ -47,11 +47,12 @@ const issueSchema = new Schema({
 
     ignoredById: { type: String, ref: 'User', index: true },
 });
-issueSchema.virtual('errorTracker', {
+schema.virtual('errorTracker', {
     localField: '_id',
     foreignField: 'errorTrackerId',
     ref: 'ErrorTracker',
     justOne: true,
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Issue', issueSchema);
+export default mongoose.model('Issue', schema);

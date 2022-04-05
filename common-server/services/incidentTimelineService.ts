@@ -141,17 +141,14 @@ export default {
         }
         query.deleted = false;
 
-        let incidentTimelinesQuery = IncidentTimelineModel.find(query)
+        const incidentTimelinesQuery = IncidentTimelineModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        incidentTimelinesQuery = handleSelect(select, incidentTimelinesQuery);
-        incidentTimelinesQuery = handlePopulate(
-            populate,
-            incidentTimelinesQuery
-        );
+        incidentTimelinesQuery.select(select);
+        incidentTimelinesQuery.populate(populate);
 
         const incidentTimelines = await incidentTimelinesQuery;
 
@@ -164,12 +161,12 @@ export default {
         }
         query.deleted = false;
 
-        let incidentTimelineQuery = IncidentTimelineModel.findOne(query)
+        const incidentTimelineQuery = IncidentTimelineModel.findOne(query)
             .sort(sort)
             .lean();
 
-        incidentTimelineQuery = handleSelect(select, incidentTimelineQuery);
-        incidentTimelineQuery = handlePopulate(populate, incidentTimelineQuery);
+        incidentTimelineQuery.select(select);
+        incidentTimelineQuery.populate(populate);
 
         const incidentTimeline = await incidentTimelineQuery;
         return incidentTimeline;
@@ -242,13 +239,12 @@ export default {
     },
 };
 
-import IncidentTimelineModel from 'common-server/models/incidentTimeline';
-import IncidentService from './incidentService';
+import IncidentTimelineModel from '../models/incidentTimeline';
+import IncidentService from './IncidentService';
 import RealTimeService from './realTimeService';
-import ErrorService from 'common-server/utils/error';
+import ErrorService from '../utils/error';
 import flattenArray from '../utils/flattenArray';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

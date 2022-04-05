@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 import BadDataException from 'common/types/exception/BadDataException';
 export default {
     findBy: async function ({
@@ -14,14 +14,14 @@ export default {
         ],
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
-        let userQuery = UserModel.find(query)
+        const userQuery = UserModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        userQuery = handleSelect(select, userQuery);
-        userQuery = handlePopulate(populate, userQuery);
+        userQuery.select(select);
+        userQuery.populate(populate);
 
         const users = await userQuery;
         return users;
@@ -135,10 +135,10 @@ export default {
             query = {};
         }
         if (!query['deleted']) query['deleted'] = false;
-        let userQuery = UserModel.findOne(query).sort(sort).lean().sort(sort);
+        const userQuery = UserModel.findOne(query).sort(sort).lean().sort(sort);
 
-        userQuery = handleSelect(select, userQuery);
-        userQuery = handlePopulate(populate, userQuery);
+        userQuery.select(select);
+        userQuery.populate(populate);
 
         const user = await userQuery;
 
@@ -1121,13 +1121,13 @@ export default {
 import bcrypt from 'bcrypt';
 
 import constants from '../config/constants.json';
-import UserModel from 'common-server/models/user';
+import UserModel from '../models/user';
 import util from './utilService.js';
 import randToken from 'rand-token';
-import PaymentService from './paymentService';
+import PaymentService from './PaymentService';
 import crypto from 'crypto';
-import ProjectService from './projectService';
-import ErrorService from 'common-server/utils/error';
+import ProjectService from './ProjectService';
+import ErrorService from '../utils/error';
 
 import jwt from 'jsonwebtoken';
 
@@ -1136,16 +1136,15 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
-import VerificationTokenModel from 'common-server/models/verificationToken';
-import MailService from '../services/mailService';
-import AirtableService from './airtableService';
+import VerificationTokenModel from '../models/verificationToken';
+import MailService from './MailService';
+import AirtableService from './AirtableService';
 
 import speakeasy from 'speakeasy';
 import { hotp } from 'otplib';
-import LoginHistoryService from './loginHistoryService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import SortOrder from 'common-server/types/db/SortOrder';
+import LoginHistoryService from './LoginHistoryService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+import SortOrder from '../types/db/SortOrder';

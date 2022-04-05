@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const IncidentSettings = new Schema({
+const schema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -31,5 +31,6 @@ const IncidentSettings = new Schema({
     },
     deletedById: { type: String, ref: 'User', index: true },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('IncidentSettings', IncidentSettings);
+export default mongoose.model('IncidentSettings', schema);

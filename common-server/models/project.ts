@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const projectSchema = new Schema({
+const schema = new Schema({
     name: String,
     slug: {
         type: String,
@@ -133,5 +133,6 @@ const projectSchema = new Schema({
         default: null,
     },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Project', projectSchema);
+export default mongoose.model('Project', schema);

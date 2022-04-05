@@ -1,7 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const performanceTrackerMetricSchema = new Schema({
+
+const schema = new Schema({
     type: String,
     metrics: Object,
     callIdentifier: String,
@@ -19,7 +20,6 @@ const performanceTrackerMetricSchema = new Schema({
     updatedAt: Date,
 });
 
-export default mongoose.model(
-    'PerformanceTrackerMetric',
-    performanceTrackerMetricSchema
-);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('PerformanceTrackerMetric', schema);

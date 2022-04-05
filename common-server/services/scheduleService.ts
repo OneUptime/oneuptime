@@ -8,14 +8,14 @@ export default {
         sort,
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
-        let schedulesQuery = ScheduleModel.find(query)
+        const schedulesQuery = ScheduleModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        schedulesQuery = handleSelect(select, schedulesQuery);
-        schedulesQuery = handlePopulate(populate, schedulesQuery);
+        schedulesQuery.select(select);
+        schedulesQuery.populate(populate);
 
         const schedules = await schedulesQuery;
         return schedules;
@@ -27,13 +27,13 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let scheduleQuery = ScheduleModel.findOne(query)
+        const scheduleQuery = ScheduleModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
 
-        scheduleQuery = handleSelect(select, scheduleQuery);
-        scheduleQuery = handlePopulate(populate, scheduleQuery);
+        scheduleQuery.select(select);
+        scheduleQuery.populate(populate);
 
         const schedule = await scheduleQuery;
 
@@ -538,11 +538,10 @@ export default {
     },
 };
 
-import ScheduleModel from 'common-server/models/schedule';
-import EscalationService from '../services/escalationService';
+import ScheduleModel from '../models/schedule';
+import EscalationService from './EscalationService';
 import getSlug from '../utils/getSlug';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

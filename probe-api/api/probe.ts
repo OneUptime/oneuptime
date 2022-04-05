@@ -6,7 +6,7 @@ import express, {
 } from 'common-server/utils/Express';
 import MonitorService from '../services/monitorService';
 const router = express.getRouter();
-import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
+import ProbeAuthorization from 'common-server/middleware/ProbeAuthorization';
 import { sendErrorResponse } from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
@@ -15,7 +15,7 @@ import PositiveNumber from 'common/types/PositiveNumber';
 
 router.get(
     '/monitors',
-    isAuthorizedProbe,
+    ProbeAuthorization.isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const oneUptimeRequest = req as OneUptimeRequest;

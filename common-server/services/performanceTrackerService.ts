@@ -1,18 +1,17 @@
-import PositiveNumber from 'common/types/positive-number';
-import PerformanceTrackerModel from 'common-server/models/performanceTracker';
-import ComponentService from './componentService';
+import PositiveNumber from 'common/types/PositiveNumber';
+import PerformanceTrackerModel from '../models/performanceTracker';
+import ComponentService from './ComponentService';
 
 import generate from 'nanoid/generate';
 import slugify from 'slugify';
 // import RealTimeService from './realTimeService'
-import NotificationService from './notificationService';
+import NotificationService from './NotificationService';
 
 import uuid from 'uuid';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -98,16 +97,13 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let performanceTrackerQuery = PerformanceTrackerModel.find(query)
+        const performanceTrackerQuery = PerformanceTrackerModel.find(query)
             .lean()
             .sort(sort)
             .skip(skip.toNumber())
             .limit(limit.toNumber());
-        performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
-        performanceTrackerQuery = handlePopulate(
-            populate,
-            performanceTrackerQuery
-        );
+        performanceTrackerQuery.select(select);
+        performanceTrackerQuery.populate(populate);
 
         const performanceTracker = await performanceTrackerQuery;
         return performanceTracker;
@@ -129,15 +125,12 @@ export default {
         // })
         // .populate('createdById', 'name email');
 
-        let performanceTrackerQuery = PerformanceTrackerModel.findOne(query)
+        const performanceTrackerQuery = PerformanceTrackerModel.findOne(query)
             .sort(sort)
             .lean();
 
-        performanceTrackerQuery = handleSelect(select, performanceTrackerQuery);
-        performanceTrackerQuery = handlePopulate(
-            populate,
-            performanceTrackerQuery
-        );
+        performanceTrackerQuery.select(select);
+        performanceTrackerQuery.populate(populate);
 
         const performanceTracker = await performanceTrackerQuery;
         return performanceTracker;

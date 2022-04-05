@@ -1,30 +1,29 @@
-import ProjectModel from 'common-server/models/project';
+import ProjectModel from '../models/project';
 
 import { v1 as uuidv1 } from 'uuid';
-import MonitorService from '../services/monitorService';
-import PaymentService from './paymentService';
-import UserService from './userService';
-import IncidentPrioritiesService from './incidentPrioritiesService';
-import integrationService from './integrationService';
-import ScheduleService from './scheduleService';
+import MonitorService from './MonitorService';
+import PaymentService from './PaymentService';
+import UserService from './UserService';
+import IncidentPrioritiesService from './IncidentPrioritiesService';
+import integrationService from './IntegrationService';
+import ScheduleService from './ScheduleService';
 import domains from '../config/domains'; // removal of 'moment' due to declaration but not used.
-import EscalationService from './escalationService';
-import StripeService from './stripeService';
-import TeamService from './teamService';
-import StatusPageService from './statusPageService';
+import EscalationService from './EscalationService';
+import StripeService from './StripeService';
+import TeamService from './TeamService';
+import StatusPageService from './StatusPageService';
 
 import { IS_SAAS_SERVICE } from '../config/server';
-import componentService from './componentService';
-import DomainVerificationService from './domainVerificationService';
-import SsoDefaultRolesService from './ssoDefaultRolesService';
+import componentService from './ComponentService';
+import DomainVerificationService from './DomainVerificationService';
+import SsoDefaultRolesService from './SsoDefaultRolesService';
 import getSlug from '../utils/getSlug';
 import flattenArray from '../utils/flattenArray';
-import IncidentSettingsService from './incidentSettingsService';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
+import IncidentSettingsService from './IncidentSettingsService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     findBy: async function ({
@@ -37,14 +36,14 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let projectQuery = ProjectModel.find(query)
+        const projectQuery = ProjectModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        projectQuery = handleSelect(select, projectQuery);
-        projectQuery = handlePopulate(populate, projectQuery);
+        projectQuery.select(select);
+        projectQuery.populate(populate);
 
         const projects = await projectQuery;
         return projects;
@@ -331,13 +330,13 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let projectQuery = ProjectModel.findOne(query)
+        const projectQuery = ProjectModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
 
-        projectQuery = handleSelect(select, projectQuery);
-        projectQuery = handlePopulate(populate, projectQuery);
+        projectQuery.select(select);
+        projectQuery.populate(populate);
 
         const project = await projectQuery;
         return project;

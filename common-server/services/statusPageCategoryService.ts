@@ -1,9 +1,8 @@
-import StatusPageCategoryModel from 'common-server/models/statusPageCategory';
-import MonitorModel from 'common-server/models/monitor';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import StatusPageCategoryModel from '../models/statusPageCategory';
+import MonitorModel from '../models/monitor';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -77,20 +76,14 @@ export default {
             query.deleted = false;
         }
 
-        let statusPageCategoriesQuery = StatusPageCategoryModel.find(query)
+        const statusPageCategoriesQuery = StatusPageCategoryModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        statusPageCategoriesQuery = handleSelect(
-            select,
-            statusPageCategoriesQuery
-        );
-        statusPageCategoriesQuery = handlePopulate(
-            populate,
-            statusPageCategoriesQuery
-        );
+        statusPageCategoriesQuery.select(select);
+        statusPageCategoriesQuery.populate(populate);
 
         const statusCategories = await statusPageCategoriesQuery;
         return statusCategories;

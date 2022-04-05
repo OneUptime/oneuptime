@@ -1,4 +1,4 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
@@ -35,5 +35,6 @@ const schema = new Schema({
 
     alertedEveryone: { type: Boolean, default: false }, //this happens when everyone in the scheudle has been alerted and they still ignore the incident.
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export default mongoose.model('OnCallScheduleStatus', schema);

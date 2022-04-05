@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const gitCredentialSchema = new Schema(
+const schema = new Schema(
     {
         gitUsername: String,
         gitPassword: String,
@@ -22,5 +22,6 @@ const gitCredentialSchema = new Schema(
     },
     { timestamps: true }
 );
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('GitCredential', gitCredentialSchema);
+export default mongoose.model('GitCredential', schema);

@@ -1,4 +1,4 @@
-import Query from 'common-server/types/db/Query';
+import Query from '../types/db/Query';
 export default {
     findOneBy: async function (query: Query) {
         const gfs = await Grid(mongoose.connection.db, mongoose.mongo);

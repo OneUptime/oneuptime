@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const smsCountSchema = new Schema({
+const schema = new Schema({
     userId: { type: String, ref: 'User', alias: 'users', index: true },
     sentTo: String,
     createdAt: { type: Date, default: Date.now },
@@ -17,4 +17,7 @@ const smsCountSchema = new Schema({
     status: String,
     error: String,
 });
-export default mongoose.model('SmsCount', smsCountSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('SmsCount', schema);

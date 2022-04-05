@@ -9,13 +9,13 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let itemQuery = CallLogsModel.find(query)
+        const itemQuery = CallLogsModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
-        itemQuery = handleSelect(select, itemQuery);
-        itemQuery = handlePopulate(populate, itemQuery);
+        itemQuery.select(select);
+        itemQuery.populate(populate);
 
         const items = await itemQuery;
         return items;
@@ -94,8 +94,7 @@ export default {
     },
 };
 
-import CallLogsModel from 'common-server/models/callLogs';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import CallLogsModel from '../models/callLogs';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

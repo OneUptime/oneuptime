@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const incidentMessageSchema = new Schema({
+const schema = new Schema({
     incidentId: {
         type: Schema.Types.ObjectId,
         ref: 'Incident',
@@ -31,11 +31,12 @@ const incidentMessageSchema = new Schema({
     postOnStatusPage: { type: Boolean, default: false },
 });
 
-incidentMessageSchema.virtual('incident', {
+schema.virtual('incident', {
     localField: '_id',
     foreignField: 'incidentId',
     ref: 'Incident',
     justOne: true,
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('IncidentMessage', incidentMessageSchema);
+export default mongoose.model('IncidentMessage', schema);

@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const callLogsSchema = new Schema({
+const schema = new Schema({
     from: String,
     to: String,
     projectId: { type: String, ref: 'Project', index: true },
@@ -16,4 +16,7 @@ const callLogsSchema = new Schema({
     status: String,
     error: String,
 });
-export default mongoose.model('callLogs', callLogsSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('callLogs', schema);

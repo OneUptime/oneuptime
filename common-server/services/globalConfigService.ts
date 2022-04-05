@@ -168,14 +168,14 @@ export default {
             query = {};
         }
 
-        let globalConfigsQuery = GlobalConfigModel.find(query)
+        const globalConfigsQuery = GlobalConfigModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        globalConfigsQuery = handleSelect(select, globalConfigsQuery);
-        globalConfigsQuery = handlePopulate(populate, globalConfigsQuery);
+        globalConfigsQuery.select(select);
+        globalConfigsQuery.populate(populate);
 
         const globalConfigs = await globalConfigsQuery;
         for (const globalConfig of globalConfigs) {
@@ -220,10 +220,10 @@ export default {
         }
 
         // we won't use lean here because of iv that should be a buffer
-        let globalConfigQuery = GlobalConfigModel.findOne(query).sort(sort);
+        const globalConfigQuery = GlobalConfigModel.findOne(query).sort(sort);
 
-        globalConfigQuery = handleSelect(select, globalConfigQuery);
-        globalConfigQuery = handlePopulate(populate, globalConfigQuery);
+        globalConfigQuery.select(select);
+        globalConfigQuery.populate(populate);
 
         const globalConfig = await globalConfigQuery;
 
@@ -274,10 +274,9 @@ export default {
 };
 
 import Crypto from 'crypto';
-import GlobalConfigModel from 'common-server/models/globalConfig';
+import GlobalConfigModel from '../models/globalConfig';
 import EncryptDecrypt from '../config/encryptDecrypt';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

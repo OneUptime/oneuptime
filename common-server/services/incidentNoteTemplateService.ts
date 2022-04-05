@@ -1,6 +1,6 @@
-import IncidentNoteTemplateModel from 'common-server/models/incidentNoteTemplate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import IncidentNoteTemplateModel from '../models/incidentNoteTemplate';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 export default {
     findBy: async function ({ query = {}, limit, skip, sort }: FindBy) {
         if (!skip) skip = 0;

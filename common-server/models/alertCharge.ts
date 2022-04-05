@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const alertChargeSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true },
     chargeAmount: { type: Number, default: 0 },
     closingAccountBalance: { type: Number, default: 0 },
@@ -12,5 +12,6 @@ const alertChargeSchema = new Schema({
     incidentId: { type: Schema.Types.ObjectId, ref: 'Incident', index: true },
     sentTo: { type: String },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('AlertCharge', alertChargeSchema);
+export default mongoose.model('AlertCharge', schema);

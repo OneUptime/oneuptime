@@ -19,13 +19,13 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let smsCountQuery = SmsCountModel.find(query)
+        const smsCountQuery = SmsCountModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        smsCountQuery = handleSelect(select, smsCountQuery);
-        smsCountQuery = handlePopulate(populate, smsCountQuery);
+        smsCountQuery.select(select);
+        smsCountQuery.populate(populate);
 
         const SmsCount = await smsCountQuery;
         return SmsCount;
@@ -38,13 +38,13 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let smsCountQuery = SmsCountModel.findOne(query)
+        const smsCountQuery = SmsCountModel.findOne(query)
             .sort(sort)
             .lean()
             .sort(sort);
 
-        smsCountQuery = handleSelect(select, smsCountQuery);
-        smsCountQuery = handlePopulate(populate, smsCountQuery);
+        smsCountQuery.select(select);
+        smsCountQuery.populate(populate);
 
         const SmsCount = await smsCountQuery;
         return SmsCount;
@@ -157,10 +157,9 @@ export default {
     },
 };
 
-import SmsCountModel from 'common-server/models/smsCount';
+import SmsCountModel from '../models/smsCount';
 import moment from 'moment';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

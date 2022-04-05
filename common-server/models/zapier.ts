@@ -1,4 +1,4 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
@@ -11,7 +11,7 @@ const Schema = mongoose.Schema;
  * @property {number} counter - The number of incidents send to the zapier `url`.
  *
  */
-const zapierSchema = new Schema({
+const schema = new Schema({
     projectId: String,
     url: URL,
     type: String,
@@ -21,5 +21,6 @@ const zapierSchema = new Schema({
         default: false,
     },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Zapier', zapierSchema);
+export default mongoose.model('Zapier', schema);

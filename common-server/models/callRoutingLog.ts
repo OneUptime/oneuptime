@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const callRoutingLogSchema = new Schema({
+const schema = new Schema({
     callRoutingId: { type: String, ref: 'CallRouting', index: true },
     createdAt: {
         type: Date,
@@ -29,5 +29,6 @@ const callRoutingLogSchema = new Schema({
         },
     ],
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('CallRoutingLog', callRoutingLogSchema);
+export default mongoose.model('CallRoutingLog', schema);

@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const userSchema = new Schema(
+const schema = new Schema(
     {
         name: { type: String, index: true },
         email: String,
@@ -102,5 +102,6 @@ const userSchema = new Schema(
     },
     { timestamps: true }
 );
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model('User', schema);

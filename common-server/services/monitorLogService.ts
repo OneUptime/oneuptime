@@ -1,14 +1,13 @@
-import MonitorLogModel from 'common-server/models/monitorLog';
-import MonitorLogByHourService from '../services/monitorLogByHourService';
-import MonitorLogByDayService from '../services/monitorLogByDayService';
-import MonitorLogByWeekService from '../services/monitorLogByWeekService';
-import MonitorService from '../services/monitorService';
+import MonitorLogModel from '../models/monitorLog';
+import MonitorLogByHourService from './MonitorLogByHourService';
+import MonitorLogByDayService from './MonitorLogByDayService';
+import MonitorLogByWeekService from './MonitorLogByWeekService';
+import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 import moment from 'moment';
 
 export default {
@@ -253,13 +252,13 @@ export default {
             query = {};
         }
 
-        let monitorLogsQuery = MonitorLogModel.find(query)
+        const monitorLogsQuery = MonitorLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        monitorLogsQuery = handleSelect(select, monitorLogsQuery);
-        monitorLogsQuery = handlePopulate(populate, monitorLogsQuery);
+        monitorLogsQuery.select(select);
+        monitorLogsQuery.populate(populate);
 
         const monitorLogs = await monitorLogsQuery;
         return monitorLogs;
@@ -270,9 +269,11 @@ export default {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogModel.findOne(query).sort(sort).lean();
-        monitorLogQuery = handleSelect(select, monitorLogQuery);
-        monitorLogQuery = handlePopulate(populate, monitorLogQuery);
+        const monitorLogQuery = MonitorLogModel.findOne(query)
+            .sort(sort)
+            .lean();
+        monitorLogQuery.select(select);
+        monitorLogQuery.populate(populate);
 
         const monitorLog = await monitorLogQuery;
         return monitorLog;

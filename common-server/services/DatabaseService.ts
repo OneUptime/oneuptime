@@ -1,19 +1,34 @@
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import getSlug from '../utils/getSlug';
+import Slug from 'common/utils/Slug';
+import Populate from '../types/db/Populate';
+import Select from '../types/db/Select';
+import { Model } from '../utils/ORM';
+import { RequiredFields } from '../utils/ORM';
+import FindOneBy from '../types/db/FindOneBy';
+import UpdateOneBy from '../types/db/UpdateOneBy';
 
-class ServiceBase {
-    adminItemProps: $TSFixMe;
-    adminListProps: $TSFixMe;
-    friendlyName: string;
-    memberItemProps: $TSFixMe;
-    memberListProps: $TSFixMe;
-    model: $TSFixMe;
-    publicItemProps: $TSFixMe;
-    publicListProps: $TSFixMe;
-    requiredFields: $TSFixMe;
-    viewerItemProps: $TSFixMe;
-    viewerListProps: $TSFixMe;
+export interface ListProps {
+    populate: Populate;
+    select: Select;
+}
+
+export interface ItemProps {
+    populate: Populate;
+    select: Select;
+}
+
+class DatabaseService<ModelType> {
+    public adminItemProps: ItemProps;
+    public adminListProps: ListProps;
+    public friendlyName: string;
+    public memberItemProps: ItemProps;
+    public memberListProps: ListProps;
+    public model: Model<ModelType>;
+    public publicItemProps: ItemProps;
+    public publicListProps: ListProps;
+    public requiredFields: RequiredFields;
+    public viewerItemProps: ItemProps;
+    public viewerListProps: ListProps;
+
     constructor({
         model,
         requiredFields,
@@ -26,11 +41,19 @@ class ServiceBase {
         adminItemProps,
         memberItemProps,
         viewerItemProps,
-    }: $TSFixMe) {
-        if (!model) {
-            throw new Error('model is required');
-        }
-
+    }: {
+        adminItemProps: ItemProps;
+        adminListProps: ListProps;
+        friendlyName: string;
+        memberItemProps: ItemProps;
+        memberListProps: ListProps;
+        model: Model<ModelType>;
+        publicItemProps: ItemProps;
+        publicListProps: ListProps;
+        requiredFields: RequiredFields;
+        viewerItemProps: ItemProps;
+        viewerListProps: ListProps;
+    }) {
         this.model = model;
         this.friendlyName = friendlyName;
         this.requiredFields = requiredFields;
@@ -87,7 +110,7 @@ class ServiceBase {
         }
 
         if (slugifyField && data[slugifyField]) {
-            item.slug = getSlug(data[slugifyField]);
+            item.slug = Slug.getSlug(data[slugifyField]);
         }
 
         return await item.save();
@@ -197,7 +220,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForViewer({ query = {}, skip = 0, sort }: $TSFixMe) {
+    async getItemForViewer({ query = {}, skip = 0, sort }: FindOneBy) {
         return await this.findOneBy({
             query,
             skip,
@@ -207,7 +230,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForAdmin({ query = {}, skip = 0, sort }: $TSFixMe) {
+    async getItemForAdmin({ query = {}, skip = 0, sort }: FindOneBy) {
         return await this.findOneBy({
             query,
             skip,
@@ -217,7 +240,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForMember({ query = {}, skip = 0, sort }: $TSFixMe) {
+    async getItemForMember({ query = {}, skip = 0, sort }: FindOneBy) {
         return await this.findOneBy({
             query,
             skip,
@@ -227,7 +250,7 @@ class ServiceBase {
         });
     }
 
-    async getItemForPublic({ query = {}, skip = 0, sort }: $TSFixMe) {
+    async getItemForPublic({ query = {}, skip = 0, sort }: FindOneBy) {
         return await this.findOneBy({
             query,
             skip,
@@ -264,8 +287,8 @@ class ServiceBase {
             .skip(skip.toNumber())
             .lean();
 
-        query = handleSelect(select, query);
-        query = handlePopulate(populate, query);
+        query.select(select);
+        query.populate(populate);
 
         const items = await query;
         return items;
@@ -277,7 +300,7 @@ class ServiceBase {
         populate = [],
         select = '',
         sort = [],
-    }) {
+    }: FindOneBy) {
         return await this.findBy({
             query,
             skip,
@@ -289,7 +312,11 @@ class ServiceBase {
         });
     }
 
-    async updateBy({ query = {}, updatedValues = {}, multiple = true }) {
+    async updateBy({
+        query = {},
+        updatedValues = {},
+        updateOne = true,
+    }: UpdateOneBy) {
         if (!query) {
             query = {};
         }
@@ -298,7 +325,7 @@ class ServiceBase {
 
         let functionToCall = 'updateMany';
 
-        if (multiple) {
+        if (updateOne) {
             functionToCall = 'updateOne';
         }
 
@@ -314,4 +341,4 @@ class ServiceBase {
     }
 }
 
-export default ServiceBase;
+export default DatabaseService;

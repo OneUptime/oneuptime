@@ -1,12 +1,11 @@
-import EscalationModel from 'common-server/models/escalation';
+import EscalationModel from '../models/escalation';
 import moment from 'moment';
 import DateTime from '../utils/DateTime';
-import ScheduleService from './scheduleService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import ScheduleService from './ScheduleService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     findBy: async function ({
@@ -28,14 +27,14 @@ export default {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
-        let escalationsQuery = EscalationModel.find(query)
+        const escalationsQuery = EscalationModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        escalationsQuery = handleSelect(select, escalationsQuery);
-        escalationsQuery = handlePopulate(populate, escalationsQuery);
+        escalationsQuery.select(select);
+        escalationsQuery.populate(populate);
 
         const escalations = await escalationsQuery;
         return escalations;
@@ -47,10 +46,12 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let escalationQuery = EscalationModel.findOne(query).sort(sort).lean();
+        const escalationQuery = EscalationModel.findOne(query)
+            .sort(sort)
+            .lean();
 
-        escalationQuery = handleSelect(select, escalationQuery);
-        escalationQuery = handlePopulate(populate, escalationQuery);
+        escalationQuery.select(select);
+        escalationQuery.populate(populate);
 
         const escalation = await escalationQuery;
 

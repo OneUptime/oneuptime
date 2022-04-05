@@ -1,4 +1,4 @@
-import Query from 'common-server/types/db/Query';
+import Query from '../types/db/Query';
 
 export default {
     //Description: Get all team members of Project or Subproject.
@@ -967,15 +967,15 @@ export default {
     },
 };
 
-import ProjectService from '../services/projectService';
-import UserService from '../services/userService';
-import MailService from '../services/mailService';
-import PaymentService from '../services/paymentService';
-import NotificationService from '../services/notificationService';
-import RealTimeService from '../services/realTimeService';
-import ErrorService from 'common-server/utils/error';
+import ProjectService from './ProjectService';
+import UserService from './UserService';
+import MailService from './MailService';
+import PaymentService from './PaymentService';
+import NotificationService from './NotificationService';
+import RealTimeService from './realTimeService';
+import ErrorService from '../utils/error';
 import domains from '../config/domains';
-import VerificationTokenModel from 'common-server/models/verificationToken';
+import VerificationTokenModel from '../models/verificationToken';
 import crypto from 'crypto';
 
 import { IS_SAAS_SERVICE } from '../config/server';

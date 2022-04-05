@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 const Schema = mongoose.Schema;
 
-const incidentCommunicationSlaSchema = new Schema(
+const schema = new Schema(
     {
         name: String,
         projectId: { ref: 'Project', type: Schema.Types.ObjectId, index: true },
@@ -14,7 +14,6 @@ const incidentCommunicationSlaSchema = new Schema(
     { timestamps: true } //automatically adds createdAt and updatedAt to the collection
 );
 
-export default mongoose.model(
-    'IncidentCommunicationSla',
-    incidentCommunicationSlaSchema
-);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('IncidentCommunicationSla', schema);

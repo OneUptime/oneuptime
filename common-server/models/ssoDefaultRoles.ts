@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const ssoDefaultRoleSchema = new Schema({
+const schema = new Schema({
     domain: {
         type: Schema.Types.ObjectId,
         required: true,
@@ -33,5 +33,6 @@ const ssoDefaultRoleSchema = new Schema({
         ref: 'User',
     },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('SsoDefaultRole', ssoDefaultRoleSchema);
+export default mongoose.model('SsoDefaultRole', schema);

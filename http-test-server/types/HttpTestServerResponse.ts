@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 import Headers from 'common/types/api/Headers';
 import { JSONObject, JSONObjectOrArray } from 'common/types/JSON';
 import HTML from 'common/types/html';

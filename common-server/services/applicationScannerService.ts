@@ -57,15 +57,12 @@ export default {
         }
 
         query.deleted = false;
-        let applicationScannerQuery = ApplicationScannerModel.findOne(query)
+        const applicationScannerQuery = ApplicationScannerModel.findOne(query)
             .sort(sort)
             .lean();
 
-        applicationScannerQuery = handleSelect(select, applicationScannerQuery);
-        applicationScannerQuery = handlePopulate(
-            populate,
-            applicationScannerQuery
-        );
+        applicationScannerQuery.select(select);
+        applicationScannerQuery.populate(populate);
         const applicationScanner = await applicationScannerQuery;
         return applicationScanner;
     },
@@ -89,10 +86,9 @@ export default {
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-import ApplicationScannerModel from 'common-server/models/applicationScanner';
+import ApplicationScannerModel from '../models/applicationScanner';
 
 import { v1 as uuidv1 } from 'uuid';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';

@@ -90,13 +90,13 @@ export default {
             query = {};
         }
 
-        let monitorLogsByDayQuery = MonitorLogByDayModel.find(query, filter)
+        const monitorLogsByDayQuery = MonitorLogByDayModel.find(query, filter)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        monitorLogsByDayQuery = handleSelect(select, monitorLogsByDayQuery);
-        monitorLogsByDayQuery = handlePopulate(populate, monitorLogsByDayQuery);
+        monitorLogsByDayQuery.select(select);
+        monitorLogsByDayQuery.populate(populate);
 
         const monitorLogsByDay = await monitorLogsByDayQuery;
         return monitorLogsByDay;
@@ -107,12 +107,12 @@ export default {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogByDayModel.findOne(query)
+        const monitorLogQuery = MonitorLogByDayModel.findOne(query)
             .sort(sort)
             .lean();
 
-        monitorLogQuery = handleSelect(select, monitorLogQuery);
-        monitorLogQuery = handlePopulate(populate, monitorLogQuery);
+        monitorLogQuery.select(select);
+        monitorLogQuery.populate(populate);
 
         const monitorLog = await monitorLogQuery;
 
@@ -130,8 +130,7 @@ export default {
     },
 };
 
-import MonitorLogByDayModel from 'common-server/models/monitorLogByDay';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
+import MonitorLogByDayModel from '../models/monitorLogByDay';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';

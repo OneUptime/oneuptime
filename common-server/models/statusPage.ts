@@ -1,7 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const statusSchema = new Schema({
+
+export default new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -145,12 +146,4 @@ const statusSchema = new Schema({
     theme: { type: String, default: 'Clean Theme' },
 });
 
-const requiredFields = {
-    name: true,
-    projectId: true,
-};
-
-export default {
-    schema: mongoose.model('StatusPage', statusSchema),
-    requiredFields,
-};
+export const requiredFields: RequiredFields = ['name', 'projectId'];

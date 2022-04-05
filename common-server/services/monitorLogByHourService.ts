@@ -88,17 +88,14 @@ export default {
             query = {};
         }
 
-        let monitorLogsByHourQuery = MonitorLogByHourModel.find(query)
+        const monitorLogsByHourQuery = MonitorLogByHourModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        monitorLogsByHourQuery = handleSelect(select, monitorLogsByHourQuery);
-        monitorLogsByHourQuery = handlePopulate(
-            populate,
-            monitorLogsByHourQuery
-        );
+        monitorLogsByHourQuery.select(select);
+        monitorLogsByHourQuery.populate(populate);
 
         const monitorLogsByHour = await monitorLogsByHourQuery;
 
@@ -110,12 +107,12 @@ export default {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogByHourModel.findOne(query)
+        const monitorLogQuery = MonitorLogByHourModel.findOne(query)
             .sort(sort)
             .lean();
 
-        monitorLogQuery = handleSelect(select, monitorLogQuery);
-        monitorLogQuery = handlePopulate(populate, monitorLogQuery);
+        monitorLogQuery.select(select);
+        monitorLogQuery.populate(populate);
 
         const monitorLog = await monitorLogQuery;
         return monitorLog;
@@ -132,9 +129,8 @@ export default {
     },
 };
 
-import MonitorLogByHourModel from 'common-server/models/monitorLogByHour';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import MonitorLogByHourModel from '../models/monitorLogByHour';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

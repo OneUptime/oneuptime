@@ -9,13 +9,13 @@ export default {
     }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
-        let callRoutingQuery = CallRoutingModel.find(query)
+        const callRoutingQuery = CallRoutingModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        callRoutingQuery = handleSelect(select, callRoutingQuery);
-        callRoutingQuery = handlePopulate(populate, callRoutingQuery);
+        callRoutingQuery.select(select);
+        callRoutingQuery.populate(populate);
 
         const callRouting = await callRoutingQuery;
         return callRouting;
@@ -94,11 +94,11 @@ export default {
         }
         if (!query['deleted']) query['deleted'] = false;
 
-        let callRoutingQuery = CallRoutingModel.findOne(query)
+        const callRoutingQuery = CallRoutingModel.findOne(query)
             .lean()
             .sort(sort);
-        callRoutingQuery = handleSelect(select, callRoutingQuery);
-        callRoutingQuery = handlePopulate(populate, callRoutingQuery);
+        callRoutingQuery.select(select);
+        callRoutingQuery.populate(populate);
 
         const callRouting = await callRoutingQuery;
         return callRouting;
@@ -737,21 +737,20 @@ export default {
     },
 };
 
-import CallRoutingModel from 'common-server/models/callRouting';
-import CallRoutingLogService from '../services/callRoutingLogService';
-import PaymentService from './paymentService';
-import TwilioService from './twilioService';
-import ScheduleService from './scheduleService';
-import AlertService from './alertService';
-import EscalationService from './escalationService';
-import UserService from './userService';
+import CallRoutingModel from '../models/callRouting';
+import CallRoutingLogService from './CallRoutingLogService';
+import PaymentService from './PaymentService';
+import TwilioService from './TwilioService';
+import ScheduleService from './ScheduleService';
+import AlertService from './AlertService';
+import EscalationService from './EscalationService';
+import UserService from './UserService';
 import twilio from 'twilio';
 
 import { IS_SAAS_SERVICE } from '../config/server';
-import ProjectService from './projectService';
-import FileService from './fileService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import ProjectService from './ProjectService';
+import FileService from './FileService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

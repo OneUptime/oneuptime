@@ -10,7 +10,7 @@ import {
 import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/types/JSON';
 import { File } from 'common/types/File';
 import Exception from 'common/types/exception/Exception';
-import { ListData } from 'common/types/List';
+import ListData from 'common/types/ListData';
 import Database from './Database';
 import PositiveNumber from 'common/types/PositiveNumber';
 

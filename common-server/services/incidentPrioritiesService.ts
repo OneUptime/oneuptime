@@ -12,19 +12,16 @@ export default {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
-        let incidentPrioritiesQuery = incidentPriorityModel
+        const incidentPrioritiesQuery = incidentPriorityModel
             .find(query)
             .sort(sort)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        incidentPrioritiesQuery = handleSelect(select, incidentPrioritiesQuery);
+        incidentPrioritiesQuery.select(select);
 
-        incidentPrioritiesQuery = handlePopulate(
-            populate,
-            incidentPrioritiesQuery
-        );
+        incidentPrioritiesQuery.populate(populate);
 
         const incidentPriorities = await incidentPrioritiesQuery;
 
@@ -35,17 +32,14 @@ export default {
             query = {};
         }
         query.deleted = false;
-        let incidentPrioritiesQuery = incidentPriorityModel
+        const incidentPrioritiesQuery = incidentPriorityModel
             .findOne(query)
             .sort(sort)
             .lean();
 
-        incidentPrioritiesQuery = handleSelect(select, incidentPrioritiesQuery);
+        incidentPrioritiesQuery.select(select);
 
-        incidentPrioritiesQuery = handlePopulate(
-            populate,
-            incidentPrioritiesQuery
-        );
+        incidentPrioritiesQuery.populate(populate);
 
         const incidentPriorities = await incidentPrioritiesQuery;
 
@@ -130,11 +124,10 @@ export default {
     },
 };
 
-import IncidentSettingsService from './incidentSettingsService';
-import IncidentService from './incidentService';
-import incidentPriorityModel from 'common-server/models/incidentPriority';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import IncidentSettingsService from './IncidentSettingsService';
+import IncidentService from './IncidentService';
+import incidentPriorityModel from '../models/incidentPriority';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

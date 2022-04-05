@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const applicationSecuritySchema = new Schema(
+const schema = new Schema(
     {
         name: String,
         slug: { type: String, index: true },
@@ -33,5 +33,6 @@ const applicationSecuritySchema = new Schema(
     },
     { timestamps: true } //automatically adds createdAt and updatedAt to the schema
 );
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('ApplicationSecurity', applicationSecuritySchema);
+export default mongoose.model('ApplicationSecurity', schema);

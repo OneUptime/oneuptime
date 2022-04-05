@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const incidentTimelineSchema = new Schema({
+const schema = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true },
     createdById: { type: String, ref: 'User', index: true }, // userId
     probeId: { type: String, ref: 'Probe', index: true }, // probeId
@@ -28,4 +28,7 @@ const incidentTimelineSchema = new Schema({
     deletedAt: { type: Date },
     deletedById: { type: String, ref: 'User' },
 });
-export default mongoose.model('IncidentTimeline', incidentTimelineSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('IncidentTimeline', schema);

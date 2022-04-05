@@ -1,5 +1,5 @@
-import incidentSMSActionModel from 'common-server/models/incidentSMSAction';
-import Query from 'common-server/types/db/Query';
+import incidentSMSActionModel from '../models/incidentSMSAction';
+import Query from '../types/db/Query';
 
 export default {
     findBy: async function (query: Query) {

@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const subscriberAlertSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true },
     subscriberId: { type: String, ref: 'Subscriber', index: true },
     incidentId: { type: String, ref: 'Incident', index: true },
@@ -40,4 +40,7 @@ const subscriberAlertSchema = new Schema({
     totalSubscribers: { type: Number },
     identification: { type: Number },
 });
-export default mongoose.model('SubscriberAlert', subscriberAlertSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('SubscriberAlert', schema);

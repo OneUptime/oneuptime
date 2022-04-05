@@ -68,8 +68,8 @@ export default {
                 .sort([['createdAt', sort]]);
         }
 
-        alertQuery = handleSelect(select, alertQuery);
-        alertQuery = handlePopulate(populate, alertQuery);
+        alertQuery.select(select);
+        alertQuery.populate(populate);
         const alertCharges = await alertQuery;
 
         return alertCharges;
@@ -90,8 +90,7 @@ export default {
     },
 };
 
-import AlertChargeModel from 'common-server/models/alertCharge';
-import handlePopulate from '../utils/populate';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
+import AlertChargeModel from '../models/alertCharge';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

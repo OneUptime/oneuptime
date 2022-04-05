@@ -1,16 +1,15 @@
-import ContainerSecurityModel from 'common-server/models/containerSecurity';
+import ContainerSecurityModel from '../models/containerSecurity';
 import moment from 'moment';
 
 import { decrypt } from '../config/encryptDecrypt';
-import ContainerSecurityLogService from './containerSecurityLogService';
-import DockerCredentialService from './dockerCredentialService';
-import ResourceCategoryService from './resourceCategoryService';
+import ContainerSecurityLogService from './ContainerSecurityLogService';
+import DockerCredentialService from './DockerCredentialService';
+import ResourceCategoryService from './ResourceCategoryService';
 import getSlug from '../utils/getSlug';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 import RealTimeService from './realTimeService';
 
 export default {
@@ -76,13 +75,10 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
-        let containerSecurityQuery =
+        const containerSecurityQuery =
             ContainerSecurityModel.findOne(query).sort(sort);
-        containerSecurityQuery = handleSelect(select, containerSecurityQuery);
-        containerSecurityQuery = handlePopulate(
-            populate,
-            containerSecurityQuery
-        );
+        containerSecurityQuery.select(select);
+        containerSecurityQuery.populate(populate);
 
         const containerSecurity = await containerSecurityQuery;
         return containerSecurity;
@@ -108,15 +104,12 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
-        let containerSecurityQuery = ContainerSecurityModel.find(query)
+        const containerSecurityQuery = ContainerSecurityModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        containerSecurityQuery = handleSelect(select, containerSecurityQuery);
-        containerSecurityQuery = handlePopulate(
-            populate,
-            containerSecurityQuery
-        );
+        containerSecurityQuery.select(select);
+        containerSecurityQuery.populate(populate);
 
         const containerSecurities = await containerSecurityQuery;
         return containerSecurities;

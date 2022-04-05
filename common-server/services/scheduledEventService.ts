@@ -1,17 +1,16 @@
-import ScheduledEventModel from 'common-server/models/scheduledEvent';
-import UserModel from 'common-server/models/user';
-import ErrorService from 'common-server/utils/error';
+import ScheduledEventModel from '../models/scheduledEvent';
+import UserModel from '../models/user';
+import ErrorService from '../utils/error';
 import RealTimeService from './realTimeService';
-import ScheduledEventNoteService from './scheduledEventNoteService';
-import AlertService from './alertService';
+import ScheduledEventNoteService from './ScheduledEventNoteService';
+import AlertService from './AlertService';
 import moment from 'moment';
 import getSlug from '../utils/getSlug';
-import MonitorService from './monitorService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import MonitorService from './MonitorService';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (
@@ -338,14 +337,14 @@ export default {
         }
 
         query.deleted = false;
-        let scheduledEventQuery = ScheduledEventModel.find(query)
+        const scheduledEventQuery = ScheduledEventModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
             .lean();
 
-        scheduledEventQuery = handleSelect(select, scheduledEventQuery);
-        scheduledEventQuery = handlePopulate(populate, scheduledEventQuery);
+        scheduledEventQuery.select(select);
+        scheduledEventQuery.populate(populate);
 
         const scheduledEvents = await scheduledEventQuery;
 
@@ -358,12 +357,12 @@ export default {
         }
 
         query.deleted = false;
-        let scheduledEventQuery = ScheduledEventModel.findOne(query)
+        const scheduledEventQuery = ScheduledEventModel.findOne(query)
             .sort(sort)
             .lean();
 
-        scheduledEventQuery = handleSelect(select, scheduledEventQuery);
-        scheduledEventQuery = handlePopulate(populate, scheduledEventQuery);
+        scheduledEventQuery.select(select);
+        scheduledEventQuery.populate(populate);
 
         const scheduledEvent = await scheduledEventQuery;
 

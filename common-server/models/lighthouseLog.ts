@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const lighthouseLogSchema = new Schema({
+const schema = new Schema({
     monitorId: { type: String, ref: 'Monitor', index: true }, // which monitor does this belong to.
     probeId: { type: String, ref: 'Probe', index: true }, // which probe does this belong to.
     data: Object,
@@ -17,4 +17,7 @@ const lighthouseLogSchema = new Schema({
     },
     scanning: Boolean,
 });
-export default mongoose.model('LighthouseLog', lighthouseLogSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('LighthouseLog', schema);

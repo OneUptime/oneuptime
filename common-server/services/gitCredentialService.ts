@@ -1,12 +1,11 @@
 import Crypto from 'crypto';
-import GitCredentialModel from 'common-server/models/gitCredential';
+import GitCredentialModel from '../models/gitCredential';
 
 import { encrypt } from '../config/encryptDecrypt';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 import fs from 'fs';
 
 export default {
@@ -14,12 +13,12 @@ export default {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
-        let gitCredentialQuery = GitCredentialModel.findOne(query)
+        const gitCredentialQuery = GitCredentialModel.findOne(query)
             .sort(sort)
             .lean();
 
-        gitCredentialQuery = handleSelect(select, gitCredentialQuery);
-        gitCredentialQuery = handlePopulate(populate, gitCredentialQuery);
+        gitCredentialQuery.select(select);
+        gitCredentialQuery.populate(populate);
 
         const gitCredential = await gitCredentialQuery;
 
@@ -45,15 +44,15 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let gitCredentialsQuery = GitCredentialModel.find(query)
+        const gitCredentialsQuery = GitCredentialModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .populate('projectId');
 
-        gitCredentialsQuery = handleSelect(select, gitCredentialsQuery);
-        gitCredentialsQuery = handlePopulate(populate, gitCredentialsQuery);
+        gitCredentialsQuery.select(select);
+        gitCredentialsQuery.populate(populate);
 
         const gitCredentials = await gitCredentialsQuery;
 

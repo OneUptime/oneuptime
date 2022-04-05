@@ -1,37 +1,37 @@
-import MonitorModel from 'common-server/models/monitor';
-import ProbeService from './probeService';
-import MonitorStatusService from './monitorStatusService';
-import MonitorLogService from './monitorLogService';
-import MonitorLogByHourService from './monitorLogByHourService';
-import MonitorLogByDayService from './monitorLogByDayService';
-import MonitorLogByWeekService from './monitorLogByWeekService';
-import ResourceCategoryService from './resourceCategoryService';
-import MonitorCriteriaService from './monitorCriteriaService';
+import MonitorModel from '../models/monitor';
+import ProbeService from './ProbeService';
+import MonitorStatusService from './MonitorStatusService';
+import MonitorLogService from './MonitorLogService';
+import MonitorLogByHourService from './MonitorLogByHourService';
+import MonitorLogByDayService from './MonitorLogByDayService';
+import MonitorLogByWeekService from './MonitorLogByWeekService';
+import ResourceCategoryService from './ResourceCategoryService';
+import MonitorCriteriaService from './MonitorCriteriaService';
 import Plans from './../config/plans';
 import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import ProjectService from './projectService';
-import PaymentService from './paymentService';
-import IncidentService from './incidentService';
-import AlertService from './alertService';
-import StatusPageService from './statusPageService';
-import ScheduleService from './scheduleService';
-import IntegrationService from './integrationService';
-import TeamService from './teamService';
+import NotificationService from './NotificationService';
+import ProjectService from './ProjectService';
+import PaymentService from './PaymentService';
+import IncidentService from './IncidentService';
+import AlertService from './AlertService';
+import StatusPageService from './StatusPageService';
+import ScheduleService from './ScheduleService';
+import IntegrationService from './IntegrationService';
+import TeamService from './TeamService';
 import moment from 'moment';
 import _ from 'lodash';
 import { IS_SAAS_SERVICE } from '../config/server';
-import ScheduledEventService from './scheduledEventService';
-import MonitorSlaService from './monitorSlaService';
-import IncomingRequestService from './incomingRequestService';
-import componentService from './componentService';
+import ScheduledEventService from './ScheduledEventService';
+import MonitorSlaService from './MonitorSlaService';
+import IncomingRequestService from './IncomingRequestService';
+import componentService from './ComponentService';
 import getSlug from '../utils/getSlug';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
-import PositiveNumber from 'common/types/positive-number';
-import FindBy from 'common-server/types/db/FindBy';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';
+
+import PositiveNumber from 'common/types/PositiveNumber';
+import FindBy from '../types/db/FindBy';
 
 export default {
     //Description: Upsert function for monitor.
@@ -570,14 +570,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let monitorQuery = MonitorModel.find(query)
+        const monitorQuery = MonitorModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        monitorQuery = handleSelect(select, monitorQuery);
-        monitorQuery = handlePopulate(populate, monitorQuery);
+        monitorQuery.select(select);
+        monitorQuery.populate(populate);
 
         const monitors = await monitorQuery;
         return monitors;
@@ -590,10 +590,10 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let monitorQuery = MonitorModel.findOne(query).sort(sort).lean();
+        const monitorQuery = MonitorModel.findOne(query).sort(sort).lean();
 
-        monitorQuery = handleSelect(select, monitorQuery);
-        monitorQuery = handlePopulate(populate, monitorQuery);
+        monitorQuery.select(select);
+        monitorQuery.populate(populate);
 
         const monitor = await monitorQuery;
         return monitor;

@@ -1,17 +1,17 @@
-import ApplicationLogModel from 'common-server/models/applicationLog';
-import ComponentService from './componentService';
+import ApplicationLogModel from '../models/applicationLog';
+import ComponentService from './ComponentService';
 import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
-import ResourceCategoryService from './resourceCategoryService';
+import NotificationService from './NotificationService';
+import ResourceCategoryService from './ResourceCategoryService';
 
 import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
-import handleSelect from '../utils/select';
-import PositiveNumber from 'common/types/positive-number';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+
+import PositiveNumber from 'common/types/PositiveNumber';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -93,14 +93,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let applicationLogQuery = ApplicationLogModel.find(query)
+        const applicationLogQuery = ApplicationLogModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        applicationLogQuery = handleSelect(select, applicationLogQuery);
-        applicationLogQuery = handlePopulate(populate, applicationLogQuery);
+        applicationLogQuery.select(select);
+        applicationLogQuery.populate(populate);
         const applicationLogs = await applicationLogQuery;
         return applicationLogs;
     },
@@ -111,12 +111,12 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let applicationLogQuery = ApplicationLogModel.findOne(query)
+        const applicationLogQuery = ApplicationLogModel.findOne(query)
             .sort(sort)
             .lean();
 
-        applicationLogQuery = handleSelect(select, applicationLogQuery);
-        applicationLogQuery = handlePopulate(populate, applicationLogQuery);
+        applicationLogQuery.select(select);
+        applicationLogQuery.populate(populate);
 
         const applicationLog = await applicationLogQuery;
         return applicationLog;

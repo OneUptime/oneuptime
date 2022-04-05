@@ -1,6 +1,6 @@
-import GroupModel from 'common-server/models/groups';
-import Query from 'common-server/types/db/Query';
-import FindBy from 'common-server/types/db/FindBy';
+import GroupModel from '../models/groups';
+import Query from '../types/db/Query';
+import FindBy from '../types/db/FindBy';
 export default {
     findBy: async function ({ query, limit, skip, sort }: FindBy) {
         if (!skip) skip = 0;

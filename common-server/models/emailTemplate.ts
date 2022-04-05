@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const emailTemplateSchema = new Schema({
+const schema = new Schema({
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
     subject: { type: String },
     body: { type: String },
@@ -29,5 +29,6 @@ const emailTemplateSchema = new Schema({
 
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('EmailTemplate', emailTemplateSchema);
+export default mongoose.model('EmailTemplate', schema);

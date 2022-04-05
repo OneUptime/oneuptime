@@ -1,22 +1,21 @@
-import NotificationModel from 'common-server/models/notification';
+import NotificationModel from '../models/notification';
 import RealTimeService from '../services/realTimeService';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
         query.deleted = false;
-        let notificationsQuery = NotificationModel.find(query)
+        const notificationsQuery = NotificationModel.find(query)
             .lean()
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort);
 
-        notificationsQuery = handleSelect(select, notificationsQuery);
-        notificationsQuery = handlePopulate(populate, notificationsQuery);
+        notificationsQuery.select(select);
+        notificationsQuery.populate(populate);
 
         const notifications = await notificationsQuery;
         return notifications;
@@ -162,12 +161,12 @@ export default {
         }
 
         query.deleted = false;
-        let notificationQuery = NotificationModel.findOne(query)
+        const notificationQuery = NotificationModel.findOne(query)
             .sort(sort)
             .lean();
 
-        notificationQuery = handleSelect(select, notificationQuery);
-        notificationQuery = handlePopulate(populate, notificationQuery);
+        notificationQuery.select(select);
+        notificationQuery.populate(populate);
 
         const notification = await notificationQuery;
 

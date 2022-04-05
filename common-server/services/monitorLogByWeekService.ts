@@ -88,17 +88,14 @@ export default {
             query = {};
         }
 
-        let monitorLogsByWeekQuery = MonitorLogByWeekModel.find(query)
+        const monitorLogsByWeekQuery = MonitorLogByWeekModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        monitorLogsByWeekQuery = handleSelect(select, monitorLogsByWeekQuery);
-        monitorLogsByWeekQuery = handlePopulate(
-            populate,
-            monitorLogsByWeekQuery
-        );
+        monitorLogsByWeekQuery.select(select);
+        monitorLogsByWeekQuery.populate(populate);
 
         const monitorLogsByWeek = await monitorLogsByWeekQuery;
 
@@ -110,12 +107,12 @@ export default {
             query = {};
         }
 
-        let monitorLogQuery = MonitorLogByWeekModel.findOne(query)
+        const monitorLogQuery = MonitorLogByWeekModel.findOne(query)
             .sort(sort)
             .lean();
 
-        monitorLogQuery = handleSelect(select, monitorLogQuery);
-        monitorLogQuery = handlePopulate(populate, monitorLogQuery);
+        monitorLogQuery.select(select);
+        monitorLogQuery.populate(populate);
 
         const monitorLog = await monitorLogQuery;
         return monitorLog;
@@ -132,9 +129,8 @@ export default {
     },
 };
 
-import MonitorLogByWeekModel from 'common-server/models/monitorLogByWeek';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import MonitorLogByWeekModel from '../models/monitorLogByWeek';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

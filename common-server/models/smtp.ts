@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const smtpSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true }, //which project does this belong to.
     user: String,
     pass: String,
@@ -25,4 +25,7 @@ const smtpSchema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
 });
-export default mongoose.model('Smtp', smtpSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Smtp', schema);

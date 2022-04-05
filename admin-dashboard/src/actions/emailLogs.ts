@@ -2,7 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/emailLogs';
 import Route from 'common/types/api/route';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 
 // Fetch All Email Logs
 export const fetchEmailLogsRequest = () => {

@@ -1,4 +1,4 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
@@ -68,7 +68,7 @@ const criterionEventSchema = {
  * }
  */
 
-const monitorSchema = new Schema({
+const schema = new Schema({
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',
@@ -192,11 +192,12 @@ const monitorSchema = new Schema({
     ],
 });
 
-monitorSchema.virtual('project', {
+schema.virtual('project', {
     localField: '_id',
     foreignField: 'projectId',
     ref: 'Project',
     justOne: true,
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('Monitor', monitorSchema);
+export default mongoose.model('Monitor', schema);

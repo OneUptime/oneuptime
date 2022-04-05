@@ -1,9 +1,8 @@
-import MonitorCustomFieldModel from 'common-server/models/monitorCustomField';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import MonitorCustomFieldModel from '../models/monitorCustomField';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
@@ -12,12 +11,12 @@ export default {
         }
 
         query.deleted = false;
-        let customFieldQuery = MonitorCustomFieldModel.findOne(query)
+        const customFieldQuery = MonitorCustomFieldModel.findOne(query)
             .sort(sort)
             .lean();
 
-        customFieldQuery = handleSelect(select, customFieldQuery);
-        customFieldQuery = handlePopulate(populate, customFieldQuery);
+        customFieldQuery.select(select);
+        customFieldQuery.populate(populate);
 
         const customField = await customFieldQuery;
         return customField;
@@ -101,14 +100,14 @@ export default {
         }
 
         query.deleted = false;
-        let customFieldsQuery = MonitorCustomFieldModel.find(query)
+        const customFieldsQuery = MonitorCustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
             .sort(sort)
             .lean();
 
-        customFieldsQuery = handleSelect(select, customFieldsQuery);
-        customFieldsQuery = handlePopulate(populate, customFieldsQuery);
+        customFieldsQuery.select(select);
+        customFieldsQuery.populate(populate);
 
         const customFields = await customFieldsQuery;
 

@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const alertSchema = new Schema({
+const schema = new Schema({
     projectId: { type: String, ref: 'Project', index: true },
     userId: { type: String, ref: 'User', index: true },
     alertVia: String,
@@ -31,4 +31,7 @@ const alertSchema = new Schema({
     },
     deletedById: { type: String, ref: 'User', index: true },
 });
-export default mongoose.model('Alert', alertSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Alert', schema);

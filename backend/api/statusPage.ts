@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/Express';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';

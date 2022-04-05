@@ -1,9 +1,8 @@
-import AccountModel from 'common-server/models/account';
-import handleSelect from '../../backend/utils/select';
-import handlePopulate from '../../backend/utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import AccountModel from '../models/account';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -15,10 +14,10 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let accountQuery = AccountModel.findOne(query).sort(sort).lean();
+        const accountQuery = AccountModel.findOne(query).sort(sort).lean();
 
-        accountQuery = handleSelect(select, accountQuery);
-        accountQuery = handlePopulate(populate, accountQuery);
+        accountQuery.select(select);
+        accountQuery.populate(populate);
 
         const account = await accountQuery;
         return account;
@@ -43,14 +42,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let accountQuery = AccountModel.find(query)
+        const accountQuery = AccountModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        accountQuery = handleSelect(select, accountQuery);
-        accountQuery = handlePopulate(populate, accountQuery);
+        accountQuery.select(select);
+        accountQuery.populate(populate);
 
         const accounts = await accountQuery;
         return accounts;

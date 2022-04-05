@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const domainVerificationTokenSchema = new Schema({
+const schema = new Schema({
     domain: String, // the main or base domain eg oneuptime.com
     createdAt: { type: Date, default: Date.now },
     verificationToken: String,
@@ -23,7 +23,6 @@ const domainVerificationTokenSchema = new Schema({
     },
 });
 
-export default mongoose.model(
-    'DomainVerificationToken',
-    domainVerificationTokenSchema
-);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('DomainVerificationToken', schema);

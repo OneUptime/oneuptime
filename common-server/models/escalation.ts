@@ -1,24 +1,9 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
+import TeamMemberSchema from './EscalationTeamMember';
 
 const Schema = mongoose.Schema;
-const teamSchema = new Schema({
-    teamMembers: [
-        {
-            startTime: Date,
-            endTime: Date,
-            timezone: String,
-            userId: { type: String, ref: 'User', index: true, default: null },
-            groupId: {
-                type: String,
-                ref: 'Groups',
-                index: true,
-                default: null,
-            },
-        },
-    ],
-});
 
-const escalationSchema = new Schema({
+const schema = new Schema({
     projectId: {
         type: String,
         ref: 'Project',
@@ -40,7 +25,7 @@ const escalationSchema = new Schema({
     push: { type: Boolean, default: false },
     createdById: { type: String, ref: 'User', default: null, index: true },
     scheduleId: { type: String, ref: 'Schedule', default: null },
-    teams: { type: [teamSchema], default: null },
+    teams: { type: [TeamMemberSchema], default: null },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
     deletedAt: {
@@ -50,18 +35,20 @@ const escalationSchema = new Schema({
     deletedById: { type: String, ref: 'User', index: true },
 });
 
-escalationSchema.virtual('teams.teamMembers.user', {
+schema.virtual('teams.teamMembers.user', {
     ref: 'User',
     localField: 'teams.teamMembers.userId',
     foreignField: '_id',
     justOne: true,
 });
 
-escalationSchema.virtual('teams.teamMembers.groups', {
+schema.virtual('teams.teamMembers.groups', {
     ref: 'Groups',
     localField: 'teams.teamMembers.groupId',
     foreignField: '_id',
     justOne: true,
 });
 
-export default mongoose.model('Escalation', escalationSchema);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Escalation', schema);

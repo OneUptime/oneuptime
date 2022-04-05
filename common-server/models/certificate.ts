@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const certificateSchema = new Schema(
+const schema = new Schema(
     {
         id: Schema.Types.Mixed,
         privateKeyPem: Schema.Types.Mixed,
@@ -18,4 +18,7 @@ const certificateSchema = new Schema(
     },
     { timestamps: true }
 );
-export default mongoose.model('Certificate', certificateSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('Certificate', schema);

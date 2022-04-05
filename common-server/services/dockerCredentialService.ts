@@ -1,13 +1,12 @@
 import Crypto from 'crypto';
-import DockerCredentialModel from 'common-server/models/dockerCredential';
+import DockerCredentialModel from '../models/dockerCredential';
 
 import { encrypt, decrypt } from '../config/encryptDecrypt';
 import axios from 'axios';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     findBy: async function ({
@@ -30,13 +29,13 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let dockerCredentialQuery = DockerCredentialModel.find(query)
+        const dockerCredentialQuery = DockerCredentialModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-        dockerCredentialQuery = handleSelect(select, dockerCredentialQuery);
-        dockerCredentialQuery = handlePopulate(populate, dockerCredentialQuery);
+        dockerCredentialQuery.select(select);
+        dockerCredentialQuery.populate(populate);
 
         const dockerCredentials = await dockerCredentialQuery;
         return dockerCredentials;
@@ -45,11 +44,11 @@ export default {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
-        let dockerCredentialQuery = DockerCredentialModel.findOne(query)
+        const dockerCredentialQuery = DockerCredentialModel.findOne(query)
             .sort(sort)
             .lean();
-        dockerCredentialQuery = handleSelect(select, dockerCredentialQuery);
-        dockerCredentialQuery = handlePopulate(populate, dockerCredentialQuery);
+        dockerCredentialQuery.select(select);
+        dockerCredentialQuery.populate(populate);
 
         const dockerCredential = await dockerCredentialQuery;
         return dockerCredential;

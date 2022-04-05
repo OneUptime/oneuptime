@@ -1,8 +1,7 @@
-import ApiStatusModel from 'common-server/models/apiStatus';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import Query from 'common-server/types/db/Query';
+import ApiStatusModel from '../models/apiStatus';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -14,10 +13,10 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let apiStatusQuery = ApiStatusModel.findOne(query).sort(sort).lean();
+        const apiStatusQuery = ApiStatusModel.findOne(query).sort(sort).lean();
 
-        apiStatusQuery = handleSelect(select, apiStatusQuery);
-        apiStatusQuery = handlePopulate(populate, apiStatusQuery);
+        apiStatusQuery.select(select);
+        apiStatusQuery.populate(populate);
 
         const apiStatus = await apiStatusQuery;
         return apiStatus;

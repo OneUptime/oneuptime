@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const externalStatusPageSchema = new Schema(
+const schema = new Schema(
     {
         name: String,
         url: URL,
@@ -36,4 +36,7 @@ const externalStatusPageSchema = new Schema(
     },
     { timestamps: true }
 );
-export default mongoose.model('ExternalStatusPage', externalStatusPageSchema);
+
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('ExternalStatusPage', schema);

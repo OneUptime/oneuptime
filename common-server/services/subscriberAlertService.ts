@@ -95,14 +95,14 @@ export default {
     }: FindBy) {
         query.deleted = false;
 
-        let subscriberAlertQuery = SubscriberAlertModel.find(query)
+        const subscriberAlertQuery = SubscriberAlertModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
-        subscriberAlertQuery = handlePopulate(populate, subscriberAlertQuery);
+        subscriberAlertQuery.select(select);
+        subscriberAlertQuery.populate(populate);
 
         const subscriberAlerts = await subscriberAlertQuery;
         return subscriberAlerts;
@@ -115,12 +115,12 @@ export default {
 
         query.deleted = false;
 
-        let subscriberAlertQuery = SubscriberAlertModel.find(query)
+        const subscriberAlertQuery = SubscriberAlertModel.find(query)
             .lean()
             .sort(sort);
 
-        subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
-        subscriberAlertQuery = handlePopulate(populate, subscriberAlertQuery);
+        subscriberAlertQuery.select(select);
+        subscriberAlertQuery.populate(populate);
 
         const subscriberAlert = await subscriberAlertQuery;
         return subscriberAlert;
@@ -142,9 +142,8 @@ export default {
     },
 };
 
-import SubscriberAlertModel from 'common-server/models/subscriberAlert';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import SubscriberAlertModel from '../models/subscriberAlert';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

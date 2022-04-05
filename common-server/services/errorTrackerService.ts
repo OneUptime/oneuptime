@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
 export default {
     create: async function (data: $TSFixMe) {
         const _this = this;
@@ -96,14 +96,14 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let errorTrackersQuery = ErrorTrackerModel.find(query)
+        const errorTrackersQuery = ErrorTrackerModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        errorTrackersQuery = handleSelect(select, errorTrackersQuery);
-        errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
+        errorTrackersQuery.select(select);
+        errorTrackersQuery.populate(populate);
         const result = await errorTrackersQuery;
         return result;
     },
@@ -114,11 +114,11 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let errorTrackersQuery = ErrorTrackerModel.findOne(query)
+        const errorTrackersQuery = ErrorTrackerModel.findOne(query)
             .sort(sort)
             .lean();
-        errorTrackersQuery = handleSelect(select, errorTrackersQuery);
-        errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
+        errorTrackersQuery.select(select);
+        errorTrackersQuery.populate(populate);
         const result = await errorTrackersQuery;
         return result;
     },
@@ -243,16 +243,15 @@ export default {
     },
 };
 
-import ErrorTrackerModel from 'common-server/models/errorTracker';
-import ComponentService from './componentService';
-import ResourceCategoryService from './resourceCategoryService';
+import ErrorTrackerModel from '../models/errorTracker';
+import ComponentService from './ComponentService';
+import ResourceCategoryService from './ResourceCategoryService';
 import RealTimeService from './realTimeService';
-import NotificationService from './notificationService';
+import NotificationService from './NotificationService';
 
 import uuid from 'uuid';
 import getSlug from '../utils/getSlug';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';

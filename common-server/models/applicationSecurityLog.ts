@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const applicationSecurityLogSchema = new Schema(
+const schema = new Schema(
     {
         securityId: {
             type: Schema.Types.ObjectId,
@@ -21,7 +21,6 @@ const applicationSecurityLogSchema = new Schema(
     { timestamps: true }
 );
 
-export default mongoose.model(
-    'ApplicationSecurityLog',
-    applicationSecurityLogSchema
-);
+export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export default mongoose.model('ApplicationSecurityLog', schema);

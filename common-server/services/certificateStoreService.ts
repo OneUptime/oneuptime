@@ -1,9 +1,8 @@
-import CertificateModel from 'common-server/models/certificate';
-import handleSelect from '../utils/select';
-import handlePopulate from '../utils/populate';
-import FindOneBy from 'common-server/types/db/FindOneBy';
-import FindBy from 'common-server/types/db/FindBy';
-import Query from 'common-server/types/db/Query';
+import CertificateModel from '../models/certificate';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
@@ -15,12 +14,12 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let certificateQuery = CertificateModel.findOne(query)
+        const certificateQuery = CertificateModel.findOne(query)
             .sort(sort)
             .lean();
 
-        certificateQuery = handleSelect(select, certificateQuery);
-        certificateQuery = handlePopulate(populate, certificateQuery);
+        certificateQuery.select(select);
+        certificateQuery.populate(populate);
 
         const certificate = await certificateQuery;
         return certificate;
@@ -45,14 +44,14 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        let certificateQuery = CertificateModel.find(query)
+        const certificateQuery = CertificateModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        certificateQuery = handleSelect(select, certificateQuery);
-        certificateQuery = handlePopulate(populate, certificateQuery);
+        certificateQuery.select(select);
+        certificateQuery.populate(populate);
 
         const certificates = await certificateQuery;
         return certificates;

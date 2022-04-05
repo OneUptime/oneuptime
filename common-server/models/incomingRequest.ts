@@ -1,8 +1,8 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
-const incomingRequestSchema = new Schema(
+const schema = new Schema(
     {
         name: String,
         projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
@@ -67,5 +67,6 @@ const incomingRequestSchema = new Schema(
     },
     { timestamps: true }
 );
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('IncomingRequest', incomingRequestSchema);
+export default mongoose.model('IncomingRequest', schema);

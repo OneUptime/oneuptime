@@ -1,7 +1,7 @@
-import mongoose from '../utils/ORM';
+import mongoose, { RequiredFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
-const incidentSMSActionSchema = new Schema({
+const schema = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true }, //which project this incident belongs to.
     userId: { type: String, ref: 'User', index: true }, // which User will perfom this action.
     number: { type: String },
@@ -29,5 +29,6 @@ const incidentSMSActionSchema = new Schema({
 
     deletedById: { type: String, ref: 'User', index: true },
 });
+export const requiredFields: RequiredFields = schema.requiredPaths();
 
-export default mongoose.model('IncidentSMSAction', incidentSMSActionSchema);
+export default mongoose.model('IncidentSMSAction', schema);
