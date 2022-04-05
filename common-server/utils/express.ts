@@ -8,7 +8,7 @@ export const ExpressStatic = express.static;
 export const ExpressJson = express.json;
 export const ExpressUrlEncoded = express.urlencoded;
 
-type Probe = {
+export type ProbeRequest = {
     id: String;
 };
 
@@ -16,7 +16,7 @@ export type ExpressRequest = express.Request;
 export type ExpressResponse = express.Response;
 
 export interface OneUptimeRequest extends express.Request {
-    probe?: Probe;
+    probe?: ProbeRequest;
     id: string;
     requestStartedAt: Date;
     requestEndedAt: Date;

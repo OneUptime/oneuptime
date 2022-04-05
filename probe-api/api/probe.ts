@@ -1,6 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
+    OneUptimeRequest,
+    ProbeRequest,
 } from 'common-server/utils/Express';
 import MonitorService from '../services/monitorService';
 const router = express.getRouter();
@@ -9,24 +11,24 @@ import { sendErrorResponse } from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 import { sendListResponse } from 'common-server/utils/response';
+import PositiveNumber from 'common/types/PositiveNumber';
 
 router.get(
     '/monitors',
     isAuthorizedProbe,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { limit = '10' } = req.query;
-            const monitors = await MonitorService.getProbeMonitors(
-                req.probe?.id,
-                parseInt(limit)
+            const oneUptimeRequest = req as OneUptimeRequest;
+            const limit: PositiveNumber = new PositiveNumber(
+                parseInt((req.query['limit'] as string) || '10')
             );
 
-            return sendListResponse(
-                req,
-                res,
-                JSON.stringify(monitors),
-                monitors.length
+            const monitors = await MonitorService.getProbeMonitors(
+                (oneUptimeRequest.probe as ProbeRequest).id,
+                limit
             );
+
+            return sendListResponse(req, res, monitors, monitors.length);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

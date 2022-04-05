@@ -1,17 +1,14 @@
 import moment from 'moment';
 import Database from 'common-server/utils/database';
-import PositiveNumber from 'common/types/positive-number';
+import PositiveNumber from 'common/types/PositiveNumber';
+import OneUptimeDate from 'common/types/Date';
 
 const monitorCollection = Database.getDatabase().collection('monitors');
 
 export default {
-    async getProbeMonitors(probeId: String, limit: PositiveNumber = 10) {
+    async getProbeMonitors(probeId: String, limit: PositiveNumber) {
         //get monitors that have not been pinged for the last minute.
-        const date = new Date(new Date().getTime() - 60 * 1000);
-
-        if (typeof limit === 'string') {
-            limit = Number(limit);
-        }
+        const date = OneUptimeDate.getOneMinAgo();
 
         const key = `${probeId}_pingtime`;
 

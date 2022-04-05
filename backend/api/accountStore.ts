@@ -8,7 +8,7 @@ import {
 } from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import AccountStoreService from '../services/accountStoreService';
+import AccountStoreService from 'common-server/services/accountStoreService';
 
 const router = express.getRouter();
 

@@ -19,9 +19,7 @@ import ScheduleService from './scheduleService';
 import IntegrationService from './integrationService';
 import TeamService from './teamService';
 import moment from 'moment';
-
 import _ from 'lodash';
-
 import { IS_SAAS_SERVICE } from '../config/server';
 import ScheduledEventService from './scheduledEventService';
 import MonitorSlaService from './monitorSlaService';
