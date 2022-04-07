@@ -26,6 +26,10 @@ mongoose
 
 export default mongoose;
 
+export interface Document extends mongoose.Document {}
+
 export interface Model<T> extends mongoose.Model<T> {}
 
 export interface RequiredFields extends Array<string> {}
+
+export interface UniqueFields extends Array<string> {}

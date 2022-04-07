@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
 import TeamMemberSchema from './EscalationTeamMember';
 
 const Schema = mongoose.Schema;
@@ -50,5 +50,9 @@ schema.virtual('teams.teamMembers.groups', {
 });
 
 export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+
+export const sligifyField: string = '';
 
 export default mongoose.model('Escalation', schema);

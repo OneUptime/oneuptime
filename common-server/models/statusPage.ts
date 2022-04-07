@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 
@@ -145,5 +145,7 @@ export default new Schema({
     deletedById: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     theme: { type: String, default: 'Clean Theme' },
 });
+
+export const uniqueFields: UniqueFields = [];
 
 export const requiredFields: RequiredFields = ['name', 'projectId'];

@@ -1,6 +1,40 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 import BadDataException from 'common/types/exception/BadDataException';
 export default {
+    // async addUserToDefaultProjects({ domain, userId }: $TSFixMe) {
+
+    //     const populateDefaultRoleSso = [
+    //         { path: 'domain', select: '_id domain' },
+    //         { path: 'project', select: '_id name' },
+    //     ];
+
+    //     const ssoDefaultRoles = await this.findBy({
+    //         query: { domain },
+    //         select: 'project role',
+    //         populate: populateDefaultRoleSso,
+    //     });
+
+    //     if (!ssoDefaultRoles.length) return;
+
+    //     for (const ssoDefaultRole of ssoDefaultRoles) {
+    //         const { project, role } = ssoDefaultRole;
+    //         const { _id: projectId } = project;
+
+    //         const projectObj = await ProjectService.findOneBy({
+    //             query: { _id: projectId },
+    //             select: 'users',
+    //         });
+    //         if (!projectObj) continue;
+
+    //         const { users } = projectObj;
+    //         users.push({
+    //             userId,
+    //             role,
+    //         });
+    //         await ProjectService.updateOneBy({ _id: projectId }, { users });
+    //     }
+    // }
+
     findBy: async function ({
         query,
         limit,

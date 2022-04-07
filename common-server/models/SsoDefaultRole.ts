@@ -1,4 +1,5 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
+import { RoleArray } from 'common/types/Role';
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
@@ -15,7 +16,7 @@ const schema = new Schema({
     role: {
         type: String,
         required: true,
-        enum: ['Administrator', 'Member', 'Viewer'],
+        enum: RoleArray.filter(item => item !== 'Owner'), // All roles except Owner
     },
     createdAt: {
         type: Date,
@@ -34,5 +35,9 @@ const schema = new Schema({
     },
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+
+export const sligifyField: string = '';
 
 export default mongoose.model('SsoDefaultRole', schema);

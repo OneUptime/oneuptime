@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
@@ -21,5 +21,9 @@ const schema = new Schema({
     smtpServer: String, // which can be internal, smtp.gmail.com, etc
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+
+export const sligifyField: string = '';
 
 export default mongoose.model('EmailSent', schema);

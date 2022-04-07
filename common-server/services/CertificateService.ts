@@ -1,4 +1,4 @@
-import AccountModel from '../models/account';
+import CertificateModel from '../models/certificate';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
@@ -6,21 +6,23 @@ import Query from '../types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {
-        const account = await AccountModel.create(data);
-        return account;
+        const certificate = await CertificateModel.create(data);
+        return certificate;
     },
     findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
 
-        const accountQuery = AccountModel.findOne(query).sort(sort).lean();
+        const certificateQuery = CertificateModel.findOne(query)
+            .sort(sort)
+            .lean();
 
-        accountQuery.select(select);
-        accountQuery.populate(populate);
+        certificateQuery.select(select);
+        certificateQuery.populate(populate);
 
-        const account = await accountQuery;
-        return account;
+        const certificate = await certificateQuery;
+        return certificate;
     },
     findBy: async function ({
         query,
@@ -42,17 +44,17 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
 
-        const accountQuery = AccountModel.find(query)
+        const certificateQuery = CertificateModel.find(query)
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
 
-        accountQuery.select(select);
-        accountQuery.populate(populate);
+        certificateQuery.select(select);
+        certificateQuery.populate(populate);
 
-        const accounts = await accountQuery;
-        return accounts;
+        const certificates = await certificateQuery;
+        return certificates;
     },
     updateOneBy: async function (query: Query, data: $TSFixMe) {
         const _this = this;
@@ -60,7 +62,7 @@ export default {
 
         // if (!query['deleted']) query['deleted'] = false;
 
-        let account = await AccountModel.findOneAndUpdate(
+        let certificate = await CertificateModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -68,23 +70,22 @@ export default {
             { new: true }
         );
 
-        // create account details if does not already exist
-        if (!account) {
-            account = await _this.create(data);
+        if (!certificate) {
+            certificate = await _this.create(data);
         }
 
-        return account;
+        return certificate;
     },
     deleteBy: async function (query: Query) {
-        const account = await this.updateOneBy(query, {
+        const certificate = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
-        return account;
+        return certificate;
     },
     hardDelete: async function (query: Query) {
-        await AccountModel.deleteMany(query);
-        return 'Account store successfully deleted';
+        await CertificateModel.deleteMany(query);
+        return 'certificate store successfully deleted';
     },
     async countBy(query: Query) {
         if (!query) {
@@ -92,7 +93,7 @@ export default {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        const count = await AccountModel.countDocuments(query);
+        const count = await CertificateModel.countDocuments(query);
         return count;
     },
 };

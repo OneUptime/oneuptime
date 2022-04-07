@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
@@ -41,5 +41,9 @@ schema.virtual('component', {
     justOne: true,
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+
+export const sligifyField: string = '';
 
 export default mongoose.model('ApplicationLog', schema);

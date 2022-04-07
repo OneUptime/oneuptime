@@ -25,6 +25,7 @@ const _this = {
             populate,
             sort,
         });
+
         return twilioSettings;
     },
 

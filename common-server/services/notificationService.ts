@@ -1,5 +1,5 @@
 import NotificationModel from '../models/notification';
-import RealTimeService from '../services/realTimeService';
+import RealTimeService from './realTimeService';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
 
 const Schema = mongoose.Schema;
 const schema = new Schema(
@@ -25,5 +25,9 @@ const schema = new Schema(
     { timestamps: true }
 );
 export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+
+export const sligifyField: string = '';
 
 export default mongoose.model('PerformanceTracker', schema);

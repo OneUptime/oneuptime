@@ -7,5 +7,5 @@ export default interface FindOneBy {
     query: Query;
     select: Select;
     populate: Populate;
-    sort: Sort;
+    sort: Sort | null;
 }

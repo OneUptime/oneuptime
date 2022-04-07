@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
 const Schema = mongoose.Schema;
 
 const { EMAIL_VERIFY_TIME } = process.env;
@@ -22,5 +22,9 @@ const schema = new Schema({
     },
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
+
+export const uniqueFields: UniqueFields = [];
+
+export const sligifyField: string = '';
 
 export default mongoose.model('VerificationToken', schema);

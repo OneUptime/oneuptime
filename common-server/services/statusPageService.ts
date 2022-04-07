@@ -1,7 +1,7 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 import ServiceBase from './DatabaseService';
 
-import { model as StatusPageModel, requiredFields } from '../models/StatusPage';
+import StatusPageModel, { requiredFields } from '../models/StatusPage';
 
 const publicListProps = {
     populate: [],
@@ -2206,7 +2206,7 @@ import IncidentMessageService from './IncidentMessageService';
 import moment from 'moment';
 
 import uuid from 'uuid';
-import CertificateStoreService from './CertificateStoreService';
+import CertificateStoreService from './CertificateService';
 import AnnouncementModel from '../models/announcements';
 import ExternalStatusPageModel from '../models/externalStatusPage';
 import getSlug from '../utils/getSlug';
