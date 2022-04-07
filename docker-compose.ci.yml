@@ -23,11 +23,12 @@ services:
         ports:
             - '6379:6379'
         command: redis-server
-        
     backend:
         ports:
             - '3002:3002'
-        image: oneuptime/backend:latest
+        build:
+            context: .
+            dockerfile: ./backend/Dockerfile
         env_file:
             - ./backend/.env
         environment:
@@ -45,7 +46,9 @@ services:
     accounts:
         ports:
             - '3003:3003'
-        image: oneuptime/accounts:latest
+        build:
+            context: .
+            dockerfile: ./accounts/Dockerfile
         env_file:
             - ./accounts/.env
         environment:
@@ -55,7 +58,9 @@ services:
     dashboard:
         ports:
             - '3000:3000'
-        image: oneuptime/dashboard:latest
+        build:
+            context: .
+            dockerfile: ./dashboard/Dockerfile
         env_file:
             - ./dashboard/.env
         environment:
@@ -70,11 +75,15 @@ services:
             - ./home/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        image: oneuptime/home:latest
+        build:
+            context: .
+            dockerfile: ./home/Dockerfile
     status-page:
         ports:
             - '3006:3006'
-        image: oneuptime/status-page:latest
+        build:
+            context: .
+            dockerfile: ./status-page/Dockerfile
         env_file:
             - ./status-page/.env
         environment:
@@ -86,7 +95,9 @@ services:
     admin-dashboard:
         ports:
             - '3100:3100'
-        image: oneuptime/admin-dashboard:latest
+        build:
+            context: .
+            dockerfile: ./admin-dashboard/Dockerfile
         env_file:
             - ./admin-dashboard/.env
         environment:
@@ -101,7 +112,9 @@ services:
             - ./http-test-server/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        image: oneuptime/http-test-server:latest
+        build:
+            context: .
+            dockerfile: ./http-test-server/Dockerfile
     licensing:
         ports:
             - '3004:3004'
@@ -109,11 +122,15 @@ services:
             - ./licensing/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-        image: oneuptime/licensing:latest
+        build:
+            context: .
+            dockerfile: ./licensing/Dockerfile
     data-ingestor:
         ports:
             - '3200:3200'
-        image: oneuptime/data-ingestor:latest
+        build:
+            context: .
+            dockerfile: ./data-ingestor/Dockerfile
         env_file:
             - ./data-ingestor/.env
         environment:
@@ -130,7 +147,9 @@ services:
     realtime:
         ports:
             - '3300:3300'
-        image: oneuptime/realtime:latest
+        build:
+            context: .
+            dockerfile: ./realtime/Dockerfile
         env_file:
             - ./realtime/.env
         environment:
@@ -139,7 +158,9 @@ services:
     probe-api:
         ports:
             - '3400:3400'
-        image: oneuptime/probe-api:latest
+        build:
+            context: .
+            dockerfile: ./probe-api/Dockerfile
         env_file:
             - ./probe-api/.env
         environment:
@@ -148,7 +169,9 @@ services:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
     probe1:
-        image: oneuptime/probe:latest
+        build:
+            context: .
+            dockerfile: ./probe/Dockerfile
         env_file:
             - ./probe/.env
         environment:
@@ -164,7 +187,9 @@ services:
             - backend
             - data-ingestor
     probe2:
-        image: oneuptime/probe:latest
+        build:
+            context: .
+            dockerfile: ./probe/Dockerfile
         env_file:
             - ./probe/.env
         environment:
@@ -181,13 +206,17 @@ services:
     api-docs:
         ports:
             - '1445:1445'
-        image: oneuptime/api-docs:latest
+        build:
+            context: .
+            dockerfile: ./api-docs/Dockerfile
         env_file:
             - ./api-docs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
     init-script:
-        image: oneuptime/init-script:latest
+        build:
+            context: .
+            dockerfile: ./init-script/Dockerfile
         ports:
             - '1447:1447'
         env_file:
@@ -206,7 +235,10 @@ services:
     haraka:
         ports:
             - '2525:2525'
-        image: oneuptime/haraka:latest
+        build:
+            context: ./haraka
+            args:
+                PORT: '2525'
         environment:
             - SMTP_USER=user@oneuptime.com
             - SMTP_PASSWORD=oneuptime
@@ -217,7 +249,9 @@ services:
     script-runner:
         ports:
             - '3009:3009'
-        image: oneuptime/script-runner:latest
+        build:
+            context: .
+            dockerfile: ./script-runner/Dockerfile
         env_file:
             - ./script-runner/.env
         environment:
@@ -227,7 +261,9 @@ services:
     application-scanner:
         ports:
             - '3005:3005'
-        image: oneuptime/application-scanner:latest
+        build:
+            context: .
+            dockerfile: ./application-scanner/Dockerfile
         env_file:
             - ./application-scanner/.env
         environment:
@@ -237,11 +273,12 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - backend
-            
     container-scanner:
         ports:
             - '3055:3055'
-        image: oneuptime/container-scanner:latest
+        build:
+            context: .
+            dockerfile: ./container-scanner/Dockerfile
         env_file:
             - ./container-scanner/.env
         environment:
@@ -254,7 +291,9 @@ services:
     lighthouse-runner:
         ports:
             - '3015:3015'
-        image: oneuptime/lighthouse-runner:latest
+        build:
+            context: .
+            dockerfile: ./lighthouse-runner/Dockerfile
         env_file:
             - ./lighthouse-runner/.env
         environment:
@@ -264,7 +303,6 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - backend
-            
     nginx:
         depends_on:
             - mongo
@@ -274,7 +312,9 @@ services:
             - accounts
             - admin-dashboard
         restart: always
-        image: oneuptime/nginx:latest
+        build:
+            dockerfile: Dockerfile
+            context: ./nginx
         ports:
             - '80:80'
             - '443:443'
