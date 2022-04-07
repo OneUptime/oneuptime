@@ -10,7 +10,7 @@ import {
 export default class Service {
     // process messages to be sent to slack workspace channels
     async sendNotification(
-        projectId: $TSFixMe,
+        projectId: string,
         incident: $TSFixMe,
         monitor: $TSFixMe,
         incidentStatus: $TSFixMe,
@@ -219,7 +219,7 @@ export default class Service {
     }
 
     async sendIncidentNoteNotification(
-        projectId: $TSFixMe,
+        projectId: string,
         incident: $TSFixMe,
         data: $TSFixMe,
         monitor: $TSFixMe

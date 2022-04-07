@@ -297,7 +297,7 @@ export default class Service {
         query: Query,
         type: $TSFixMe,
         data: $TSFixMe,
-        projectId: $TSFixMe
+        projectId: string
     ) {
         if (!query) query = {};
         if (!data) data = {};

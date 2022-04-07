@@ -46,7 +46,7 @@ export default class Service {
     async create(
         userId: string,
         sentTo: $TSFixMe,
-        projectId: $TSFixMe,
+        projectId: string,
         content: $TSFixMe,
         status: $TSFixMe,
         error: $TSFixMe

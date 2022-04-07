@@ -199,7 +199,7 @@ export default class Service {
         }
     }
 
-    async doesDomainBelongToProject(projectId: $TSFixMe, subDomain: $TSFixMe) {
+    async doesDomainBelongToProject(projectId: string, subDomain: $TSFixMe) {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project

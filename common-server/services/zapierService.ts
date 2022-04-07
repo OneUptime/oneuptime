@@ -13,7 +13,7 @@ export default class Service {
         return zap;
     }
 
-    async test(projectId: $TSFixMe, apiKey: $TSFixMe) {
+    async test(projectId: string, apiKey: string) {
         const project = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -32,7 +32,7 @@ export default class Service {
         }
     }
 
-    async getIncidents(projectId: $TSFixMe) {
+    async getIncidents(projectId: string) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -90,7 +90,7 @@ export default class Service {
         }
     }
 
-    async getIncidentsNotes(projectId: $TSFixMe) {
+    async getIncidentsNotes(projectId: string) {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse = {};
         const _this = this;
@@ -199,7 +199,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async getAcknowledgedIncidents(projectId: $TSFixMe) {
+    async getAcknowledgedIncidents(projectId: string) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -256,7 +256,7 @@ export default class Service {
         }
     }
 
-    async getResolvedIncidents(projectId: $TSFixMe) {
+    async getResolvedIncidents(projectId: string) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -831,7 +831,7 @@ export default class Service {
     }
 
     async subscribe(
-        projectId: $TSFixMe,
+        projectId: string,
         url: URL,
         type: $TSFixMe,
         monitors: $TSFixMe

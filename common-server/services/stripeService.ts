@@ -263,7 +263,7 @@ export default class StripeService {
     async chargeCustomerForBalance(
         userId: string,
         chargeAmount: $TSFixMe,
-        projectId: $TSFixMe,
+        projectId: string,
         alertOptions: $TSFixMe
     ) {
         const description = 'Recharge balance';
@@ -362,7 +362,7 @@ export default class StripeService {
     async addBalance(
         userId: string,
         chargeAmount: $TSFixMe,
-        projectId: $TSFixMe
+        projectId: string
     ) {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
