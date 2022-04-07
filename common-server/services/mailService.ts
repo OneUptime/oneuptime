@@ -41,8 +41,8 @@ Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts) {
     }
 });
 
-const _this = {
-    getProjectSmtpSettings: async (projectId: $TSFixMe) => {
+export default class MailService {
+    async getProjectSmtpSettings(projectId: $TSFixMe) {
         let user,
             pass,
             host,
@@ -75,7 +75,7 @@ const _this = {
             name = smtpDb.name || 'OneUptime';
             secure = smtpDb.secure;
         } else {
-            const globalSettings = await _this.getSmtpSettings();
+            const globalSettings = await this.getSmtpSettings();
             if (!isEmpty(globalSettings)) {
                 user = globalSettings.user;
                 pass = globalSettings.pass;
@@ -104,9 +104,9 @@ const _this = {
             customSmtp,
             backupConfig,
         };
-    },
+    }
 
-    getEmailBody: async function (mailOptions: $TSFixMe) {
+    async getEmailBody(mailOptions: $TSFixMe) {
         const data = await fsp.readFile(
             Path.resolve(
                 process.cwd(),
@@ -120,9 +120,9 @@ const _this = {
 
         emailBody = emailBody(mailOptions.context);
         return emailBody;
-    },
+    }
 
-    createMailer: async function ({
+    async createMailer({
         host,
         port,
         user,
@@ -132,7 +132,7 @@ const _this = {
     }: $TSFixMe) {
         let settings = {};
         if (!host || !user || !pass) {
-            settings = await _this.getSmtpSettings();
+            settings = await this.getSmtpSettings();
             if (!isEmpty(settings)) {
                 host = settings.host;
 
@@ -184,9 +184,9 @@ const _this = {
             privateMailer.use('compile', hbs(options));
         }
         return privateMailer;
-    },
+    }
 
-    getSmtpSettings: async () => {
+    async getSmtpSettings() {
         const document = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value name',
@@ -247,9 +247,9 @@ const _this = {
         // throwing error here is not needed
 
         return {};
-    },
+    }
 
-    getTemplates: async (emailTemplate: $TSFixMe, emailType: $TSFixMe) => {
+    async getTemplates(emailTemplate: $TSFixMe, emailType: $TSFixMe) {
         const defaultTemplate = defaultEmailTemplates.filter(
             template => template.emailType === emailType
         );
@@ -273,17 +273,17 @@ const _this = {
         const template = Handlebars.compile(emailContent);
         const subject = Handlebars.compile(emailSubject);
         return { template, subject };
-    },
+    }
     // Description: Mails to user if they have successfully signed up.
     // Params:
     // Param 1: userEmail: Email of user
     // Returns: promise
-    sendSignupMail: async function (userEmail: $TSFixMe, name: $TSFixMe) {
+    async sendSignupMail(userEmail: $TSFixMe, name: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             smtpServer = 'internal';
 
             if (!isEmpty(accountMail)) {
@@ -304,8 +304,8 @@ const _this = {
                 };
 
                 const [mailer, mailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = mailBody;
 
@@ -367,8 +367,8 @@ const _this = {
                             };
 
                             const [mailer, mailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = mailBody;
 
@@ -429,8 +429,9 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendLoginEmail: async function (
+    }
+
+    async sendLoginEmail(
         userEmail: $TSFixMe,
         location: $TSFixMe,
         deviceObj: $TSFixMe,
@@ -471,7 +472,7 @@ const _this = {
         }
 
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             smtpServer = 'internal';
             if (!isEmpty(accountMail)) {
                 if (!accountMail.internalSmtp) {
@@ -496,8 +497,8 @@ const _this = {
                 };
 
                 const [mailer, mailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = mailBody;
 
@@ -564,8 +565,8 @@ const _this = {
                             };
 
                             const [mailer, mailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = mailBody;
 
@@ -626,18 +627,14 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
     // Automated email sent when a user deletes a project
-    sendDeleteProjectEmail: async function ({
-        userEmail,
-        name,
-        projectName,
-    }: $TSFixMe) {
+    async sendDeleteProjectEmail({ userEmail, name, projectName }: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 accountMail.name = 'OneUptime Support';
                 accountMail.from = 'support@oneuptime.com';
@@ -660,8 +657,8 @@ const _this = {
                 };
 
                 const [mailer, mailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = mailBody;
 
@@ -729,8 +726,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
 
@@ -791,8 +788,9 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendVerifyEmail: async function (
+    }
+
+    async sendVerifyEmail(
         tokenVerifyUrl: URL,
         name: $TSFixMe,
         email: $TSFixMe
@@ -801,7 +799,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -820,8 +818,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
 
@@ -883,8 +881,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
 
@@ -945,13 +943,14 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendLeadEmailToOneUptimeTeam: async function (lead: $TSFixMe) {
+    }
+
+    async sendLeadEmailToOneUptimeTeam(lead: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
@@ -992,8 +991,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
 
@@ -1080,8 +1079,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
 
@@ -1142,17 +1141,14 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendUserFeedbackResponse: async function (
-        userEmail: $TSFixMe,
-        name: $TSFixMe
-    ) {
+    async sendUserFeedbackResponse(userEmail: $TSFixMe, name: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
@@ -1169,8 +1165,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
 
@@ -1231,8 +1227,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -1292,9 +1288,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendRequestDemoEmail: async function (to: $TSFixMe) {
+    async sendRequestDemoEmail(to: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1305,7 +1301,7 @@ const _this = {
                 error.code = 400;
                 throw error;
             } else {
-                let accountMail = await _this.getSmtpSettings();
+                let accountMail = await this.getSmtpSettings();
                 if (!isEmpty(accountMail)) {
                     smtpServer = 'internal';
                     if (!accountMail.internalSmtp) {
@@ -1320,8 +1316,8 @@ const _this = {
                     };
 
                     const [mailer, emailBody] = await Promise.all([
-                        _this.createMailer({}),
-                        _this.getEmailBody(mailOptions),
+                        this.createMailer({}),
+                        this.getEmailBody(mailOptions),
                     ]);
                     EmailBody = emailBody;
 
@@ -1377,8 +1373,8 @@ const _this = {
                                 };
 
                                 const [mailer, emailBody] = await Promise.all([
-                                    _this.createMailer(accountMail),
-                                    _this.getEmailBody(mailOptions),
+                                    this.createMailer(accountMail),
+                                    this.getEmailBody(mailOptions),
                                 ]);
                                 EmailBody = emailBody;
 
@@ -1440,12 +1436,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendWhitepaperEmail: async function (
-        to: $TSFixMe,
-        whitepaperName: $TSFixMe
-    ) {
+    async sendWhitepaperEmail(to: $TSFixMe, whitepaperName: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -1472,7 +1465,7 @@ const _this = {
 
                     throw error;
                 } else {
-                    let accountMail = await _this.getSmtpSettings();
+                    let accountMail = await this.getSmtpSettings();
                     if (!isEmpty(accountMail)) {
                         smtpServer = 'internal';
                         if (!accountMail.internalSmtp) {
@@ -1491,8 +1484,8 @@ const _this = {
                         };
 
                         const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer({}),
-                            _this.getEmailBody(mailOptions),
+                            this.createMailer({}),
+                            this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
 
@@ -1555,8 +1548,8 @@ const _this = {
 
                                     const [mailer, emailBody] =
                                         await Promise.all([
-                                            _this.createMailer(accountMail),
-                                            _this.getEmailBody(mailOptions),
+                                            this.createMailer(accountMail),
+                                            this.getEmailBody(mailOptions),
                                         ]);
                                     EmailBody = emailBody;
 
@@ -1621,7 +1614,7 @@ const _this = {
             }
             throw error;
         }
-    },
+    }
 
     // Description: Mails to user if they have requested for password reset
     // Params:
@@ -1629,15 +1622,12 @@ const _this = {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    sendForgotPasswordMail: async function (
-        forgotPasswordUrl: URL,
-        email: $TSFixMe
-    ) {
+    async sendForgotPasswordMail(forgotPasswordUrl: URL, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -1654,8 +1644,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -1712,8 +1702,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -1773,18 +1763,18 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     // Description: Mails to user after their password has been successfully set.
     // Params:
     // Param 1: email: Email of user
     // Returns: promise
-    sendResetPasswordConfirmMail: async function (email: $TSFixMe) {
+    async sendResetPasswordConfirmMail(email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -1802,8 +1792,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -1861,8 +1851,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -1922,13 +1912,13 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     // Description: Mail to users for registering  after they have been added by Admin to Project.
     // Params:
     // Param 1: userEmail: Email of users
     // Returns: promise
-    sendNewUserAddedToProjectMail: async function (
+    async sendNewUserAddedToProjectMail(
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe,
@@ -1938,7 +1928,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -1957,8 +1947,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -2018,8 +2008,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -2079,9 +2069,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendExistingUserAddedToProjectMail: async function (
+    async sendExistingUserAddedToProjectMail(
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -2090,7 +2080,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -2110,8 +2100,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -2172,8 +2162,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -2233,13 +2223,14 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendLighthouseEmail: async function (project: $TSFixMe, user: $TSFixMe) {
+    }
+
+    async sendLighthouseEmail(project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!accountMail.internalSmtp) {
                 smtpServer = accountMail.host;
             }
@@ -2268,8 +2259,8 @@ const _this = {
                 },
             };
             const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
+                this.createMailer({}),
+                this.getEmailBody(mailOptions),
             ]);
             EmailBody = emailBody;
             if (!mailer) {
@@ -2335,8 +2326,8 @@ const _this = {
                             },
                         };
                         const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
+                            this.createMailer(accountMail),
+                            this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
                         if (!mailer) {
@@ -2388,13 +2379,14 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendApplicationEmail: async function (project: $TSFixMe, user: $TSFixMe) {
+    }
+
+    async sendApplicationEmail(project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!accountMail.internalSmtp) {
                 smtpServer = accountMail.host;
             }
@@ -2420,8 +2412,8 @@ const _this = {
                 },
             };
             const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
+                this.createMailer({}),
+                this.getEmailBody(mailOptions),
             ]);
             EmailBody = emailBody;
             if (!mailer) {
@@ -2482,8 +2474,8 @@ const _this = {
                             },
                         };
                         const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
+                            this.createMailer(accountMail),
+                            this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
                         if (!mailer) {
@@ -2535,14 +2527,14 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendContainerEmail: async function (project: $TSFixMe, user: $TSFixMe) {
+    async sendContainerEmail(project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!accountMail.internalSmtp) {
                 smtpServer = accountMail.host;
             }
@@ -2568,8 +2560,8 @@ const _this = {
                 },
             };
             const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
+                this.createMailer({}),
+                this.getEmailBody(mailOptions),
             ]);
             EmailBody = emailBody;
             if (!mailer) {
@@ -2622,8 +2614,8 @@ const _this = {
                             },
                         };
                         const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
+                            this.createMailer(accountMail),
+                            this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
                         if (!mailer) {
@@ -2675,9 +2667,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendExistingStatusPageViewerMail: async function (
+    async sendExistingStatusPageViewerMail(
         subProject: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -2686,7 +2678,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -2704,8 +2696,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -2765,8 +2757,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -2826,9 +2818,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendExistingUserAddedToSubProjectMail: async function (
+    async sendExistingUserAddedToSubProjectMail(
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -2837,7 +2829,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -2857,8 +2849,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -2920,8 +2912,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -2981,9 +2973,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendNewStatusPageViewerMail: async function (
+    async sendNewStatusPageViewerMail(
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe
@@ -2992,7 +2984,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -3012,8 +3004,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -3074,8 +3066,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -3135,9 +3127,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendChangeRoleEmailToUser: async function (
+    async sendChangeRoleEmailToUser(
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: $TSFixMe,
@@ -3147,7 +3139,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -3169,8 +3161,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -3232,8 +3224,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -3293,9 +3285,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendRemoveFromProjectEmailToUser: async function (
+    async sendRemoveFromProjectEmailToUser(
         project: $TSFixMe,
         removedByUser: $TSFixMe,
         email: $TSFixMe
@@ -3304,7 +3296,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -3325,8 +3317,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -3388,8 +3380,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -3449,9 +3441,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendRemoveFromSubProjectEmailToUser: async function (
+    async sendRemoveFromSubProjectEmailToUser(
         subProject: $TSFixMe,
         removedByUser: $TSFixMe,
         email: $TSFixMe
@@ -3460,7 +3452,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -3482,8 +3474,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -3545,8 +3537,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -3606,7 +3598,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
@@ -3618,7 +3610,7 @@ const _this = {
      * @param {string} resolveUrl API link that has requirements for resolving incident.
      * @param {string} accessToken An access token to be used used to access API from email.
      */
-    sendIncidentCreatedMail: async function ({
+    async sendIncidentCreatedMail({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -3644,7 +3636,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getProjectSmtpSettings(projectId);
+            let accountMail = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -3701,8 +3693,8 @@ const _this = {
                         probeName,
                     },
                 };
-                EmailBody = await _this.getEmailBody(mailOptions);
-                const mailer = await _this.createMailer(accountMail);
+                EmailBody = await this.getEmailBody(mailOptions);
+                const mailer = await this.createMailer(accountMail);
                 if (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -3778,10 +3770,8 @@ const _this = {
                                     probeName,
                                 },
                             };
-                            EmailBody = await _this.getEmailBody(mailOptions);
-                            const mailer = await _this.createMailer(
-                                accountMail
-                            );
+                            EmailBody = await this.getEmailBody(mailOptions);
+                            const mailer = await this.createMailer(accountMail);
                             if (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -3839,7 +3829,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
@@ -3850,7 +3840,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentCreatedMailToSubscriber: async function (
+    async sendIncidentCreatedMailToSubscriber(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -3870,7 +3860,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Incident Created'
             );
@@ -3895,13 +3885,13 @@ const _this = {
             template = template(data);
 
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -3924,7 +3914,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -3975,7 +3965,7 @@ const _this = {
                         ) {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -4000,7 +3990,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -4068,9 +4058,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendIncidentAcknowledgedMail: async function ({
+    async sendIncidentAcknowledgedMail({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -4096,7 +4086,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getProjectSmtpSettings(projectId);
+            let accountMail = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -4132,8 +4122,8 @@ const _this = {
                         acknowledgedBy,
                     },
                 };
-                const mailer = await _this.createMailer(accountMail);
-                EmailBody = await _this.getEmailBody(mailOptions);
+                const mailer = await this.createMailer(accountMail);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -4208,8 +4198,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -4269,9 +4259,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendIncidentResolvedMail: async function ({
+    async sendIncidentResolvedMail({
         incidentTime,
         monitorName,
         monitorUrl,
@@ -4296,7 +4286,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getProjectSmtpSettings(projectId);
+            let accountMail = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -4331,8 +4321,8 @@ const _this = {
                         resolvedBy,
                     },
                 };
-                const mailer = await _this.createMailer(accountMail);
-                EmailBody = await _this.getEmailBody(mailOptions);
+                const mailer = await this.createMailer(accountMail);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -4406,8 +4396,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -4466,7 +4456,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
@@ -4477,7 +4467,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentAcknowledgedMailToSubscriber: async function (
+    async sendIncidentAcknowledgedMailToSubscriber(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -4498,7 +4488,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Incident Acknowledged'
             );
@@ -4523,13 +4513,13 @@ const _this = {
             template = template(data);
 
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -4552,7 +4542,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -4604,7 +4594,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -4629,7 +4619,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -4696,7 +4686,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
@@ -4708,7 +4698,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
 
-    sendInvestigationNoteToSubscribers: async function (
+    async sendInvestigationNoteToSubscribers(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -4729,7 +4719,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Investigation note is created'
             );
@@ -4757,13 +4747,13 @@ const _this = {
             template = template(data);
 
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 mailOptions = {
                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                     to: email,
@@ -4773,7 +4763,7 @@ const _this = {
                         body: template,
                     },
                 };
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -4798,7 +4788,7 @@ const _this = {
                 let info = {};
                 try {
                     info = await privateMailer.sendMail(mailOptions);
-                    EmailBody = await _this.getEmailBody(mailOptions);
+                    EmailBody = await this.getEmailBody(mailOptions);
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -4825,7 +4815,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             mailOptions = {
@@ -4837,7 +4827,7 @@ const _this = {
                                     body: template,
                                 },
                             };
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -4904,7 +4894,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {js date object} scheduledTime JS date of the event as timestamp.
@@ -4916,7 +4906,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendScheduledEventMailToSubscriber: async function (
+    async sendScheduledEventMailToSubscriber(
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -4934,7 +4924,7 @@ const _this = {
         let smtpServer;
 
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Scheduled Maintenance Created'
             );
@@ -4966,7 +4956,7 @@ const _this = {
 
             subject = subject(data);
 
-            let smtpSettings = await _this.getProjectSmtpSettings(
+            let smtpSettings = await this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
             if (!isEmpty(smtpSettings)) {
@@ -4974,7 +4964,7 @@ const _this = {
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -4997,7 +4987,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -5049,7 +5039,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -5074,7 +5064,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -5141,7 +5131,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
     /**
      * @param {js date object} scheduledTime JS date of the event as timestamp.
      * @param {string} monitorName Name of monitor with incident.
@@ -5152,7 +5142,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendResolvedScheduledEventMailToSubscriber: async function (
+    async sendResolvedScheduledEventMailToSubscriber(
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -5170,7 +5160,7 @@ const _this = {
         let smtpServer;
 
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Scheduled Maintenance Resolved'
             );
@@ -5199,7 +5189,7 @@ const _this = {
 
             subject = subject(data);
 
-            let smtpSettings = await _this.getProjectSmtpSettings(
+            let smtpSettings = await this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
             if (!isEmpty(smtpSettings)) {
@@ -5207,7 +5197,7 @@ const _this = {
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -5230,7 +5220,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -5282,7 +5272,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -5307,7 +5297,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -5374,7 +5364,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {js date object} scheduledTime JS date of the event as timestamp.
@@ -5386,7 +5376,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      */
 
-    sendCancelledScheduledEventMailToSubscriber: async function (
+    async sendCancelledScheduledEventMailToSubscriber(
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -5404,7 +5394,7 @@ const _this = {
         let smtpServer;
 
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Scheduled Maintenance Cancelled'
             );
@@ -5433,7 +5423,7 @@ const _this = {
 
             subject = subject(data);
 
-            let smtpSettings = await _this.getProjectSmtpSettings(
+            let smtpSettings = await this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
             if (!isEmpty(smtpSettings)) {
@@ -5441,7 +5431,7 @@ const _this = {
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -5464,7 +5454,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -5516,7 +5506,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -5541,7 +5531,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -5608,7 +5598,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
     /**
      * @param {string} monitorName Name of monitor with incident.
@@ -5619,7 +5609,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendScheduledEventNoteMailToSubscriber: async function (
+    async sendScheduledEventNoteMailToSubscriber(
         eventName: $TSFixMe,
         status: $TSFixMe,
         content: $TSFixMe,
@@ -5644,7 +5634,7 @@ const _this = {
         });
 
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Scheduled Maintenance Note'
             );
@@ -5667,13 +5657,13 @@ const _this = {
 
             subject = subject(data);
 
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -5696,7 +5686,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -5748,7 +5738,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -5773,7 +5763,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -5840,7 +5830,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
     /**
      * @param {string} announcementTitle Title of created announcement.
      * @param {string} announcementDescription Description of created announcement.
@@ -5848,7 +5838,7 @@ const _this = {
      * @param {string} statusPageUrl status page url
      *
      */
-    sendAnnouncementToSubscriber: async function (
+    async sendAnnouncementToSubscriber(
         announcementTitle: $TSFixMe,
         announcementDescription: $TSFixMe,
         email: $TSFixMe,
@@ -5864,7 +5854,7 @@ const _this = {
         let smtpServer;
 
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Announcement Notification Created'
             );
@@ -5883,13 +5873,13 @@ const _this = {
 
             subject = subject(data);
 
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -5912,7 +5902,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -5964,7 +5954,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -5989,7 +5979,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -6056,7 +6046,7 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
     /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
      * @param {string} monitorName Name of monitor with incident.
@@ -6066,7 +6056,7 @@ const _this = {
      * @param {string} componentName Name of the component whose monitor has incident.
      * @param {string} statusPageUrl status page url
      */
-    sendIncidentResolvedMailToSubscriber: async function (
+    async sendIncidentResolvedMailToSubscriber(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: $TSFixMe,
@@ -6087,7 +6077,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let { template, subject } = await _this.getTemplates(
+            let { template, subject } = await this.getTemplates(
                 emailTemplate,
                 'Subscriber Incident Resolved'
             );
@@ -6112,13 +6102,13 @@ const _this = {
             template = template(data);
 
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
-                const privateMailer = await _this.createMailer(smtpSettings);
+                const privateMailer = await this.createMailer(smtpSettings);
                 if (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
@@ -6143,7 +6133,7 @@ const _this = {
                         },
                     };
                 }
-                EmailBody = await _this.getEmailBody(mailOptions);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -6195,7 +6185,7 @@ const _this = {
                             smtpServer = smtpSettings.backupConfig.host;
                             smtpSettings = { ...smtpSettings.backupConfig };
 
-                            const privateMailer = await _this.createMailer(
+                            const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
                             if (replyAddress) {
@@ -6222,7 +6212,7 @@ const _this = {
                                     },
                                 };
                             }
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -6290,9 +6280,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    testSmtpConfig: async function (data: $TSFixMe) {
+    async testSmtpConfig(data: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
@@ -6300,7 +6290,7 @@ const _this = {
             smtpServer = data.host;
         }
         try {
-            const privateMailer = await _this.createMailer(data);
+            const privateMailer = await this.createMailer(data);
             mailOptions = {
                 from: `"${data.name}" <${data.from}>`,
                 to: data.email,
@@ -6312,7 +6302,7 @@ const _this = {
                     ...data,
                 },
             };
-            EmailBody = await _this.getEmailBody(mailOptions);
+            EmailBody = await this.getEmailBody(mailOptions);
             if (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -6416,9 +6406,9 @@ const _this = {
             });
             throw err;
         }
-    },
+    }
 
-    sendChangePlanMail: async function (
+    async sendChangePlanMail(
         projectName: $TSFixMe,
         oldPlan: $TSFixMe,
         newPlan: $TSFixMe,
@@ -6428,7 +6418,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -6450,8 +6440,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -6513,8 +6503,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -6574,17 +6564,14 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendCreateProjectMail: async function (
-        projectName: $TSFixMe,
-        email: $TSFixMe
-    ) {
+    async sendCreateProjectMail(projectName: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -6605,8 +6592,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -6666,8 +6653,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -6727,17 +6714,14 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendCreateSubProjectMail: async function (
-        subProjectName: $TSFixMe,
-        email: $TSFixMe
-    ) {
+    async sendCreateSubProjectMail(subProjectName: $TSFixMe, email: $TSFixMe) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -6756,8 +6740,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -6816,8 +6800,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -6877,9 +6861,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendUpgradeToEnterpriseMail: async function (
+    async sendUpgradeToEnterpriseMail(
         projectName: $TSFixMe,
         projectId: $TSFixMe,
         oldPlan: $TSFixMe,
@@ -6889,7 +6873,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -6909,8 +6893,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -6972,8 +6956,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -7033,9 +7017,9 @@ const _this = {
             });
             throw error;
         }
-    },
+    }
 
-    sendPaymentFailedEmail: async function (
+    async sendPaymentFailedEmail(
         projectName: $TSFixMe,
         email: $TSFixMe,
         name: $TSFixMe,
@@ -7046,7 +7030,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 smtpServer = 'internal';
                 if (!accountMail.internalSmtp) {
@@ -7068,8 +7052,8 @@ const _this = {
                     },
                 };
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -7130,8 +7114,8 @@ const _this = {
                                 },
                             };
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -7191,8 +7175,8 @@ const _this = {
             });
             throw error;
         }
-    },
-    hasCustomSmtpSettings: async (projectId: $TSFixMe) => {
+    }
+    async hasCustomSmtpSettings(projectId: $TSFixMe) {
         const select =
             'projectId user pass host port from name iv secure enabled createdAt';
         const smtpConfigurations = await EmailSmtpService.findOneBy({
@@ -7203,9 +7187,9 @@ const _this = {
         return Object.keys(smtpConfigurations).length
             ? smtpConfigurations
             : false;
-    },
+    }
 
-    sendSlaNotification: async function ({
+    async sendSlaNotification({
         userEmail,
         name,
         projectId,
@@ -7223,7 +7207,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
@@ -7249,8 +7233,8 @@ const _this = {
                     },
                 };
 
-                const mailer = await _this.createMailer(smtpSettings);
-                EmailBody = await _this.getEmailBody(mailOptions);
+                const mailer = await this.createMailer(smtpSettings);
+                EmailBody = await this.getEmailBody(mailOptions);
 
                 if (!mailer) {
                     await EmailStatusService.create({
@@ -7317,10 +7301,10 @@ const _this = {
                                 },
                             };
 
-                            const mailer = await _this.createMailer(
+                            const mailer = await this.createMailer(
                                 smtpSettings
                             );
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
 
                             if (!mailer) {
                                 await EmailStatusService.create({
@@ -7378,8 +7362,9 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendSlaBreachNotification: async function ({
+    }
+
+    async sendSlaBreachNotification({
         userEmail,
         name,
         projectId,
@@ -7396,7 +7381,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            let smtpSettings = await this.getProjectSmtpSettings(projectId);
             if (!isEmpty(smtpSettings)) {
                 smtpServer = 'internal';
                 if (!smtpSettings.internalSmtp) {
@@ -7421,8 +7406,8 @@ const _this = {
                     },
                 };
 
-                const mailer = await _this.createMailer(smtpSettings);
-                EmailBody = await _this.getEmailBody(mailOptions);
+                const mailer = await this.createMailer(smtpSettings);
+                EmailBody = await this.getEmailBody(mailOptions);
                 if (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
@@ -7487,10 +7472,10 @@ const _this = {
                                 },
                             };
 
-                            const mailer = await _this.createMailer(
+                            const mailer = await this.createMailer(
                                 smtpSettings
                             );
-                            EmailBody = await _this.getEmailBody(mailOptions);
+                            EmailBody = await this.getEmailBody(mailOptions);
                             if (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
@@ -7548,8 +7533,9 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendUnpaidSubscriptionReminder: async function ({
+    }
+
+    async sendUnpaidSubscriptionReminder({
         projectName,
         projectPlan,
         name,
@@ -7560,7 +7546,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 accountMail.name = 'OneUptime Support';
                 accountMail.from = 'support@oneuptime.com';
@@ -7585,8 +7571,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -7653,8 +7639,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -7714,8 +7700,9 @@ const _this = {
             });
             throw error;
         }
-    },
-    sendUnpaidSubscriptionProjectDelete: async function ({
+    }
+
+    async sendUnpaidSubscriptionProjectDelete({
         projectName,
         projectPlan,
         name,
@@ -7725,7 +7712,7 @@ const _this = {
         let EmailBody;
         let smtpServer;
         try {
-            let accountMail = await _this.getSmtpSettings();
+            let accountMail = await this.getSmtpSettings();
             if (!isEmpty(accountMail)) {
                 accountMail.name = 'OneUptime Support';
                 accountMail.from = 'support@oneuptime.com';
@@ -7750,8 +7737,8 @@ const _this = {
                 };
 
                 const [mailer, emailBody] = await Promise.all([
-                    _this.createMailer({}),
-                    _this.getEmailBody(mailOptions),
+                    this.createMailer({}),
+                    this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
                 if (!mailer) {
@@ -7818,8 +7805,8 @@ const _this = {
                             };
 
                             const [mailer, emailBody] = await Promise.all([
-                                _this.createMailer(accountMail),
-                                _this.getEmailBody(mailOptions),
+                                this.createMailer(accountMail),
+                                this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
                             if (!mailer) {
@@ -7879,7 +7866,5 @@ const _this = {
             });
             throw error;
         }
-    },
-};
-
-export default _this;
+    }
+}

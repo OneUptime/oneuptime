@@ -25,15 +25,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        select,
-        populate,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const projectQuery = ProjectModel.find(query)
@@ -47,9 +40,9 @@ export default {
 
         const projects = await projectQuery;
         return projects;
-    },
+    }
 
-    create: async function (data) {
+    async create(data) {
         const _this = this;
         const projectModel = new ProjectModel();
         const adminUser = await UserService.findOneBy({
@@ -149,9 +142,9 @@ export default {
                 '{{monitorName}} is {{incidentType}}. This incident is currently being investigated by our team and more information will be added soon.',
         });
         return project;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -159,9 +152,9 @@ export default {
 
         const count = await ProjectModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query, userId, cancelSub = true) {
+    async deleteBy(query, userId, cancelSub = true) {
         if (!query) {
             query = {};
         }
@@ -322,9 +315,9 @@ export default {
             );
         }
         return project;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -340,9 +333,9 @@ export default {
 
         const project = await projectQuery;
         return project;
-    },
+    }
 
-    updateOneBy: async function (query, data) {
+    async updateOneBy(query, data) {
         const _this = this;
         if (!query) {
             query = {};
@@ -385,9 +378,9 @@ export default {
             populate,
         });
         return updatedProject;
-    },
+    }
 
-    updateBy: async function (query, data) {
+    async updateBy(query, data) {
         if (!query) {
             query = {};
         }
@@ -403,9 +396,9 @@ export default {
 
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
+    }
 
-    updateAlertOptions: async function (data) {
+    async updateAlertOptions(data) {
         const projectId = data._id;
         const userId = data.userId;
         const project = await ProjectModel.findById(projectId).lean();
@@ -469,14 +462,14 @@ export default {
             error.code = 403;
             throw error;
         }
-    },
+    }
 
-    saveProject: async function (project) {
+    async saveProject(project) {
         project = await project.save();
         return project;
-    },
+    }
 
-    getProjectIdsBy: async function (query) {
+    async getProjectIdsBy(query) {
         const _this = this;
 
         const projects = await _this.findBy({ query, select: '_id' });
@@ -486,14 +479,14 @@ export default {
             projectsId.push(projects[i]._id);
         }
         return projectsId;
-    },
+    }
 
-    getBalance: async function (query) {
+    async getBalance(query) {
         const project = await ProjectModel.findOne(query).select('balance');
         return project;
-    },
+    }
 
-    resetApiKey: async function (projectId) {
+    async resetApiKey(projectId) {
         const _this = this;
         const apiKey = uuidv1();
         const project = await _this.updateOneBy(
@@ -501,9 +494,9 @@ export default {
             { apiKey: apiKey }
         );
         return project;
-    },
+    }
 
-    upgradeToEnterprise: async function (projectId) {
+    async upgradeToEnterprise(projectId) {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
 
         const project = await this.findOneBy({
@@ -517,9 +510,9 @@ export default {
         }
         const updatedProject = await this.updateOneBy({ _id: projectId }, data);
         return updatedProject;
-    },
+    }
 
-    changePlan: async function (projectId, userId, planId) {
+    async changePlan(projectId, userId, planId) {
         const _this = this;
         let project = await _this.updateOneBy(
             { _id: projectId },
@@ -557,9 +550,9 @@ export default {
             );
             return project;
         }
-    },
+    }
 
-    findSubprojectId: async function (projectId) {
+    async findSubprojectId(projectId) {
         const _this = this;
 
         const subProject = await _this.findBy({
@@ -570,9 +563,9 @@ export default {
         const subProjectId = subProject.map(sub => String(sub._id));
         const projectIdArr = [projectId, ...subProjectId];
         return projectIdArr;
-    },
+    }
 
-    getUniqueMembersIndividualProject: async function ({
+    async getUniqueMembersIndividualProject({
         isFlatenArr,
 
         members,
@@ -601,9 +594,9 @@ export default {
             }
         }
         return result;
-    },
+    }
 
-    exitProject: async function (projectId, userId, deletedById, saveUserSeat) {
+    async exitProject(projectId, userId, deletedById, saveUserSeat) {
         const _this = this,
             returnVal = 'User successfully exited the project';
         let teamMember = {};
@@ -736,9 +729,9 @@ export default {
             }
         }
         return returnVal;
-    },
+    }
 
-    updateSeatDetails: async function (project, projectSeats) {
+    async updateSeatDetails(project, projectSeats) {
         const _this = this;
         if (IS_SAAS_SERVICE) {
             await PaymentService.changeSeats(
@@ -750,14 +743,14 @@ export default {
             { _id: project._id },
             { seats: projectSeats.toString() }
         );
-    },
+    }
 
-    hardDeleteBy: async function (query) {
+    async hardDeleteBy(query) {
         await ProjectModel.deleteMany(query);
         return 'Project(s) Removed Successfully!';
-    },
+    }
 
-    getAllProjects: async function (skip, limit) {
+    async getAllProjects(skip, limit) {
         const _this = this;
         const populate = [{ path: 'parentProjectId', select: 'name' }];
         const select =
@@ -789,9 +782,9 @@ export default {
             })
         );
         return projects;
-    },
+    }
 
-    getUserProjects: async function (userId, skip, limit) {
+    async getUserProjects(userId, skip, limit) {
         const _this = this;
         // find user subprojects and parent projects
 
@@ -880,9 +873,9 @@ export default {
             })
         );
         return { projects, count };
-    },
+    }
 
-    restoreBy: async function (query) {
+    async restoreBy(query) {
         const _this = this;
         query.deleted = true;
 
@@ -960,9 +953,9 @@ export default {
             }),
         ]);
         return project;
-    },
+    }
 
-    addNotes: async function (projectId, notes) {
+    async addNotes(projectId, notes) {
         const _this = this;
         const project = await _this.updateOneBy(
             { _id: projectId },
@@ -971,9 +964,9 @@ export default {
             }
         );
         return project;
-    },
+    }
 
-    searchProjects: async function (query, skip, limit) {
+    async searchProjects(query, skip, limit) {
         const _this = this;
         const select = '_id slug name';
 
@@ -997,5 +990,5 @@ export default {
             })
         );
         return projects;
-    },
-};
+    }
+}

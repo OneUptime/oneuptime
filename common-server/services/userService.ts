@@ -1,6 +1,6 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 import BadDataException from 'common/types/exception/BadDataException';
-export default {
+export default class Service {
     // async addUserToDefaultProjects({ domain, userId }: $TSFixMe) {
 
     //     const populateDefaultRoleSso = [
@@ -35,7 +35,7 @@ export default {
     //     }
     // }
 
-    findBy: async function ({
+    async findBy({
         query,
         limit,
         skip,
@@ -59,9 +59,9 @@ export default {
 
         const users = await userQuery;
         return users;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         if (!data.email) {
             const error = new Error('Email address can not be empty');
 
@@ -130,9 +130,9 @@ export default {
 
         const user = await userModel.save();
         return user;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -140,9 +140,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await UserModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -162,9 +162,9 @@ export default {
             }
         );
         return user;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -224,9 +224,9 @@ export default {
             });
         }
         return user;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -252,9 +252,9 @@ export default {
             }
         ).select('-password');
         return updatedUser;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -267,9 +267,9 @@ export default {
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         updatedData = await this.findBy({ query, select });
         return updatedData;
-    },
+    }
 
-    updatePush: async function ({ userId, data }: $TSFixMe) {
+    async updatePush({ userId, data }: $TSFixMe) {
         const user = await UserModel.findOne({ _id: userId });
         const checkExist = await user.identification.find(
             (user: $TSFixMe) =>
@@ -291,9 +291,9 @@ export default {
             { identification: user.identification }
         );
         return userData;
-    },
+    }
 
-    closeTutorialBy: async function (
+    async closeTutorialBy(
         query: Query,
         type: $TSFixMe,
         data: $TSFixMe,
@@ -317,9 +317,9 @@ export default {
             { new: true }
         );
         return tutorial || null;
-    },
+    }
 
-    sendToken: async function (user: $TSFixMe, email: $TSFixMe) {
+    async sendToken(user: $TSFixMe, email: $TSFixMe) {
         const _this = this;
         const verificationTokenModel = new VerificationTokenModel({
             userId: user._id,
@@ -351,12 +351,12 @@ export default {
         }
 
         return verificationToken.token;
-    },
+    }
     //Description: signup function for new user.
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
-    signup: async function (data: $TSFixMe) {
+    async signup(data: $TSFixMe) {
         const _this = this;
         const email = data.email;
         const stripePlanId = data.planId || null;
@@ -449,8 +449,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
-    getUserIpLocation: async function (clientIP: $TSFixMe) {
+    }
+
+    async getUserIpLocation(clientIP: $TSFixMe) {
         try {
             const geo = geoip.lookup(clientIP);
             if (geo) {
@@ -461,9 +462,9 @@ export default {
         } catch (error) {
             return {};
         }
-    },
+    }
 
-    generateUserBackupCodes: async function (
+    async generateUserBackupCodes(
         secretKey: $TSFixMe,
         numberOfCodes: $TSFixMe,
         firstCounter = 0
@@ -477,9 +478,9 @@ export default {
             backupCodes.push({ code: token, counter });
         }
         return backupCodes;
-    },
+    }
 
-    verifyUserBackupCode: async function (
+    async verifyUserBackupCode(
         code: $TSFixMe,
         secretKey: $TSFixMe,
         counter: $TSFixMe
@@ -505,9 +506,9 @@ export default {
             return user;
         }
         return isValid;
-    },
+    }
 
-    generateTwoFactorSecret: async function (userId: string) {
+    async generateTwoFactorSecret(userId: string) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -528,9 +529,9 @@ export default {
         };
         await _this.updateOneBy({ _id: userId }, data);
         return { otpauth_url: secretCode.otpauth_url };
-    },
+    }
 
-    verifyAuthToken: async function (token: $TSFixMe, userId: string) {
+    async verifyAuthToken(token: $TSFixMe, userId: string) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -549,14 +550,14 @@ export default {
             return updatedUser;
         }
         return isValidCode;
-    },
+    }
 
     //Description: login function to authenticate user.
     //Params:
     //Param 1: email: User email.
     //Param 2: password: User password.
     //Returns: promise.
-    login: async function (
+    async login(
         email: $TSFixMe,
         password: $TSFixMe,
         clientIP: $TSFixMe,
@@ -704,13 +705,13 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
     // Description: forgot password function
     //Params:
     //Param 1: email: User email.
     //Returns: promise.
-    forgotPassword: async function (email: $TSFixMe) {
+    async forgotPassword(email: $TSFixMe) {
         const _this = this;
         if (util.isEmailValid(email)) {
             let user = await this.findOneBy({
@@ -753,14 +754,14 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
     // Description: forgot password function.
     //Params:
     //Param 1:  password: User password.
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
-    resetPassword: async function (password: $TSFixMe, token: $TSFixMe) {
+    async resetPassword(password: $TSFixMe, token: $TSFixMe) {
         const _this = this;
         let user = await _this.findOneBy({
             query: {
@@ -801,13 +802,10 @@ export default {
 
             return user;
         }
-    },
+    }
 
     // Description: replace password temporarily in "admin mode"
-    switchToAdminMode: async function (
-        userId: string,
-        temporaryPassword: $TSFixMe
-    ) {
+    async switchToAdminMode(userId: string, temporaryPassword: $TSFixMe) {
         if (!temporaryPassword) {
             const error = new Error(
                 'A temporary password is required for admin mode'
@@ -852,10 +850,10 @@ export default {
 
             return updatedUser;
         }
-    },
+    }
 
     // Descripiton: revert from admin mode and replce user password
-    exitAdminMode: async function (userId: string) {
+    async exitAdminMode(userId: string) {
         const _this = this;
         const user = await _this.findOneBy({
             query: { _id: userId },
@@ -891,13 +889,13 @@ export default {
 
             return updatedUser;
         }
-    },
+    }
 
     //Description: Get new access token.
     //Params:
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
-    getNewToken: async function (refreshToken: $TSFixMe) {
+    async getNewToken(refreshToken: $TSFixMe) {
         const _this = this;
         let user = await _this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
@@ -928,9 +926,9 @@ export default {
             };
             return token;
         }
-    },
+    }
 
-    changePassword: async function (data: $TSFixMe) {
+    async changePassword(data: $TSFixMe) {
         const _this = this;
         const currentPassword = data.currentPassword;
         let user = await _this.findOneBy({
@@ -965,9 +963,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
-    getAllUsers: async function (skip: PositiveNumber, limit: PositiveNumber) {
+    async getAllUsers(skip: PositiveNumber, limit: PositiveNumber) {
         const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
@@ -1027,9 +1025,9 @@ export default {
             })
         );
         return users;
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
 
@@ -1060,9 +1058,9 @@ export default {
             }
             return user;
         }
-    },
+    }
 
-    addNotes: async function (userId: string, notes: $TSFixMe) {
+    async addNotes(userId: string, notes: $TSFixMe) {
         const _this = this;
         const user = await _this.updateOneBy(
             {
@@ -1073,9 +1071,9 @@ export default {
             }
         );
         return user;
-    },
+    }
 
-    searchUsers: async function (
+    async searchUsers(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1134,14 +1132,14 @@ export default {
             })
         );
         return users;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await UserModel.deleteMany(query);
         return 'User(s) Removed Successfully!';
-    },
+    }
 
-    getAccessToken: function ({ userId, expiresIn }: $TSFixMe) {
+    getAccessToken({ userId, expiresIn }: $TSFixMe) {
         return jwt.sign(
             {
                 id: userId,
@@ -1149,8 +1147,8 @@ export default {
             jwtSecretKey,
             { expiresIn: expiresIn }
         );
-    },
-};
+    }
+}
 
 import bcrypt from 'bcrypt';
 

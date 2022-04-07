@@ -22,8 +22,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 // import RealTimeService from './realTimeService'
 
-export default {
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+export default class Service {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -38,9 +38,9 @@ export default {
         const result = await incomingRequestQuery;
 
         return result;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const _this = this;
         if (
             !data.selectAllMonitors &&
@@ -143,9 +143,9 @@ export default {
         // await RealTimeService.addScheduledEvent(incomingRequest);
 
         return incomingRequest;
-    },
+    }
 
-    getRequestUrl: async function (projectId: $TSFixMe, requestId: $TSFixMe) {
+    async getRequestUrl(projectId: $TSFixMe, requestId: $TSFixMe) {
         // create a unique request url
         // update incomingRequest collection with the new url
         const _this = this;
@@ -157,13 +157,9 @@ export default {
             true
         );
         return updatedIncomingRequest;
-    },
+    }
 
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        excludeMonitors: $TSFixMe
-    ) {
+    async updateOneBy(query: Query, data: $TSFixMe, excludeMonitors: $TSFixMe) {
         const _this = this;
         let unsetData = {};
         if (!query) {
@@ -360,25 +356,18 @@ export default {
         // await RealTimeService.updateScheduledEvent(updatedIncomingRequest);
 
         return updatedIncomingRequest;
-    },
+    }
 
-    updateCustomFieldBy: async function (query: Query, data: $TSFixMe) {
+    async updateCustomFieldBy(query: Query, data: $TSFixMe) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             { $set: data },
             { new: true }
         );
         return incomingRequest;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -407,18 +396,18 @@ export default {
         const result = await allIncomingRequest;
 
         return result;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         const count = await IncomingRequestModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query) {
+    async deleteBy(query: Query) {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             {
@@ -442,9 +431,9 @@ export default {
         // await RealTimeService.deleteScheduledEvent(incomingRequest);
 
         return incomingRequest;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -474,12 +463,12 @@ export default {
             populate,
         });
         return updateIncomingRequest;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await IncomingRequestModel.deleteMany(query);
         return 'Incoming request(s) removed successfully!';
-    },
+    }
 
     /**
      * @description removes a particular monitor from incoming request
@@ -487,7 +476,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function (monitorId: $TSFixMe) {
+    async removeMonitor(monitorId: $TSFixMe) {
         const allIncomingRequest = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors',
@@ -548,9 +537,9 @@ export default {
                 }
             })
         );
-    },
+    }
 
-    handleIncomingRequestAction: async function (data: $TSFixMe) {
+    async handleIncomingRequestAction(data: $TSFixMe) {
         const _this = this;
         const selectIncPriority =
             'projectId name color createdAt deletedAt deleted deletedById';
@@ -2055,8 +2044,8 @@ export default {
                 };
             }
         }
-    },
-};
+    }
+}
 
 /**
  * @description checks if an array contains duplicate values

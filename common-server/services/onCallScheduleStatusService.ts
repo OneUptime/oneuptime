@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        sort,
-        populate,
-        select,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, skip, limit, sort, populate, select }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -41,9 +34,9 @@ export default {
         const items = await itemsQuery;
 
         return items;
-    },
+    }
 
-    create: async function ({
+    async create({
         project,
         incident,
         activeEscalation,
@@ -67,9 +60,9 @@ export default {
 
         item = await item.save();
         return item;
-    },
+    }
 
-    countBy: async function ({ query }: $TSFixMe) {
+    async countBy({ query }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -77,9 +70,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await OnCallScheduleStatusModel.countDocuments(query);
         return count;
-    },
+    }
 
-    updateOneBy: async function ({ query, data }: $TSFixMe) {
+    async updateOneBy({ query, data }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -95,9 +88,9 @@ export default {
             }
         );
         return item;
-    },
+    }
 
-    updateBy: async function ({ query, data }: $TSFixMe) {
+    async updateBy({ query, data }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -126,9 +119,9 @@ export default {
             populate: populateOnCallScheduleStatus,
         });
         return items;
-    },
+    }
 
-    deleteBy: async function ({ query, userId }: $TSFixMe) {
+    async deleteBy({ query, userId }: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -148,12 +141,12 @@ export default {
             }
         );
         return items;
-    },
+    }
 
-    hardDeleteBy: async function ({ query }: $TSFixMe) {
+    async hardDeleteBy({ query }: $TSFixMe) {
         await OnCallScheduleStatusModel.deleteMany(query);
-    },
-};
+    }
+}
 
 import OnCallScheduleStatusModel from '../models/onCallScheduleStatus';
 

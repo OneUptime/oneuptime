@@ -8,8 +8,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
 
         // prepare issue model
@@ -46,7 +46,7 @@ export default {
             populate: populateIssue,
         });
         return issue;
-    },
+    }
     // find a list of Issues
     async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
@@ -78,7 +78,7 @@ export default {
         const issues = await issuesQuery;
 
         return issues;
-    },
+    }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -93,8 +93,9 @@ export default {
 
         const issue = await issueQuery;
         return issue;
-    },
-    findOneByHashAndErrorTracker: async function (
+    }
+
+    async findOneByHashAndErrorTracker(
         fingerprint: $TSFixMe,
         errorTrackerId: $TSFixMe
     ) {
@@ -111,12 +112,9 @@ export default {
             .populate('resolvedById', 'name')
             .populate('ignoredById', 'name');
         return issue;
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -156,12 +154,9 @@ export default {
         });
 
         return issue;
-    },
-    deleteBy: async function (
-        query: Query,
-        userId: string,
-        componentId: $TSFixMe
-    ) {
+    }
+
+    async deleteBy(query: Query, userId: string, componentId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -196,9 +191,9 @@ export default {
         } else {
             return null;
         }
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -206,5 +201,5 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await IssueModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

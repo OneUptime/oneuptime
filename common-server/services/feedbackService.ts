@@ -4,14 +4,14 @@ import UserService from './UserService';
 import ProjectService from './ProjectService';
 import AirtableService from './AirtableService';
 import Query from '../types/db/Query';
-export default {
+export default class Service {
     //Description: Create new project for user.
     //Params:
     //Param 1: projectName: Project name.
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function (
+    async create(
         projectId: $TSFixMe,
         message: $TSFixMe,
         page: $TSFixMe,
@@ -63,10 +63,10 @@ export default {
         MailService.sendUserFeedbackResponse(user.email, user.name);
 
         return feedback;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await FeedbackModel.deleteMany(query);
         return 'Feedback(s) removed successfully!';
-    },
-};
+    }
+}

@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const LogDay = new MonitorLogByDayModel();
 
         LogDay.monitorId = data.monitorId;
@@ -53,9 +53,9 @@ export default {
         const savedLogDay = await LogDay.save();
 
         return savedLogDay;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -69,7 +69,7 @@ export default {
         );
 
         return monitorLogByDay;
-    },
+    }
 
     async findBy({ query, limit, skip, filter, select, populate }: $TSFixMe) {
         if (!skip) skip = 0;
@@ -100,7 +100,7 @@ export default {
 
         const monitorLogsByDay = await monitorLogsByDayQuery;
         return monitorLogsByDay;
-    },
+    }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -117,7 +117,7 @@ export default {
         const monitorLog = await monitorLogQuery;
 
         return monitorLog;
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -127,8 +127,8 @@ export default {
         const count = await MonitorLogByDayModel.countDocuments(query);
 
         return count;
-    },
-};
+    }
+}
 
 import MonitorLogByDayModel from '../models/monitorLogByDay';
 

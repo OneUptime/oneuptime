@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        sort,
-        select,
-        populate,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, sort, select, populate }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const itemQuery = CallLogsModel.find(query)
@@ -19,9 +12,9 @@ export default {
 
         const items = await itemQuery;
         return items;
-    },
+    }
 
-    create: async function (
+    async create(
         from: $TSFixMe,
         to: $TSFixMe,
         projectId: $TSFixMe,
@@ -45,9 +38,9 @@ export default {
         item = await item.save();
 
         return item;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -55,9 +48,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await CallLogsModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -71,13 +64,13 @@ export default {
             },
         });
         return items;
-    },
+    }
 
-    hardDeleteBy: async function ({ query }: $TSFixMe) {
+    async hardDeleteBy({ query }: $TSFixMe) {
         await CallLogsModel.deleteMany(query);
-    },
+    }
 
-    search: async function ({ filter, skip, limit }: $TSFixMe) {
+    async search({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },
@@ -91,8 +84,8 @@ export default {
         ]);
 
         return { searchedCallLogs, totalSearchCount };
-    },
-};
+    }
+}
 
 import CallLogsModel from '../models/callLogs';
 

@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         let incidentMessage = new IncidentMessageModel();
 
         incidentMessage.content = data.content;
@@ -40,8 +40,9 @@ export default {
         }
 
         return incidentMessage;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -70,7 +71,8 @@ export default {
         //RealTimeService.applicationLogKeyReset(applicationLog);
         RealTimeService.updateIncidentNote(incidentMessage);
         return incidentMessage;
-    },
+    }
+
     async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
@@ -86,15 +88,9 @@ export default {
 
         const incidentMessage = await incidentMessageQuery;
         return incidentMessage;
-    },
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -114,8 +110,9 @@ export default {
         incidentMessagesQuery.populate(populate);
         const incidentMessages = await incidentMessagesQuery;
         return incidentMessages;
-    },
-    countBy: async function (query: Query) {
+    }
+
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -124,8 +121,9 @@ export default {
         const count = await IncidentMessageModel.countDocuments(query);
 
         return count;
-    },
-    deleteBy: async function (query: Query, userId: string) {
+    }
+
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -147,8 +145,8 @@ export default {
         } else {
             return null;
         }
-    },
-};
+    }
+}
 
 import IncidentMessageModel from '../models/incidentMessage';
 import RealTimeService from './realTimeService';

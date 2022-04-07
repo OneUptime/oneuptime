@@ -7,9 +7,9 @@ import {
     INCIDENT_ACKNOWLEDGED,
 } from '../constants/incidentEvents';
 
-export default {
+export default class Service {
     // process messages to be sent to slack workspace channels
-    sendNotification: async function (
+    async sendNotification(
         projectId: $TSFixMe,
         incident: $TSFixMe,
         monitor: $TSFixMe,
@@ -81,7 +81,7 @@ export default {
             );
         }
         return response;
-    },
+    }
 
     // send notification to slack workspace channels
     async notify(
@@ -216,8 +216,9 @@ export default {
         );
 
         return 'Webhook successfully pinged';
-    },
-    sendIncidentNoteNotification: async function (
+    }
+
+    async sendIncidentNoteNotification(
         projectId: $TSFixMe,
         incident: $TSFixMe,
         data: $TSFixMe,
@@ -269,7 +270,7 @@ export default {
             );
         }
         return response;
-    },
+    }
 
     // send notification to slack workspace channels
     async noteNotify(
@@ -312,5 +313,5 @@ export default {
         );
 
         return 'Webhook successfully pinged';
-    },
-};
+    }
+}

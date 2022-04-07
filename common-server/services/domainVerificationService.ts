@@ -13,8 +13,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 import errorService from '../utils/error';
 
-export default {
-    create: async function ({ domain, projectId }: $TSFixMe) {
+export default class Service {
+    async create({ domain, projectId }: $TSFixMe) {
         const parsed = psl.parse(domain);
         const token = 'oneuptime=' + randomChar();
 
@@ -43,8 +43,9 @@ export default {
         };
 
         return await DomainVerificationTokenModel.create(creationData);
-    },
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -64,15 +65,9 @@ export default {
 
         const domain = await domainQuery;
         return domain;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -117,8 +112,9 @@ export default {
 
         const domains = await domainsQuery;
         return domains;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (query && query.domain) {
             const parsed = psl.parse(query.domain);
             query.domain = parsed.domain;
@@ -135,8 +131,9 @@ export default {
             });
 
         return updatedDomain;
-    },
-    resetDomain: async function (domain: $TSFixMe) {
+    }
+
+    async resetDomain(domain: $TSFixMe) {
         const _this = this;
         const updateObj = {
             verificationToken: 'oneuptime=' + randomChar(),
@@ -148,11 +145,9 @@ export default {
             updateObj
         );
         return updatedDomain;
-    },
-    doesTxtRecordExist: async function (
-        subDomain: $TSFixMe,
-        verificationToken: $TSFixMe
-    ) {
+    }
+
+    async doesTxtRecordExist(subDomain: $TSFixMe, verificationToken: $TSFixMe) {
         try {
             const parsed = psl.parse(subDomain);
             const host = 'oneuptime';
@@ -202,11 +197,9 @@ export default {
 
             throw error;
         }
-    },
-    doesDomainBelongToProject: async function (
-        projectId: $TSFixMe,
-        subDomain: $TSFixMe
-    ) {
+    }
+
+    async doesDomainBelongToProject(projectId: $TSFixMe, subDomain: $TSFixMe) {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project
@@ -265,12 +258,14 @@ export default {
         }
 
         return false;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await DomainVerificationTokenModel.deleteMany(query);
         return 'Domain verification token(s) Removed Successfully!';
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         const domainCount = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
@@ -320,8 +315,9 @@ export default {
         }
 
         return domain;
-    },
-    findDomain: async function (domainId: $TSFixMe, projectArr = []) {
+    }
+
+    async findDomain(domainId: $TSFixMe, projectArr = []) {
         const _this = this;
         let projectId;
         for (const pId of projectArr) {
@@ -336,9 +332,9 @@ export default {
             }
         }
         return projectId;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -359,5 +355,5 @@ export default {
 
         const count = await DomainVerificationTokenModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

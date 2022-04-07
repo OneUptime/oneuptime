@@ -33,12 +33,12 @@ import Query from '../types/db/Query';
 import PositiveNumber from 'common/types/PositiveNumber';
 import FindBy from '../types/db/FindBy';
 
-export default {
+export default class Service {
     //Description: Upsert function for monitor.
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const _this = this;
         let subProject = null;
 
@@ -254,9 +254,9 @@ export default {
                 throw error;
             }
         }
-    },
+    }
 
-    markMonitorsAsShouldNotMonitor: async function (monitorIds: $TSFixMe) {
+    async markMonitorsAsShouldNotMonitor(monitorIds: $TSFixMe) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -265,9 +265,9 @@ export default {
                 $set: { shouldNotMonitor: true },
             }
         );
-    },
+    }
 
-    markMonitorsAsShouldMonitor: async function (monitorIds: $TSFixMe) {
+    async markMonitorsAsShouldMonitor(monitorIds: $TSFixMe) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -276,12 +276,9 @@ export default {
                 $set: { shouldNotMonitor: false },
             }
         );
-    },
+    }
 
-    unsetColumnsOfManyMonitors: async function (
-        monitorIds: $TSFixMe,
-        columns: $TSFixMe
-    ) {
+    async unsetColumnsOfManyMonitors(monitorIds: $TSFixMe, columns: $TSFixMe) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -290,9 +287,9 @@ export default {
                 $unset: { ...columns },
             }
         );
-    },
+    }
 
-    updateManyIncidentCommunicationSla: async function (
+    async updateManyIncidentCommunicationSla(
         monitorIds: $TSFixMe,
         incidentCommunicationSlaId: $TSFixMe
     ) {
@@ -306,12 +303,9 @@ export default {
                 },
             }
         );
-    },
+    }
 
-    updateManyMonitorSla: async function (
-        monitorIds: $TSFixMe,
-        monitorSlaId: $TSFixMe
-    ) {
+    async updateManyMonitorSla(monitorIds: $TSFixMe, monitorSlaId: $TSFixMe) {
         await MonitorModel.updateMany(
             {
                 _id: { $in: monitorIds },
@@ -320,12 +314,9 @@ export default {
                 $set: { monitorSla: monitorSlaId },
             }
         );
-    },
+    }
 
-    updateCriterion: async function (
-        _id: $TSFixMe,
-        lastMatchedCriterion: $TSFixMe
-    ) {
+    async updateCriterion(_id: $TSFixMe, lastMatchedCriterion: $TSFixMe) {
         await MonitorModel.updateOne(
             { _id },
             { $set: { lastMatchedCriterion } },
@@ -333,9 +324,9 @@ export default {
                 new: true,
             }
         );
-    },
+    }
 
-    updateLighthouseScanStatus: async function (
+    async updateLighthouseScanStatus(
         _id: $TSFixMe,
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
@@ -380,12 +371,9 @@ export default {
         const monitor = await this.findOneBy({ query, select, populate });
         RealTimeService.monitorEdit(monitor);
         return monitor;
-    },
+    }
 
-    disableMonitor: async function (
-        _id: $TSFixMe,
-        isDisabledOrEnable: $TSFixMe
-    ) {
+    async disableMonitor(_id: $TSFixMe, isDisabledOrEnable: $TSFixMe) {
         await MonitorModel.updateOne(
             { _id },
             {
@@ -394,9 +382,9 @@ export default {
                 },
             }
         );
-    },
+    }
 
-    updateScriptStatus: async function (
+    async updateScriptStatus(
         _id: $TSFixMe,
         scriptRunStatus: $TSFixMe,
         scriptRunBy: $TSFixMe
@@ -413,13 +401,9 @@ export default {
                 new: true,
             }
         );
-    },
+    }
 
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData: $TSFixMe
-    ) {
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData: $TSFixMe) {
         const _this = this;
 
         if (!query) {
@@ -508,9 +492,9 @@ export default {
         RealTimeService.monitorEdit(monitor);
 
         return monitor;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -531,11 +515,11 @@ export default {
         ];
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
+    }
 
     // To be used to know the current status of a monitor
     // online, offline or degraded
-    updateAllMonitorStatus: async function (query: Query, data: $TSFixMe) {
+    async updateAllMonitorStatus(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -545,7 +529,7 @@ export default {
             $set: data,
         });
         return updatedData;
-    },
+    }
 
     //Description: Gets all monitors by project.
     //Params:
@@ -581,7 +565,7 @@ export default {
 
         const monitors = await monitorQuery;
         return monitors;
-    },
+    }
 
     async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
@@ -597,7 +581,7 @@ export default {
 
         const monitor = await monitorQuery;
         return monitor;
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -607,9 +591,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await MonitorModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -724,7 +708,7 @@ export default {
         } else {
             return null;
         }
-    },
+    }
 
     async getMonitorsBySubprojects(
         subProjectIds: $TSFixMe,
@@ -840,7 +824,7 @@ export default {
             })
         );
         return subProjectMonitors;
-    },
+    }
 
     async getMonitorsBySubprojectsPaginate(
         projectId: $TSFixMe,
@@ -951,7 +935,7 @@ export default {
             skip,
             limit,
         };
-    },
+    }
 
     async getProbeMonitors(probeId: $TSFixMe, date: $TSFixMe) {
         const newdate = new Date();
@@ -1083,7 +1067,7 @@ export default {
         } else {
             return [];
         }
-    },
+    }
 
     async getScriptMonitors({ limit, skip }: $TSFixMe) {
         import moment from 'moment';
@@ -1133,7 +1117,7 @@ export default {
         } else {
             return [];
         }
-    },
+    }
 
     async getUrlMonitorsNotScannedByLightHouseInPastOneDay() {
         const oneDay = moment().subtract(1, 'days').toDate();
@@ -1165,7 +1149,7 @@ export default {
         });
 
         return monitors;
-    },
+    }
 
     async updateMonitorPingTime(id: $TSFixMe) {
         const newdate = new Date();
@@ -1178,7 +1162,7 @@ export default {
         );
 
         return monitor;
-    },
+    }
 
     async updateDeviceMonitorPingTime(projectId: $TSFixMe, deviceId: $TSFixMe) {
         const thisObj = this;
@@ -1198,7 +1182,7 @@ export default {
             monitor = await thisObj.updateMonitorPingTime(monitor._id);
             return monitor;
         }
-    },
+    }
 
     async getMonitorLogs(
         monitorId: $TSFixMe,
@@ -1295,7 +1279,7 @@ export default {
         }
 
         return probeLogs;
-    },
+    }
 
     async getMonitorLogsByDay(
         monitorId: $TSFixMe,
@@ -1346,7 +1330,7 @@ export default {
             }
         }
         return probeLogs;
-    },
+    }
 
     async getMonitorStatuses(
         monitorId: $TSFixMe,
@@ -1412,9 +1396,9 @@ export default {
         }
 
         return probeStatuses;
-    },
+    }
 
-    addSeat: async function (query: Query) {
+    async addSeat(query: Query) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -1435,9 +1419,9 @@ export default {
             { seats: String(projectSeats) }
         );
         return 'A new seat added. Now you can add a monitor';
-    },
+    }
 
-    addSiteUrl: async function (query: Query, data: $TSFixMe) {
+    async addSiteUrl(query: Query, data: $TSFixMe) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
 
         if (
@@ -1456,9 +1440,9 @@ export default {
         monitor = await this.updateOneBy(query, { siteUrls });
 
         return monitor;
-    },
+    }
 
-    removeSiteUrl: async function (query: Query, data: $TSFixMe) {
+    async removeSiteUrl(query: Query, data: $TSFixMe) {
         let monitor = await this.findOneBy({ query, select: 'siteUrls' });
         const siteUrlIndex =
             monitor.siteUrls && monitor.siteUrls.length > 0
@@ -1480,12 +1464,12 @@ export default {
         monitor = await this.updateOneBy(query, { siteUrls });
 
         return monitor;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await MonitorModel.deleteMany(query);
         return 'Monitor(s) removed successfully!';
-    },
+    }
     // yet to be edited
     async getManualMonitorTime(monitorId: $TSFixMe) {
         const _this = this;
@@ -1607,9 +1591,9 @@ export default {
             times.unshift(temp);
         }
         return times;
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
         const select = '_id';
@@ -1642,11 +1626,11 @@ export default {
             );
             return monitors;
         }
-    },
+    }
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
-    updateMonitorSlaStat: async function (query: Query) {
+    async updateMonitorSlaStat(query: Query) {
         const _this = this;
         const currentDate = moment().format();
         let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
@@ -1733,13 +1717,9 @@ export default {
                 RealTimeService.monitorEdit(monitorData);
             }
         }
-    },
+    }
 
-    calculateTime: function (
-        statuses: $TSFixMe,
-        start: $TSFixMe,
-        range: $TSFixMe
-    ) {
+    calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1943,9 +1923,9 @@ export default {
         }
 
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
-    },
+    }
 
-    closeBreachedMonitorSla: async function (
+    async closeBreachedMonitorSla(
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
         userId: string
@@ -1964,9 +1944,9 @@ export default {
         );
 
         return monitor;
-    },
+    }
 
-    changeMonitorComponent: async function (
+    async changeMonitorComponent(
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
         componentId: $TSFixMe
@@ -1998,9 +1978,9 @@ export default {
         );
 
         return updatedMonitor;
-    },
+    }
 
-    calcTime: function (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
+    calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -2250,5 +2230,5 @@ export default {
         }
 
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
-    },
-};
+    }
+}

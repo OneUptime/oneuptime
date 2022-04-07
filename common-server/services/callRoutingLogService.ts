@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const callRoutingLogQuery = CallRoutingLogModel.find(query)
@@ -19,9 +12,9 @@ export default {
 
         const callRoutingLog = await callRoutingLogQuery;
         return callRoutingLog;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const callRoutingLogModel = new CallRoutingLogModel();
 
         callRoutingLogModel.callRoutingId = data.callRoutingId;
@@ -36,9 +29,9 @@ export default {
 
         const logs = await callRoutingLogModel.save();
         return logs;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -46,9 +39,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await CallRoutingLogModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -68,9 +61,9 @@ export default {
             }
         );
         return logs;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -85,9 +78,9 @@ export default {
 
         const log = await logQuery;
         return log;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -105,9 +98,9 @@ export default {
                 }
             );
         return updatedCallRoutingLog;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -120,13 +113,13 @@ export default {
             'callRoutingId callSid price calledFrom calledTo duration dialTo';
         updatedData = await this.findBy({ query, select });
         return updatedData;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await CallRoutingLogModel.deleteMany(query);
         return 'Call routing Log(s) Removed Successfully!';
-    },
-};
+    }
+}
 
 import CallRoutingLogModel from '../models/callRoutingLog';
 

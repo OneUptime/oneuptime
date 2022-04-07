@@ -13,8 +13,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
         // check if component exists
         const componentCount = await ComponentService.countBy({
@@ -70,16 +70,9 @@ export default {
             populate,
         });
         return performanceTracker;
-    },
+    }
     //Description: Gets all application logs by component.
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -107,9 +100,9 @@ export default {
 
         const performanceTracker = await performanceTrackerQuery;
         return performanceTracker;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -134,9 +127,9 @@ export default {
 
         const performanceTracker = await performanceTrackerQuery;
         return performanceTracker;
-    },
+    }
 
-    getPerformanceTrackerByComponentId: async function (
+    async getPerformanceTrackerByComponentId(
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -175,8 +168,9 @@ export default {
             populate,
         });
         return performanceTracker;
-    },
-    deleteBy: async function (query: Query, userId: string) {
+    }
+
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -219,12 +213,9 @@ export default {
         } else {
             return null;
         }
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -274,12 +265,14 @@ export default {
         // );
 
         return performanceTracker;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await PerformanceTrackerModel.deleteMany(query);
         return 'Performance Tracker removed successfully!';
-    },
-    countBy: async function (query: Query) {
+    }
+
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -287,5 +280,5 @@ export default {
 
         const count = await PerformanceTrackerModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

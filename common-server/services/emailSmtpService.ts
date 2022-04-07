@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const iv = Crypto.randomBytes(16);
         data.pass = await EncryptDecrypt.encrypt(data.pass, iv);
         const emailSmtpModel = new EmailSmtpModel();
@@ -38,9 +38,9 @@ export default {
             delete emailSmtp.iv;
         }
         return emailSmtp;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -70,9 +70,9 @@ export default {
             delete updatedEmailSmtp.iv;
         }
         return updatedEmailSmtp;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -99,9 +99,9 @@ export default {
             }
         }
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const emailSmtp = await EmailSmtpModel.findOneAndUpdate(
             query,
             {
@@ -116,16 +116,9 @@ export default {
             }
         );
         return emailSmtp;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         query.deleted = false;
         const emailSmtpQuery = EmailSmtpModel.find(query)
             .sort(sort)
@@ -149,9 +142,9 @@ export default {
             }
         }
         return emailSmtp;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -173,9 +166,9 @@ export default {
         }
 
         return emailSmtp;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -183,13 +176,13 @@ export default {
         query.deleted = false;
         const count = await EmailSmtpModel.countDocuments(query);
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await EmailSmtpModel.deleteMany(query);
         return 'Email Smtp(s) removed successfully';
-    },
-};
+    }
+}
 
 import Crypto from 'crypto';
 import EmailSmtpModel from '../models/smtp';

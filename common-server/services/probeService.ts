@@ -16,8 +16,8 @@ import AutomatedScriptService from './AutomatedScriptService';
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 
-export default {
-    create: async function (data) {
+export default class Service {
+    async create(data) {
         const _this = this;
         let probeKey;
         if (data.probeKey) {
@@ -46,9 +46,9 @@ export default {
             const savedProbe = await probe.save();
             return savedProbe;
         }
-    },
+    }
 
-    updateOneBy: async function (query, data) {
+    async updateOneBy(query, data) {
         if (!query) {
             query = {};
         }
@@ -62,9 +62,9 @@ export default {
             }
         );
         return probe;
-    },
+    }
 
-    updateBy: async function (query, data) {
+    async updateBy(query, data) {
         if (!query) {
             query = {};
         }
@@ -79,16 +79,9 @@ export default {
 
         updatedData = await this.findBy({ query, select: selectProbe });
         return updatedData;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -118,9 +111,9 @@ export default {
         const probe = await probeQuery;
 
         return probe;
-    },
+    }
 
-    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -133,9 +126,9 @@ export default {
 
         const probe = await probeQuery;
         return probe;
-    },
+    }
 
-    countBy: async function (query) {
+    async countBy(query) {
         if (!query) {
             query = {};
         }
@@ -143,9 +136,9 @@ export default {
         query.deleted = false;
         const count = await ProbeModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query) {
+    async deleteBy(query) {
         if (!query) {
             query = {};
         }
@@ -156,14 +149,14 @@ export default {
             { new: true }
         );
         return probe;
-    },
+    }
 
-    hardDeleteBy: async function (query) {
+    async hardDeleteBy(query) {
         await ProbeModel.deleteMany(query);
         return 'Probe(s) removed successfully!';
-    },
+    }
 
-    sendProbe: async function (probeId, monitorId) {
+    async sendProbe(probeId, monitorId) {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
@@ -176,14 +169,14 @@ export default {
             // run in the background
             RealTimeService.updateProbe(probe, monitorId);
         }
-    },
+    }
 
-    saveLighthouseLog: async function (data) {
+    async saveLighthouseLog(data) {
         const log = await LighthouseLogService.create(data);
         return log;
-    },
+    }
 
-    createMonitorDisabledStatus: async function (data) {
+    async createMonitorDisabledStatus(data) {
         const select =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         let monitorStatus = await MonitorStatusService.findBy({
@@ -201,9 +194,9 @@ export default {
             monitorStatus = await MonitorStatusService.create(data);
         }
         return monitorStatus;
-    },
+    }
 
-    saveMonitorLog: async function (data) {
+    async saveMonitorLog(data) {
         const _this = this;
 
         let monitorStatus = await MonitorStatusService.findBy({
@@ -301,9 +294,9 @@ export default {
             }
         }
         return log;
-    },
+    }
 
-    getMonitorLog: async function (data) {
+    async getMonitorLog(data) {
         const date = new Date();
 
         const selectMonitorLog =
@@ -325,9 +318,9 @@ export default {
             populate: populateMonitorLog,
         });
         return log;
-    },
+    }
 
-    incidentCreateOrUpdate: async function (data) {
+    async incidentCreateOrUpdate(data) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -612,9 +605,9 @@ export default {
         incidentIds = incidentIds.map(i => i._id);
 
         return incidentIds;
-    },
+    }
 
-    incidentResolveOrAcknowledge: async function (data, allCriteria) {
+    async incidentResolveOrAcknowledge(data, allCriteria) {
         const populate = [
             {
                 path: 'probes.probeId',
@@ -780,18 +773,18 @@ export default {
             }
         });
         return {};
-    },
+    }
 
-    updateProbeStatus: async function (probeId) {
+    async updateProbeStatus(probeId) {
         const probe = await ProbeModel.findOneAndUpdate(
             { _id: probeId },
             { $set: { lastAlive: Date.now() } },
             { new: true }
         );
         return probe;
-    },
+    }
 
-    scriptConditions: (resp, con) => {
+    scriptConditions(resp, con) {
         const body = resp ?? null;
 
         const successReasons = [];
@@ -849,9 +842,9 @@ export default {
             failedReasons,
             matchedCriterion,
         };
-    },
+    }
 
-    conditions: (monitorType, con, payload, resp, response) => {
+    conditions(monitorType, con, payload, resp, response) {
         const status = resp
             ? resp.status
                 ? resp.status
@@ -937,9 +930,9 @@ export default {
             failedReasons,
             matchedCriterion,
         };
-    },
+    }
 
-    incomingCondition: (payload, conditions) => {
+    incomingCondition(payload, conditions) {
         let eventOccurred = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
@@ -990,9 +983,9 @@ export default {
             });
         }
         return { eventOccurred, matchedCriterion };
-    },
+    }
 
-    toArray: function (params) {
+    toArray(params) {
         const array = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
@@ -1001,9 +994,9 @@ export default {
             return array;
         }
         return null;
-    },
+    }
 
-    processHttpRequest: async function (data) {
+    async processHttpRequest(data) {
         const _this = this;
         const { monitor, body } = data;
         let { queryParams, headers } = data;
@@ -1126,9 +1119,9 @@ export default {
             MonitorService.updateMonitorPingTime(monitor._id),
         ]);
         return log;
-    },
+    }
 
-    probeHttpRequest: async function (monitor, probeId) {
+    async probeHttpRequest(monitor, probeId) {
         const _this = this;
         let status, reason;
         let matchedCriterion;
@@ -1242,8 +1235,8 @@ export default {
         ]);
 
         return log;
-    },
-};
+    }
+}
 
 import _ from 'lodash';
 

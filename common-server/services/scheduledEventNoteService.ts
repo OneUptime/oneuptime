@@ -7,8 +7,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe, projectId: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe, projectId: $TSFixMe) {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 
         const populate = [
@@ -61,12 +61,9 @@ export default {
               );
 
         return scheduledEventMessage;
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        projectId: $TSFixMe
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -117,8 +114,9 @@ export default {
               );
 
         return eventMessage;
-    },
-    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -131,15 +129,9 @@ export default {
         eventMessageQuery.populate(populate);
         const eventMessage = await eventMessageQuery;
         return eventMessage;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -165,19 +157,17 @@ export default {
 
         const eventMessage = await eventMessageQuery;
         return eventMessage;
-    },
-    countBy: async function (query: Query) {
+    }
+
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
         const count = await ScheduledEventNoteModel.countDocuments(query);
         return count;
-    },
-    deleteBy: async function (
-        query: Query,
-        userId: string,
-        projectId: $TSFixMe
-    ) {
+    }
+
+    async deleteBy(query: Query, userId: string, projectId: $TSFixMe) {
         const data = {
             deleted: true,
             event_state: 'Deleted',
@@ -206,9 +196,10 @@ export default {
               );
 
         return deletedEventMessage;
-    },
-    hardDelete: async function (query: Query) {
+    }
+
+    async hardDelete(query: Query) {
         await ScheduledEventNoteModel.deleteMany(query);
         return 'Scheduled Event Note(s) removed successfully!';
-    },
-};
+    }
+}

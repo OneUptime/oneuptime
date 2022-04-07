@@ -1,6 +1,6 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
         // check if component exist
         const componentCount = await ComponentService.countBy({
@@ -65,7 +65,7 @@ export default {
             ],
         });
         return errorTracker;
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -75,7 +75,7 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await ErrorTrackerModel.countDocuments(query);
         return count;
-    },
+    }
 
     // find a list of error trackers
     async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
@@ -106,7 +106,7 @@ export default {
         errorTrackersQuery.populate(populate);
         const result = await errorTrackersQuery;
         return result;
-    },
+    }
     // find a particular error tracker
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -121,7 +121,7 @@ export default {
         errorTrackersQuery.populate(populate);
         const result = await errorTrackersQuery;
         return result;
-    },
+    }
     // get all error trackers by component ID
     async getErrorTrackersByComponentId(
         componentId: $TSFixMe,
@@ -161,8 +161,9 @@ export default {
         ]);
 
         return { errorTrackers, count, skip, limit };
-    },
-    deleteBy: async function (query: Query, userId: string) {
+    }
+
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -196,12 +197,9 @@ export default {
         } else {
             return null;
         }
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -240,8 +238,8 @@ export default {
         RealTimeService.errorTrackerKeyReset(errorTracker);
 
         return errorTracker;
-    },
-};
+    }
+}
 
 import ErrorTrackerModel from '../models/errorTracker';
 import ComponentService from './ComponentService';

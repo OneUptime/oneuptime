@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const smsTemplateModel = new SmsTemplateModel();
 
         smsTemplateModel.projectId = data.projectId || null;
@@ -13,17 +13,17 @@ export default {
         const smsTemplate = await smsTemplateModel.save();
 
         return smsTemplate;
-    },
+    }
 
-    createMany: async function (allData: $TSFixMe) {
+    async createMany(allData: $TSFixMe) {
         allData = allData.map((data: $TSFixMe) => {
             data.allowedVariables = smsTemplateVariables[data.smsType];
             return data;
         });
         return await SmsTemplateModel.insertMany(allData);
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -39,9 +39,9 @@ export default {
             }
         );
         return updatedSmsTemplate;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -54,9 +54,9 @@ export default {
         const select = 'projectId body smsType allowedVariables';
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const smsTemplate = await SmsTemplateModel.findOneAndUpdate(
             query,
             {
@@ -71,16 +71,9 @@ export default {
             }
         );
         return smsTemplate;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         query.deleted = false;
 
         const smsTemplateQuery = SmsTemplateModel.find(query)
@@ -94,9 +87,9 @@ export default {
 
         const smsTemplates = await smsTemplateQuery;
         return smsTemplates;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -112,9 +105,9 @@ export default {
 
         const smsTemplate = await smsTemplateQuery;
         return smsTemplate;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -122,9 +115,9 @@ export default {
         query.deleted = false;
         const count = await SmsTemplateModel.countDocuments(query);
         return count;
-    },
+    }
 
-    getTemplates: async function (projectId: $TSFixMe) {
+    async getTemplates(projectId: $TSFixMe) {
         const _this = this;
         const populate = [{ path: 'projectId', select: 'name' }];
         const select = 'projectId body smsType allowedVariables';
@@ -144,9 +137,9 @@ export default {
             })
         );
         return templates;
-    },
+    }
 
-    resetTemplate: async function (projectId: $TSFixMe, templateId: $TSFixMe) {
+    async resetTemplate(projectId: $TSFixMe, templateId: $TSFixMe) {
         const _this = this;
         const oldTemplate = await _this.findOneBy({
             query: { _id: templateId },
@@ -166,13 +159,13 @@ export default {
             }
         );
         return resetTemplate;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await SmsTemplateModel.deleteMany(query);
         return 'SMS Template(s) removed successfully';
-    },
-};
+    }
+}
 
 import SmsTemplateModel from '../models/smsTemplate';
 import smsTemplateVariables from '../config/smsTemplateVariables';

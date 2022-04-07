@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
         const schedulesQuery = ScheduleModel.find(query)
             .lean()
@@ -19,9 +12,9 @@ export default {
 
         const schedules = await schedulesQuery;
         return schedules;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -38,9 +31,9 @@ export default {
         const schedule = await scheduleQuery;
 
         return schedule;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const scheduleModel = new ScheduleModel();
 
         scheduleModel.name = data.name || null;
@@ -96,9 +89,9 @@ export default {
             populate,
         });
         return newSchedule;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -106,9 +99,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await ScheduleModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const schedule = await ScheduleModel.findOneAndUpdate(
             query,
             {
@@ -134,12 +127,9 @@ export default {
         }
 
         return schedule;
-    },
+    }
 
-    addMonitorToSchedules: async function (
-        scheduleIds: $TSFixMe,
-        monitorId: $TSFixMe
-    ) {
+    async addMonitorToSchedules(scheduleIds: $TSFixMe, monitorId: $TSFixMe) {
         await ScheduleModel.updateMany(
             {
                 _id: { $in: scheduleIds },
@@ -150,9 +140,9 @@ export default {
                 },
             }
         );
-    },
+    }
 
-    removeMonitor: async function (monitorId: $TSFixMe) {
+    async removeMonitor(monitorId: $TSFixMe) {
         const schedule = await ScheduleModel.findOneAndUpdate(
             { monitorIds: monitorId },
             {
@@ -160,9 +150,9 @@ export default {
             }
         );
         return schedule;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -249,9 +239,9 @@ export default {
             select,
         });
         return schedule;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -283,21 +273,21 @@ export default {
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
+    }
 
-    saveSchedule: async function (schedule: $TSFixMe) {
+    async saveSchedule(schedule: $TSFixMe) {
         schedule = await schedule.save();
         return schedule;
-    },
+    }
 
-    deleteMonitor: async function (monitorId: $TSFixMe) {
+    async deleteMonitor(monitorId: $TSFixMe) {
         await ScheduleModel.updateMany(
             { deleted: false },
             { $pull: { monitorIds: monitorId } }
         );
-    },
+    }
 
-    addEscalation: async function (
+    async addEscalation(
         scheduleId: $TSFixMe,
         escalations: $TSFixMe,
         userId: string
@@ -329,9 +319,9 @@ export default {
         const scheduleEscalation = await _this.getEscalations(scheduleId);
 
         return scheduleEscalation.escalations;
-    },
+    }
 
-    getEscalations: async function (scheduleId: $TSFixMe) {
+    async getEscalations(scheduleId: $TSFixMe) {
         const _this = this;
         const schedule = await _this.findOneBy({
             query: { _id: scheduleId },
@@ -374,12 +364,9 @@ export default {
             })
         );
         return { escalations, count: escalationIds.length };
-    },
+    }
 
-    getUserEscalations: async function (
-        subProjectIds: $TSFixMe,
-        userId: string
-    ) {
+    async getUserEscalations(subProjectIds: $TSFixMe, userId: string) {
         const selectEscalation =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
@@ -404,9 +391,9 @@ export default {
             populate: populateEscalation,
         });
         return escalations;
-    },
+    }
 
-    escalationCheck: async function (
+    async escalationCheck(
         escalationIds: $TSFixMe,
         scheduleId: $TSFixMe,
         userId: string
@@ -427,16 +414,16 @@ export default {
                 await EscalationService.deleteBy({ _id: id }, userId);
             }
         });
-    },
+    }
 
-    deleteEscalation: async function (escalationId: $TSFixMe) {
+    async deleteEscalation(escalationId: $TSFixMe) {
         await ScheduleModel.update(
             { deleted: false },
             { $pull: { escalationIds: escalationId } }
         );
-    },
+    }
 
-    getSubProjectSchedules: async function (subProjectIds: $TSFixMe) {
+    async getSubProjectSchedules(subProjectIds: $TSFixMe) {
         const _this = this;
         const subProjectSchedules = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
@@ -482,14 +469,14 @@ export default {
             })
         );
         return subProjectSchedules;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await ScheduleModel.deleteMany(query);
         return 'Schedule(s) removed successfully';
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
         const populate = [
@@ -535,8 +522,8 @@ export default {
             );
             return schedules;
         }
-    },
-};
+    }
+}
 
 import ScheduleModel from '../models/schedule';
 import EscalationService from './EscalationService';

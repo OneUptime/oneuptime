@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         if (!query) query = {};
@@ -26,8 +19,9 @@ export default {
         const incidentPriorities = await incidentPrioritiesQuery;
 
         return incidentPriorities;
-    },
-    findOne: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOne({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -44,8 +38,9 @@ export default {
         const incidentPriorities = await incidentPrioritiesQuery;
 
         return incidentPriorities;
-    },
-    countBy: async function (query: Query) {
+    }
+
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -54,8 +49,9 @@ export default {
         const count = await incidentPriorityModel.countDocuments(query);
 
         return count;
-    },
-    create: async function (data: $TSFixMe) {
+    }
+
+    async create(data: $TSFixMe) {
         const incidentPriority = new incidentPriorityModel();
         const { projectId, name, color } = data;
 
@@ -66,8 +62,9 @@ export default {
         incidentPriority.color = color;
         await incidentPriority.save();
         return incidentPriority;
-    },
-    updateOne: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOne(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -81,8 +78,9 @@ export default {
                 { new: true }
             );
         return updatedIncidentPriority;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -117,12 +115,13 @@ export default {
             ),
         ]);
         return incidentPriority;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await incidentPriorityModel.deleteMany(query);
         return 'Incident priorities removed successfully!';
-    },
-};
+    }
+}
 
 import IncidentSettingsService from './IncidentSettingsService';
 import IncidentService from './IncidentService';

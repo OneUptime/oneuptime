@@ -12,7 +12,7 @@ import { clusterKey as CLUSTER_KEY } from '../utils/config';
 global.probes = {};
 
 export default {
-    isAuthorizedProbe: async function (
+    async isAuthorizedProbe(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction

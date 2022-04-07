@@ -12,8 +12,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 import RealTimeService from './realTimeService';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const [containerNameExist, imagePathExist, dockerCredentialExist] =
             await Promise.all([
                 this.findOneBy({
@@ -68,8 +68,9 @@ export default {
         data.slug = getSlug(data.name);
         const containerSecurity = await ContainerSecurityModel.create(data);
         return containerSecurity;
-    },
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -82,15 +83,9 @@ export default {
 
         const containerSecurity = await containerSecurityQuery;
         return containerSecurity;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -113,12 +108,9 @@ export default {
 
         const containerSecurities = await containerSecurityQuery;
         return containerSecurities;
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -171,8 +163,9 @@ export default {
             populate,
         });
         return containerSecurity;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         let containerSecurity = await this.findOneBy({
             query,
             select: '_id',
@@ -208,12 +201,14 @@ export default {
             select: '_id name slug',
         });
         return containerSecurity;
-    },
-    hardDelete: async function (query: Query) {
+    }
+
+    async hardDelete(query: Query) {
         await ContainerSecurityModel.deleteMany(query);
         return 'Container Securities deleted successfully';
-    },
-    getSecuritiesToScan: async function () {
+    }
+
+    async getSecuritiesToScan() {
         const oneDay = moment().subtract(1, 'days').toDate();
         const populate = [
             { path: 'componentId', select: 'name slug _id' },
@@ -234,8 +229,9 @@ export default {
             populate,
         });
         return securities;
-    },
-    decryptPassword: async function (security: $TSFixMe) {
+    }
+
+    async decryptPassword(security: $TSFixMe) {
         const values = [];
         for (let i = 0; i <= 15; i++)
             values.push(security.dockerCredential.iv[i]);
@@ -245,8 +241,9 @@ export default {
             iv
         );
         return security;
-    },
-    updateScanTime: async function (query: Query) {
+    }
+
+    async updateScanTime(query: Query) {
         const newDate = new Date();
         const containerSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -256,7 +253,8 @@ export default {
 
         RealTimeService.handleScanning({ security: containerSecurity });
         return containerSecurity;
-    },
+    }
+
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -265,5 +263,5 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await ContainerSecurityModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

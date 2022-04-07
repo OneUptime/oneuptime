@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const Log = new LighthouseLogModel();
 
         Log.monitorId = data.monitorId;
@@ -30,9 +30,9 @@ export default {
             await probeService.sendProbe(data.probeId, data.monitorId);
 
         return savedLog;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -46,8 +46,9 @@ export default {
         );
 
         return lighthouseLog;
-    },
-    updateManyBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateManyBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -61,7 +62,7 @@ export default {
         );
 
         return lighthouseLog;
-    },
+    }
 
     async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
@@ -92,7 +93,7 @@ export default {
         const lighthouseLogs = await lighthouseLogsQuery;
 
         return lighthouseLogs;
-    },
+    }
 
     async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
@@ -110,7 +111,7 @@ export default {
         const lighthouseLog = await lighthouseLogQuery;
 
         return lighthouseLog;
-    },
+    }
 
     async findLastestScan({ monitorId, url, skip, limit }: $TSFixMe) {
         if (!skip) skip = 0;
@@ -184,7 +185,7 @@ export default {
             lighthouseLogs,
             count: siteUrls && siteUrls.length ? siteUrls.length : 0,
         };
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -194,7 +195,7 @@ export default {
         const count = await LighthouseLogModel.countDocuments(query);
 
         return count;
-    },
+    }
 
     async sendLighthouseLog(data: $TSFixMe) {
         const monitor = await MonitorService.findOneBy({
@@ -206,7 +207,7 @@ export default {
             // run in the background
             RealTimeService.updateLighthouseLog(data, monitor.projectId._id);
         }
-    },
+    }
     async updateAllLighthouseLogs(
         projectId: $TSFixMe,
         monitorId: $TSFixMe,
@@ -223,8 +224,8 @@ export default {
             monitorId,
             logs,
         });
-    },
-};
+    }
+}
 
 import LighthouseLogModel from '../models/lighthouseLog';
 import MonitorService from './MonitorService';

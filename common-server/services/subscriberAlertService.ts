@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const subscriberAlertModel = new SubscriberAlertModel();
 
         subscriberAlertModel.projectId = data.projectId || null;
@@ -24,9 +24,9 @@ export default {
         }
         const subscriberAlert = await subscriberAlertModel.save();
         return subscriberAlert;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -43,9 +43,9 @@ export default {
             }
         );
         return subscriberAlert;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -66,9 +66,9 @@ export default {
             'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const subscriberAlert = await SubscriberAlertModel.findOneAndUpdate(
             query,
             {
@@ -83,16 +83,9 @@ export default {
             }
         );
         return subscriberAlert;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         query.deleted = false;
 
         const subscriberAlertQuery = SubscriberAlertModel.find(query)
@@ -106,9 +99,9 @@ export default {
 
         const subscriberAlerts = await subscriberAlertQuery;
         return subscriberAlerts;
-    },
+    }
 
-    findByOne: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findByOne({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -124,9 +117,9 @@ export default {
 
         const subscriberAlert = await subscriberAlertQuery;
         return subscriberAlert;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -134,13 +127,13 @@ export default {
         query.deleted = false;
         const count = await SubscriberAlertModel.countDocuments(query);
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await SubscriberAlertModel.deleteMany(query);
         return 'Subscriber Alert(s) removed successfully';
-    },
-};
+    }
+}
 
 import SubscriberAlertModel from '../models/subscriberAlert';
 

@@ -11,13 +11,8 @@ const stripe = require('stripe')(payment.paymentPrivateKey, {
 });
 // removal of 'moment' due to declaration but not used.
 
-export default Services;
-
-const Services = {
-    successEvent: async function (
-        customerId: $TSFixMe,
-        subscriptionId: $TSFixMe
-    ) {
+export default class StripeService {
+    async successEvent(customerId: $TSFixMe, subscriptionId: $TSFixMe) {
         const [, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
@@ -39,9 +34,9 @@ const Services = {
             );
         }
         return { paymentStatus: 'success' };
-    },
+    }
 
-    failedEvent: async function (
+    async failedEvent(
         customerId: $TSFixMe,
         subscriptionId: $TSFixMe,
         chargeAttemptCount: $TSFixMe,
@@ -93,12 +88,9 @@ const Services = {
             }
         }
         return { paymentStatus: 'failed' };
-    },
+    }
 
-    cancelEvent: async function (
-        customerId: $TSFixMe,
-        subscriptionId: $TSFixMe
-    ) {
+    async cancelEvent(customerId: $TSFixMe, subscriptionId: $TSFixMe) {
         const [user, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
@@ -140,9 +132,9 @@ const Services = {
         }
 
         return { projectDeleted: true };
-    },
+    }
 
-    charges: async function (userId: string) {
+    async charges(userId: string) {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -152,128 +144,123 @@ const Services = {
             customer: stripeCustomerId,
         });
         return charges.data;
-    },
+    }
 
-    creditCard: {
-        create: async function (tok: $TSFixMe, userId: string) {
-            const [tokenCard, cards] = await Promise.all([
-                stripe.tokens.retrieve(tok),
+    async createCreditCard(tok: $TSFixMe, userId: string) {
+        const [tokenCard, cards] = await Promise.all([
+            stripe.tokens.retrieve(tok),
 
-                this.get(userId),
-            ]);
-            let duplicateCard = false;
+            this.get(userId),
+        ]);
+        let duplicateCard = false;
 
-            if (
-                cards &&
-                cards.data &&
-                cards.data.length > 0 &&
-                tokenCard &&
-                tokenCard.card
-            ) {
-                duplicateCard =
-                    cards.data.filter(
-                        (card: $TSFixMe) =>
-                            card.fingerprint === tokenCard.card.fingerprint
-                    ).length > 0;
-            }
+        if (
+            cards &&
+            cards.data &&
+            cards.data.length > 0 &&
+            tokenCard &&
+            tokenCard.card
+        ) {
+            duplicateCard =
+                cards.data.filter(
+                    (card: $TSFixMe) =>
+                        card.fingerprint === tokenCard.card.fingerprint
+                ).length > 0;
+        }
 
-            if (!duplicateCard) {
-                const testChargeValue = 100;
-                const description = 'Verify if card is billable';
-                const user = await UserService.findOneBy({
-                    query: { _id: userId },
-                    select: 'stripeCustomerId',
-                });
-                const stripeCustomerId = user.stripeCustomerId;
-                const card = await stripe.customers.createSource(
-                    stripeCustomerId,
-                    { source: tok }
-                );
-                const metadata = {
-                    description,
-                };
-                const source = card.id;
-                const paymentIntent = await Services.createInvoice(
-                    testChargeValue,
-                    stripeCustomerId,
-                    description,
-                    metadata,
-                    source
-                );
-                return paymentIntent;
-            } else {
-                const error = new Error('Cannot add duplicate card');
-
-                error.code = 400;
-                throw error;
-            }
-        },
-
-        update: async function (userId: string, cardId: $TSFixMe) {
+        if (!duplicateCard) {
+            const testChargeValue = 100;
+            const description = 'Verify if card is billable';
             const user = await UserService.findOneBy({
                 query: { _id: userId },
                 select: 'stripeCustomerId',
             });
             const stripeCustomerId = user.stripeCustomerId;
-            const card = await stripe.customers.update(stripeCustomerId, {
-                default_source: cardId,
+            const card = await stripe.customers.createSource(stripeCustomerId, {
+                source: tok,
             });
-            return card;
-        },
+            const metadata = {
+                description,
+            };
+            const source = card.id;
+            const paymentIntent = await this.createInvoice(
+                testChargeValue,
+                stripeCustomerId,
+                description,
+                metadata,
+                source
+            );
+            return paymentIntent;
+        } else {
+            const error = new Error('Cannot add duplicate card');
 
-        delete: async function (cardId: $TSFixMe, userId: string) {
-            const user = await UserService.findOneBy({
-                query: { _id: userId },
-                select: 'stripeCustomerId',
-            });
-            const stripeCustomerId = user.stripeCustomerId;
+            error.code = 400;
+            throw error;
+        }
+    }
 
-            const cards = await this.get(userId);
-            if (cards.data.length === 1) {
-                const error = new Error('Cannot delete the only card');
+    async update(userId: string, cardId: $TSFixMe) {
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'stripeCustomerId',
+        });
+        const stripeCustomerId = user.stripeCustomerId;
+        const card = await stripe.customers.update(stripeCustomerId, {
+            default_source: cardId,
+        });
+        return card;
+    }
 
-                error.code = 403;
-                throw error;
-            }
-            const card = await stripe.customers.deleteSource(
+    async delete(cardId: $TSFixMe, userId: string) {
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'stripeCustomerId',
+        });
+        const stripeCustomerId = user.stripeCustomerId;
+
+        const cards = await this.get(userId);
+        if (cards.data.length === 1) {
+            const error = new Error('Cannot delete the only card');
+
+            error.code = 403;
+            throw error;
+        }
+        const card = await stripe.customers.deleteSource(
+            stripeCustomerId,
+            cardId
+        );
+        return card;
+    }
+
+    async get(userId: string, cardId: $TSFixMe) {
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'stripeCustomerId',
+        });
+        const stripeCustomerId = user.stripeCustomerId;
+        const customer = await stripe.customers.retrieve(stripeCustomerId);
+        if (cardId) {
+            const card = await stripe.customers.retrieveSource(
                 stripeCustomerId,
                 cardId
             );
             return card;
-        },
-
-        get: async function (userId: string, cardId: $TSFixMe) {
-            const user = await UserService.findOneBy({
-                query: { _id: userId },
-                select: 'stripeCustomerId',
+        } else {
+            const cards = await stripe.customers.listSources(stripeCustomerId, {
+                object: 'card',
             });
-            const stripeCustomerId = user.stripeCustomerId;
-            const customer = await stripe.customers.retrieve(stripeCustomerId);
-            if (cardId) {
-                const card = await stripe.customers.retrieveSource(
-                    stripeCustomerId,
-                    cardId
-                );
-                return card;
-            } else {
-                const cards = await stripe.customers.listSources(
-                    stripeCustomerId,
-                    {
-                        object: 'card',
-                    }
-                );
-                cards.data = await cards.data.map((card: $TSFixMe) => {
-                    if (card.id === customer.default_source) {
-                        card.default_source = true;
-                        return card;
-                    }
+            cards.data = await cards.data.map((card: $TSFixMe) => {
+                if (card.id === customer.default_source) {
+                    card.default_source = true;
                     return card;
-                });
-                return cards;
-            }
-        },
-    },
-    chargeCustomerForBalance: async function (
+                }
+                return card;
+            });
+            return cards;
+        }
+    }
+
+    async chargeCustomerForBalance(
         userId: string,
         chargeAmount: $TSFixMe,
         projectId: $TSFixMe,
@@ -305,9 +292,9 @@ const Services = {
             metadata
         );
         return paymentIntent;
-    },
+    }
 
-    updateBalance: async function (paymentIntent: $TSFixMe) {
+    async updateBalance(paymentIntent: $TSFixMe) {
         if (paymentIntent.status === 'succeeded') {
             const amountRechargedStripe = Number(paymentIntent.amount_received);
             if (amountRechargedStripe) {
@@ -370,8 +357,9 @@ const Services = {
             }
         }
         return false;
-    },
-    addBalance: async function (
+    }
+
+    async addBalance(
         userId: string,
         chargeAmount: $TSFixMe,
         projectId: $TSFixMe
@@ -396,8 +384,9 @@ const Services = {
         // IMPORTANT: Payment Intent is sent for confirmation instally, not using the Stripe Webhook anymore.
         paymentIntent = await this.confirmPayment(paymentIntent);
         return paymentIntent;
-    },
-    createInvoice: async function (
+    }
+
+    async createInvoice(
         amount: $TSFixMe,
         stripeCustomerId: $TSFixMe,
         description: $TSFixMe,
@@ -441,8 +430,9 @@ const Services = {
             );
         }
         return updatedPaymentIntent;
-    },
-    makeTestCharge: async function (
+    }
+
+    async makeTestCharge(
         tokenId: $TSFixMe,
         email: $TSFixMe,
         companyName: $TSFixMe
@@ -468,8 +458,9 @@ const Services = {
             source
         );
         return paymentIntent;
-    },
-    confirmPayment: async function (paymentIntent: $TSFixMe) {
+    }
+
+    async confirmPayment(paymentIntent: $TSFixMe) {
         const confirmedPaymentIntent = await stripe.paymentIntents.confirm(
             paymentIntent.id
         );
@@ -486,13 +477,14 @@ const Services = {
             );
         }
         return confirmedPaymentIntent;
-    },
-    retrievePaymentIntent: async function (intentId: $TSFixMe) {
+    }
+
+    async retrievePaymentIntent(intentId: $TSFixMe) {
         const paymentIntent = await stripe.paymentIntents.retrieve(intentId);
         return paymentIntent;
-    },
+    }
 
-    fetchTrialInformation: async function (subscriptionId: $TSFixMe) {
+    async fetchTrialInformation(subscriptionId: $TSFixMe) {
         const subscription = await stripe.subscriptions.retrieve(
             subscriptionId
         );
@@ -501,5 +493,5 @@ const Services = {
             const chargeDate = new Date(subscription.trial_end * 1000);
             return chargeDate;
         } else return false;
-    },
-};
+    }
+}

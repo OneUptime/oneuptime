@@ -1,5 +1,5 @@
-export default {
-    findBy: async function ({ query, select, populate, sort }: FindOneBy) {
+export default class Service {
+    async findBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -11,9 +11,9 @@ export default {
 
         const zap = await zapierQuery;
         return zap;
-    },
+    }
 
-    test: async function (projectId: $TSFixMe, apiKey: $TSFixMe) {
+    async test(projectId: $TSFixMe, apiKey: $TSFixMe) {
         const project = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -30,9 +30,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
-    getIncidents: async function (projectId: $TSFixMe) {
+    async getIncidents(projectId: $TSFixMe) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -88,8 +88,9 @@ export default {
         } else {
             return [];
         }
-    },
-    getIncidentsNotes: async function (projectId: $TSFixMe) {
+    }
+
+    async getIncidentsNotes(projectId: $TSFixMe) {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse = {};
         const _this = this;
@@ -153,8 +154,9 @@ export default {
         } else {
             return [];
         }
-    },
-    createIncidentNote: async function (data: $TSFixMe) {
+    }
+
+    async createIncidentNote(data: $TSFixMe) {
         const zapierResponse = {};
         const incidentNoteArr: $TSFixMe = [];
         const populateIncidentMessage = [
@@ -195,8 +197,9 @@ export default {
 
         zapierResponse.incidentMessage = incidentNoteArr;
         return zapierResponse;
-    },
-    getAcknowledgedIncidents: async function (projectId: $TSFixMe) {
+    }
+
+    async getAcknowledgedIncidents(projectId: $TSFixMe) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -251,9 +254,9 @@ export default {
         } else {
             return [];
         }
-    },
+    }
 
-    getResolvedIncidents: async function (projectId: $TSFixMe) {
+    async getResolvedIncidents(projectId: $TSFixMe) {
         const zapierResponseArray = [];
         const zapierResponse = {};
         const _this = this;
@@ -308,9 +311,9 @@ export default {
         } else {
             return [];
         }
-    },
+    }
 
-    createIncident: async function (monitors: $TSFixMe) {
+    async createIncident(monitors: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -376,9 +379,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    acknowledgeLastIncident: async function (monitors: $TSFixMe) {
+    async acknowledgeLastIncident(monitors: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -427,9 +430,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    acknowledgeAllIncidents: async function (monitors: $TSFixMe) {
+    async acknowledgeAllIncidents(monitors: $TSFixMe) {
         const zapierResponse = {};
         let incidentArr: $TSFixMe = [];
         await Promise.all(
@@ -482,9 +485,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    acknowledgeIncident: async function (incidents: $TSFixMe) {
+    async acknowledgeIncident(incidents: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         const populate = [
@@ -550,9 +553,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    resolveLastIncident: async function (monitors: $TSFixMe) {
+    async resolveLastIncident(monitors: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         const populate = [
@@ -624,9 +627,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    resolveAllIncidents: async function (monitors: $TSFixMe) {
+    async resolveAllIncidents(monitors: $TSFixMe) {
         const zapierResponse = {};
         let incidentArr: $TSFixMe = [];
         const populate = [
@@ -702,9 +705,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    resolveIncident: async function (incidents: $TSFixMe) {
+    async resolveIncident(incidents: $TSFixMe) {
         const zapierResponse = {};
         const incidentArr: $TSFixMe = [];
         const populate = [
@@ -770,9 +773,9 @@ export default {
 
         zapierResponse.incidents = incidentArr;
         return zapierResponse;
-    },
+    }
 
-    mapIncidentToResponse: async function (
+    async mapIncidentToResponse(
         incident: $TSFixMe,
         incidentObj: $TSFixMe,
         incidentNote: $TSFixMe,
@@ -825,9 +828,9 @@ export default {
             }
         }
         return incidentObj;
-    },
+    }
 
-    subscribe: async function (
+    async subscribe(
         projectId: $TSFixMe,
         url: URL,
         type: $TSFixMe,
@@ -844,9 +847,9 @@ export default {
         zapier.monitors = monitors;
         const zap = await zapier.save();
         return { id: zap._id };
-    },
+    }
 
-    unsubscribe: async function (id: $TSFixMe) {
+    async unsubscribe(id: $TSFixMe) {
         await ZapierModel.findOneAndUpdate(
             { _id: id },
             {
@@ -857,9 +860,9 @@ export default {
             }
         );
         return;
-    },
+    }
 
-    pushToZapier: async function (
+    async pushToZapier(
         type: $TSFixMe,
         incident: $TSFixMe,
         incidentNote: $TSFixMe
@@ -929,13 +932,13 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await ZapierModel.deleteMany(query);
         return 'Zapier(s) removed successfully';
-    },
-};
+    }
+}
 
 import axios from 'axios';
 import ProjectService from './ProjectService';

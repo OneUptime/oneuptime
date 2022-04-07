@@ -13,8 +13,8 @@ import Query from '../types/db/Query';
 
 import PositiveNumber from 'common/types/PositiveNumber';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
         // check component exists
         const componentCount = await ComponentService.countBy({
@@ -72,7 +72,7 @@ export default {
             select,
         });
         return applicationLog;
-    },
+    }
     //Description: Gets all application logs by component.
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
@@ -103,7 +103,7 @@ export default {
         applicationLogQuery.populate(populate);
         const applicationLogs = await applicationLogQuery;
         return applicationLogs;
-    },
+    }
 
     async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
@@ -120,7 +120,7 @@ export default {
 
         const applicationLog = await applicationLogQuery;
         return applicationLog;
-    },
+    }
 
     async getApplicationLogsByComponentId(
         componentId: $TSFixMe,
@@ -169,8 +169,9 @@ export default {
         ]);
 
         return { applicationLogs, count, skip, limit };
-    },
-    deleteBy: async function (query: Query, userId: string) {
+    }
+
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -205,12 +206,9 @@ export default {
         } else {
             return null;
         }
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -249,11 +247,12 @@ export default {
         RealTimeService.applicationLogKeyReset(applicationLog);
 
         return applicationLog;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await ApplicationLogModel.deleteMany(query);
         return 'Application Log(s) removed successfully!';
-    },
+    }
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -262,5 +261,5 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await ApplicationLogModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

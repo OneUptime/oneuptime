@@ -1,8 +1,8 @@
 import GroupModel from '../models/groups';
 import Query from '../types/db/Query';
 import FindBy from '../types/db/FindBy';
-export default {
-    findBy: async function ({ query, limit, skip, sort }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -37,9 +37,9 @@ export default {
 
         response.limit = limit;
         return response;
-    },
+    }
 
-    findOneBy: async function (query: Query) {
+    async findOneBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -54,9 +54,9 @@ export default {
             .lean();
 
         return group;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const groupExist = await this.findOneBy({
             name: data.name,
             projectId: data.projectId,
@@ -77,9 +77,9 @@ export default {
 
         const group = await createGroup.save();
         return group;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -87,9 +87,9 @@ export default {
         query.deleted = false;
         const count = await GroupModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const group = await GroupModel.findOneAndUpdate(
             query,
             {
@@ -104,13 +104,9 @@ export default {
             }
         );
         return group;
-    },
+    }
 
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        projectId: $TSFixMe
-    ) {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -139,8 +135,9 @@ export default {
         );
         group = await this.findOneBy(query);
         return group;
-    },
-    removeGroupMember: async function (groupId: $TSFixMe, memberId: $TSFixMe) {
+    }
+
+    async removeGroupMember(groupId: $TSFixMe, memberId: $TSFixMe) {
         const _this = this;
         const group = await _this.findOneBy({ _id: groupId });
         const teamMembers = group.teams;
@@ -151,5 +148,5 @@ export default {
             { teams: data }
         );
         return newGroup;
-    },
-};
+    }
+}

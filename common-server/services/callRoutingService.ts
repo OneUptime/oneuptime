@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const callRoutingQuery = CallRoutingModel.find(query)
@@ -19,9 +12,9 @@ export default {
 
         const callRouting = await callRoutingQuery;
         return callRouting;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const callRoutingModel = new CallRoutingModel();
 
         callRoutingModel.projectId = data.projectId;
@@ -48,9 +41,9 @@ export default {
 
         const numbers = await callRoutingModel.save();
         return numbers;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -58,9 +51,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await CallRoutingModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -86,9 +79,9 @@ export default {
         ]);
 
         return numbers;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -102,9 +95,9 @@ export default {
 
         const callRouting = await callRoutingQuery;
         return callRouting;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -121,9 +114,9 @@ export default {
             }
         );
         return updatedCallRouting;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -137,9 +130,9 @@ export default {
             'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         updatedData = await this.findBy({ query, populate, select });
         return updatedData;
-    },
+    }
 
-    reserveNumber: async function (data: $TSFixMe, projectId: $TSFixMe) {
+    async reserveNumber(data: $TSFixMe, projectId: $TSFixMe) {
         let confirmBuy = null;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -193,9 +186,9 @@ export default {
         data.sid = confirmBuy && confirmBuy.sid ? confirmBuy.sid : null;
         const CallRouting = await this.create(data);
         return CallRouting;
-    },
+    }
 
-    findTeamMember: async function (type: $TSFixMe, id: $TSFixMe) {
+    async findTeamMember(type: $TSFixMe, id: $TSFixMe) {
         let user;
         const selectEscalation = 'teams createdAt deleted deletedAt';
 
@@ -315,9 +308,9 @@ export default {
                 };
             }
         }
-    },
+    }
 
-    chargeRoutedCall: async function (projectId: $TSFixMe, body: $TSFixMe) {
+    async chargeRoutedCall(projectId: $TSFixMe, body: $TSFixMe) {
         const callSid = body['CallSid'];
         const callStatus = body['CallStatus'] || null;
         const callDetails = await TwilioService.getCallDetails(
@@ -378,9 +371,9 @@ export default {
             }
         }
         return 'Customer has been successfully charged for the call.';
-    },
+    }
 
-    getCallResponse: async function (
+    async getCallResponse(
         data: $TSFixMe,
         to: $TSFixMe,
         body: $TSFixMe,
@@ -596,9 +589,9 @@ export default {
         }
         response.say('Goodbye');
         return response;
-    },
+    }
 
-    updateRoutingSchema: async function (data: $TSFixMe) {
+    async updateRoutingSchema(data: $TSFixMe) {
         const currentCallRouting = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
@@ -648,9 +641,9 @@ export default {
         );
 
         return CallRouting;
-    },
+    }
 
-    updateRoutingSchemaAudio: async function (data: $TSFixMe) {
+    async updateRoutingSchemaAudio(data: $TSFixMe) {
         const currentCallRouting = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
@@ -706,9 +699,9 @@ export default {
         );
 
         return CallRouting;
-    },
+    }
 
-    getCallRoutingLogs: async function (projectId: $TSFixMe) {
+    async getCallRoutingLogs(projectId: $TSFixMe) {
         let logs: $TSFixMe = [];
         const callRouting = await this.findBy({
             query: { projectId },
@@ -729,13 +722,13 @@ export default {
             }
         }
         return logs;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await CallRoutingModel.deleteMany(query);
         return 'Call routing Number(s) Removed Successfully!';
-    },
-};
+    }
+}
 
 import CallRoutingModel from '../models/callRouting';
 import CallRoutingLogService from './CallRoutingLogService';

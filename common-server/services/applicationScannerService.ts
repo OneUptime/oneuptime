@@ -1,5 +1,5 @@
-export default {
-    create: async function (data) {
+export default class Service {
+    async create(data) {
         const _this = this;
         let applicationScannerKey;
         if (data.applicationScannerKey) {
@@ -32,9 +32,9 @@ export default {
             const savedApplicationScanner = await applicationScanner.save();
             return savedApplicationScanner;
         }
-    },
+    }
 
-    updateOneBy: async function (query: Query, data) {
+    async updateOneBy(query: Query, data) {
         if (!query) {
             query = {};
         }
@@ -49,9 +49,9 @@ export default {
                 }
             );
         return applicationScanner;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -65,11 +65,9 @@ export default {
         applicationScannerQuery.populate(populate);
         const applicationScanner = await applicationScannerQuery;
         return applicationScanner;
-    },
+    }
 
-    updateApplicationScannerStatus: async function (
-        applicationScannerId: string
-    ) {
+    async updateApplicationScannerStatus(applicationScannerId: string) {
         const applicationScanner =
             await ApplicationScannerModel.findOneAndUpdate(
                 { _id: applicationScannerId },
@@ -77,8 +75,8 @@ export default {
                 { new: true }
             );
         return applicationScanner;
-    },
-};
+    }
+}
 
 /**
  * verifies if a specific script condition satisfies

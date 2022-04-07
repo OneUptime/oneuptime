@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
 
         // prepare issue member model
@@ -27,7 +27,7 @@ export default {
             populate: populateIssueMember,
         });
         return issueMember;
-    },
+    }
     // find a list of Members assigned to an Issue
     async findBy({ query, select, populate, sort }: FindBy) {
         if (!query) {
@@ -41,7 +41,7 @@ export default {
 
         const issues = await issuesQuery;
         return issues;
-    },
+    }
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
@@ -57,12 +57,9 @@ export default {
         const issueMember = await issueMemberQuery;
 
         return issueMember;
-    },
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData = null
-    ) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
         if (!query) {
             query = {};
         }
@@ -101,8 +98,8 @@ export default {
         });
 
         return issueMember;
-    },
-};
+    }
+}
 
 import IssueMemberModel from '../models/issueMember';
 

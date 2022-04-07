@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const emailTemplateModel = new EmailTemplateModel();
 
         emailTemplateModel.projectId = data.projectId || null;
@@ -14,9 +14,9 @@ export default {
             emailTemplateVariables[[data.emailType]];
         const emailTemplate = await emailTemplateModel.save();
         return emailTemplate;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -36,9 +36,9 @@ export default {
             }
         );
         return updatedEmailTemplate;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -54,9 +54,9 @@ export default {
             populate: [{ path: 'projectId', select: 'nmae' }],
         });
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const emailTemplate = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
@@ -71,16 +71,9 @@ export default {
             }
         );
         return emailTemplate;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         query.deleted = false;
         const emailTemplates = EmailTemplateModel.find(query)
             .lean()
@@ -92,9 +85,9 @@ export default {
         const result = await emailTemplates;
 
         return result;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -109,9 +102,9 @@ export default {
         emailTemplate.populate(populate);
         const result = await emailTemplate;
         return result;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -119,9 +112,9 @@ export default {
         query.deleted = false;
         const count = await EmailTemplateModel.countDocuments(query);
         return count;
-    },
+    }
 
-    getTemplates: async function (projectId: $TSFixMe) {
+    async getTemplates(projectId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
@@ -140,9 +133,9 @@ export default {
             })
         );
         return templates;
-    },
+    }
 
-    resetTemplate: async function (projectId: $TSFixMe, templateId: $TSFixMe) {
+    async resetTemplate(projectId: $TSFixMe, templateId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await _this.findOneBy({
@@ -165,13 +158,13 @@ export default {
             }
         );
         return resetTemplate;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await EmailTemplateModel.deleteMany(query);
         return 'Email Template(s) removed successfully';
-    },
-};
+    }
+}
 
 import EmailTemplateModel from '../models/emailTemplate';
 import emailTemplateVariables from '../config/emailTemplateVariables';

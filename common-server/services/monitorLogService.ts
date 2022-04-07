@@ -10,8 +10,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 import moment from 'moment';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const Log = new MonitorLogModel();
         let responseBody = '';
         if (data.resp && data.resp.body) {
@@ -76,9 +76,9 @@ export default {
         this.sendMonitorLog(savedLog);
 
         return savedLog;
-    },
+    }
 
-    updateAggregateLogs: async function (data: $TSFixMe) {
+    async updateAggregateLogs(data: $TSFixMe) {
         const now = new Date();
 
         const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
@@ -217,9 +217,9 @@ export default {
                 intervalDate: intervalWeekDate,
             });
         }
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -233,7 +233,7 @@ export default {
         );
 
         return monitorLog;
-    },
+    }
 
     async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
@@ -262,7 +262,7 @@ export default {
 
         const monitorLogs = await monitorLogsQuery;
         return monitorLogs;
-    },
+    }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -277,7 +277,7 @@ export default {
 
         const monitorLog = await monitorLogQuery;
         return monitorLog;
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -287,7 +287,7 @@ export default {
         const count = await MonitorLogModel.countDocuments(query);
 
         return count;
-    },
+    }
 
     async sendMonitorLog(data: $TSFixMe) {
         const selectMonitorLog =
@@ -320,5 +320,5 @@ export default {
                 monitor.projectId._id
             );
         }
-    },
-};
+    }
+}

@@ -14,9 +14,9 @@ import {
     INCIDENT_CREATED,
 } from '../constants/incidentEvents';
 
-export default {
+export default class Service {
     // process external subscriber webhook
-    sendSubscriberNotification: async function (
+    async sendSubscriberNotification(
         subscriber: $TSFixMe,
         projectId: $TSFixMe,
         incident: $TSFixMe,
@@ -50,9 +50,9 @@ export default {
             EXTERNAL_SUBSCRIBER_WEBHOOK,
             { note, incidentState, statusNoteStatus }
         );
-    },
+    }
     // process messages to be sent to slack workspace channels
-    sendIntegrationNotification: async function (
+    async sendIntegrationNotification(
         projectId: $TSFixMe,
         incident: $TSFixMe,
         monitor: $TSFixMe,
@@ -134,7 +134,7 @@ export default {
             );
         }
         return response;
-    },
+    }
 
     // send notification to slack workspace channels
     async notify(
@@ -377,5 +377,5 @@ export default {
         } else {
             return false;
         }
-    },
-};
+    }
+}

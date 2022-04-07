@@ -1,12 +1,12 @@
 import Query from '../types/db/Query';
 
-export default {
+export default class Service {
     //Description: Get all team members of Project or Subproject.
     //Params:
     //Param 1: projectId: Project id.
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
-    getTeamMembersBy: async function (query: Query) {
+    async getTeamMembersBy(query: Query) {
         let projectMembers: $TSFixMe = [];
 
         const projects = await ProjectService.findBy({
@@ -65,12 +65,9 @@ export default {
             });
         }
         return response;
-    },
+    }
 
-    getTeamMemberBy: async function (
-        projectId: $TSFixMe,
-        teamMemberUserId: string
-    ) {
+    async getTeamMemberBy(projectId: $TSFixMe, teamMemberUserId: string) {
         let index;
         let subProject = null;
 
@@ -120,9 +117,9 @@ export default {
             });
             return user;
         }
-    },
+    }
 
-    getSeats: async function (members: $TSFixMe) {
+    async getSeats(members: $TSFixMe) {
         let seats = members.filter(async (user: $TSFixMe) => {
             let count = 0;
             const user_member = await UserService.findOneBy({
@@ -143,7 +140,7 @@ export default {
         await Promise.all(seats);
         seats = seats.length;
         return seats;
-    },
+    }
 
     //Description: Invite new team members by Admin.
     //Params:
@@ -151,7 +148,7 @@ export default {
     //Param 2: emails: Emails of new user added by Admin.
     //Param 3: role: Role set by Admin.
     //Returns: promise
-    inviteTeamMembers: async function (
+    async inviteTeamMembers(
         addedByUserId: string,
         projectId: $TSFixMe,
         emails: $TSFixMe,
@@ -251,13 +248,13 @@ export default {
                 return invite;
             }
         }
-    },
+    }
 
     //Description: Retrieve Members, Administrator and Owners of a Project or subProject
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-    getTeamMembers: async function (projectId: $TSFixMe) {
+    async getTeamMembers(projectId: $TSFixMe) {
         const _this = this;
 
         const subProject = await ProjectService.findOneBy({
@@ -279,9 +276,9 @@ export default {
             });
         }
         return [];
-    },
+    }
 
-    isValidBusinessEmails: function (emails: $TSFixMe) {
+    isValidBusinessEmails(emails: $TSFixMe) {
         let valid = true;
         if (emails && emails.length > 0) {
             for (let i = 0; i < emails.length; i++) {
@@ -292,7 +289,7 @@ export default {
             }
         }
         return valid;
-    },
+    }
 
     async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe) {
         const teamMembersEmail: $TSFixMe = [];
@@ -315,7 +312,7 @@ export default {
             }
         }
         return false;
-    },
+    }
 
     //Description: Invite new team members method.
     //Params:
@@ -325,7 +322,7 @@ export default {
     //Param 4: addedBy: Admin who added the user.
     //Param 5: project: Project.
     //Returns: promise
-    inviteTeamMembersMethod: async function (
+    async inviteTeamMembersMethod(
         projectId: $TSFixMe,
         emails: $TSFixMe,
         role: $TSFixMe,
@@ -573,7 +570,7 @@ export default {
             response = response.concat(subProjectTeamsUsers);
         }
         return response;
-    },
+    }
 
     //Description: Remove Team Member  by Admin.
     //Params:
@@ -581,7 +578,7 @@ export default {
     //Param 2: userId: User id of admin.
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
-    removeTeamMember: async function (
+    async removeTeamMember(
         projectId: $TSFixMe,
         userId: string,
         teamMemberUserId: string
@@ -756,7 +753,7 @@ export default {
                 return response;
             }
         }
-    },
+    }
 
     //Description: Change Team Member role by Admin.
     //Params:
@@ -765,7 +762,7 @@ export default {
     //Param 3: teamMemberUserId: id of Team Member.
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
-    updateTeamMemberRole: async function (
+    async updateTeamMemberRole(
         projectId: $TSFixMe,
         userId: string,
         teamMemberUserId: string,
@@ -964,8 +961,8 @@ export default {
                 return response;
             }
         }
-    },
-};
+    }
+}
 
 import ProjectService from './ProjectService';
 import UserService from './UserService';

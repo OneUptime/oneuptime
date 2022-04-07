@@ -4,12 +4,13 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const siteManager = await SiteManagerModel.create(data);
         return siteManager;
-    },
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -23,15 +24,9 @@ export default {
 
         const siteManager = await siteManagerQuery;
         return siteManager;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -55,8 +50,9 @@ export default {
 
         const siteManagers = await siteManagerQuery;
         return siteManagers;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) query = {};
 
@@ -75,16 +71,18 @@ export default {
         }
 
         return siteManager;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         const siteManager = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
         return siteManager;
-    },
-    hardDelete: async function (query: Query) {
+    }
+
+    async hardDelete(query: Query) {
         await SiteManagerModel.deleteMany(query);
         return 'siteManager store successfully deleted';
-    },
-};
+    }
+}

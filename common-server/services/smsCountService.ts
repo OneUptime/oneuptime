@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -29,9 +22,9 @@ export default {
 
         const SmsCount = await smsCountQuery;
         return SmsCount;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -48,9 +41,9 @@ export default {
 
         const SmsCount = await smsCountQuery;
         return SmsCount;
-    },
+    }
 
-    create: async function (
+    async create(
         userId: string,
         sentTo: $TSFixMe,
         projectId: $TSFixMe,
@@ -73,9 +66,9 @@ export default {
         smsCountModel.error = error || null;
         const smsCount = await smsCountModel.save();
         return smsCount;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -83,9 +76,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await SmsCountModel.countDocuments(query);
         return count;
-    },
+    }
 
-    search: async function ({ filter, skip, limit }: $TSFixMe) {
+    async search({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             sendTo: { $regex: new RegExp(filter), $options: 'i' },
@@ -103,9 +96,9 @@ export default {
         ]);
 
         return { searchedSmsLogs, totalSearchCount };
-    },
+    }
 
-    validateResend: async function (userId: string) {
+    async validateResend(userId: string) {
         const _this = this;
         let problem = '';
         const select = 'createdAt';
@@ -132,9 +125,9 @@ export default {
             validateResend: smsCount.length > 3 ? false : true,
             problem: problem,
         };
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const smsCount = await SmsCountModel.findOneAndUpdate(
             query,
             {
@@ -149,13 +142,13 @@ export default {
             }
         );
         return smsCount;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await SmsCountModel.deleteMany(query);
         return 'SmsCount(s) removed successfully';
-    },
-};
+    }
+}
 
 import SmsCountModel from '../models/smsCount';
 import moment from 'moment';

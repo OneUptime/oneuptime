@@ -3,14 +3,14 @@ import MailService from './MailService';
 import AirtableService from './AirtableService';
 import Query from '../types/db/Query';
 
-export default {
+export default class Service {
     //Description: Create new project for user.
     //Params:
     //Param 1: projectName: Project name.
     //Param 2: projectId: Project Id present in req.params.
     //Param 3: userId: User Id.
     //Returns: promise
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         let lead = new LeadsModel();
 
         lead.type = data.type;
@@ -66,10 +66,10 @@ export default {
             type: data.type,
         });
         return lead;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await LeadsModel.deleteMany(query);
         return 'Lead(s) Removed Successfully!';
-    },
-};
+    }
+}

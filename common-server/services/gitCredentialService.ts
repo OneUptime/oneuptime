@@ -8,8 +8,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 import fs from 'fs';
 
-export default {
-    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
+export default class Service {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
@@ -23,15 +23,9 @@ export default {
         const gitCredential = await gitCredentialQuery;
 
         return gitCredential;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -57,8 +51,9 @@ export default {
         const gitCredentials = await gitCredentialsQuery;
 
         return gitCredentials;
-    },
-    create: async function (data: $TSFixMe) {
+    }
+
+    async create(data: $TSFixMe) {
         const { gitUsername, gitPassword, projectId, sshTitle, sshPrivateKey } =
             data;
         if (gitUsername && gitPassword) {
@@ -106,8 +101,9 @@ export default {
             });
             return response;
         }
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -154,8 +150,9 @@ export default {
         }
 
         return gitCredential;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         let gitCredential = await this.findOneBy({ query, select: '_id' });
 
         if (!gitCredential) {
@@ -173,9 +170,10 @@ export default {
         });
 
         return gitCredential;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await GitCredentialModel.deleteMany(query);
         return 'Git credential(s) successfully deleted';
-    },
-};
+    }
+}

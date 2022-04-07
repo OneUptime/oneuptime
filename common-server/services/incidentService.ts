@@ -32,15 +32,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 import getSlug from '../utils/getSlug';
 
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const incidentQuery = IncidentModel.find(query)
@@ -54,9 +47,9 @@ export default {
 
         const incidents = await incidentQuery;
         return incidents;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const _this = this;
 
         if (!data.monitors || data.monitors.length === 0) {
@@ -384,9 +377,9 @@ export default {
 
             return incident;
         }
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -394,9 +387,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await IncidentModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -455,13 +448,13 @@ export default {
             }
         }
         return incident;
-    },
+    }
 
     // Description: Get Incident by incident Id.
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -475,9 +468,9 @@ export default {
 
         const incident = await incidentQuery;
         return incident;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -548,9 +541,9 @@ export default {
         RealTimeService.updateIncident(updatedIncident);
 
         return updatedIncident;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -587,7 +580,7 @@ export default {
 
         updatedData = await this.findBy({ query, populate, select });
         return updatedData;
-    },
+    }
 
     async _sendIncidentCreatedAlert(incident: $TSFixMe) {
         ZapierService.pushToZapier('incident_created', incident);
@@ -674,7 +667,7 @@ export default {
             notifications.push(notification);
         }
         return notifications;
-    },
+    }
 
     /**
      * @param {object} incidentId incident id
@@ -682,7 +675,7 @@ export default {
      * @param {string} name Name of user performing the action.
      * @returns {object} Promise with incident or error.
      */
-    acknowledge: async function (
+    async acknowledge(
         incidentId: $TSFixMe,
         userId: string,
         name: $TSFixMe,
@@ -861,13 +854,13 @@ export default {
         }
 
         return incident;
-    },
+    }
 
     // Description: Update user who resolved incident.
     // Params:
     // Param 1: data: {incidentId}
     // Returns: promise with incident or error.
-    resolve: async function (
+    async resolve(
         incidentId: $TSFixMe,
         userId: string,
         name: $TSFixMe,
@@ -989,18 +982,18 @@ export default {
         ZapierService.pushToZapier('incident_resolve', incident);
 
         return incident;
-    },
+    }
 
     //
-    close: async function (incidentId: $TSFixMe, userId: string) {
+    async close(incidentId: $TSFixMe, userId: string) {
         const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
 
         return incident;
-    },
+    }
 
-    getUnresolvedIncidents: async function (
+    async getUnresolvedIncidents(
         subProjectIds: $TSFixMe,
         userId: string,
         isHome = false
@@ -1064,9 +1057,9 @@ export default {
         return isHome
             ? incidentsUnresolved
             : incidentsUnresolved.concat(incidentsResolved);
-    },
+    }
 
-    getSubProjectIncidents: async function (projectId: $TSFixMe) {
+    async getSubProjectIncidents(projectId: $TSFixMe) {
         const _this = this;
         const populate = [
             {
@@ -1115,12 +1108,9 @@ export default {
         ]);
 
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
-    },
+    }
 
-    getComponentIncidents: async function (
-        projectId: $TSFixMe,
-        componentId: $TSFixMe
-    ) {
+    async getComponentIncidents(projectId: $TSFixMe, componentId: $TSFixMe) {
         const _this = this;
         const monitors = await MonitorService.findBy({
             query: { projectId, componentId },
@@ -1165,9 +1155,9 @@ export default {
             { incidents, _id: projectId, count, skip: 0, limit: 10 },
         ];
         return componentIncidents;
-    },
+    }
 
-    getProjectComponentIncidents: async function (
+    async getProjectComponentIncidents(
         projectId: $TSFixMe,
         componentId: $TSFixMe,
         limit: PositiveNumber,
@@ -1215,8 +1205,9 @@ export default {
             _this.countBy(query),
         ]);
         return { incidents, count, _id: projectId };
-    },
-    sendIncidentResolvedNotification: async function (
+    }
+
+    async sendIncidentResolvedNotification(
         incident: $TSFixMe,
         name: $TSFixMe,
         monitor: $TSFixMe
@@ -1294,9 +1285,9 @@ export default {
                 : 'oneuptime',
             'success'
         );
-    },
+    }
 
-    sendIncidentNoteAdded: async function (
+    async sendIncidentNoteAdded(
         projectId: $TSFixMe,
         incident: $TSFixMe,
         data: $TSFixMe
@@ -1321,14 +1312,14 @@ export default {
         }
 
         ZapierService.pushToZapier('incident_note', incident, data);
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await IncidentModel.deleteMany(query);
         return 'Incident(s) removed successfully!';
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
         let incident = await _this.findBy({ query, select: '_id' });
@@ -1368,14 +1359,14 @@ export default {
             }
             return incident;
         }
-    },
+    }
 
     /**
      * @description removes a particular monitor from incident and deletes the incident
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function (monitorId: $TSFixMe, userId: string) {
+    async removeMonitor(monitorId: $TSFixMe, userId: string) {
         const _this = this;
         const incidents = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
@@ -1472,9 +1463,9 @@ export default {
                 }
             })
         );
-    },
+    }
 
-    startInterval: async function (
+    async startInterval(
         projectId: $TSFixMe,
         monitors: $TSFixMe,
         incident: $TSFixMe
@@ -1593,9 +1584,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    clearInterval: function (incidentId: $TSFixMe) {
+    clearInterval(incidentId: $TSFixMe) {
         intervals = intervals.filter(interval => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);
@@ -1603,9 +1594,9 @@ export default {
             }
             return true;
         });
-    },
+    }
 
-    refreshInterval: async function (incidentId: $TSFixMe) {
+    async refreshInterval(incidentId: $TSFixMe) {
         const _this = this;
         for (const interval of intervals) {
             if (String(interval.incidentId) === String(incidentId)) {
@@ -1623,8 +1614,8 @@ export default {
                 break;
             }
         }
-    },
-};
+    }
+}
 
 /**
  * @description checks if an array contains duplicate values

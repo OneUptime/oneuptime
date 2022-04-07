@@ -1,8 +1,8 @@
 import IncidentNoteTemplateModel from '../models/incidentNoteTemplate';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
-export default {
-    findBy: async function ({ query = {}, limit, skip, sort }: FindBy) {
+export default class Service {
+    async findBy({ query = {}, limit, skip, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -18,21 +18,24 @@ export default {
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
-    },
-    countBy: async function (query = {}) {
+    }
+
+    async countBy(query = {}) {
         if (!query['deleted']) query['deleted'] = false;
 
         return await IncidentNoteTemplateModel.countDocuments(query);
-    },
-    findOneBy: async function (query = {}) {
+    }
+
+    async findOneBy(query = {}) {
         if (!query['deleted']) query['deleted'] = false;
 
         const incidentNoteTemplate = await IncidentNoteTemplateModel.findOne(
             query
         ).lean();
         return incidentNoteTemplate;
-    },
-    create: async function (data: $TSFixMe) {
+    }
+
+    async create(data: $TSFixMe) {
         const { projectId, name } = data;
         let incidentNoteTemplate = await this.findOneBy({
             projectId,
@@ -49,8 +52,9 @@ export default {
 
         incidentNoteTemplate = await IncidentNoteTemplateModel.create(data);
         return incidentNoteTemplate;
-    },
-    updateOneBy: async function ({ query = {}, data }: $TSFixMe) {
+    }
+
+    async updateOneBy({ query = {}, data }: $TSFixMe) {
         if (!query['deleted']) query['deleted'] = false;
 
         const { projectId, _id } = query;
@@ -77,8 +81,9 @@ export default {
             { new: true }
         );
         return incidentNoteTemplate;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         if (!query) return null;
 
         const data = {
@@ -87,11 +92,12 @@ export default {
         };
 
         return await this.updateOneBy({ query, data });
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         if (!query) return null;
 
         await IncidentNoteTemplateModel.deleteMany(query);
         return 'Incident note templates removed successfully';
-    },
-};
+    }
+}

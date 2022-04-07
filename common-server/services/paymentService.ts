@@ -17,7 +17,7 @@ import {
 import { formatBalance } from '../utils/number';
 // import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'
 
-export default {
+export default class Service {
     /**
      * charges a project for an alert
      * @param {(object | string)} userId owner of the project
@@ -26,7 +26,7 @@ export default {
      * @param {string} alertPhoneNumber phone number of the recipient
      * @returns { (Promise<{error : (string) }> | Promise< {closingBalance : number, chargeAmount:number}>} an object containing error or closing balance and charge amount
      */
-    chargeAlertAndGetProjectBalance: async function (
+    async chargeAlertAndGetProjectBalance(
         userId,
 
         project,
@@ -71,7 +71,7 @@ export default {
             //     release();
             // }
         }
-    },
+    }
     /**
      *checks whether a project's balance is enough
      *
@@ -81,7 +81,7 @@ export default {
      * @param {*} alertType type of alert
      * @return {boolean} whether the project has enough balance
      */
-    hasEnoughBalance: async (
+    async hasEnoughBalance(
         projectId,
 
         alertPhoneNumber,
@@ -89,7 +89,7 @@ export default {
         userId,
 
         alertType
-    ) => {
+    ) {
         try {
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -120,7 +120,7 @@ export default {
         } catch (error) {
             return false;
         }
-    },
+    }
 
     /**
      * rechargest the project with the amount set in the project's alert options
@@ -129,7 +129,7 @@ export default {
      * @returns {boolean} whether the balance is recharged to the project
      */
 
-    fillProjectBalance: async (userId, project) => {
+    async fillProjectBalance(userId, project) {
         try {
             let balanceRecharged;
 
@@ -150,7 +150,7 @@ export default {
         } catch (error) {
             return false;
         }
-    },
+    }
     /**
      * synchronously recharges a project balance if low
      * @param {*} projectId ID of the project to check and recharge balance
@@ -159,7 +159,7 @@ export default {
      * @param {*} alertType type of alert
      * @returns {{success : boolean, message : string}} whether the balance is recharged successfully
      */
-    checkAndRechargeProjectBalance: async function (
+    async checkAndRechargeProjectBalance(
         project,
 
         userId,
@@ -204,19 +204,19 @@ export default {
         }
 
         return status;
-    },
+    }
 
     //Description: Retrieve payment intent.
     //Params:
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
 
-    checkPaymentIntent: async function (paymentIntent) {
+    async checkPaymentIntent(paymentIntent) {
         const processedPaymentIntent = await stripe.paymentIntents.retrieve(
             paymentIntent.id
         );
         return processedPaymentIntent;
-    },
+    }
 
     //Description: Create customer in stripe for  user.
     //Params:
@@ -224,18 +224,18 @@ export default {
     //Param 2: user: User details
     //Returns: promise
 
-    createCustomer: async function (email: Email, companyName: string) {
+    async createCustomer(email: Email, companyName: string) {
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
         });
         return customer.id;
-    },
+    }
 
-    addPayment: async function (customerId: string) {
+    async addPayment(customerId: string) {
         const card = await stripe.customers.createSource(customerId);
         return card;
-    },
+    }
 
     //Description: Subscribe plan to user.
     //Params:
@@ -243,7 +243,7 @@ export default {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    subscribePlan: async function (
+    async subscribePlan(
         stripePlanId: string,
         stripeCustomerId: string,
         coupon: string
@@ -275,7 +275,7 @@ export default {
         return {
             stripeSubscriptionId: subscription.id,
         };
-    },
+    }
 
     //Description: Call this fuction when you add and remove a team member from OneUptime. This would add and remove seats based on how many users are in the project.
     //Params:
@@ -283,7 +283,7 @@ export default {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    changeSeats: async function (subscriptionId, seats) {
+    async changeSeats(subscriptionId, seats) {
         if (subscriptionId === null) return;
 
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -339,9 +339,9 @@ export default {
 
             return subscription.id;
         }
-    },
+    }
 
-    createSubscription: async function (stripeCustomerId, amount) {
+    async createSubscription(stripeCustomerId, amount) {
         const productId = Plans.getReserveNumberProductId();
 
         const subscriptions = await stripe.subscriptions.create({
@@ -360,16 +360,16 @@ export default {
             ],
         });
         return subscriptions;
-    },
+    }
 
-    removeSubscription: async function (stripeSubscriptionId) {
+    async removeSubscription(stripeSubscriptionId) {
         const confirmations = [];
 
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
-    },
+    }
 
-    changePlan: async function (subscriptionId, planId, seats) {
+    async changePlan(subscriptionId, planId, seats) {
         let subscriptionObj = {};
 
         const subscription = await stripe.subscriptions.retrieve(
@@ -404,9 +404,9 @@ export default {
         );
 
         return subscriptions.id;
-    },
+    }
 
-    chargeAlert: async function (userId, projectId, chargeAmount) {
+    async chargeAlert(userId, projectId, chargeAmount) {
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',
@@ -461,13 +461,13 @@ export default {
             { new: true }
         );
         return updatedProject;
-    },
+    }
 
     //Description: Call this fuction to bill for extra users added to an account.
     //Params:
     //Param 1: stripeCustomerId: Received during signup process.
     //Returns : promise
-    chargeExtraUser: async function (
+    async chargeExtraUser(
         stripeCustomerId,
 
         extraUserPlanId,
@@ -484,5 +484,5 @@ export default {
             ],
         });
         return subscription;
-    },
-};
+    }
+}

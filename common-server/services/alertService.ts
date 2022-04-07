@@ -1,13 +1,66 @@
-export default {
+import AlertModel from '../models/alert';
+import ProjectService from './ProjectService';
+import PaymentService from './PaymentService';
+import AlertType from '../config/alertType';
+import ScheduleService from './ScheduleService';
+import SubscriberService from './SubscriberService';
+import SubscriberAlertService from './SubscriberAlertService';
+import EmailTemplateService from './EmailTemplateService';
+import SmsTemplateService from './SmsTemplateService';
+import EscalationService from './EscalationService';
+import MailService from './MailService';
+import UserService from './UserService';
+import MonitorService from './MonitorService';
+import TwilioService from './TwilioService';
+import ErrorService from '../utils/error';
+import StatusPageService from './StatusPageService';
+import AlertChargeService from './AlertChargeService';
+import countryCode from '../config/countryCode';
+
+import { getCountryType } from '../config/alertType';
+import SmsCountService from './SmsCountService';
+import DateTime from '../utils/DateTime';
+import moment from 'moment-timezone';
+const TimeZoneNames = moment.tz.names();
+import OnCallScheduleStatusService from './OnCallScheduleStatusService';
+
+import { IS_SAAS_SERVICE } from '../config/server';
+import ComponentService from './ComponentService';
+import GlobalConfigService from './GlobalConfigService';
+import WebHookService from './WebHookService';
+import IncidentUtility from '../utils/incident';
+import TeamService from './TeamService';
+import secondsToHms from '../utils/secondsToHms';
+
+import { getPlanById, getPlanByExtraUserId } from '../config/plans';
+import {
+    INCIDENT_RESOLVED,
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+} from '../constants/incidentEvents';
+import componentService from './ComponentService';
+
+import webpush from 'web-push';
+import {
+    calculateHumanReadableDownTime,
+    getIncidentLength,
+} from '../utils/incident';
+//  import IncidentService from './incidentService' Declared but unused
+import IncidentMessageService from './IncidentMessageService';
+import IncidentTimelineService from './IncidentTimelineService';
+import Services from '../utils/services';
+import RealTimeService from './realTimeService';
+
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+
+export default class Service {
     /**
      * gets the schedules to use for alerts
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-    getSchedulesForAlerts: async function (
-        incident: $TSFixMe,
-        monitor: $TSFixMe
-    ) {
+    async getSchedulesForAlerts(incident: $TSFixMe, monitor: $TSFixMe) {
         const monitorId = monitor._id;
         const projectId = incident.projectId._id || incident.projectId;
 
@@ -66,9 +119,9 @@ export default {
             }
         }
         return schedules;
-    },
+    }
 
-    doesPhoneNumberComplyWithHighRiskConfig: async function (
+    async doesPhoneNumberComplyWithHighRiskConfig(
         projectId: $TSFixMe,
         alertPhoneNumber: $TSFixMe
     ) {
@@ -89,15 +142,9 @@ export default {
             return true;
         }
         return false;
-    },
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        sort,
-        populate,
-        select,
-    }: FindBy) {
+    }
+
+    async findBy({ query, skip, limit, sort, populate, select }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -127,9 +174,9 @@ export default {
         alertsQuery.populate(populate);
         const alerts = await alertsQuery;
         return alerts;
-    },
+    }
 
-    create: async function ({
+    async create({
         projectId,
         monitorId,
         alertVia,
@@ -185,9 +232,9 @@ export default {
             }),
         ]);
         return savedAlert;
-    },
+    }
 
-    sendRealTimeUpdate: async function ({ incidentId, projectId }: $TSFixMe) {
+    async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe) {
         const _this = this;
 
         const populateIncidentMessage = [
@@ -315,9 +362,9 @@ export default {
         };
         // run in the background
         RealTimeService.sendIncidentTimeline(result);
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -325,9 +372,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await AlertModel.countDocuments(query);
         return count;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -343,9 +390,9 @@ export default {
             }
         );
         return updatedAlert;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -369,9 +416,9 @@ export default {
             select: selectAlert,
         });
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -391,12 +438,9 @@ export default {
             }
         );
         return alerts;
-    },
+    }
 
-    sendCreatedIncident: async function (
-        incident: $TSFixMe,
-        monitor: $TSFixMe
-    ) {
+    async sendCreatedIncident(incident: $TSFixMe, monitor: $TSFixMe) {
         if (incident) {
             const _this = this;
 
@@ -425,9 +469,9 @@ export default {
                 });
             }
         }
-    },
+    }
 
-    sendAlertsToTeamMembersInSchedule: async function ({
+    async sendAlertsToTeamMembersInSchedule({
         schedule,
         incident,
         monitorId,
@@ -613,14 +657,9 @@ export default {
                 alertProgress,
             });
         }
-    },
+    }
 
-    escalate: async function ({
-        schedule,
-        incident,
-        alertProgress,
-        monitor,
-    }: $TSFixMe) {
+    async escalate({ schedule, incident, alertProgress, monitor }: $TSFixMe) {
         const _this = this;
         const selectOnCallScheduleStatus =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
@@ -706,9 +745,9 @@ export default {
             onCallScheduleStatus: callScheduleStatus,
             alertProgress,
         });
-    },
+    }
 
-    sendAlertsToTeamMembersInEscalationPolicy: async function ({
+    async sendAlertsToTeamMembersInEscalationPolicy({
         escalation,
         incident,
         monitor,
@@ -983,9 +1022,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendPushAlert: async function ({
+    async sendPushAlert({
         incident,
         user,
         monitor,
@@ -1101,9 +1140,9 @@ export default {
                 alertProgress: pushProgress,
             });
         }
-    },
+    }
 
-    sendEmailAlert: async function ({
+    async sendEmailAlert({
         incident,
         user,
         project,
@@ -1254,9 +1293,9 @@ export default {
                 alertProgress: emailProgress,
             });
         }
-    },
+    }
 
-    sendSlaEmailToTeamMembers: async function (
+    async sendSlaEmailToTeamMembers(
         { projectId, incidentCommunicationSla, incident, alertTime }: $TSFixMe,
         breached = false
     ) {
@@ -1339,9 +1378,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendCallAlert: async function ({
+    async sendCallAlert({
         incident,
         user,
         project,
@@ -1550,9 +1589,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendSMSAlert: async function ({
+    async sendSMSAlert({
         incident,
         user,
         project,
@@ -1766,9 +1805,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendStausPageNoteNotificationToProjectWebhooks: async function (
+    async sendStausPageNoteNotificationToProjectWebhooks(
         projectId: $TSFixMe,
         incident: $TSFixMe,
         statusPageNoteData: $TSFixMe
@@ -1821,9 +1860,9 @@ export default {
                 );
             });
         }
-    },
+    }
 
-    sendInvestigationNoteToSubscribers: async function (
+    async sendInvestigationNoteToSubscribers(
         incident: $TSFixMe,
         data: $TSFixMe,
         statusNoteStatus: $TSFixMe,
@@ -1905,9 +1944,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendCreatedIncidentToSubscribers: async function (
+    async sendCreatedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
     ) {
@@ -2010,12 +2049,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendAcknowledgedIncidentMail: async function (
-        incident: $TSFixMe,
-        monitor: $TSFixMe
-    ) {
+    async sendAcknowledgedIncidentMail(incident: $TSFixMe, monitor: $TSFixMe) {
         const _this = this;
         if (incident) {
             const projectId = incident.projectId._id
@@ -2197,9 +2233,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendAcknowledgeEmailAlert: async function ({
+    async sendAcknowledgeEmailAlert({
         incident,
         user,
         project,
@@ -2367,12 +2403,9 @@ export default {
                 errorMessage: e.message,
             });
         }
-    },
+    }
 
-    sendResolveIncidentMail: async function (
-        incident: $TSFixMe,
-        monitor: $TSFixMe
-    ) {
+    async sendResolveIncidentMail(incident: $TSFixMe, monitor: $TSFixMe) {
         const _this = this;
         if (incident) {
             const projectId = incident.projectId._id
@@ -2556,9 +2589,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendResolveEmailAlert: async function ({
+    async sendResolveEmailAlert({
         incident,
         user,
         project,
@@ -2721,9 +2754,9 @@ export default {
                 errorMessage: e.message,
             });
         }
-    },
+    }
 
-    sendAcknowledgedIncidentToSubscribers: async function (
+    async sendAcknowledgedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
     ) {
@@ -2825,9 +2858,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendResolvedIncidentToSubscribers: async function (
+    async sendResolvedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
     ) {
@@ -2929,9 +2962,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendSubscriberAlert: async function (
+    async sendSubscriberAlert(
         subscriber: $TSFixMe,
         incident: $TSFixMe,
         templateType = 'Subscriber Incident Created',
@@ -3817,11 +3850,11 @@ export default {
                 sendAlerts();
             }
         }
-    },
+    }
 
     mapCountryShortNameToCountryCode(shortName: $TSFixMe) {
         return countryCode[[shortName]];
-    },
+    }
 
     isOnDuty(
         timezone: $TSFixMe,
@@ -3846,7 +3879,7 @@ export default {
             escalationStartTime,
             escalationEndTime
         );
-    },
+    }
 
     checkIsOnDuty(startTime: $TSFixMe, endTime: $TSFixMe) {
         if (!startTime && !endTime) return true;
@@ -3858,9 +3891,9 @@ export default {
             oncallstart === oncallend;
         if (isUserActive) return true;
         return false;
-    },
+    }
 
-    getSubProjectAlerts: async function (subProjectIds: $TSFixMe) {
+    async getSubProjectAlerts(subProjectIds: $TSFixMe) {
         const _this = this;
         const populateAlert = [
             { path: 'userId', select: 'name email' },
@@ -3885,14 +3918,14 @@ export default {
             })
         );
         return subProjectAlerts;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await AlertModel.deleteMany(query);
         return 'Alert(s) removed successfully';
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
         let alert = await _this.findBy({ query, select: '_id' });
@@ -3931,10 +3964,10 @@ export default {
             }
             return alert;
         }
-    },
+    }
 
     //Return true, if the limit is not reached yet.
-    checkPhoneAlertsLimit: async function (projectId: $TSFixMe) {
+    async checkPhoneAlertsLimit(projectId: $TSFixMe) {
         const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -3977,12 +4010,9 @@ export default {
             );
             return false;
         }
-    },
+    }
 
-    sendUnpaidSubscriptionEmail: async function (
-        project: $TSFixMe,
-        user: $TSFixMe
-    ) {
+    async sendUnpaidSubscriptionEmail(project: $TSFixMe, user: $TSFixMe) {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
 
@@ -3996,9 +4026,9 @@ export default {
             userEmail,
             projectUrl,
         });
-    },
+    }
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function (
+    async sendProjectDeleteEmailForUnpaidSubscription(
         project: $TSFixMe,
         user: $TSFixMe
     ) {
@@ -4013,10 +4043,9 @@ export default {
             name: userName,
             userEmail,
         });
-    },
-    sendCreatedScheduledEventToSubscribers: async function (
-        schedule: $TSFixMe
-    ) {
+    }
+
+    async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe) {
         const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
@@ -4065,10 +4094,9 @@ export default {
                 }
             }
         }
-    },
-    sendResolvedScheduledEventToSubscribers: async function (
-        schedule: $TSFixMe
-    ) {
+    }
+
+    async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe) {
         const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
@@ -4117,11 +4145,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendCancelledScheduledEventToSubscribers: async function (
-        schedule: $TSFixMe
-    ) {
+    async sendCancelledScheduledEventToSubscribers(schedule: $TSFixMe) {
         const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
@@ -4145,11 +4171,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendScheduledEventInvestigationNoteToSubscribers: async function (
-        message: $TSFixMe
-    ) {
+    async sendScheduledEventInvestigationNoteToSubscribers(message: $TSFixMe) {
         const _this = this;
         const uuid = new Date().getTime();
 
@@ -4562,9 +4586,9 @@ export default {
                 }
             }
         }
-    },
+    }
 
-    sendSubscriberScheduledEventAlert: async function (
+    async sendSubscriberScheduledEventAlert(
         subscriber: $TSFixMe,
         schedule: $TSFixMe,
         templateType = 'Subscriber Scheduled Maintenance Created',
@@ -5020,11 +5044,9 @@ export default {
                 sendAlerts();
             }
         }
-    },
+    }
 
-    sendAnnouncementNotificationToSubscribers: async function (
-        message: $TSFixMe
-    ) {
+    async sendAnnouncementNotificationToSubscribers(message: $TSFixMe) {
         const _this = this;
         const uuid = new Date().getTime();
 
@@ -5458,8 +5480,8 @@ export default {
                 }
             }
         }
-    },
-};
+    }
+}
 
 /**
  * @description calculates the number of segments an sms is divided into
@@ -5471,59 +5493,3 @@ function calcSmsSegments(sms: $TSFixMe) {
     smsLength = Number(smsLength);
     return Math.ceil(smsLength / 160);
 }
-
-import AlertModel from '../models/alert';
-import ProjectService from './ProjectService';
-import PaymentService from './PaymentService';
-import AlertType from '../config/alertType';
-import ScheduleService from './ScheduleService';
-import SubscriberService from './SubscriberService';
-import SubscriberAlertService from './SubscriberAlertService';
-import EmailTemplateService from './EmailTemplateService';
-import SmsTemplateService from './SmsTemplateService';
-import EscalationService from './EscalationService';
-import MailService from './MailService';
-import UserService from './UserService';
-import MonitorService from './MonitorService';
-import TwilioService from './TwilioService';
-import ErrorService from '../utils/error';
-import StatusPageService from './StatusPageService';
-import AlertChargeService from './AlertChargeService';
-import countryCode from '../config/countryCode';
-
-import { getCountryType } from '../config/alertType';
-import SmsCountService from './SmsCountService';
-import DateTime from '../utils/DateTime';
-import moment from 'moment-timezone';
-const TimeZoneNames = moment.tz.names();
-import OnCallScheduleStatusService from './OnCallScheduleStatusService';
-
-import { IS_SAAS_SERVICE } from '../config/server';
-import ComponentService from './ComponentService';
-import GlobalConfigService from './GlobalConfigService';
-import WebHookService from './WebHookService';
-import IncidentUtility from '../utils/incident';
-import TeamService from './TeamService';
-import secondsToHms from '../utils/secondsToHms';
-
-import { getPlanById, getPlanByExtraUserId } from '../config/plans';
-import {
-    INCIDENT_RESOLVED,
-    INCIDENT_CREATED,
-    INCIDENT_ACKNOWLEDGED,
-} from '../constants/incidentEvents';
-import componentService from './ComponentService';
-
-import webpush from 'web-push';
-import {
-    calculateHumanReadableDownTime,
-    getIncidentLength,
-} from '../utils/incident';
-//  import IncidentService from './incidentService' Declared but unused
-import IncidentMessageService from './IncidentMessageService';
-import IncidentTimelineService from './IncidentTimelineService';
-import Services from '../utils/services';
-import RealTimeService from './realTimeService';
-
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';

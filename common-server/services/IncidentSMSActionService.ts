@@ -1,13 +1,13 @@
 import incidentSMSActionModel from '../models/incidentSMSAction';
 import Query from '../types/db/Query';
 
-export default {
-    findBy: async function (query: Query) {
+export default class Service {
+    async findBy(query: Query) {
         const alerts = await incidentSMSActionModel.find(query).lean();
         return alerts;
-    },
+    }
 
-    updateOneBy: async (query: Query, data: $TSFixMe) => {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -23,5 +23,5 @@ export default {
             }
         );
         return incidentafter;
-    },
-};
+    }
+}

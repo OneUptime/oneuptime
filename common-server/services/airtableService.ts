@@ -1,26 +1,26 @@
-export default {
+export default class Service {
     //Description: Create new user entry on airtable.
     //Params:
     //Param 1: data: User data (name, email, phone, company, jobRole, createdAt).
     //Returns: promise
 
-    find: async function ({ tableName, view, limit }: $TSFixMe) {
+    async find({ tableName, view, limit }: $TSFixMe) {
         return base(tableName).select({ view, pageSize: limit }).firstPage();
-    },
+    }
 
-    update: async function ({ tableName, id, fields }: $TSFixMe) {
+    async update({ tableName, id, fields }: $TSFixMe) {
         return base(tableName).update(id, fields);
-    },
+    }
 
-    create: async function ({ tableName, fields }: $TSFixMe) {
+    async create({ tableName, fields }: $TSFixMe) {
         return base(tableName).create(fields);
-    },
+    }
 
-    delete: async function ({ tableName, id }: $TSFixMe) {
+    async delete({ tableName, id }: $TSFixMe) {
         return base(tableName).destroy(id);
-    },
+    }
 
-    logUser: function ({
+    logUser({
         name,
         email,
         phone,
@@ -40,9 +40,9 @@ export default {
             'Created At': createdAt,
             Source: JSON.stringify(source),
         });
-    },
+    }
 
-    logLeads: function ({
+    logLeads({
         name,
         country,
         email,
@@ -68,19 +68,19 @@ export default {
             Website: website,
             Source: JSON.stringify(source),
         });
-    },
+    }
 
-    deleteUser: function (airtableId: $TSFixMe) {
+    deleteUser(airtableId: $TSFixMe) {
         if (!base) return;
 
         return base('User').destroy(airtableId);
-    },
+    }
 
     //Description: Create new feedback entry on airtable.
     //Params:
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    logFeedback: function ({ message, name, email, project, page }: $TSFixMe) {
+    logFeedback({ message, name, email, project, page }: $TSFixMe) {
         if (!base) return;
 
         return base('Feedback').create({
@@ -90,9 +90,9 @@ export default {
             'Project Name': project,
             'Page Name': page,
         });
-    },
+    }
 
-    deleteFeedback: function (airtableId: $TSFixMe) {
+    deleteFeedback(airtableId: $TSFixMe) {
         if (!base) return;
 
         if (!airtableId) {
@@ -100,9 +100,9 @@ export default {
         }
 
         return base('Feedback').destroy(airtableId);
-    },
+    }
 
-    deleteAll: async function ({ tableName, view, limit }: $TSFixMe) {
+    async deleteAll({ tableName, view, limit }: $TSFixMe) {
         if (!view) {
             view = 'Grid view';
         }
@@ -126,14 +126,9 @@ export default {
 
             return await base(tableName).destroy(recordIds);
         }
-    },
+    }
 
-    logProjectDeletionFeedback: function ({
-        reason,
-        project,
-        name,
-        email,
-    }: $TSFixMe) {
+    logProjectDeletionFeedback({ reason, project, name, email }: $TSFixMe) {
         if (!base) return;
 
         return base('Project Delete').create({
@@ -142,8 +137,8 @@ export default {
             'Full Name': name,
             Email: email,
         });
-    },
-};
+    }
+}
 
 import Airtable from 'airtable';
 const AirtableApiKey = process.env['AIRTABLE_API_KEY'];

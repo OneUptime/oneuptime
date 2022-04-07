@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const existingResourceCategory = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -21,9 +21,9 @@ export default {
         resourceCategory.name = data.name;
         resourceCategory = await resourceCategory.save();
         return resourceCategory;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {
@@ -80,16 +80,9 @@ export default {
         ]);
 
         return resourceCategory;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -126,9 +119,9 @@ export default {
             })
         );
         return resourceCategories;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const existingResourceCategory = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -156,9 +149,9 @@ export default {
             }
         );
         return resourceCategory;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -170,9 +163,9 @@ export default {
         const select = 'projectId name createdById createdAt';
         updatedData = await this.findBy({ query, select });
         return updatedData;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -180,12 +173,13 @@ export default {
         query.deleted = false;
         const count = await ResourceCategoryModel.countDocuments(query);
         return count;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await ResourceCategoryModel.deleteMany(query);
         return 'Resource Categories(s) removed successfully!';
-    },
-};
+    }
+}
 
 import ResourceCategoryModel from '../models/resourceCategory';
 import MonitorModel from '../models/monitor';

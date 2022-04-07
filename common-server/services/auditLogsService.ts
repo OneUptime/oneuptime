@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
         const auditLogsQuery = AuditLogsModel.find(query)
             .lean()
             .sort(sort)
@@ -19,18 +12,18 @@ export default {
         const auditLogs = await auditLogsQuery;
 
         return auditLogs;
-    },
+    }
 
-    countBy: async function ({ query }: Query) {
+    async countBy({ query }: Query) {
         if (!query) {
             query = {};
         }
 
         const count = await AuditLogsModel.countDocuments(query);
         return count;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const auditLogsModel = new AuditLogsModel({
             userId: data.userId,
             projectId: data.projectId,
@@ -40,9 +33,9 @@ export default {
 
         const auditLog = await auditLogsModel.save();
         return auditLog;
-    },
+    }
 
-    search: async function ({ filter, skip, limit }: $TSFixMe) {
+    async search({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             'request.apiSection': {
@@ -70,12 +63,12 @@ export default {
         ]);
 
         return { searchedAuditLogs, totalSearchCount };
-    },
+    }
 
-    hardDeleteBy: async function ({ query }: $TSFixMe) {
+    async hardDeleteBy({ query }: $TSFixMe) {
         await AuditLogsModel.deleteMany(query);
-    },
-};
+    }
+}
 
 import AuditLogsModel from '../models/auditLogs';
 

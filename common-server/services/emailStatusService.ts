@@ -5,15 +5,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import Query from '../types/db/Query';
 import FindBy from '../types/db/FindBy';
 
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        sort,
-        populate,
-        select,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, sort, populate, select }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
         const itemsQuery = EmailStatusModel.find(query)
             .lean()
@@ -27,9 +20,9 @@ export default {
         const items = await itemsQuery;
 
         return items;
-    },
+    }
 
-    create: async function ({
+    async create({
         from,
         to,
         status,
@@ -69,9 +62,9 @@ export default {
             return item;
         }
         return;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -79,9 +72,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await EmailStatusModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -95,17 +88,17 @@ export default {
             },
         });
         return items;
-    },
+    }
 
-    hardDeleteBy: async function ({ query }: $TSFixMe) {
+    async hardDeleteBy({ query }: $TSFixMe) {
         await EmailStatusModel.deleteMany(query);
-    },
+    }
 
     // Description: Get EmailStatus by item Id.
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with item or error.
-    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -118,9 +111,9 @@ export default {
 
         const item = await itemQuery;
         return item;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -135,9 +128,9 @@ export default {
             { new: true }
         );
         return updatedEmailStatus;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -154,9 +147,9 @@ export default {
             select: selectEmailStatus,
         });
         return updatedData;
-    },
+    }
 
-    search: async function ({ filter, skip, limit }: $TSFixMe) {
+    async search({ filter, skip, limit }: $TSFixMe) {
         const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },
@@ -171,5 +164,5 @@ export default {
         ]);
 
         return { searchedEmailLogs, totalSearchCount };
-    },
-};
+    }
+}

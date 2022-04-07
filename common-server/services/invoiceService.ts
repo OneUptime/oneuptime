@@ -1,4 +1,4 @@
-export default {
+export default class Service {
     //Description: Call this fuction to retrieve list of invoices for a customer.
     //Params:
     //Param 1: stripeCustomerId: Received from the frontend.
@@ -7,7 +7,7 @@ export default {
     //         that helps to fetch items fro the next list.
     //Returns : promise
 
-    get: async function (userId, startingAfter, endingBefore) {
+    async get(userId, startingAfter, endingBefore) {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -32,8 +32,8 @@ export default {
             }
             return invoices;
         }
-    },
-};
+    }
+}
 
 import payment from '../config/payment';
 import Stripe from 'stripe';

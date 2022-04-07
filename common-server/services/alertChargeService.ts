@@ -1,5 +1,9 @@
-export default {
-    create: async function (
+import AlertChargeModel from '../models/alertCharge';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+
+export default class Service {
+    async create(
         projectId: $TSFixMe,
         chargeAmount: $TSFixMe,
         balanceAfterAlertSent: $TSFixMe,
@@ -28,15 +32,9 @@ export default {
         alertCharge.subscriberAlertId = subscriberId || null;
         alertCharge.save();
         return alertCharge;
-    },
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        sort,
-        populate,
-        select,
-    }: FindBy) {
+    }
+
+    async findBy({ query, skip, limit, sort, populate, select }: FindBy) {
         if (!sort) sort = -1;
 
         if (typeof skip === 'string') {
@@ -73,24 +71,20 @@ export default {
         const alertCharges = await alertQuery;
 
         return alertCharges;
-    },
-    countBy: async (query: Query) => {
+    }
+
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
         const count = await AlertChargeModel.countDocuments(query);
         return count;
-    },
+    }
     /**
      * deletes documents in alert charges based on the query condition
      * @param {Object} query
      */
-    hardDeleteBy: async (query: Query) => {
+    async hardDeleteBy(query: Query) {
         await AlertChargeModel.deleteMany(query);
-    },
-};
-
-import AlertChargeModel from '../models/alertCharge';
-
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+    }
+}

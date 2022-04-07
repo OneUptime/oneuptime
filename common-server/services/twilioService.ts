@@ -12,8 +12,8 @@ import AlertService from './AlertService';
 import FindOneBy from '../types/db/FindOneBy';
 import { IS_TESTING } from '../config/server';
 
-const _this = {
-    findByOne: async function ({ query, select, populate, sort }: FindOneBy) {
+export default class TwilioService {
+    async findByOne({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -27,9 +27,9 @@ const _this = {
         });
 
         return twilioSettings;
-    },
+    }
 
-    getClient: (accountSid: $TSFixMe, authToken: $TSFixMe) => {
+    getClient(accountSid: $TSFixMe, authToken: $TSFixMe) {
         if (!accountSid || !authToken) {
             const error = new Error('Twilio credentials not found.');
 
@@ -37,9 +37,9 @@ const _this = {
             return error;
         }
         return twilio(accountSid, authToken);
-    },
+    }
 
-    getSettings: async () => {
+    async getSettings() {
         const document = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',
@@ -52,9 +52,9 @@ const _this = {
 
         error.code = 400;
         throw error;
-    },
+    }
 
-    sendIncidentCreatedMessage: async function (
+    async sendIncidentCreatedMessage(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -78,7 +78,7 @@ const _this = {
                 to: number,
             };
             smsBody = options.body;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -96,7 +96,7 @@ const _this = {
                 incidentSMSAction.name = name;
                 await incidentSMSAction.save();
 
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -112,8 +112,8 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
-                const twilioClient = _this.getClient(
+                const creds = await this.getSettings();
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -185,9 +185,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendIncidentCreatedMessageToSubscriber: async function (
+    async sendIncidentCreatedMessageToSubscriber(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -201,7 +201,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Created'
             );
@@ -217,7 +217,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -230,7 +230,7 @@ const _this = {
                     to: number,
                 };
 
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -246,7 +246,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -266,7 +266,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -315,9 +315,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendInvestigationNoteToSubscribers: async function (
+    async sendInvestigationNoteToSubscribers(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -332,7 +332,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Investigation note is created'
             );
@@ -349,7 +349,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -361,7 +361,7 @@ const _this = {
                     to: number,
                 };
 
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -377,7 +377,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -397,7 +397,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -446,9 +446,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendIncidentAcknowledgedMessageToSubscriber: async function (
+    async sendIncidentAcknowledgedMessageToSubscriber(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -463,8 +463,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Acknowledged'
             );
@@ -481,7 +480,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -493,7 +492,7 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -509,7 +508,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -529,7 +528,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -578,9 +577,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendIncidentResolvedMessageToSubscriber: async function (
+    async sendIncidentResolvedMessageToSubscriber(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -595,8 +594,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Resolved'
             );
@@ -613,7 +611,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'projectId phoneNumber accountSid authToken iv enabled createdAt deletedById',
                 populate: [{ path: 'projectId', select: 'name' }],
@@ -625,7 +623,7 @@ const _this = {
                     to: number,
                 };
 
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -641,7 +639,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -661,7 +659,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -710,9 +708,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    test: async function (data: $TSFixMe) {
+    async test(data: $TSFixMe) {
         try {
             const options = {
                 body: 'This is a test SMS from OneUptime',
@@ -720,7 +718,7 @@ const _this = {
                 to: '+19173976235',
             };
 
-            const twilioClient = _this.getClient(
+            const twilioClient = this.getClient(
                 data.accountSid,
                 data.authToken
             );
@@ -747,9 +745,9 @@ const _this = {
             }
             throw err;
         }
-    },
+    }
 
-    sendScheduledMaintenanceCreatedToSubscriber: async function (
+    async sendScheduledMaintenanceCreatedToSubscriber(
         incidentTime: $TSFixMe,
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
@@ -759,8 +757,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Created'
             );
@@ -775,7 +772,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -786,7 +783,7 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -802,7 +799,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -822,7 +819,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -871,8 +868,9 @@ const _this = {
             );
             throw error;
         }
-    },
-    sendScheduledMaintenanceNoteCreatedToSubscriber: async function (
+    }
+
+    async sendScheduledMaintenanceNoteCreatedToSubscriber(
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         scheduleName: $TSFixMe,
@@ -882,8 +880,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Note'
             );
@@ -898,7 +895,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber authToken accountSid',
             });
@@ -909,7 +906,7 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -925,7 +922,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -945,7 +942,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -994,9 +991,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendScheduledMaintenanceResolvedToSubscriber: async function (
+    async sendScheduledMaintenanceResolvedToSubscriber(
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
@@ -1005,8 +1002,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Resolved'
             );
@@ -1018,7 +1014,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -1029,7 +1025,7 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -1045,7 +1041,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -1065,7 +1061,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1114,8 +1110,9 @@ const _this = {
             );
             throw error;
         }
-    },
-    sendScheduledMaintenanceCancelledToSubscriber: async function (
+    }
+
+    async sendScheduledMaintenanceCancelledToSubscriber(
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
@@ -1124,8 +1121,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Cancelled'
             );
@@ -1137,7 +1133,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -1148,7 +1144,7 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -1164,7 +1160,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -1184,7 +1180,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1233,9 +1229,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendAnnouncementNotificationToSubscriber: async function (
+    async sendAnnouncementNotificationToSubscriber(
         number: $TSFixMe,
         smsTemplate: $TSFixMe,
         title: $TSFixMe,
@@ -1245,8 +1241,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const _this = this;
-            let { template } = await _this.getTemplate(
+            let { template } = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Announcement Notification Created'
             );
@@ -1258,7 +1253,7 @@ const _this = {
 
             template = template(data);
             smsBody = template;
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
@@ -1269,7 +1264,7 @@ const _this = {
                     from: customTwilioSettings.phoneNumber,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -1285,7 +1280,7 @@ const _this = {
                 );
                 return message;
             } else {
-                const creds = await _this.getSettings();
+                const creds = await this.getSettings();
                 if (!creds['sms-enabled']) {
                     const error = new Error('SMS Not Enabled');
 
@@ -1305,7 +1300,7 @@ const _this = {
                     from: creds.phone,
                     to: number,
                 };
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1354,9 +1349,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    sendIncidentCreatedCall: async function (
+    async sendIncidentCreatedCall(
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         number: $TSFixMe,
@@ -1369,7 +1364,7 @@ const _this = {
         let callBody;
         try {
             const extraInfo = callProgress
-                ? `This is the ${await _this.getProgressText(
+                ? `This is the ${await this.getProgressText(
                       callProgress.current
                   )} 
                     reminder.`
@@ -1389,14 +1384,14 @@ const _this = {
                 twiml: twiml,
                 to: number,
             };
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
                 options.from = customTwilioSettings.phoneNumber;
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -1412,8 +1407,8 @@ const _this = {
                 );
                 return call;
             } else {
-                const creds = await _this.getSettings();
-                const twilioClient = _this.getClient(
+                const creds = await this.getSettings();
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1475,9 +1470,9 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
-    getProgressText: async function (number: $TSFixMe) {
+    async getProgressText(number: $TSFixMe) {
         const special = [
             'zeroth',
             'first',
@@ -1515,12 +1510,9 @@ const _this = {
         if (number % 10 === 0)
             return deca[Math.floor(number / 10) - 2] + 'ieth';
         return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
-    },
+    }
 
-    getTemplate: async function (
-        smsTemplate: $TSFixMe,
-        smsTemplateType: $TSFixMe
-    ) {
+    async getTemplate(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe) {
         const defaultTemplate = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
@@ -1534,8 +1526,9 @@ const _this = {
         }
         const template = await Handlebars.compile(smsContent);
         return { template };
-    },
-    sendVerificationSMS: async function (
+    }
+
+    async sendVerificationSMS(
         to: $TSFixMe,
         userId: string,
         projectId: $TSFixMe,
@@ -1543,7 +1536,7 @@ const _this = {
     ) {
         let smsBody;
         try {
-            const customTwilioSettings = await _this.findByOne({
+            const customTwilioSettings = await this.findByOne({
                 query: { projectId, enabled: true },
                 select: 'phoneNumber accountSid authToken iv',
             });
@@ -1562,7 +1555,7 @@ const _this = {
                     to,
                 };
 
-                const twilioClient = _this.getClient(
+                const twilioClient = this.getClient(
                     customTwilioSettings.accountSid,
                     customTwilioSettings.authToken
                 );
@@ -1581,8 +1574,8 @@ const _this = {
                 if (!validationResult.validateResend) {
                     throw new Error(validationResult.problem);
                 }
-                const creds = await _this.getSettings();
-                const twilioClient = _this.getClient(
+                const creds = await this.getSettings();
+                const twilioClient = this.getClient(
                     creds['account-sid'],
                     creds['authentication-token']
                 );
@@ -1654,14 +1647,14 @@ const _this = {
             );
             throw error;
         }
-    },
+    }
 
     // Fetch Available numbers to buy from twilio
-    fetchPhoneNumbers: async (
+    async fetchPhoneNumbers(
         projectId: $TSFixMe,
         countryCode: $TSFixMe,
         numberType: $TSFixMe
-    ) => {
+    ) {
         let accountSid = null;
         let authToken = null;
         let numbers;
@@ -1673,7 +1666,7 @@ const _this = {
             price: '',
             priceUnit: '',
         };
-        const customTwilioSettings = await _this.findByOne({
+        const customTwilioSettings = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1681,11 +1674,11 @@ const _this = {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await _this.getSettings();
+            const creds = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = _this.getClient(accountSid, authToken);
+        const twilioClient = this.getClient(accountSid, authToken);
 
         const priceList = await twilioClient.pricing.v1.phoneNumbers
             .countries(countryCode)
@@ -1720,7 +1713,7 @@ const _this = {
                 .availablePhoneNumbers(countryCode)
                 .local.list({ limit: 1 });
 
-            data.price = await _this.calculatePrice(
+            data.price = await this.calculatePrice(
                 localPrice.currentPrice,
 
                 localPrice.basePrice
@@ -1731,7 +1724,7 @@ const _this = {
                 .availablePhoneNumbers(countryCode)
                 .mobile.list({ limit: 1 });
 
-            data.price = await _this.calculatePrice(
+            data.price = await this.calculatePrice(
                 mobilePrice.currentPrice,
 
                 mobilePrice.basePrice
@@ -1742,7 +1735,7 @@ const _this = {
                 .availablePhoneNumbers(countryCode)
                 .tollFree.list({ limit: 1 });
 
-            data.price = await _this.calculatePrice(
+            data.price = await this.calculatePrice(
                 tollFreePrice.currentPrice,
 
                 tollFreePrice.basePrice
@@ -1757,12 +1750,12 @@ const _this = {
         data.region = numbers.region;
         data.capabilities = numbers.capabilities;
         return data;
-    },
+    }
 
-    buyPhoneNumber: async (projectId: $TSFixMe, phoneNumber: $TSFixMe) => {
+    async buyPhoneNumber(projectId: $TSFixMe, phoneNumber: $TSFixMe) {
         let accountSid = null;
         let authToken = null;
-        const customTwilioSettings = await _this.findByOne({
+        const customTwilioSettings = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1770,11 +1763,11 @@ const _this = {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await _this.getSettings();
+            const creds = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = _this.getClient(accountSid, authToken);
+        const twilioClient = this.getClient(accountSid, authToken);
 
         const numbers = await twilioClient.incomingPhoneNumbers.create({
             phoneNumber: phoneNumber,
@@ -1786,12 +1779,12 @@ const _this = {
             statusCallbackMethod: 'POST',
         });
         return numbers;
-    },
+    }
 
-    releasePhoneNumber: async (projectId: $TSFixMe, sid: $TSFixMe) => {
+    async releasePhoneNumber(projectId: $TSFixMe, sid: $TSFixMe) {
         let accountSid = null;
         let authToken = null;
-        const customTwilioSettings = await _this.findByOne({
+        const customTwilioSettings = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1799,20 +1792,20 @@ const _this = {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await _this.getSettings();
+            const creds = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = _this.getClient(accountSid, authToken);
+        const twilioClient = this.getClient(accountSid, authToken);
 
         const numbers = await twilioClient.incomingPhoneNumbers(sid).remove();
         return numbers;
-    },
+    }
 
-    getCallDetails: async (projectId: $TSFixMe, CallSid: $TSFixMe) => {
+    async getCallDetails(projectId: $TSFixMe, CallSid: $TSFixMe) {
         let accountSid = null;
         let authToken = null;
-        const customTwilioSettings = await _this.findByOne({
+        const customTwilioSettings = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
         });
@@ -1820,17 +1813,17 @@ const _this = {
             accountSid = customTwilioSettings.accountSid;
             authToken = customTwilioSettings.authToken;
         } else {
-            const creds = await _this.getSettings();
+            const creds = await this.getSettings();
             accountSid = creds['account-sid'];
             authToken = creds['authentication-token'];
         }
-        const twilioClient = _this.getClient(accountSid, authToken);
+        const twilioClient = this.getClient(accountSid, authToken);
 
         const details = await twilioClient.calls(CallSid).fetch();
         return details;
-    },
+    }
 
-    calculatePrice: async (currentPrice: $TSFixMe, basePrice: $TSFixMe) => {
+    async calculatePrice(currentPrice: $TSFixMe, basePrice: $TSFixMe) {
         let price =
             currentPrice && basePrice
                 ? currentPrice > basePrice
@@ -1840,14 +1833,12 @@ const _this = {
         if (currentPrice && !basePrice) price = currentPrice * 10;
         else if (basePrice && !currentPrice) price = basePrice * 10;
         return price;
-    },
+    }
 
-    hasCustomSettings: async function (projectId: $TSFixMe) {
-        return await _this.findByOne({
+    async hasCustomSettings(projectId: $TSFixMe) {
+        return await this.findByOne({
             query: { projectId, enabled: true },
             select: '_id',
         });
-    },
-};
-
-export default _this;
+    }
+}

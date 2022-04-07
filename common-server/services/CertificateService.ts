@@ -4,12 +4,13 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const certificate = await CertificateModel.create(data);
         return certificate;
-    },
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -23,15 +24,9 @@ export default {
 
         const certificate = await certificateQuery;
         return certificate;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -55,8 +50,9 @@ export default {
 
         const certificates = await certificateQuery;
         return certificates;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) query = {};
 
@@ -75,18 +71,20 @@ export default {
         }
 
         return certificate;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         const certificate = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
         });
         return certificate;
-    },
-    hardDelete: async function (query: Query) {
+    }
+
+    async hardDelete(query: Query) {
         await CertificateModel.deleteMany(query);
         return 'certificate store successfully deleted';
-    },
+    }
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -95,5 +93,5 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await CertificateModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

@@ -6,8 +6,8 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 import PositiveNumber from 'common/types/PositiveNumber';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
 
         // prepare  log model
@@ -50,7 +50,7 @@ export default {
             populate: populateLog,
         });
         return log;
-    },
+    }
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
@@ -65,7 +65,7 @@ export default {
         const log = await logQuery;
 
         return log;
-    },
+    }
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
@@ -96,7 +96,7 @@ export default {
         const logs = await logsQuery;
 
         return logs.reverse();
-    },
+    }
     async getLogsByApplicationLogId(
         applicationLogId: $TSFixMe,
         limit: PositiveNumber,
@@ -132,7 +132,7 @@ export default {
             populate: populateLog,
         });
         return logs;
-    },
+    }
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -141,8 +141,9 @@ export default {
         const count = await LogModel.countDocuments(query);
 
         return count;
-    },
-    search: async function (
+    }
+
+    async search(
         query: Query,
         filter: $TSFixMe,
         skip: PositiveNumber,
@@ -169,8 +170,9 @@ export default {
         ]);
 
         return { searchedLogs, totalSearchCount };
-    },
-    searchByDuration: async function (query: Query) {
+    }
+
+    async searchByDuration(query: Query) {
         const _this = this;
         if (!query) {
             query = {};
@@ -201,7 +203,7 @@ export default {
         ]);
 
         return { searchedLogs, totalSearchCount };
-    },
+    }
     // Introduce this to know the current date range of the query incase it wasnt given by the user
     async getDateRange(query: Query) {
         if (!query) {
@@ -232,5 +234,5 @@ export default {
         }
 
         return dateRange;
-    },
-};
+    }
+}

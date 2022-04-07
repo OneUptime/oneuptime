@@ -5,8 +5,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const incidentCommunicationSla = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -46,8 +46,9 @@ export default {
         }
 
         return createdIncidentCommunicationSla;
-    },
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -61,15 +62,9 @@ export default {
 
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const incidentCommunicationSlaQuery =
@@ -85,8 +80,9 @@ export default {
 
         const incidentCommunicationSla = await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -200,8 +196,9 @@ export default {
         });
 
         return updatedIncidentCommunicationSla;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         const deletedSla = await IncidentCommunicationSlaModel.findOneAndUpdate(
             query,
             {
@@ -214,11 +211,12 @@ export default {
         );
 
         return deletedSla;
-    },
-    hardDelete: async function (query: Query) {
+    }
+
+    async hardDelete(query: Query) {
         await IncidentCommunicationSlaModel.deleteMany(query);
         return 'Incident Communication SLA(s) deleted successfully';
-    },
+    }
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -227,5 +225,5 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await IncidentCommunicationSlaModel.countDocuments(query);
         return count;
-    },
-};
+    }
+}

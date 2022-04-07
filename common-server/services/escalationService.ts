@@ -7,15 +7,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        sort,
-        select,
-        populate,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, sort, select, populate }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -38,9 +31,9 @@ export default {
 
         const escalations = await escalationsQuery;
         return escalations;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -60,9 +53,9 @@ export default {
         escalation.nextActiveTeam = nextActiveTeam;
 
         return escalation;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const escalationModel = new EscalationModel({
             call: data.call,
             email: data.email,
@@ -85,9 +78,9 @@ export default {
 
         const escalation = await escalationModel.save();
         return escalation;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -95,9 +88,9 @@ export default {
         query.deleted = false;
         const count = await EscalationModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -112,9 +105,9 @@ export default {
             }
         );
         return escalation;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -130,9 +123,9 @@ export default {
             }
         );
         return escalation;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -163,9 +156,9 @@ export default {
             select: selectEscalation,
         });
         return updatedData;
-    },
+    }
 
-    deleteEscalationMember: async function (
+    async deleteEscalationMember(
         projectId: $TSFixMe,
         memberId: $TSFixMe,
         deletedById: $TSFixMe
@@ -246,14 +239,14 @@ export default {
                 );
             }
         }
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await EscalationModel.deleteMany(query);
         return 'Escalation(s) removed successfully';
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
         let escalation = await _this.findBy({ query, select: '_id' });
@@ -288,8 +281,8 @@ export default {
             }
             return escalation;
         }
-    },
-};
+    }
+}
 
 function computeActiveTeamIndex(
     numberOfTeams: $TSFixMe,

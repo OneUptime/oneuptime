@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const iv = Crypto.randomBytes(16);
         data.authToken = await EncryptDecrypt.encrypt(data.authToken, iv);
         const twilioModel = new TwilioModel();
@@ -27,9 +27,9 @@ export default {
             delete twilioSettings.iv;
         }
         return twilioSettings;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -63,9 +63,9 @@ export default {
             delete updatedTwilioSettings.iv;
         }
         return updatedTwilioSettings;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -79,9 +79,9 @@ export default {
             'projectId accountSid authToken phoneNumber iv enabled createdAt deletedById';
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const deletedData = await TwilioModel.findOneAndUpdate(
             query,
             {
@@ -103,16 +103,9 @@ export default {
             delete deletedData.iv;
         }
         return deletedData;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         query.deleted = false;
 
         const twilioSettingQuery = TwilioModel.find(query)
@@ -136,9 +129,9 @@ export default {
             }
         }
         return twilioSettings;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -160,9 +153,9 @@ export default {
         }
 
         return twilio;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -170,13 +163,13 @@ export default {
         query.deleted = false;
         const count = await TwilioModel.countDocuments(query);
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await TwilioModel.deleteMany(query);
         return 'SMS Smtp(s) removed successfully';
-    },
-};
+    }
+}
 
 import Crypto from 'crypto';
 import TwilioModel from '../models/twilio';

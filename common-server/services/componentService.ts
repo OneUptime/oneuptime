@@ -14,12 +14,12 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
+export default class Service {
     //Description: Upsert function for component.
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const _this = this;
 
         const existingComponentCount = await _this.countBy({
@@ -136,13 +136,9 @@ export default {
                 throw error;
             }
         }
-    },
+    }
 
-    updateOneBy: async function (
-        query: Query,
-        data: $TSFixMe,
-        unsetData: $TSFixMe
-    ) {
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -186,9 +182,9 @@ export default {
         RealTimeService.componentEdit(component);
 
         return component;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -210,7 +206,7 @@ export default {
             select: selectComponent,
         });
         return updatedData;
-    },
+    }
 
     //Description: Gets all components by project.
     //Params:
@@ -245,7 +241,7 @@ export default {
 
         const components = await componentsQuery;
         return components;
-    },
+    }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -260,7 +256,7 @@ export default {
 
         const component = await componentQuery;
         return component;
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -270,9 +266,9 @@ export default {
         if (!query['deleted']) query['deleted'] = false;
         const count = await ComponentModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -371,7 +367,7 @@ export default {
         } else {
             return null;
         }
-    },
+    }
 
     async getComponentsBySubprojects(
         subProjectIds: $TSFixMe,
@@ -404,7 +400,7 @@ export default {
             })
         );
         return subProjectComponents;
-    },
+    }
 
     async getComponentsByPaginate(
         projectId: $TSFixMe,
@@ -434,9 +430,9 @@ export default {
             _this.countBy({ projectId }),
         ]);
         return { components, count, _id: projectId, skip, limit };
-    },
+    }
 
-    addSeat: async function (query: Query) {
+    async addSeat(query: Query) {
         const project = await ProjectService.findOneBy({
             query,
             select: 'seats stripeSubscriptionId _id',
@@ -457,14 +453,14 @@ export default {
             { seats: String(projectSeats) }
         );
         return 'A new seat added. Now you can add a component';
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await ComponentModel.deleteMany(query);
         return 'Component(s) removed successfully!';
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
         const populateComponent = [
@@ -520,5 +516,5 @@ export default {
             }
             return component;
         }
-    },
-};
+    }
+}

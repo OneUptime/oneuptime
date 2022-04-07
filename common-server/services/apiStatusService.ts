@@ -3,12 +3,13 @@ import ApiStatusModel from '../models/apiStatus';
 import FindOneBy from '../types/db/FindOneBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const apiStatus = await ApiStatusModel.create(data);
         return apiStatus;
-    },
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -20,8 +21,9 @@ export default {
 
         const apiStatus = await apiStatusQuery;
         return apiStatus;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) query = {};
 
@@ -41,13 +43,14 @@ export default {
         }
 
         return apiStatus;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         const apiStatus = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
             lastOperation: 'delete',
         });
         return apiStatus;
-    },
-};
+    }
+}

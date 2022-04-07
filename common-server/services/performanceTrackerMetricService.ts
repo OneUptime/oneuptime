@@ -5,20 +5,21 @@ import RealTimeService from './realTimeService';
 import FindOneBy from '../types/db/FindOneBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const performanceTrackerMetric =
             await PerformanceTrackerMetricModel.create(data);
         return performanceTrackerMetric;
-    },
-    createMany: async function (allData: $TSFixMe) {
+    }
+
+    async createMany(allData: $TSFixMe) {
         const allMetrics = await PerformanceTrackerMetricModel.insertMany(
             allData
         );
         return allMetrics;
-    },
+    }
     //Description: Gets all performance metrics by component.
-    findBy: async function ({
+    async findBy({
         query,
         limit,
         skip,
@@ -55,9 +56,9 @@ export default {
 
         const performanceTrackerMetrics = await performanceTrackerMetricQuery;
         return performanceTrackerMetrics;
-    },
+    }
 
-    mergeMetrics: async function ({
+    async mergeMetrics({
         query,
 
         // limit,
@@ -138,9 +139,9 @@ export default {
         }
 
         return trackerMetrics;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -153,9 +154,9 @@ export default {
 
         const performanceTrackerMetric = await performanceTrackerMetricQuery;
         return performanceTrackerMetric;
-    },
+    }
 
-    deleteBy: async function (query: Query) {
+    async deleteBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -174,9 +175,9 @@ export default {
             );
 
         return performanceTrackerMetric;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -192,14 +193,14 @@ export default {
             );
 
         return performanceTrackerMetric;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await PerformanceTrackerMetricModel.deleteMany(query);
         return 'Performance tracker metric(s) removed successfully!';
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -207,9 +208,9 @@ export default {
 
         const count = await PerformanceTrackerMetricModel.countDocuments(query);
         return count;
-    },
+    }
 
-    createMetricsData: async function (
+    async createMetricsData(
         appId: $TSFixMe,
         type: $TSFixMe,
         data: $TSFixMe,
@@ -253,9 +254,9 @@ export default {
         RealTimeService.sendTimeMetrics(appId, time);
         RealTimeService.sendThroughputMetrics(appId, count);
         RealTimeService.sendErrorMetrics(appId, error);
-    },
+    }
 
-    structureMetricsTime: async function (
+    async structureMetricsTime(
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -306,10 +307,10 @@ export default {
 
         // send result back to api
         return finalOutput;
-    },
+    }
 
     // setup the throughput data for frontend
-    structureMetricsCount: async function (
+    async structureMetricsCount(
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -358,9 +359,9 @@ export default {
 
         // send result back to api
         return finalOutput;
-    },
+    }
 
-    structureMetricsError: async function (
+    async structureMetricsError(
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -409,8 +410,8 @@ export default {
 
         // send result back to api
         return finalOutput;
-    },
-};
+    }
+}
 
 function calcAvgTime(metric: $TSFixMe) {
     const length = metric.length;

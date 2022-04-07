@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         let incidentTimeline = new IncidentTimelineModel();
 
         incidentTimeline.incidentId = data.incidentId;
@@ -60,9 +60,9 @@ export default {
         }
 
         return incidentTimeline;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -92,9 +92,9 @@ export default {
         });
 
         return incidentTimeline;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -120,16 +120,9 @@ export default {
         });
 
         return incidentTimelines;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -153,9 +146,9 @@ export default {
         const incidentTimelines = await incidentTimelinesQuery;
 
         return incidentTimelines;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -170,9 +163,9 @@ export default {
 
         const incidentTimeline = await incidentTimelineQuery;
         return incidentTimeline;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -181,11 +174,11 @@ export default {
         const count = await IncidentTimelineModel.countDocuments(query);
 
         return count;
-    },
+    }
 
     // fetches just the last/latest incident timeline
     // this timelines will be used in status page
-    getIncidentLastTimelines: async function (incidents: $TSFixMe) {
+    async getIncidentLastTimelines(incidents: $TSFixMe) {
         const _this = this;
         const skip = 0,
             limit = 1;
@@ -214,8 +207,9 @@ export default {
 
         timelines = flattenArray(timelines);
         return timelines;
-    },
-    deleteBy: async function (query: Query, userId: string) {
+    }
+
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -236,8 +230,8 @@ export default {
                 }
             );
         return incidentTimelineModel;
-    },
-};
+    }
+}
 
 import IncidentTimelineModel from '../models/incidentTimeline';
 import IncidentService from './IncidentService';

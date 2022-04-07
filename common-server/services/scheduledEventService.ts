@@ -12,12 +12,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (
-        { projectId }: $TSFixMe,
-        data: $TSFixMe,
-        recurring: $TSFixMe
-    ) {
+export default class Service {
+    async create({ projectId }: $TSFixMe, data: $TSFixMe, recurring: $TSFixMe) {
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor to create a scheduled event'
@@ -151,9 +147,9 @@ export default {
             RealTimeService.addScheduledEvent(scheduledEvent);
         }
         return scheduledEvent;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -243,9 +239,9 @@ export default {
         RealTimeService.updateScheduledEvent(updatedScheduledEvent);
 
         return updatedScheduledEvent;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -274,9 +270,9 @@ export default {
         updatedData = await this.findBy({ query, populate, select });
 
         return updatedData;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
             query,
             {
@@ -310,16 +306,9 @@ export default {
         RealTimeService.deleteScheduledEvent(scheduledEvent);
 
         return scheduledEvent;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -349,9 +338,9 @@ export default {
         const scheduledEvents = await scheduledEventQuery;
 
         return scheduledEvents;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -385,9 +374,9 @@ export default {
         }
 
         return scheduledEvent;
-    },
+    }
 
-    getSubProjectScheduledEvents: async function (subProjectIds: $TSFixMe) {
+    async getSubProjectScheduledEvents(subProjectIds: $TSFixMe) {
         const populateScheduledEvent = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -421,9 +410,9 @@ export default {
             })
         );
         return subProjectScheduledEvents;
-    },
+    }
 
-    getSubProjectOngoingScheduledEvents: async function (
+    async getSubProjectOngoingScheduledEvents(
         subProjectIds: $TSFixMe,
         query: Query
     ) {
@@ -460,21 +449,21 @@ export default {
         );
 
         return subProjectOngoingScheduledEvents;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         const count = await ScheduledEventModel.countDocuments(query);
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await ScheduledEventModel.deleteMany(query);
         return 'Event(s) removed successfully!';
-    },
+    }
 
     /**
      * @description removes a particular monitor from scheduled event
@@ -482,7 +471,7 @@ export default {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function (monitorId: $TSFixMe, userId: string) {
+    async removeMonitor(monitorId: $TSFixMe, userId: string) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -554,14 +543,14 @@ export default {
                 }
             })
         );
-    },
+    }
 
     /**
      * @description resolves a particular scheduled event
      * @param {object} query query parameter to use for db manipulation
      * @param {object} data data to be used to update the schedule
      */
-    resolveScheduledEvent: async function (query: Query, data: $TSFixMe) {
+    async resolveScheduledEvent(query: Query, data: $TSFixMe) {
         const _this = this;
         data.resolved = true;
         data.resolvedAt = Date.now();
@@ -683,11 +672,11 @@ export default {
         RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
 
         return resolvedScheduledEvent;
-    },
+    }
     /**
      * @description Create Started note for all schedule events
      */
-    createScheduledEventStartedNote: async function () {
+    async createScheduledEventStartedNote() {
         const currentTime = moment();
 
         //fetch events that have started
@@ -745,11 +734,11 @@ export default {
                 });
             }
         });
-    },
+    }
 
     /**
      * @description Create Ended note for all schedule events
-     */ createScheduledEventEndedNote: async function () {
+async  */ createScheduledEventEndedNote() {
         const currentTime = moment();
 
         //fetch events that have ended
@@ -794,8 +783,8 @@ export default {
                 });
             }
         });
-    },
-};
+    }
+}
 
 /**
  * @description checks if an array contains duplicate values

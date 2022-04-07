@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const query = {};
 
         if (data.monitorId) query.monitorId = data.monitorId;
@@ -61,11 +61,11 @@ export default {
 
             return savedMonitorStatus;
         }
-    },
+    }
 
     // allData is an array of object
     // to be bulk written to the db
-    createMany: async function (allData: $TSFixMe) {
+    async createMany(allData: $TSFixMe) {
         const dataList = [];
         for (const data of allData) {
             const query = {};
@@ -121,9 +121,9 @@ export default {
             return docs;
         }
         return null;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -138,9 +138,9 @@ export default {
         );
 
         return updatedMonitorStatus;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -153,16 +153,9 @@ export default {
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         updatedData = await this.findBy({ query, select });
         return updatedData;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -192,9 +185,9 @@ export default {
 
         const monitorStatus = await monitorStatusQuery;
         return monitorStatus;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -209,7 +202,7 @@ export default {
 
         const monitorStatus = await monitorStatusQuery;
         return monitorStatus;
-    },
+    }
 
     async sendMonitorStatus(data: $TSFixMe) {
         const monitor = await MonitorService.findOneBy({
@@ -221,8 +214,9 @@ export default {
             // run in the background
             RealTimeService.updateMonitorStatus(data, monitor.projectId._id);
         }
-    },
-    deleteBy: async function (query: Query, userId: string) {
+    }
+
+    async deleteBy(query: Query, userId: string) {
         const _this = this;
         if (!query) {
             query = {};
@@ -259,8 +253,8 @@ export default {
             }
         }
         return monitorStatus;
-    },
-};
+    }
+}
 
 import MonitorStatusModel from '../models/monitorStatus';
 import MonitorService from './MonitorService';

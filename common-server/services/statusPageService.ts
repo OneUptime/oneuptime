@@ -82,15 +82,8 @@ const StatusPageServiceBase = new ServiceBase({
     viewerItemProps: publicItemProps,
 });
 
-export default {
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        populate,
-        select,
-        sort,
-    }: $TSFixMe) {
+export default class Service {
+    async findBy({ query, skip, limit, populate, select, sort }: $TSFixMe) {
         return await StatusPageServiceBase.findBy({
             query,
             skip,
@@ -99,15 +92,9 @@ export default {
             select,
             sort,
         });
-    },
+    }
 
-    findOneBy: async function ({
-        query,
-        select,
-        populate,
-        skip,
-        sort,
-    }: $TSFixMe) {
+    async findOneBy({ query, select, populate, skip, sort }: $TSFixMe) {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
@@ -115,13 +102,13 @@ export default {
             select,
             sort,
         });
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         return await StatusPageServiceBase.countBy({ query });
-    },
+    }
 
-    create: async function ({ data }: $TSFixMe) {
+    async create({ data }: $TSFixMe) {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
         data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
@@ -155,9 +142,9 @@ export default {
         });
 
         return newStatusPage;
-    },
+    }
 
-    createDomain: async function (
+    async createDomain(
         subDomain: $TSFixMe,
         projectId: $TSFixMe,
         statusPageId: $TSFixMe,
@@ -261,11 +248,11 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
     // update all the occurence of the old domain to the new domain
     // use regex to replace the value
-    updateCustomDomain: async function (
+    async updateCustomDomain(
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
         oldDomain: $TSFixMe
@@ -308,9 +295,9 @@ export default {
                 await _this.updateOneBy({ _id: statusPageId }, { domains });
             }
         }
-    },
+    }
 
-    updateDomain: async function (
+    async updateDomain(
         projectId: $TSFixMe,
         statusPageId: $TSFixMe,
         domainId: $TSFixMe,
@@ -426,9 +413,9 @@ export default {
             { domains: statusPage.domains }
         );
         return result;
-    },
+    }
 
-    deleteDomain: async function (statusPageId: $TSFixMe, domainId: $TSFixMe) {
+    async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe) {
         const populateStatusPage = [
             {
                 path: 'domains.domainVerificationToken',
@@ -480,9 +467,9 @@ export default {
 
             { domains: statusPage.domains }
         );
-    },
+    }
 
-    duplicateStatusPage: async function (
+    async duplicateStatusPage(
         statusPageProjectId: $TSFixMe,
         statusPageSlug: $TSFixMe,
         statusPageName: $TSFixMe,
@@ -539,9 +526,9 @@ export default {
         }
 
         return this.create(data);
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -602,9 +589,9 @@ export default {
             }
         }
         return statusPage;
-    },
+    }
 
-    removeMonitor: async function (monitorId: $TSFixMe) {
+    async removeMonitor(monitorId: $TSFixMe) {
         const populateStatusPage = [
             {
                 path: 'monitors.monitor',
@@ -631,9 +618,9 @@ export default {
                 await this.updateOneBy({ _id: statusPage._id }, { monitors });
             }
         }
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const existingStatusPage = await this.findBy({
             query: {
                 name: data.name,
@@ -707,9 +694,9 @@ export default {
             });
         }
         return updatedStatusPage;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -744,13 +731,9 @@ export default {
             select: selectStatusPage,
         });
         return updatedData;
-    },
+    }
 
-    getNotes: async function (
-        query: Query,
-        skip: PositiveNumber,
-        limit: PositiveNumber
-    ) {
+    async getNotes(query: Query, skip: PositiveNumber, limit: PositiveNumber) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -840,9 +823,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
-    getIncident: async function (query: Query) {
+    async getIncident(query: Query) {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -872,9 +855,9 @@ export default {
         });
 
         return incident;
-    },
+    }
 
-    getIncidentNotes: async function (
+    async getIncidentNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -913,9 +896,9 @@ export default {
         ]);
 
         return { message, count };
-    },
+    }
 
-    getNotesByDate: async function (
+    async getNotesByDate(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -958,13 +941,9 @@ export default {
             return incident;
         });
         return { investigationNotes, count };
-    },
+    }
 
-    getEvents: async function (
-        query: Query,
-        skip: PositiveNumber,
-        limit: PositiveNumber
-    ) {
+    async getEvents(query: Query, skip: PositiveNumber, limit: PositiveNumber) {
         const _this = this;
 
         if (!skip) skip = 0;
@@ -1062,9 +1041,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
-    getFutureEvents: async function (
+    async getFutureEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1168,9 +1147,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
-    getPastEvents: async function (
+    async getPastEvents(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1271,9 +1250,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
+    }
 
-    getEvent: async function (query: Query) {
+    async getEvent(query: Query) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1296,9 +1275,9 @@ export default {
             populate,
         });
         return scheduledEvent;
-    },
+    }
 
-    getEventNotes: async function (
+    async getEventNotes(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1340,9 +1319,9 @@ export default {
         ]);
 
         return { notes: eventNote, count };
-    },
+    }
 
-    getEventsByDate: async function (
+    async getEventsByDate(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1375,14 +1354,9 @@ export default {
         ]);
 
         return { scheduledEvents, count };
-    },
+    }
 
-    getStatusPage: async function ({
-        query,
-        userId,
-        populate,
-        select,
-    }: $TSFixMe) {
+    async getStatusPage({ query, userId, populate, select }: $TSFixMe) {
         const thisObj = this;
         if (!query) {
             query = {};
@@ -1478,9 +1452,9 @@ export default {
             }
         }
         return statusPage;
-    },
+    }
 
-    getIncidents: async function (query: Query) {
+    async getIncidents(query: Query) {
         const _this = this;
 
         if (!query) query = {};
@@ -1543,8 +1517,9 @@ export default {
             error.code = 400;
             throw error;
         }
-    },
-    isPermitted: async function (userId: string, statusPage: $TSFixMe) {
+    }
+
+    async isPermitted(userId: string, statusPage: $TSFixMe) {
         const fn = async (resolve: $TSFixMe) => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1573,9 +1548,9 @@ export default {
             }
         };
         return fn;
-    },
+    }
 
-    getStatusPagesByProjectId: async function ({
+    async getStatusPagesByProjectId({
         projectId,
         skip = 0,
         limit = 10,
@@ -1599,14 +1574,14 @@ export default {
             data,
             count,
         };
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await StatusPageModel.deleteMany(query);
         return 'Status Page(s) Removed Successfully!';
-    },
+    }
 
-    restoreBy: async function (query: Query) {
+    async restoreBy(query: Query) {
         const _this = this;
         query.deleted = true;
 
@@ -1656,13 +1631,13 @@ export default {
             );
             return statusPages;
         }
-    },
+    }
     // get status pages for this incident
-    getStatusPagesForIncident: async (
+    async getStatusPagesForIncident(
         incidentId: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) => {
+    ) {
         // first get the monitor, then scan status page collection containing the monitor
         let { monitors } = await IncidentModel.findById(incidentId).select(
             'monitors.monitorId'
@@ -1691,9 +1666,9 @@ export default {
             }
         }
         return { statusPages: statusPages || [], count };
-    },
+    }
 
-    getStatusBubble: async (statusPages: $TSFixMe, probes: $TSFixMe) => {
+    async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe) {
         if (statusPages && statusPages[0]) {
             statusPages = statusPages[0];
         }
@@ -1726,9 +1701,9 @@ export default {
             statusMessage = 'Some services are degraded';
         }
         return { bubble, statusMessage };
-    },
+    }
 
-    doesDomainExist: async function (domain: $TSFixMe) {
+    async doesDomainExist(domain: $TSFixMe) {
         const _this = this;
         const statusPage = await _this.countBy({
             query: {
@@ -1739,9 +1714,9 @@ export default {
         if (!statusPage || statusPage === 0) return false;
 
         return true;
-    },
+    }
 
-    createExternalStatusPage: async function (data: $TSFixMe) {
+    async createExternalStatusPage(data: $TSFixMe) {
         const externalStatusPage = new ExternalStatusPageModel();
 
         externalStatusPage.url = data.url || null;
@@ -1758,8 +1733,9 @@ export default {
         const newExternalStatusPage = await externalStatusPage.save();
 
         return newExternalStatusPage;
-    },
-    getExternalStatusPage: async function (
+    }
+
+    async getExternalStatusPage(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1783,8 +1759,9 @@ export default {
         query.deleted = false;
         const externalStatusPages = await ExternalStatusPageModel.find(query);
         return externalStatusPages;
-    },
-    updateExternalStatusPage: async function (
+    }
+
+    async updateExternalStatusPage(
         projectId: $TSFixMe,
         _id: $TSFixMe,
         data: $TSFixMe
@@ -1802,8 +1779,9 @@ export default {
                 }
             );
         return externalStatusPages;
-    },
-    deleteExternalStatusPage: async function (
+    }
+
+    async deleteExternalStatusPage(
         projectId: $TSFixMe,
         _id: $TSFixMe,
         userId: string
@@ -1825,9 +1803,9 @@ export default {
                 }
             );
         return externalStatusPages;
-    },
+    }
 
-    createAnnouncement: async function (data: $TSFixMe) {
+    async createAnnouncement(data: $TSFixMe) {
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
             monitorId: monitor,
@@ -1855,9 +1833,9 @@ export default {
         const newAnnouncement = await announcement.save();
 
         return newAnnouncement;
-    },
+    }
 
-    getAnnouncements: async function (
+    async getAnnouncements(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -1886,27 +1864,27 @@ export default {
             .populate('createdById', 'name')
             .populate('monitors.monitorId', 'name');
         return allAnnouncements;
-    },
+    }
 
-    countAnnouncements: async function (query: Query) {
+    async countAnnouncements(query: Query) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         const count = await AnnouncementModel.countDocuments(query);
         return count;
-    },
+    }
 
-    getSingleAnnouncement: async function (query: Query) {
+    async getSingleAnnouncement(query: Query) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         const response = await AnnouncementModel.findOne(query);
         return response;
-    },
+    }
 
-    updateAnnouncement: async function (query: Query, data: $TSFixMe) {
+    async updateAnnouncement(query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -1946,9 +1924,9 @@ export default {
         await _this.updateAnnouncementLog({ active: true }, log);
 
         return response;
-    },
+    }
 
-    updateManyAnnouncement: async function (query: Query) {
+    async updateManyAnnouncement(query: Query) {
         if (!query) {
             query = {};
         }
@@ -1963,9 +1941,9 @@ export default {
             }
         );
         return response;
-    },
+    }
 
-    deleteAnnouncement: async function (query: Query, userId: string) {
+    async deleteAnnouncement(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -1984,9 +1962,9 @@ export default {
             }
         );
         return response;
-    },
+    }
 
-    createAnnouncementLog: async function (data: $TSFixMe) {
+    async createAnnouncementLog(data: $TSFixMe) {
         const announcementLog = new AnnouncementLogModel();
 
         announcementLog.announcementId = data.announcementId || null;
@@ -2002,9 +1980,9 @@ export default {
         announcementLog.active = data.active || null;
         const newAnnouncementLog = await announcementLog.save();
         return newAnnouncementLog;
-    },
+    }
 
-    updateAnnouncementLog: async function (query: Query, data: $TSFixMe) {
+    async updateAnnouncementLog(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -2019,9 +1997,9 @@ export default {
             }
         );
         return response;
-    },
+    }
 
-    getAnnouncementLogs: async function (
+    async getAnnouncementLogs(
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -2053,9 +2031,9 @@ export default {
                 populate: { path: 'monitors.monitorId', select: 'name' },
             });
         return announcementLogs;
-    },
+    }
 
-    deleteAnnouncementLog: async function (query: Query, userId: string) {
+    async deleteAnnouncementLog(query: Query, userId: string) {
         if (!query) {
             query = {};
         }
@@ -2074,18 +2052,18 @@ export default {
             }
         );
         return response;
-    },
+    }
 
-    countAnnouncementLogs: async function (query: Query) {
+    async countAnnouncementLogs(query: Query) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         const count = await AnnouncementLogModel.countDocuments(query);
         return count;
-    },
+    }
 
-    fetchTweets: async (handle: $TSFixMe) => {
+    async fetchTweets(handle: $TSFixMe) {
         const userData = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {
@@ -2112,8 +2090,8 @@ export default {
         }
 
         return response;
-    },
-};
+    }
+}
 
 // handle the unique pagination for scheduled events on status page
 function limitEvents(

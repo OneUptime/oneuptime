@@ -1,5 +1,5 @@
-export default {
-    create: async function (data) {
+export default class Service {
+    async create(data) {
         const _this = this;
         let containerScannerKey;
         if (data.containerScannerKey) {
@@ -29,9 +29,9 @@ export default {
             const savedContainerScanner = await containerScanner.save();
             return savedContainerScanner;
         }
-    },
+    }
 
-    updateOneBy: async function (query, data) {
+    async updateOneBy(query, data) {
         if (!query) {
             query = {};
         }
@@ -45,9 +45,9 @@ export default {
             }
         );
         return containerScanner;
-    },
+    }
 
-    findOneBy: async function (query) {
+    async findOneBy(query) {
         if (!query) {
             query = {};
         }
@@ -57,17 +57,17 @@ export default {
             query
         ).lean();
         return containerScanner;
-    },
+    }
 
-    updateContainerScannerStatus: async function (containerScannerId) {
+    async updateContainerScannerStatus(containerScannerId) {
         const containerScanner = await ContainerScannerModel.findOneAndUpdate(
             { _id: containerScannerId },
             { $set: { lastAlive: Date.now() } },
             { new: true }
         );
         return containerScanner;
-    },
-};
+    }
+}
 
 /**
  * verifies if a specific script condition satisfies

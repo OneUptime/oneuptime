@@ -4,8 +4,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+export default class Service {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -20,9 +20,9 @@ export default {
 
         const customField = await customFieldQuery;
         return customField;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         let customField = await MonitorCustomFieldModel.create({
             ...data,
         });
@@ -38,9 +38,9 @@ export default {
         });
 
         return customField;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -73,16 +73,9 @@ export default {
         }
 
         return customField;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -112,18 +105,18 @@ export default {
         const customFields = await customFieldsQuery;
 
         return customFields;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
         query.deleted = false;
         const count = await MonitorCustomFieldModel.countDocuments(query);
         return count;
-    },
+    }
 
-    deleteBy: async function (query: Query) {
+    async deleteBy(query: Query) {
         const customField = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
             {
@@ -143,9 +136,9 @@ export default {
         }
 
         return customField;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -168,10 +161,10 @@ export default {
             populate: populateMonCustomField,
         });
         return updatedCustomField;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await MonitorCustomFieldModel.deleteMany(query);
         return 'Monitor Custom field(s) removed successfully!';
-    },
-};
+    }
+}

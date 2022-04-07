@@ -1,5 +1,5 @@
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const {
             projectId,
             title,
@@ -51,15 +51,9 @@ export default {
 
         incidentSettings.name = name;
         return await incidentSettings.save();
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -84,7 +78,7 @@ export default {
         const result = await responseQuery;
 
         return result;
-    },
+    }
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -92,8 +86,8 @@ export default {
 
         if (!query['deleted']) query['deleted'] = false;
         return await incidentSettingsModel.countDocuments(query);
-    },
-    findOne: async ({ query, select, populate, sort }: FindOneBy) => {
+    }
+    async findOne({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
@@ -106,8 +100,9 @@ export default {
 
         const incidentSettings = await responseQuery;
         return incidentSettings;
-    },
-    updateOne: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOne(query: Query, data: $TSFixMe) {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
@@ -158,8 +153,8 @@ export default {
             select: 'projectId title description incidentPriority isDefault name createdAt',
         });
         return incidentSettings;
-    },
-    updateBy: async (query: Query, data: $TSFixMe) => {
+    }
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -174,8 +169,9 @@ export default {
 
         updatedData = await this.findBy({ query, select, populate });
         return updatedData;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         const incidentSetting = await this.findOne({
             query,
             select: 'projectId title description incidentPriority isDefault name createdAt',
@@ -200,12 +196,13 @@ export default {
             );
 
         return deletedIncidentSetting;
-    },
-    hardDeleteBy: async function (query: Query) {
+    }
+
+    async hardDeleteBy(query: Query) {
         await incidentSettingsModel.deleteMany(query);
         return 'Incident setting(s) removed successfully!';
-    },
-};
+    }
+}
 
 import incidentSettingsModel from '../models/incidentSettings';
 

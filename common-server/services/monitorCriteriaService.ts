@@ -1,5 +1,5 @@
 const MonitorCriteriaService = {
-    getCriteria: function () {
+    getCriteria() {
         return {
             url: {
                 up_1000: [
@@ -413,7 +413,7 @@ const MonitorCriteriaService = {
         };
     },
 
-    create: function (monitorType: $TSFixMe) {
+    create(monitorType: $TSFixMe) {
         const criteria = this.getCriteria()[monitorType];
         const criteriaObj = {};
         if (criteria) {
@@ -482,7 +482,7 @@ const MonitorCriteriaService = {
         return criteriaObj;
     },
 
-    makeCriteria: function (val: $TSFixMe) {
+    makeCriteria(val: $TSFixMe) {
         const val2 = {};
         const criteria = [];
 
@@ -529,7 +529,7 @@ const MonitorCriteriaService = {
         return val2;
     },
 
-    innerCriteria: function (val: $TSFixMe, nestVal: $TSFixMe) {
+    innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
         nestVal = [...nestVal];
         if (val.criteria && val.criteria.length) {
             for (let j = 0; j < val.criteria.length; j++) {
@@ -578,7 +578,7 @@ const MonitorCriteriaService = {
         return nestVal;
     },
 
-    mapCriteria: function (val: $TSFixMe) {
+    mapCriteria(val: $TSFixMe) {
         const val2 = [];
         if (val && val.criteria && val.criteria.condition === 'and') {
             for (let i = 0; i < val.criteria.criteria.length; i++) {
@@ -685,7 +685,7 @@ const MonitorCriteriaService = {
         }
     },
 
-    mapNestedCriteria: function (
+    mapNestedCriteria(
         criteriaObj: $TSFixMe,
         innerContainer: $TSFixMe,
         cr: $TSFixMe

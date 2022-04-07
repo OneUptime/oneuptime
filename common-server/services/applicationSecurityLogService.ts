@@ -4,8 +4,8 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function ({ securityId, componentId, data }: $TSFixMe) {
+export default class Service {
+    async create({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
             const error = new Error('Security ID is required');
 
@@ -46,8 +46,9 @@ export default {
         }
 
         return securityLog;
-    },
-    findOneBy: async function ({ query, populate, select, sort }: FindOneBy) {
+    }
+
+    async findOneBy({ query, populate, select, sort }: FindOneBy) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -61,15 +62,9 @@ export default {
 
         const securityLog = await securityLogQuery;
         return securityLog;
-    },
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    }
+
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const securityLogsQuery = ApplicationSecurityLogModel.find(query)
@@ -83,8 +78,9 @@ export default {
 
         const securityLogs = await securityLogsQuery;
         return securityLogs;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -108,8 +104,9 @@ export default {
         }
 
         return applicationSecurityLog;
-    },
-    deleteBy: async function (query: Query) {
+    }
+
+    async deleteBy(query: Query) {
         let securityLog = this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
@@ -127,9 +124,10 @@ export default {
         });
 
         return securityLog;
-    },
-    hardDelete: async function (query: Query) {
+    }
+
+    async hardDelete(query: Query) {
         await ApplicationSecurityLogModel.deleteMany(query);
         return 'Application Security logs deleted successfully';
-    },
-};
+    }
+}

@@ -1,6 +1,6 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 
-export default {
+export default class Service {
     /**
      * @method getMostActiveMembers
      * @description get the most active member who resolved
@@ -92,7 +92,7 @@ export default {
 
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
-    },
+    }
     /**
      * @method getMostActiveMonitor
      * @description get total number of incident for the month
@@ -183,7 +183,7 @@ export default {
 
         wrapper['count'] = result[0].total[0] ? result[0].total[0].count : 0;
         return wrapper;
-    },
+    }
     /**
      * @param { String } subProjectIds id of current project
      * @param { String } startDate start date of range
@@ -311,7 +311,7 @@ export default {
             formarted.push(data);
         }
         return formarted;
-    },
+    }
     /**
      * @param { String } subProjectIds id of current project
      * @param { String } startDate start date of range
@@ -418,8 +418,8 @@ export default {
             formarted.push(data);
         }
         return formarted;
-    },
-};
+    }
+}
 
 import moment from 'moment';
 import IncidentModel from '../models/incident';

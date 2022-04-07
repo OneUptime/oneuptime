@@ -5,7 +5,7 @@ import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
+export default class Service {
     async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
         query.deleted = false;
         const notificationsQuery = NotificationModel.find(query)
@@ -19,7 +19,7 @@ export default {
 
         const notifications = await notificationsQuery;
         return notifications;
-    },
+    }
 
     async countBy(query: Query) {
         if (!query) {
@@ -29,9 +29,9 @@ export default {
         query.deleted = false;
         const count = await NotificationModel.countDocuments(query);
         return count;
-    },
+    }
 
-    create: async function (
+    async create(
         projectId: $TSFixMe,
         message: $TSFixMe,
         userId: string,
@@ -79,16 +79,16 @@ export default {
         RealTimeService.sendNotification(populatedNotification || notification);
 
         return populatedNotification || notification;
-    },
+    }
 
-    updateManyBy: async function (query: Query, data: $TSFixMe) {
+    async updateManyBy(query: Query, data: $TSFixMe) {
         const notifications = await NotificationModel.updateMany(query, {
             $addToSet: data,
         });
         return notifications;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const _this = this;
         if (!query) {
             query = {};
@@ -126,9 +126,9 @@ export default {
             }
         );
         return notification;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -141,21 +141,21 @@ export default {
             createdAt: -1,
         });
         return updatedData;
-    },
+    }
 
-    delete: async function (notificationId: $TSFixMe) {
+    async delete(notificationId: $TSFixMe) {
         const result = await NotificationModel.findById(
             notificationId
         ).remove();
         return result;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await NotificationModel.deleteMany(query);
         return 'Notification(s) removed successfully!';
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -171,5 +171,5 @@ export default {
         const notification = await notificationQuery;
 
         return notification;
-    },
-};
+    }
+}

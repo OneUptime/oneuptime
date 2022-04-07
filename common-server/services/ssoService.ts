@@ -1,12 +1,5 @@
-export default {
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+export default class Service {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!query['deleted']) query['deleted'] = false;
 
         const ssosQuery = SsoModel.find(query, {
@@ -24,9 +17,9 @@ export default {
 
         const ssos = await ssosQuery;
         return ssos;
-    },
+    }
 
-    deleteBy: async function (query: Query) {
+    async deleteBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -48,9 +41,9 @@ export default {
             }
         }
         return sso;
-    },
+    }
 
-    create: async function (data: $TSFixMe) {
+    async create(data: $TSFixMe) {
         const sso = new SsoModel();
 
         sso['saml-enabled'] = data['saml-enabled'] || false;
@@ -111,9 +104,9 @@ export default {
 
         const savedSso = await sso.save();
         return savedSso;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -129,9 +122,9 @@ export default {
         const sso = await ssoQuery;
 
         return sso;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -165,9 +158,9 @@ export default {
             '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById';
         const sso = await this.findBy({ query, select: selectSso });
         return sso;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -176,25 +169,25 @@ export default {
 
         const count = await SsoModel.countDocuments(query);
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await SsoModel.deleteMany(query);
         return 'SSO(s) removed successfully!';
-    },
+    }
 
     // grab the email from xml response
     // assuming there's only one email in the xml response
     // or the same email x times in the response
-    getEmail: function (xml: $TSFixMe) {
+    getEmail(xml: $TSFixMe) {
         const stringifiedXml = String(xml);
 
         const regex = // eslint-disable-next-line no-control-regex
             /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gi;
 
         return stringifiedXml.match(regex)[0];
-    },
-};
+    }
+}
 
 import SsoModel from '../models/sso';
 import SsoDefaultRolesService from './SsoDefaultRolesService';

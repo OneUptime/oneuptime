@@ -1,5 +1,5 @@
-export default {
-    create: async function ({ name, value }: $TSFixMe) {
+export default class Service {
+    async create({ name, value }: $TSFixMe) {
         if (name === 'smtp' && value.internalSmtp && !value.customSmtp) {
             value = {
                 internalSmtp: true,
@@ -57,9 +57,9 @@ export default {
         }
 
         return globalConfig;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -133,9 +133,9 @@ export default {
         }
 
         return globalConfig;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -148,16 +148,9 @@ export default {
         globalConfigs = await this.findBy({ query, select: selectConfig });
 
         return globalConfigs;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        skip,
-        limit,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -212,9 +205,9 @@ export default {
         }
 
         return globalConfigs;
-    },
+    }
 
-    findOneBy: async function ({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
         }
@@ -255,9 +248,9 @@ export default {
             }
         }
         return globalConfig;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -265,13 +258,13 @@ export default {
         const count = await GlobalConfigModel.countDocuments(query);
 
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await GlobalConfigModel.deleteMany(query);
         return 'Global Config(s) Removed Successfully!';
-    },
-};
+    }
+}
 
 import Crypto from 'crypto';
 import GlobalConfigModel from '../models/globalConfig';

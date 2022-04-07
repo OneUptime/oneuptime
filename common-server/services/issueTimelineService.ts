@@ -3,8 +3,8 @@ import IssueTimelineModel from '../models/issueTimeline';
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const _this = this;
 
         // prepare issue timeline model
@@ -31,7 +31,7 @@ export default {
             populate: populateIssueTimeline,
         });
         return savedIssueTimeline;
-    },
+    }
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
@@ -48,7 +48,7 @@ export default {
         const issueTimeline = await issueTimelineQuery;
 
         return issueTimeline;
-    },
+    }
     // get a list of IssueTimeline
     async findBy({ query, select, populate, sort }: FindBy) {
         if (!query) {
@@ -63,5 +63,5 @@ export default {
 
         const issues = await issuesQuery;
         return issues;
-    },
-};
+    }
+}

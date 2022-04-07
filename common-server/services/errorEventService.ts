@@ -1,6 +1,6 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         // prepare error event model
         const errorEvent = new ErrorEventModel();
 
@@ -41,7 +41,7 @@ export default {
         const savedErrorEvent = await errorEvent.save();
 
         return savedErrorEvent;
-    },
+    }
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
             query = {};
@@ -55,7 +55,7 @@ export default {
         errorEventQuery.populate(populate);
         const result = await errorEventQuery;
         return result;
-    },
+    }
     // get all error events that matches the specified query
     async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
         if (!skip) skip = 0;
@@ -84,7 +84,7 @@ export default {
         errorEventsQuery.populate(populate);
         const result = await errorEventsQuery;
         return result;
-    },
+    }
     // get all error events that matches the specified query
     async findDistinct(
         query: Query,
@@ -237,7 +237,7 @@ export default {
             dateRange,
             count: errorTrackerIssues.length,
         };
-    },
+    }
     async findOneWithPrevAndNext(
         errorEventId: $TSFixMe,
         errorTrackerId: $TSFixMe
@@ -340,7 +340,7 @@ export default {
             next: next || null,
             totalEvents: totalEvents,
         };
-    },
+    }
     async countBy(query: Query) {
         if (!query) {
             query = {};
@@ -349,8 +349,9 @@ export default {
         const count = await ErrorEventModel.countDocuments(query);
 
         return count;
-    },
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateOneBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -373,8 +374,9 @@ export default {
         errorEvent = await this.findOneBy({ query, select, populate });
 
         return errorEvent;
-    },
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    }
+
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -385,8 +387,8 @@ export default {
         });
 
         return updateProcess;
-    },
-};
+    }
+}
 
 import ErrorEventModel from '../models/errorEvent';
 import IssueService from './IssueService';

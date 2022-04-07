@@ -4,8 +4,8 @@ import MonitorModel from '../models/monitor';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
-export default {
-    create: async function (data: $TSFixMe) {
+export default class Service {
+    async create(data: $TSFixMe) {
         const existingStatusPageCategory = await this.countBy({
             name: data.name,
             statusPageId: data.statusPageId,
@@ -21,9 +21,9 @@ export default {
 
         const statusPageCategory = await StatusPageCategoryModel.create(data);
         return statusPageCategory;
-    },
+    }
 
-    deleteBy: async function (query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string) {
         const statusPageCategory =
             await StatusPageCategoryModel.findOneAndUpdate(
                 query,
@@ -47,16 +47,9 @@ export default {
         );
 
         return statusPageCategory;
-    },
+    }
 
-    findBy: async function ({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort,
-    }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -87,9 +80,9 @@ export default {
 
         const statusCategories = await statusPageCategoriesQuery;
         return statusCategories;
-    },
+    }
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe) {
         const existingStatusPageCategory = await this.countBy({
             name: data.name,
             _id: { $not: { $eq: query._id } },
@@ -117,9 +110,9 @@ export default {
                 }
             );
         return statusPageCategory;
-    },
+    }
 
-    updateBy: async function (query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe) {
         if (!query) {
             query = {};
         }
@@ -131,9 +124,9 @@ export default {
         const select = 'projectId name createdById createdAt';
         updatedData = await this.findBy({ query, select });
         return updatedData;
-    },
+    }
 
-    countBy: async function (query: Query) {
+    async countBy(query: Query) {
         if (!query) {
             query = {};
         }
@@ -143,10 +136,10 @@ export default {
 
         const count = await StatusPageCategoryModel.countDocuments(query);
         return count;
-    },
+    }
 
-    hardDeleteBy: async function (query: Query) {
+    async hardDeleteBy(query: Query) {
         await StatusPageCategoryModel.deleteMany(query);
         return 'Status Page Categories(s) removed successfully!';
-    },
-};
+    }
+}
