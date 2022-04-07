@@ -16,7 +16,7 @@ describe('OneUptimeLogger', function () {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
     this.timeout(timeout + 1000);
-    let projectId: $TSFixMe,
+    let projectId: string,
         token: $TSFixMe,
         componentId,
         applicationLog: $TSFixMe;

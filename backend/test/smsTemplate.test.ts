@@ -18,7 +18,7 @@ import AirtableService from '../backend/services/airtableService';
 
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, projectId: $TSFixMe, userId, smsTemplateId: $TSFixMe;
+let token: $TSFixMe, projectId: string, userId, smsTemplateId: $TSFixMe;
 
 describe('SMS Template API', function () {
     this.timeout(20000);

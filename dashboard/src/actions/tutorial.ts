@@ -77,7 +77,7 @@ export const fetchTutorial = () => {
     };
 };
 
-export const closeTutorial = (type: $TSFixMe, projectId: $TSFixMe) => {
+export const closeTutorial = (type: $TSFixMe, projectId: string) => {
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.put('tutorial', { type, projectId });

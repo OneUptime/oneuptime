@@ -122,7 +122,7 @@ export default class Service {
     }
 
     async doesPhoneNumberComplyWithHighRiskConfig(
-        projectId: $TSFixMe,
+        projectId: string,
         alertPhoneNumber: $TSFixMe
     ) {
         const project = await ProjectService.findOneBy({
@@ -1808,7 +1808,7 @@ export default class Service {
     }
 
     async sendStausPageNoteNotificationToProjectWebhooks(
-        projectId: $TSFixMe,
+        projectId: string,
         incident: $TSFixMe,
         statusPageNoteData: $TSFixMe
     ) {
@@ -1866,7 +1866,7 @@ export default class Service {
         incident: $TSFixMe,
         data: $TSFixMe,
         statusNoteStatus: $TSFixMe,
-        projectId: $TSFixMe
+        projectId: string
     ) {
         const _this = this;
         const uuid = new Date().getTime();
@@ -3967,7 +3967,7 @@ export default class Service {
     }
 
     //Return true, if the limit is not reached yet.
-    async checkPhoneAlertsLimit(projectId: $TSFixMe) {
+    async checkPhoneAlertsLimit(projectId: string) {
         const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId

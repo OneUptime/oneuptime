@@ -209,7 +209,7 @@ export default class Service {
         }
     }
     async updateAllLighthouseLogs(
-        projectId: $TSFixMe,
+        projectId: string,
         monitorId: $TSFixMe,
         query: Query
     ) {

@@ -17,7 +17,7 @@ export const createCommunicationSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const createCommunicationSla =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCommunicationSlaRequest());
 
@@ -56,7 +56,7 @@ export const updateCommunicationSlaFailure = (error: ErrorPayload) => ({
 
 export const updateCommunicationSla =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         incidentSlaId: $TSFixMe,
         data: $TSFixMe,
         handleDefault = false
@@ -100,7 +100,7 @@ export const fetchCommunicationSlasFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchCommunicationSlas =
-    (projectId: $TSFixMe, skip = 0, limit = 0) =>
+    (projectId: string, skip = 0, limit = 0) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCommunicationSlasRequest());
@@ -143,7 +143,7 @@ export const deleteCommunicationSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const deleteCommunicationSla =
-    (projectId: $TSFixMe, incidentSlaId: $TSFixMe) =>
+    (projectId: string, incidentSlaId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCommunicationSlaRequest());
@@ -186,7 +186,7 @@ export const fetchDefaultCommunicationSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchDefaultCommunicationSla =
-    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultCommunicationSlaRequest());
 

@@ -48,7 +48,7 @@ const sleep = (waitTimeInMs: $TSFixMe) =>
 
 let token: $TSFixMe,
     userId: string,
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,
     testServerMonitorId,
@@ -690,7 +690,7 @@ describe('Incident API', function () {
     });
 });
 
-let subProjectId: $TSFixMe,
+let subProjectId: string,
     newUserToken: $TSFixMe,
     subProjectIncidentId: $TSFixMe;
 

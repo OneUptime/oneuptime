@@ -20,7 +20,7 @@ import AirtableService from '../backend/services/airtableService';
 
 describe('Git Credential API', function () {
     const timeout = 30000;
-    let projectId: $TSFixMe, userId, token: $TSFixMe, credentialId: $TSFixMe;
+    let projectId: string, userId, token: $TSFixMe, credentialId: $TSFixMe;
 
     this.timeout(timeout);
 

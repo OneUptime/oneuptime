@@ -17,8 +17,8 @@ import MonitorService from '../backend/services/monitorService';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    projectId: $TSFixMe,
-    newProjectId: $TSFixMe,
+    projectId: string,
+    newProjectId: string,
     monitorId: $TSFixMe;
 
 describe('Enterprise Monitor API', function () {

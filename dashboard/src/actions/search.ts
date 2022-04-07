@@ -40,7 +40,7 @@ export const searchFailure = (payload: $TSFixMe) => {
         payload,
     };
 };
-export const search = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const search = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         dispatch(searchRequest());
         const promise = BackendAPI.post(`search/${projectId}`, values);

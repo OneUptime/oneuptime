@@ -141,7 +141,7 @@ class Home extends Component<ComponentProps> {
         }
     }
 
-    handleClosingSla = (projectId: $TSFixMe, monitorId: $TSFixMe) => {
+    handleClosingSla = (projectId: string, monitorId: $TSFixMe) => {
 
         this.props.closeBreachedMonitorSla(projectId, monitorId);
     };

@@ -4,7 +4,7 @@ import Database from 'common-server/utils/database';
 const probeCollection = Database.getDatabase().collection('probes');
 import { v1 as uuidv1 } from 'uuid';
 import { post } from '../utils/api';
-import { realtimeUrl } from '../utils/config';
+import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {

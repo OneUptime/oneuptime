@@ -23,7 +23,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import ComponentModel from '../backend/models/component';
 import ComponentService from '../backend/services/componentService';
 
-let projectId: $TSFixMe,
+let projectId: string,
     userId,
     monitorId: $TSFixMe,
     token: $TSFixMe,

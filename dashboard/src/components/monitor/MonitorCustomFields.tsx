@@ -41,7 +41,7 @@ class MonitorCustomFields extends Component<ComponentProps> {
         fetchCustomFields(projectId, 0, this.limit);
     }
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchCustomFields } = this.props;
         fetchCustomFields(
@@ -51,7 +51,7 @@ class MonitorCustomFields extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchCustomFields } = this.props;
         fetchCustomFields(

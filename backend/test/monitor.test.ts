@@ -27,7 +27,7 @@ import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
     userId: string,
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     resourceCategoryId: $TSFixMe,
     monitor2Id: $TSFixMe;
@@ -975,9 +975,7 @@ describe('Monitor API with resource Category', function () {
     });
 });
 
-let subProjectId: $TSFixMe,
-    newUserToken: $TSFixMe,
-    subProjectMonitorId: $TSFixMe;
+let subProjectId: string, newUserToken: $TSFixMe, subProjectMonitorId: $TSFixMe;
 
 describe('Monitor API with Sub-Projects', function () {
     this.timeout(30000);

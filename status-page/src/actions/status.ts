@@ -280,7 +280,7 @@ export const individualNoteDisable = () => {
 
 // Calls the API to get notes
 export const getStatusPageNote = (
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
     limit = 10,
@@ -320,7 +320,7 @@ export const getStatusPageNote = (
 };
 
 export const getStatusPageIndividualNote = (
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     date: $TSFixMe,
     name: $TSFixMe,
@@ -394,7 +394,7 @@ export const scheduledEventReset = () => {
 
 // Calls the API to get events
 export const getScheduledEvent = (
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
     theme: $TSFixMe,
@@ -457,7 +457,7 @@ export const ongoingEventReset = () => {
 
 // Calls the API to get events
 export const getOngoingScheduledEvent = (
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
     theme: $TSFixMe,
@@ -508,7 +508,7 @@ export const individualEventsFailure = (error: ErrorPayload) => ({
 });
 
 export const getIndividualEvent = (
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     date: $TSFixMe,
     name: $TSFixMe,
@@ -565,7 +565,7 @@ export const futureEventsFailure = (error: ErrorPayload) => ({
 
 export const fetchFutureEvents =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         statusPageSlug: $TSFixMe,
         skip: PositiveNumber,
         theme: $TSFixMe,
@@ -608,7 +608,7 @@ export const pastEventsFailure = (error: ErrorPayload) => ({
 
 export const fetchPastEvents =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         statusPageSlug: $TSFixMe,
         skip: PositiveNumber,
         theme: $TSFixMe,
@@ -677,7 +677,7 @@ export const moreNoteFailure = (error: ErrorPayload) => {
 };
 
 export const getMoreNote = (
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
 ) => {
@@ -730,7 +730,7 @@ export const moreEventFailure = (error: ErrorPayload) => {
 };
 
 export const getMoreEvent = (
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
 ) => {
@@ -778,7 +778,7 @@ export const moreFutureEventsFailure = (error: ErrorPayload) => ({
 
 export const fetchMoreFutureEvents =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         statusPageSlug: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
@@ -819,7 +819,7 @@ export const morePastEventsFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchMorePastEvents =
-    (projectId: $TSFixMe, statusPageSlug: $TSFixMe, skip: PositiveNumber) =>
+    (projectId: string, statusPageSlug: $TSFixMe, skip: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(morePastEventsRequest());
@@ -852,7 +852,7 @@ export const selectedProbe = (val: $TSFixMe) => {
 
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     startDate: $TSFixMe,
     endDate: $TSFixMe
@@ -917,7 +917,7 @@ export const fetchMonitorStatusesFailure = (error: ErrorPayload) => {
 };
 
 export function fetchMonitorLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -999,7 +999,7 @@ export const fetchEventFailure = (error: ErrorPayload) => {
     };
 };
 
-export const fetchEvent = (projectId: $TSFixMe, scheduledEventId: $TSFixMe) => {
+export const fetchEvent = (projectId: string, scheduledEventId: $TSFixMe) => {
     return async function (dispatch: Dispatch) {
         dispatch(fetchEventRequest());
 
@@ -1045,7 +1045,7 @@ export const fetchEventNoteFailure = (error: ErrorPayload) => {
 };
 
 export function fetchEventNote(
-    projectId: $TSFixMe,
+    projectId: string,
     scheduledEventSlug: $TSFixMe,
     type: $TSFixMe
 ) {
@@ -1093,7 +1093,7 @@ export const moreEventNoteFailure = (error: ErrorPayload) => {
 };
 
 export function moreEventNote(
-    projectId: $TSFixMe,
+    projectId: string,
     scheduledEventId: $TSFixMe,
     type: $TSFixMe,
     skip: PositiveNumber
@@ -1142,7 +1142,7 @@ export const fetchIncidentFailure = (error: ErrorPayload) => {
     };
 };
 
-export const fetchIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
+export const fetchIncident = (projectId: string, incidentSlug: $TSFixMe) => {
     return async function (dispatch: Dispatch) {
         try {
             dispatch(fetchIncidentRequest());
@@ -1186,7 +1186,7 @@ export const fetchIncidentNotesFailure = (error: ErrorPayload) => {
 };
 
 export function fetchIncidentNotes(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     postOnStatusPage: $TSFixMe
 ) {
@@ -1234,7 +1234,7 @@ export const moreIncidentNotesFailure = (error: ErrorPayload) => {
 };
 
 export function moreIncidentNotes(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentSlug: $TSFixMe,
     postOnStatusPage: $TSFixMe,
     skip: PositiveNumber
@@ -1283,7 +1283,7 @@ export const fetchLastIncidentTimelineFailure = (error: ErrorPayload) => {
 };
 
 export function fetchLastIncidentTimeline(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentSlug: $TSFixMe
 ) {
     return async function (dispatch: Dispatch) {
@@ -1330,7 +1330,7 @@ export const fetchLastIncidentTimelinesFailure = (error: ErrorPayload) => {
 };
 
 export function fetchLastIncidentTimelines(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe
 ) {
     return async function (dispatch: Dispatch) {
@@ -1385,7 +1385,7 @@ export const getAnnouncementsFailure = (data: $TSFixMe) => {
 };
 
 export function getAnnouncements(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     skip = 0,
     limit: PositiveNumber
@@ -1436,7 +1436,7 @@ export const getSingleAnnouncementFailure = (error: ErrorPayload) => {
 };
 
 export function getSingleAnnouncement(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
 ) {
@@ -1486,7 +1486,7 @@ export const fetchAnnouncementLogsFailure = (error: ErrorPayload) => {
 };
 
 export function fetchAnnouncementLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     skip = 0,
     limit: PositiveNumber
@@ -1575,7 +1575,7 @@ export const fetchTweetsFailure = (error: ErrorPayload) => {
     };
 };
 
-export const fetchTweets = (handle: $TSFixMe, projectId: $TSFixMe) => {
+export const fetchTweets = (handle: $TSFixMe, projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`status-page/${projectId}/tweets`, {
             handle,
@@ -1615,7 +1615,7 @@ export const fetchExternalStatusPagesFailure = (error: ErrorPayload) => {
 };
 
 export function fetchExternalStatusPages(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {

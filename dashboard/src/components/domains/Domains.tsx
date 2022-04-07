@@ -59,7 +59,7 @@ class Domains extends Component<ComponentProps> {
         }
     }
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(
@@ -69,7 +69,7 @@ class Domains extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchProjectDomains } = this.props;
         fetchProjectDomains(

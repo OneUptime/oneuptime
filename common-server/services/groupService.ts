@@ -106,7 +106,7 @@ export default class Service {
         return group;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: string) {
         if (!query) {
             query = {};
         }

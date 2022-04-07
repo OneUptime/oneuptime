@@ -114,7 +114,7 @@ export default class Service {
         return count;
     }
 
-    async getTemplates(projectId: $TSFixMe) {
+    async getTemplates(projectId: string) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
@@ -135,7 +135,7 @@ export default class Service {
         return templates;
     }
 
-    async resetTemplate(projectId: $TSFixMe, templateId: $TSFixMe) {
+    async resetTemplate(projectId: string, templateId: $TSFixMe) {
         const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await _this.findOneBy({

@@ -2817,7 +2817,7 @@ async function getMonitorLogs(req: ExpressRequest, monitors: $TSFixMe) {
 async function getAnnouncements(
     req: ExpressRequest,
     statusPageId: $TSFixMe,
-    projectId: $TSFixMe
+    projectId: string
 ) {
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };

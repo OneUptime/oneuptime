@@ -13,7 +13,7 @@ const user = {
     password,
 };
 
-let projectId: $TSFixMe = null;
+let projectId: string = null;
 
 describe('Project', () => {
     const operationTimeOut = init.timeout;

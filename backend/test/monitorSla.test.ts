@@ -26,7 +26,7 @@ const monitorSlaPayload = {
 
 describe('Monitor SLA', function () {
     const timeout = 30000;
-    let projectId: $TSFixMe,
+    let projectId: string,
         userId,
         token,
         authorization: $TSFixMe,

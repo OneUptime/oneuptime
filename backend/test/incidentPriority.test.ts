@@ -18,7 +18,7 @@ import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe,
     userId: string,
-    projectId: $TSFixMe,
+    projectId: string,
     defaultIncidentPriorityId: $TSFixMe,
     newIncidentPriorityId: $TSFixMe;
 

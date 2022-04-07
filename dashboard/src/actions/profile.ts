@@ -390,7 +390,7 @@ export const sendEmailVerificationLink = (values: $TSFixMe) => {
     };
 };
 
-export const sendVerificationSMS = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const sendVerificationSMS = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `twilio/sms/sendVerificationToken?projectId=${projectId}`,
@@ -438,7 +438,7 @@ export const verifySMSCodeReset = () => {
     };
 };
 
-export const verifySMSCode = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const verifySMSCode = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `twilio/sms/verify?projectId=${projectId}`,

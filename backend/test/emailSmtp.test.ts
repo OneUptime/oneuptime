@@ -19,7 +19,7 @@ import GlobalConfigService from '../backend/services/globalConfigService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import smtpCredential from './data/smtpCredential';
 
-let projectId: $TSFixMe, jwtToken: $TSFixMe, emailSmtpId: $TSFixMe;
+let projectId: string, jwtToken: $TSFixMe, emailSmtpId: $TSFixMe;
 
 describe('Email SMTP Api Test', function () {
     this.timeout(200000);

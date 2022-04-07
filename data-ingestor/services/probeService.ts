@@ -16,7 +16,7 @@ import { v1 as uuidv1 } from 'uuid';
 
 import BackendAPI from '../utils/api';
 
-import { realtimeUrl } from '../utils/config';
+import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {

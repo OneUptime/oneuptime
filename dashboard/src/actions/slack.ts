@@ -32,7 +32,7 @@ export const resetdeleteSlackLink = () => {
 };
 
 // Calls the API to link slack team to project
-export const deleteSlackLink = (projectId: $TSFixMe, teamId: $TSFixMe) => {
+export const deleteSlackLink = (projectId: string, teamId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`slack/${projectId}/unLink/${teamId}`, null);
 
@@ -79,7 +79,7 @@ export const resetGetSlackTeams = () => {
 };
 
 export function getSlackTeams(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {

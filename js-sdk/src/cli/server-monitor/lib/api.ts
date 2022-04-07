@@ -25,10 +25,10 @@ import { onlineTestData, degradedTestData, offlineTestData } from './config';
  * @return {Object} The ping server cron job.
  */
 const ping = (
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     apiUrl: URL,
-    apiKey: $TSFixMe,
+    apiKey: string,
     interval = '* * * * *',
     simulate: $TSFixMe,
     simulateData: $TSFixMe
@@ -178,7 +178,7 @@ const ping = (
 export default function (
     config: $TSFixMe,
     apiUrl: URL,
-    apiKey: $TSFixMe,
+    apiKey: string,
     monitorId: $TSFixMe
 ) {
     let pingServer: $TSFixMe,

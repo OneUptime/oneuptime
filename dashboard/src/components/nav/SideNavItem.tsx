@@ -24,7 +24,7 @@ interface SidebarNavItemProps {
     toggleProjectSettingsMore: Function;
     closeMoreRoute: Function;
     toggleMoreBtn: boolean;
-    activeSubProjectId?: string;
+    activesubProjectId?: string;
 }
 
 export class SidebarNavItem extends Component<SidebarNavItemProps>{
@@ -317,7 +317,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
         const hideProjectNav =
 
-            this.props.currentProject?._id !== this.props.activeSubProjectId &&
+            this.props.currentProject?._id !== this.props.activesubProjectId &&
             (route.title === 'Reports' || route.title === 'Project Settings');
 
         return (
@@ -651,7 +651,7 @@ const mapStateToProps = (state: RootState) => ({
         state.schedule.schedules.data[0],
 
     toggleMoreBtn: state.page.toggleProjectSettingsMore,
-    activeSubProjectId: state.subProject.activeSubProject
+    activesubProjectId: state.subProject.activeSubProject
 });
 
 const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
@@ -672,7 +672,7 @@ SidebarNavItem.propTypes = {
     toggleProjectSettingsMore: PropTypes.func.isRequired,
     closeMoreRoute: PropTypes.func.isRequired,
     toggleMoreBtn: PropTypes.bool.isRequired,
-    activeSubProjectId: PropTypes.string,
+    activesubProjectId: PropTypes.string,
 };
 
 export default withRouter(

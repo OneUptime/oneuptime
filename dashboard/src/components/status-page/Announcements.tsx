@@ -62,7 +62,7 @@ class Announcements extends Component<ComponentProps> {
             } and ${monitors.length - 2} others`;
     };
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchAnnouncements, statusPage } = this.props;
 
@@ -75,7 +75,7 @@ class Announcements extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchAnnouncements, statusPage } = this.props;
 

@@ -552,7 +552,7 @@ export default class Service {
         }
     }
 
-    async findSubprojectId(projectId) {
+    async findsubProjectId(projectId) {
         const _this = this;
 
         const subProject = await _this.findBy({

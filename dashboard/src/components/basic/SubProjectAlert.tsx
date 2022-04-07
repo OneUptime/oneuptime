@@ -5,20 +5,20 @@ import ShouldRender from '../basic/ShouldRender';
 
 interface SubProjectAlertProps {
     currentProject?: object;
-    activeSubProjectId?: string;
+    activesubProjectId?: string;
     subProjects?: unknown[];
 }
 
 class SubProjectAlert extends Component<ComponentProps> {
     override render() {
 
-        const { currentProject, subProjects, activeSubProjectId } = this.props;
+        const { currentProject, subProjects, activesubProjectId } = this.props;
 
-        const isSubProject = currentProject?._id !== activeSubProjectId;
+        const isSubProject = currentProject?._id !== activesubProjectId;
         let subProjectName;
         if (isSubProject) {
             subProjectName = subProjects.find(
-                (obj: $TSFixMe) => obj._id === activeSubProjectId
+                (obj: $TSFixMe) => obj._id === activesubProjectId
             )?.name;
         }
 
@@ -63,7 +63,7 @@ SubProjectAlert.displayName = 'SubProjectAlert';
 
 SubProjectAlert.propTypes = {
     currentProject: PropTypes.object,
-    activeSubProjectId: PropTypes.string,
+    activesubProjectId: PropTypes.string,
     subProjects: PropTypes.array,
 };
 
@@ -81,7 +81,7 @@ const mapStateToProps = (state: RootState) => {
 
     return {
         currentProject: state.project.currentProject,
-        activeSubProjectId: state.subProject.activeSubProject,
+        activesubProjectId: state.subProject.activeSubProject,
         subProjects,
     };
 };

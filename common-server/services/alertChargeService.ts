@@ -4,7 +4,7 @@ import Query from '../types/db/Query';
 
 export default class Service {
     async create(
-        projectId: $TSFixMe,
+        projectId: string,
         chargeAmount: $TSFixMe,
         balanceAfterAlertSent: $TSFixMe,
         alertId: $TSFixMe,

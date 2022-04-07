@@ -31,8 +31,8 @@ function TeamMemberProfile({
     switchToProjectViewerNav
 }: $TSFixMe) {
 
-    if (User.getActiveSubProjectId().length > 1) {
-        projectId = User.getActiveSubProjectId();
+    if (User.getActivesubProjectId().length > 1) {
+        projectId = User.getActivesubProjectId();
     } else if (!projectId) {
         projectId = User.getCurrentProjectId();
     }

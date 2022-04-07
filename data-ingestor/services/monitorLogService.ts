@@ -10,7 +10,7 @@ import { ObjectId } from 'mongodb';
 
 import { post } from '../utils/api';
 
-import { realtimeUrl } from '../utils/config';
+import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

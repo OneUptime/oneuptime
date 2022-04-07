@@ -31,7 +31,7 @@ export const resetDeleteSlack = () => {
 };
 
 // Calls the API to link webhook team to project
-export const deleteSlack = (projectId: $TSFixMe, msTeamsId: $TSFixMe) => {
+export const deleteSlack = (projectId: string, msTeamsId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
         null);
@@ -79,7 +79,7 @@ export const resetGetSlack = () => {
 };
 
 export const getSlack = (
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) => {
@@ -106,7 +106,7 @@ export const getSlack = (
 };
 
 export function getSlackMonitor(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -160,7 +160,7 @@ export const resetCreateSlack = () => {
 };
 
 // Calls the API to add webhook to project
-export const createSlack = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const createSlack = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
@@ -206,7 +206,7 @@ export const resetUpdateSlack = () => {
 
 // Calls the API to add webhook to project
 export function updateSlack(
-    projectId: $TSFixMe,
+    projectId: string,
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {

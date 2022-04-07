@@ -22,7 +22,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import { testphoneNumber } from './utils/config';
 import GlobalConfig from './utils/globalConfig';
 
-let token: $TSFixMe, userId, projectId: $TSFixMe, monitorId: $TSFixMe;
+let token: $TSFixMe, userId, projectId: string, monitorId: $TSFixMe;
 const monitor = {
     name: 'New Monitor',
     type: 'url',

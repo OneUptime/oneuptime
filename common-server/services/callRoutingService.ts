@@ -132,7 +132,7 @@ export default class Service {
         return updatedData;
     }
 
-    async reserveNumber(data: $TSFixMe, projectId: $TSFixMe) {
+    async reserveNumber(data: $TSFixMe, projectId: string) {
         let confirmBuy = null;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -310,7 +310,7 @@ export default class Service {
         }
     }
 
-    async chargeRoutedCall(projectId: $TSFixMe, body: $TSFixMe) {
+    async chargeRoutedCall(projectId: string, body: $TSFixMe) {
         const callSid = body['CallSid'];
         const callStatus = body['CallStatus'] || null;
         const callDetails = await TwilioService.getCallDetails(
@@ -701,7 +701,7 @@ export default class Service {
         return CallRouting;
     }
 
-    async getCallRoutingLogs(projectId: $TSFixMe) {
+    async getCallRoutingLogs(projectId: string) {
         let logs: $TSFixMe = [];
         const callRouting = await this.findBy({
             query: { projectId },

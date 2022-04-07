@@ -145,7 +145,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async getRequestUrl(projectId: $TSFixMe, requestId: $TSFixMe) {
+    async getRequestUrl(projectId: string, requestId: $TSFixMe) {
         // create a unique request url
         // update incomingRequest collection with the new url
         const _this = this;

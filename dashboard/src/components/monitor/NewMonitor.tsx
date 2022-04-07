@@ -3312,7 +3312,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
         'incidentCommunicationSla'
     );
 
-    let projectId: $TSFixMe = null;
+    let projectId: string = null;
 
     for (const project of state.component.componentList.components) {
         for (const component of project.components) {

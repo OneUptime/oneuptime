@@ -12,7 +12,7 @@ import PositiveNumber from 'common/types/PositiveNumber';
 
 //Monitor list
 //props -> {name: '', type, data -> { data.url}}
-export const fetchMonitors = (projectId: $TSFixMe, skip = 0, limit = 0) => {
+export const fetchMonitors = (projectId: string, skip = 0, limit = 0) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
             `monitor/${projectId}?skip=${skip}&limit=${limit}`
@@ -112,7 +112,7 @@ export const fetchPaginatedMonitorsFailure = (error: ErrorPayload) => {
 
 //Create new monitor
 //props -> {name: '', type, data -> { data.url}}
-export const createMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const createMonitor = (projectId: string, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch) {
         dispatch(createMonitorRequest());
@@ -144,7 +144,7 @@ export const createMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
     };
 };
 
-export const uploadIdentityFile = (projectId: $TSFixMe, file: $TSFixMe) => {
+export const uploadIdentityFile = (projectId: string, file: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const data = new FormData();
         if (file) {
@@ -227,10 +227,7 @@ export const setConfigInputKey = (value: $TSFixMe) => {
     };
 };
 
-export const uploadConfigurationFile = (
-    projectId: $TSFixMe,
-    file: $TSFixMe
-) => {
+export const uploadConfigurationFile = (projectId: string, file: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const data = new FormData();
         if (file) {
@@ -309,7 +306,7 @@ export const resetCreateMonitor = () => {
 
 //Edit new monitor
 //props -> {name: '', type, data -> { data.url}}
-export const editMonitor = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const editMonitor = (projectId: string, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId || projectId;
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
@@ -387,7 +384,7 @@ export const resetEditMonitor = () => {
 //props -> siteUrl
 export function addSiteUrl(
     monitorId: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     siteUrl: URL
 ) {
     return function (dispatch: Dispatch) {
@@ -425,7 +422,7 @@ export function addSiteUrl(
 
 export function deleteSiteUrl(
     monitorId: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     siteUrl: URL
 ) {
     return function (dispatch: Dispatch) {
@@ -461,7 +458,7 @@ export function deleteSiteUrl(
 
 //Delete a monitor
 //props -> {name: '', type, data -> { data.url}}
-export const deleteMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
+export const deleteMonitor = (monitorId: $TSFixMe, projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = delete `monitor/${projectId}/${monitorId}`;
         dispatch(deleteMonitorRequest(monitorId));
@@ -500,7 +497,7 @@ export const deleteMonitorFailure = (error: ErrorPayload) => {
     };
 };
 
-export const deleteProjectMonitors = (projectId: $TSFixMe) => {
+export const deleteProjectMonitors = (projectId: string) => {
     return {
         type: types.DELETE_PROJECT_MONITORS,
         payload: projectId,
@@ -508,7 +505,7 @@ export const deleteProjectMonitors = (projectId: $TSFixMe) => {
 };
 
 //Disable a monitor
-export const disableMonitor = (monitorId: $TSFixMe, projectId: $TSFixMe) => {
+export const disableMonitor = (monitorId: $TSFixMe, projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `monitor/${projectId}/disableMonitor/${monitorId}`,
@@ -560,7 +557,7 @@ export const disableMonitorFailure = (error: ErrorPayload) => {
 
 // Change monitor's parent component
 export const changeMonitorComponent = (
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     newComponentId: $TSFixMe
 ) => {
@@ -632,7 +629,7 @@ export const changeMonitorComponentFailure = (error: ErrorPayload) => {
 //Fetch Incidents of monitors
 //props -> {name: '', type, data -> { data.url}}
 export function fetchMonitorsIncidents(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -694,7 +691,7 @@ export const fetchMonitorsIncidentsFailure = (error: ErrorPayload) => {
 
 //Fetch Subscribers of monitors
 export function fetchMonitorsSubscribers(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -752,7 +749,7 @@ export const fetchMonitorsSubscribersFailure = (error: ErrorPayload) => {
 
 // Fetch Monitor Logs
 export function fetchMonitorLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     startDate: $TSFixMe,
     endDate: $TSFixMe
@@ -826,7 +823,7 @@ export const fetchMonitorLogsFailure = (error: ErrorPayload) => {
 
 // Fetch Monitor Statuses list
 export function fetchMonitorStatuses(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     startDate: $TSFixMe,
     endDate: $TSFixMe
@@ -966,7 +963,7 @@ export function setMonitorCriteria(
 
 //Fetch Logs of monitors
 export function getMonitorLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber,
@@ -1036,7 +1033,7 @@ export const getMonitorLogsFailure = (error: ErrorPayload) => {
 
 // Fetch Lighthouse Logs list
 export function fetchLighthouseLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber,
@@ -1095,7 +1092,7 @@ export const fetchLighthouseLogsFailure = (error: ErrorPayload) => {
 };
 
 // Fetch Monitor Issue list
-export const fetchMonitorIssue = (projectId: $TSFixMe, issueId: $TSFixMe) => {
+export const fetchMonitorIssue = (projectId: string, issueId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
             `monitor/${projectId}/lighthouseIssue/${issueId}`
@@ -1135,7 +1132,7 @@ export const fetchMonitorIssueFailure = (error: ErrorPayload) => {
     };
 };
 
-export const addSeat = (projectId: $TSFixMe) => {
+export const addSeat = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`monitor/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
@@ -1245,8 +1242,7 @@ export const closeBreachedMonitorSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const closeBreachedMonitorSla =
-    (projectId: $TSFixMe, monitorId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+    (projectId: string, monitorId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(closeBreachedMonitorSlaRequest());
 
@@ -1283,7 +1279,7 @@ export const fetchBreachedMonitorSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchBreachedMonitorSla =
-    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchBreachedMonitorSlaRequest());
 

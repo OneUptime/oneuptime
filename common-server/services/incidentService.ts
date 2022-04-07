@@ -1059,7 +1059,7 @@ export default class Service {
             : incidentsUnresolved.concat(incidentsResolved);
     }
 
-    async getSubProjectIncidents(projectId: $TSFixMe) {
+    async getSubProjectIncidents(projectId: string) {
         const _this = this;
         const populate = [
             {
@@ -1110,7 +1110,7 @@ export default class Service {
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     }
 
-    async getComponentIncidents(projectId: $TSFixMe, componentId: $TSFixMe) {
+    async getComponentIncidents(projectId: string, componentId: $TSFixMe) {
         const _this = this;
         const monitors = await MonitorService.findBy({
             query: { projectId, componentId },
@@ -1158,7 +1158,7 @@ export default class Service {
     }
 
     async getProjectComponentIncidents(
-        projectId: $TSFixMe,
+        projectId: string,
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -1288,7 +1288,7 @@ export default class Service {
     }
 
     async sendIncidentNoteAdded(
-        projectId: $TSFixMe,
+        projectId: string,
         incident: $TSFixMe,
         data: $TSFixMe
     ) {
@@ -1466,7 +1466,7 @@ export default class Service {
     }
 
     async startInterval(
-        projectId: $TSFixMe,
+        projectId: string,
         monitors: $TSFixMe,
         incident: $TSFixMe
     ) {

@@ -21,7 +21,7 @@ import MonitorCustomFieldService from '../backend/services/monitorCustomField';
 
 describe('Monitor Custom Field API', function () {
     const timeout = 30000;
-    let projectId: $TSFixMe,
+    let projectId: string,
         userId,
         token,
         authorization: $TSFixMe,

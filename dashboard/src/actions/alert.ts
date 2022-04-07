@@ -32,7 +32,7 @@ export const alertSuccess = (alert: $TSFixMe) => {
 
 // Calls the API to fetch Alerts.
 
-export const fetchAlert = (projectId: $TSFixMe) => {
+export const fetchAlert = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`alert/${projectId}`);
 
@@ -81,7 +81,7 @@ export const projectAlertSuccess = (alert: $TSFixMe) => {
 // Calls the API to fetch Alerts.
 
 export function fetchProjectAlert(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -138,7 +138,7 @@ export const incidentAlertSuccess = (alert: $TSFixMe) => {
 // Calls the API to fetch Alerts.
 
 export function fetchIncidentAlert(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -195,7 +195,7 @@ export const subscriberAlertSuccess = (alert: $TSFixMe) => {
 // Calls the API to fetch Subscriber Alerts.
 
 export function fetchSubscriberAlert(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -253,7 +253,7 @@ export const fetchAlertChargesSuccess = (alertCharges: $TSFixMe) => {
 };
 
 export function fetchAlertCharges(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -302,7 +302,7 @@ export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe) => {
     };
 };
 
-export const downloadAlertCharges = (projectId: $TSFixMe) => {
+export const downloadAlertCharges = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
 

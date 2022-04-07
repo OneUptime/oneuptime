@@ -34,7 +34,7 @@ export const resetProbe = () => {
 
 // Gets project Probes
 export function getProbes(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {

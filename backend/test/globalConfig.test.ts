@@ -15,7 +15,7 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfigService from '../backend/services/globalConfigService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import GlobalConfig from './utils/globalConfig';
-let projectId: $TSFixMe, userId: string, token: $TSFixMe;
+let projectId: string, userId: string, token: $TSFixMe;
 
 describe('Global Config API', function () {
     this.timeout(20000);

@@ -35,7 +35,7 @@ export const scheduleSuccess = (schedule: $TSFixMe) => {
 // Calls the API to fetch Schedules.
 
 export function fetchSchedules(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -88,7 +88,7 @@ export const subProjectScheduleSuccess = (schedule: $TSFixMe) => {
 
 // Calls the API to fetch Schedules.
 
-export const fetchSubProjectSchedules = (projectId: $TSFixMe) => {
+export const fetchSubProjectSchedules = (projectId: string) => {
     return function (dispatch: Dispatch) {
         let promise = null;
         promise = BackendAPI.get(`schedule/${projectId}/schedules`);
@@ -137,7 +137,7 @@ export const projectScheduleSuccess = (schedule: $TSFixMe) => {
 // Gets list of schedules in a project.
 
 export function fetchProjectSchedule(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -185,7 +185,7 @@ export const createScheduleSuccess = (schedule: $TSFixMe) => {
 
 // Calls the API to create the schedule.
 
-export const createSchedule = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const createSchedule = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`schedule/${projectId}`, values);
 
@@ -233,7 +233,7 @@ export const renameScheduleError = (error: ErrorPayload) => {
 };
 
 export function renameSchedule(
-    projectId: $TSFixMe,
+    projectId: string,
     scheduleId: $TSFixMe,
     scheduleName: $TSFixMe
 ) {
@@ -293,7 +293,7 @@ export const deleteScheduleSuccess = (schedule: $TSFixMe) => {
     };
 };
 
-export const deleteProjectSchedules = (projectId: $TSFixMe) => {
+export const deleteProjectSchedules = (projectId: string) => {
     return {
         type: types.DELETE_PROJECT_SCHEDULES,
         payload: projectId,
@@ -307,7 +307,7 @@ export const deleteScheduleError = (error: ErrorPayload) => {
     };
 };
 
-export const deleteSchedule = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
+export const deleteSchedule = (projectId: string, scheduleId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete `schedule/${projectId}/${scheduleId}`;
 
@@ -378,7 +378,7 @@ export const addMonitorError = (error: ErrorPayload) => {
 };
 
 export function addMonitors(
-    projectId: $TSFixMe,
+    projectId: string,
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -447,7 +447,7 @@ export const addUserError = (error: ErrorPayload) => {
 };
 
 export function addUsers(
-    projectId: $TSFixMe,
+    projectId: string,
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -516,7 +516,7 @@ export const escalationError = (error: ErrorPayload) => {
 };
 
 export function addEscalation(
-    projectId: $TSFixMe,
+    projectId: string,
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -543,7 +543,7 @@ export function addEscalation(
     };
 }
 
-export const getEscalation = (projectId: $TSFixMe, scheduleId: $TSFixMe) => {
+export const getEscalation = (projectId: string, scheduleId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
             `schedule/${projectId}/${scheduleId}/getescalation`
@@ -618,7 +618,7 @@ export const userScheduleError = (error: ErrorPayload) => {
     };
 };
 
-export const fetchUserSchedule = (projectId: $TSFixMe, userId: string) => {
+export const fetchUserSchedule = (projectId: string, userId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
             `schedule/${projectId}/${userId}/getescalations`

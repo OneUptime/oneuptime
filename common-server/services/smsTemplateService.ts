@@ -117,7 +117,7 @@ export default class Service {
         return count;
     }
 
-    async getTemplates(projectId: $TSFixMe) {
+    async getTemplates(projectId: string) {
         const _this = this;
         const populate = [{ path: 'projectId', select: 'name' }];
         const select = 'projectId body smsType allowedVariables';
@@ -139,7 +139,7 @@ export default class Service {
         return templates;
     }
 
-    async resetTemplate(projectId: $TSFixMe, templateId: $TSFixMe) {
+    async resetTemplate(projectId: string, templateId: $TSFixMe) {
         const _this = this;
         const oldTemplate = await _this.findOneBy({
             query: { _id: templateId },

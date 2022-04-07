@@ -13,7 +13,7 @@ import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 
-let token: $TSFixMe, projectId: $TSFixMe, newProjectId: $TSFixMe;
+let token: $TSFixMe, projectId: string, newProjectId: string;
 
 describe('Enterprise Project API', function () {
     this.timeout(30000);

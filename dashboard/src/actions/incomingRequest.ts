@@ -18,7 +18,7 @@ export const createIncomingRequestFailure = (error: ErrorPayload) => ({
 });
 
 export const createIncomingRequest =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createIncomingRequestRequest());
 
@@ -56,7 +56,7 @@ export const editIncomingRequestFailure = (error: ErrorPayload) => ({
 });
 
 export const editIncomingRequest =
-    (projectId: $TSFixMe, requestId: $TSFixMe, data: $TSFixMe) =>
+    (projectId: string, requestId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
@@ -95,8 +95,7 @@ export const deleteIncomingRequestFailure = (error: ErrorPayload) => ({
 });
 
 export const deleteIncomingRequest =
-    (projectId: $TSFixMe, requestId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+    (projectId: string, requestId: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(deleteIncomingRequestRequest());
 
@@ -132,7 +131,7 @@ export const fetchAllIncomingRequestFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchAllIncomingRequest =
-    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchAllIncomingRequestRequest());
@@ -161,7 +160,7 @@ export const setActiveIncomingRequest = (requestId: $TSFixMe) => ({
 });
 
 export const incomingRequestToggle =
-    (projectId: $TSFixMe, requestId: $TSFixMe, enabled: $TSFixMe) =>
+    (projectId: string, requestId: $TSFixMe, enabled: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());

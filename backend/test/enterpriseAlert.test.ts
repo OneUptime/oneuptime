@@ -19,7 +19,7 @@ import AlertService from '../backend/services/alertService';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,
     alertId: $TSFixMe;

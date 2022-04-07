@@ -6,7 +6,7 @@ import MonitorService from './monitorService';
 import moment from 'moment';
 import ProjectService from './projectService';
 
-import { realtimeUrl } from '../utils/config';
+import { realtimeUrl } from '../Config';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 

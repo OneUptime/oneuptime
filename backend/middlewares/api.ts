@@ -91,7 +91,7 @@ export default {
         }
     },
 
-    isValidProjectId: function (projectId: $TSFixMe) {
+    isValidProjectId: function (projectId: string) {
         if (!ObjectID.isValid(projectId)) {
             return false;
         }

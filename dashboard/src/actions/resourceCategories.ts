@@ -4,7 +4,7 @@ import * as types from '../constants/resourceCategories';
 import ErrorPayload from 'common-ui/src/payload-types/error';
 import PositiveNumber from 'common/types/PositiveNumber';
 export function fetchResourceCategories(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -59,10 +59,7 @@ export const fetchResourceCategoriesFailure = (error: ErrorPayload) => {
     };
 };
 
-export const createResourceCategory = (
-    projectId: $TSFixMe,
-    values: $TSFixMe
-) => {
+export const createResourceCategory = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `resourceCategory/${projectId}`,
@@ -94,7 +91,7 @@ export const createResourceCategory = (
 };
 
 export function updateResourceCategory(
-    projectId: $TSFixMe,
+    projectId: string,
     resourceCategoryId: $TSFixMe,
     values: $TSFixMe
 ) {
@@ -176,7 +173,7 @@ export const updateResourceCategoryFailure = (error: ErrorPayload) => {
 
 export function deleteResourceCategory(
     resourceCategoryId: $TSFixMe,
-    projectId: $TSFixMe
+    projectId: string
 ) {
     return function (dispatch: Dispatch) {
         const promise =
@@ -220,7 +217,7 @@ export const deleteResourceCategoryFailure = (error: ErrorPayload) => {
     };
 };
 
-export const fetchResourceCategoriesForNewResource = (projectId: $TSFixMe) => {
+export const fetchResourceCategoriesForNewResource = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());

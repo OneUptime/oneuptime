@@ -28,7 +28,7 @@ export const getActiveMembersError = (error: ErrorPayload) => {
 
 export const getActiveMembers =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
         skip: PositiveNumber,
@@ -82,7 +82,7 @@ export const getActiveMonitorsError = (error: ErrorPayload) => {
 
 export const getActiveMonitors =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
         skip: PositiveNumber,
@@ -138,7 +138,7 @@ export const getIncidentsError = (error: ErrorPayload) => {
 
 export const getIncidents =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         filter: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -191,7 +191,7 @@ export const getResolveTimeError = (error: ErrorPayload) => {
 
 export const getResolveTime =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         filter: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe

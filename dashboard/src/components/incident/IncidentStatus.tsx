@@ -411,7 +411,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
     };
 
     override render() {
-        const isUserSubProjectId =
+        const isUsersubProjectId =
 
             this.props.incident.projectId &&
 
@@ -423,7 +423,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
             this.props.subProjects &&
 
             this.props.subProjects.filter(
-                (subProject: $TSFixMe) => subProject._id === isUserSubProjectId // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
+                (subProject: $TSFixMe) => subProject._id === isUsersubProjectId // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
             )[0];
 
         const loggedInUser = User.getUserId();

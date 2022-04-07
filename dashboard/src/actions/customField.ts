@@ -17,7 +17,7 @@ export const createCustomFieldFailure = (error: ErrorPayload) => ({
 });
 
 export const createCustomField =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCustomFieldRequest());
 
@@ -94,7 +94,7 @@ export const fetchCustomFieldsFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchCustomFields =
-    (projectId: $TSFixMe, skip = 0, limit = 0) =>
+    (projectId: string, skip = 0, limit = 0) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCustomFieldsRequest());
@@ -137,7 +137,7 @@ export const deleteCustomFieldFailure = (error: ErrorPayload) => ({
 });
 
 export const deleteCustomField =
-    (projectId: $TSFixMe, customFieldId: $TSFixMe) =>
+    (projectId: string, customFieldId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCustomFieldRequest());

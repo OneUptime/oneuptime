@@ -20,7 +20,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import incidentData from './data/incident';
 
 // eslint-disable-next-line
-let token: $TSFixMe, projectId: $TSFixMe, apiKey: $TSFixMe, userId, zapierId: $TSFixMe, monitorId: $TSFixMe, incidentId: $TSFixMe;
+let token: $TSFixMe, projectId: string, apiKey: string, userId, zapierId: $TSFixMe, monitorId: $TSFixMe, incidentId: $TSFixMe;
 
 const monitor = {
     name: 'New Monitor',

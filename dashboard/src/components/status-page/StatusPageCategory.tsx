@@ -94,7 +94,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
         this.setState({ page: this.state.page + 1 });
     };
 
-    handleCreateResourceCategory = (projectId: $TSFixMe, statusPageId: $TSFixMe) => {
+    handleCreateResourceCategory = (projectId: string, statusPageId: $TSFixMe) => {
 
         const { openModal } = this.props;
         openModal({

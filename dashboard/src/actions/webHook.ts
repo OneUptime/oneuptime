@@ -30,7 +30,7 @@ export const resetDeleteWebHook = () => {
 };
 
 // Calls the API to link webhook team to project
-export const deleteWebHook = (projectId: $TSFixMe, webhookId: $TSFixMe) => {
+export const deleteWebHook = (projectId: string, webhookId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`webhook/${projectId}/delete/${webhookId}`,
         null);
@@ -78,7 +78,7 @@ export const resetGetWebHook = () => {
 };
 
 export function getWebHook(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -103,7 +103,7 @@ export function getWebHook(
 }
 
 export function getWebHookMonitor(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -157,7 +157,7 @@ export const resetCreateWebHook = () => {
 };
 
 // Calls the API to add webhook to project
-export const createWebHook = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const createWebHook = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
@@ -204,7 +204,7 @@ export const resetUpdateWebHook = () => {
 
 // Calls the API to add webhook to project
 export function updateWebHook(
-    projectId: $TSFixMe,
+    projectId: string,
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {

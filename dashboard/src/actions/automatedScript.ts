@@ -31,7 +31,7 @@ export const createAutomatedScriptFailure = (error: ErrorPayload) => {
     };
 };
 
-export const createAutomatedScript = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const createAutomatedScript = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`automated-scripts/${projectId}`, data);
 
@@ -86,7 +86,7 @@ export const updateAutomatedScriptFailure = (error: ErrorPayload) => {
 };
 
 export function updateAutomatedScript(
-    projectId: $TSFixMe,
+    projectId: string,
     automatedScriptId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -147,7 +147,7 @@ export const fetchSingleAutomatedScriptFailure = (data: $TSFixMe) => {
 };
 
 export function fetchSingleAutomatedScript(
-    projectId: $TSFixMe,
+    projectId: string,
     automatedSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -198,7 +198,7 @@ export const fetchAutomatedScriptFailure = (error: ErrorPayload) => {
 };
 
 export function fetchAutomatedScript(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -238,7 +238,7 @@ export const runAutomatedScriptSuccess = (data: $TSFixMe) => {
     };
 };
 
-export const runScript = (projectId: $TSFixMe, automatedScriptId: $TSFixMe) => {
+export const runScript = (projectId: string, automatedScriptId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
@@ -281,7 +281,7 @@ const deleteAutomatedScriptFailure = (error: ErrorPayload) => {
 };
 
 export function deleteAutomatedScript(
-    projectId: $TSFixMe,
+    projectId: string,
     automatedSlug: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {

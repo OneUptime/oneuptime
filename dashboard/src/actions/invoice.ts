@@ -45,7 +45,7 @@ export const decrementNextCount = () => {
 
 // Get invoice from the backend
 export function getInvoice(
-    projectId: $TSFixMe,
+    projectId: string,
     startingAfter: $TSFixMe,
     endingBefore: $TSFixMe
 ) {

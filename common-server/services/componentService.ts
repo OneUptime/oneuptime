@@ -403,7 +403,7 @@ export default class Service {
     }
 
     async getComponentsByPaginate(
-        projectId: $TSFixMe,
+        projectId: string,
         limit: PositiveNumber,
         skip: PositiveNumber
     ) {

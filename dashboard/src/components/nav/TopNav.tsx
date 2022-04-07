@@ -317,7 +317,7 @@ class TopContent extends Component<ComponentProps> {
 
     renderOnCallSchedule = (
         activeSchedules: $TSFixMe,
-        currentProjectId: $TSFixMe,
+        currentprojectId: string,
         currentProjectSlug: $TSFixMe
     ) => {
         return (

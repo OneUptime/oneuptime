@@ -146,7 +146,7 @@ export default class Service {
 
     async createDomain(
         subDomain: $TSFixMe,
-        projectId: $TSFixMe,
+        projectId: string,
         statusPageId: $TSFixMe,
         cert: $TSFixMe,
         privateKey: $TSFixMe,
@@ -298,7 +298,7 @@ export default class Service {
     }
 
     async updateDomain(
-        projectId: $TSFixMe,
+        projectId: string,
         statusPageId: $TSFixMe,
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
@@ -470,7 +470,7 @@ export default class Service {
     }
 
     async duplicateStatusPage(
-        statusPageProjectId: $TSFixMe,
+        statusPageProjectId: string,
         statusPageSlug: $TSFixMe,
         statusPageName: $TSFixMe,
         filterMonitors: $TSFixMe
@@ -1762,7 +1762,7 @@ export default class Service {
     }
 
     async updateExternalStatusPage(
-        projectId: $TSFixMe,
+        projectId: string,
         _id: $TSFixMe,
         data: $TSFixMe
     ) {
@@ -1782,7 +1782,7 @@ export default class Service {
     }
 
     async deleteExternalStatusPage(
-        projectId: $TSFixMe,
+        projectId: string,
         _id: $TSFixMe,
         userId: string
     ) {

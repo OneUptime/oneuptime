@@ -16,7 +16,7 @@ const request = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
-let token: $TSFixMe, projectId: $TSFixMe, refreshToken: $TSFixMe, userId;
+let token: $TSFixMe, projectId: string, refreshToken: $TSFixMe, userId;
 
 describe('Jwt Token API', function () {
     this.timeout(20000);

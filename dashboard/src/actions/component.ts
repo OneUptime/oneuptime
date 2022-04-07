@@ -100,7 +100,7 @@ export const fetchPaginatedComponentsSuccess = (payload: $TSFixMe) => {
     };
 };
 
-export const fetchPaginatedComponentsRequest = (projectId: $TSFixMe) => {
+export const fetchPaginatedComponentsRequest = (projectId: string) => {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_REQUEST,
         payload: projectId,
@@ -109,7 +109,7 @@ export const fetchPaginatedComponentsRequest = (projectId: $TSFixMe) => {
 
 export function fetchPaginatedComponentsFailure(
     error: ErrorPayload,
-    projectId: $TSFixMe
+    projectId: string
 ) {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_FAILURE,
@@ -117,7 +117,7 @@ export function fetchPaginatedComponentsFailure(
     };
 }
 
-export const createComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const createComponent = (projectId: string, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`component/${projectId}`, values);
@@ -173,7 +173,7 @@ export const resetCreateComponent = () => {
     };
 };
 
-export const editComponent = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const editComponent = (projectId: string, values: $TSFixMe) => {
     values.projectId = values.projectId._id || values.projectId;
 
     return function (dispatch: Dispatch) {
@@ -242,7 +242,7 @@ export const resetEditComponent = () => {
 
 // Delete a component
 // props -> {name: '', type, data -> { data.url}}
-export const deleteComponent = (componentId: $TSFixMe, projectId: $TSFixMe) => {
+export const deleteComponent = (componentId: $TSFixMe, projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`component/${projectId}/${componentId}`,
         {
@@ -289,14 +289,14 @@ export const deleteComponentFailure = (error: ErrorPayload) => {
     };
 };
 
-export const deleteProjectComponents = (projectId: $TSFixMe) => {
+export const deleteProjectComponents = (projectId: string) => {
     return {
         type: types.DELETE_PROJECT_COMPONENTS,
         payload: projectId,
     };
 };
 
-export const addSeat = (projectId: $TSFixMe) => {
+export const addSeat = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
@@ -356,7 +356,7 @@ export const addSeatReset = () => {
 // Component Resources list
 // props -> {name: '', type, data -> { data.url}}
 export function fetchComponentResources(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -409,7 +409,7 @@ export const resetFetchComponentResources = () => {
 
 // Component Summary
 export function fetchComponentSummary(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     startDate: $TSFixMe,
     endDate: $TSFixMe
@@ -488,7 +488,7 @@ export const fetchComponentFailure = (error: ErrorPayload) => {
     };
 };
 
-export const fetchComponent = (projectId: $TSFixMe, slug: $TSFixMe) => {
+export const fetchComponent = (projectId: string, slug: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());

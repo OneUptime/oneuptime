@@ -43,7 +43,7 @@ export const resetCreateFeedback = () => {
 
 // Calls the API to register a user.
 export function createFeedback(
-    projectId: $TSFixMe,
+    projectId: string,
     feedback: $TSFixMe,
     page: $TSFixMe
 ) {

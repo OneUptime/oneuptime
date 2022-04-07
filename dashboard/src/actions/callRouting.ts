@@ -4,7 +4,7 @@ import * as types from '../constants/callRouting';
 import ErrorPayload from 'common-ui/src/payload-types/error';
 import PositiveNumber from 'common/types/PositiveNumber';
 export function getCallRoutingNumbers(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -49,7 +49,7 @@ export const getCallRoutingNumbersFailure = (error: ErrorPayload) => {
     };
 };
 
-export const getTeamAndSchedules = (projectId: $TSFixMe) => {
+export const getTeamAndSchedules = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const schedules = BackendAPI.get(
             `schedule/${projectId}?skip=${0}&limit=${0}`
@@ -96,7 +96,7 @@ export const getTeamAndSchedulesFailure = (error: ErrorPayload) => {
     };
 };
 
-export const addCallRoutingNumber = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const addCallRoutingNumber = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `callRouting/${projectId}/routingNumber`,
@@ -155,7 +155,7 @@ export const resetAddCallRoutingNumber = () => {
 };
 
 export function uploadCallRoutingAudio(
-    projectId: $TSFixMe,
+    projectId: string,
     callRoutingId: $TSFixMe,
     values: $TSFixMe,
     audioFieldName: $TSFixMe
@@ -237,7 +237,7 @@ export function uploadCallRoutingAudioFailure(
 }
 
 export function addCallRoutingSchedule(
-    projectId: $TSFixMe,
+    projectId: string,
     callRoutingId: $TSFixMe,
     values: $TSFixMe
 ) {
@@ -293,7 +293,7 @@ export const addCallRoutingScheduleFailure = (error: ErrorPayload) => {
 };
 
 export function fetchNumbers(
-    projectId: $TSFixMe,
+    projectId: string,
     countryCode: $TSFixMe,
     numberType: $TSFixMe
 ) {
@@ -342,7 +342,7 @@ export const resetFetchNumbers = () => {
     };
 };
 
-export const removeNumbers = (projectId: $TSFixMe, callRoutingId: $TSFixMe) => {
+export const removeNumbers = (projectId: string, callRoutingId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`callRouting/${projectId}/${callRoutingId}`,
         {
@@ -385,7 +385,7 @@ export const removeNumbersFailure = (error: ErrorPayload) => {
 };
 
 export function getCallRoutingLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -443,7 +443,7 @@ export const getCallRoutingLogsReset = () => {
 };
 
 export function removeIntroAudio(
-    projectId: $TSFixMe,
+    projectId: string,
     callRoutingId: $TSFixMe,
     backup: $TSFixMe
 ) {

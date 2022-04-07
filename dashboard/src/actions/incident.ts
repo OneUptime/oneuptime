@@ -34,7 +34,7 @@ export const resetProjectIncidents = () => {
 
 // Gets project Incidents
 export function getProjectIncidents(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -67,7 +67,7 @@ export function getProjectIncidents(
 
 //get all icident for a project belonging to a component
 export function getProjectComponentIncidents(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -135,7 +135,7 @@ export const resetIncidents = () => {
 };
 
 // Gets project Incidents
-export const getIncidents = (projectId: $TSFixMe) => {
+export const getIncidents = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`incident/${projectId}`);
         dispatch(incidentsRequest(promise));
@@ -152,7 +152,7 @@ export const getIncidents = (projectId: $TSFixMe) => {
 };
 //get component incidents
 export function getComponentIncidents(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -174,7 +174,7 @@ export function getComponentIncidents(
 
 // Create a new incident
 
-export const createIncidentRequest = (projectId: $TSFixMe) => {
+export const createIncidentRequest = (projectId: string) => {
     return {
         type: types.CREATE_INCIDENT_REQUEST,
         payload: projectId,
@@ -209,7 +209,7 @@ export const createIncidentReset = () => {
 
 // Calls the API to create new incident.
 export function createNewIncident(
-    projectId: $TSFixMe,
+    projectId: string,
     monitors: $TSFixMe,
     incidentType: $TSFixMe,
     title: $TSFixMe,
@@ -315,7 +315,7 @@ export const resolveIncidentSuccess = (incident: $TSFixMe) => {
 };
 
 // Calls the API to get the incident to show
-export const getIncident = (projectId: $TSFixMe, incidentSlug: $TSFixMe) => {
+export const getIncident = (projectId: string, incidentSlug: $TSFixMe) => {
     //This fucntion will switch to incidentSlug of the params beig passed.
     return function (dispatch: Dispatch) {
         let promise = null;
@@ -344,7 +344,7 @@ export const addIncident = (incident: $TSFixMe) => {
 };
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -397,7 +397,7 @@ export const setActiveIncident = (incidentId: $TSFixMe) => {
 
 // calls the api to post acknowledgement data to the database
 export function acknowledgeIncident(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     userId: string,
     multiple: $TSFixMe
@@ -495,7 +495,7 @@ export function acknowledgeIncident(
 
 // calls the api to store the resolve status to the database
 export function resolveIncident(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     userId: string,
     multiple: $TSFixMe
@@ -612,7 +612,7 @@ export const closeIncidentSuccess = (incident: $TSFixMe) => {
     };
 };
 
-export const closeIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
+export const closeIncident = (projectId: string, incidentId: $TSFixMe) => {
     //This function will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
@@ -662,10 +662,7 @@ export const resetUnresolvedIncidents = () => {
 };
 
 // Calls the API to register a user.
-export const fetchUnresolvedIncidents = (
-    projectId: $TSFixMe,
-    isHome = false
-) => {
+export const fetchUnresolvedIncidents = (projectId: string, isHome = false) => {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch) {
         let promise = null;
@@ -688,7 +685,7 @@ export const fetchUnresolvedIncidents = (
 };
 
 // Calls the API to delete incidents after deleting the project
-export const deleteProjectIncidents = (projectId: $TSFixMe) => {
+export const deleteProjectIncidents = (projectId: string) => {
     return {
         type: types.DELETE_PROJECT_INCIDENTS,
         payload: projectId,
@@ -725,7 +722,7 @@ export const investigationNoteSuccess = (incidentMessage: $TSFixMe) => {
 };
 
 export function setInvestigationNote(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     body: $TSFixMe
 ) {
@@ -775,7 +772,7 @@ export const internalNoteSuccess = (incident: $TSFixMe) => {
 };
 
 export function setInternalNote(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     body: $TSFixMe
 ) {
@@ -847,7 +844,7 @@ export const deleteIncidentReset = (error: ErrorPayload) => {
 };
 
 //Delete an incident
-export const deleteIncident = (projectId: $TSFixMe, incidentId: $TSFixMe) => {
+export const deleteIncident = (projectId: string, incidentId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete `incident/${projectId}/${incidentId}`;
         dispatch(deleteIncidentRequest(incidentId));
@@ -900,7 +897,7 @@ export const hideIncident = (data: $TSFixMe) => {
 };
 
 export function fetchIncidentMessages(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber,
@@ -985,7 +982,7 @@ export const editIncidentMessageSwitch = (index: $TSFixMe) => {
 };
 
 export function deleteIncidentMessage(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     incidentMessageId: $TSFixMe
 ) {
@@ -1054,7 +1051,7 @@ export const deleteIncidentMessageFailure = (error: ErrorPayload) => {
 };
 
 export function updateIncident(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentId: $TSFixMe,
     incidentType: $TSFixMe,
     title: $TSFixMe,

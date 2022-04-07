@@ -34,7 +34,7 @@ const {
 
 describe('Incoming HTTP Request API', function () {
     const timeout = 30000;
-    let projectId: $TSFixMe,
+    let projectId: string,
         componentId,
         userId,
         token,

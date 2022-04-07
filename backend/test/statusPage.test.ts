@@ -27,7 +27,7 @@ import ComponentModel from '../backend/models/component';
 
 // eslint-disable-next-line
 let token: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     resourceCategoryId,
     scheduledEventId: $TSFixMe,
@@ -920,7 +920,7 @@ describe('Status API', function () {
     });
 });
 
-let subProjectId: $TSFixMe,
+let subProjectId: string,
     newUserToken: $TSFixMe,
     anotherUserToken: $TSFixMe,
     subProjectStatusPageId: $TSFixMe;

@@ -24,7 +24,7 @@ import AirtableService from '../backend/services/airtableService';
 
 describe('Container Security API', function () {
     const timeout = 30000;
-    let projectId: $TSFixMe,
+    let projectId: string,
         componentId: $TSFixMe,
         userId: string,
         token: $TSFixMe,

@@ -827,7 +827,7 @@ export default class Service {
     }
 
     async getMonitorsBySubprojectsPaginate(
-        projectId: $TSFixMe,
+        projectId: string,
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -1164,7 +1164,7 @@ export default class Service {
         return monitor;
     }
 
-    async updateDeviceMonitorPingTime(projectId: $TSFixMe, deviceId: $TSFixMe) {
+    async updateDeviceMonitorPingTime(projectId: string, deviceId: $TSFixMe) {
         const thisObj = this;
         let monitor = await thisObj.findOneBy({
             query: { projectId: projectId, data: { deviceId: deviceId } },
@@ -1926,7 +1926,7 @@ export default class Service {
     }
 
     async closeBreachedMonitorSla(
-        projectId: $TSFixMe,
+        projectId: string,
         monitorId: $TSFixMe,
         userId: string
     ) {
@@ -1947,7 +1947,7 @@ export default class Service {
     }
 
     async changeMonitorComponent(
-        projectId: $TSFixMe,
+        projectId: string,
         monitorId: $TSFixMe,
         componentId: $TSFixMe
     ) {

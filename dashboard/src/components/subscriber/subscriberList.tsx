@@ -49,7 +49,7 @@ export class SubscriberList extends Component<SubscriberListProps>{
         fetchMonitorsSubscribers(subProjectId, monitorId, 0, 5);
     }
 
-    deleteSubscriber = async (projectId: $TSFixMe, _id: $TSFixMe, setLoading: $TSFixMe) => {
+    deleteSubscriber = async (projectId: string, _id: $TSFixMe, setLoading: $TSFixMe) => {
 
         const { fetchMonitorsSubscribers, monitorId } = this.props;
 

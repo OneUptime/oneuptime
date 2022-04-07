@@ -26,7 +26,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
     userId: string,
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,
     subscriberId: $TSFixMe,

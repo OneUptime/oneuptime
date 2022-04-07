@@ -15,7 +15,7 @@ import serverMonitor from '../lib/api';
 const user = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();
 
-let token, projectId: $TSFixMe, apiKey: $TSFixMe, monitorId: $TSFixMe;
+let token, projectId: string, apiKey: string, monitorId: $TSFixMe;
 const badProjectId = 'badProjectId',
     badApiKey = 'badApiKey';
 const invalidProjectId = utils.generateRandomString();

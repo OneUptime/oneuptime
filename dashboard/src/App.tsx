@@ -45,13 +45,13 @@ if (userData !== undefined) {
 
 interface AppProps {
     currentProject?: object;
-    activeSubProjectId?: string;
+    activesubProjectId?: string;
     activeProject?: object;
 }
 
 const App = (props: AppProps) => {
     const hideProjectNav =
-        props.currentProject?._id !== props.activeSubProjectId;
+        props.currentProject?._id !== props.activesubProjectId;
     const titleToExclude = [
         'Project Settings',
         'Resources',
@@ -93,7 +93,7 @@ const App = (props: AppProps) => {
         }
     }, [
         props.currentProject?.slug,
-        props.activeSubProjectId,
+        props.activesubProjectId,
         props.activeProject?._id,
     ]);
 
@@ -163,27 +163,27 @@ App.displayName = 'App';
 function mapStateToProps(state: RootState) {
     const currentProject = state.project.currentProject;
     const subProjects = state.subProject.subProjects.subProjects;
-    const activeSubProjectId = state.subProject.activeSubProject;
+    const activesubProjectId = state.subProject.activeSubProject;
     const allProjects = [...subProjects];
     if (currentProject) {
         allProjects.push(currentProject);
     }
 
     const activeProject = allProjects.find(
-        project => String(project._id) === String(activeSubProjectId)
+        project => String(project._id) === String(activesubProjectId)
     );
 
     return {
         ...state.login,
         currentProject: state.project.currentProject,
-        activeSubProjectId: state.subProject.activeSubProject,
+        activesubProjectId: state.subProject.activeSubProject,
         activeProject,
     };
 }
 
 App.propTypes = {
     currentProject: PropTypes.object,
-    activeSubProjectId: PropTypes.string,
+    activesubProjectId: PropTypes.string,
     activeProject: PropTypes.object,
 };
 

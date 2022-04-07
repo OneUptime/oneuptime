@@ -19,7 +19,7 @@ export const createMonitorSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const createMonitorSla =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createMonitorSlaRequest());
 
@@ -58,7 +58,7 @@ export const updateMonitorSlaFailure = (error: ErrorPayload) => ({
 
 export const updateMonitorSla =
     (
-        projectId: $TSFixMe,
+        projectId: string,
         monitorSlaId: $TSFixMe,
         data: $TSFixMe,
         handleDefault = false
@@ -102,7 +102,7 @@ export const fetchMonitorSlasFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchMonitorSlas =
-    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchMonitorSlasRequest());
@@ -140,7 +140,7 @@ export const deleteMonitorSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const deleteMonitorSla =
-    (projectId: $TSFixMe, monitorSlaId: $TSFixMe) =>
+    (projectId: string, monitorSlaId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteMonitorSlaRequest());
@@ -183,7 +183,7 @@ export const fetchDefaultMonitorSlaFailure = (error: ErrorPayload) => ({
 });
 
 export const fetchDefaultMonitorSla =
-    (projectId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultMonitorSlaRequest());
 

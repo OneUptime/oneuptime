@@ -21,7 +21,7 @@ import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
     userId,
-    projectId: $TSFixMe,
+    projectId: string,
     scheduleEventId: $TSFixMe,
     monitorId: $TSFixMe,
     componentId;

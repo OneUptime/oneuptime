@@ -63,7 +63,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
         page: {},
     };
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .fetchPaginatedComponents({
@@ -85,7 +85,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
             });
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .fetchPaginatedComponents({

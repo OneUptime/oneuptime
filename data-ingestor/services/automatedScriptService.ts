@@ -1,6 +1,6 @@
 import BackendAPI from '../utils/api';
 import Query from 'common-server/types/db/Query';
-import { scriptBaseUrl } from '../utils/config';
+import { scriptBaseUrl } from '../Config';
 
 const scriptLogCollection = global.db.collection('automationsriptlogs');
 

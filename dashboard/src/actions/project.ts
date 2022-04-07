@@ -126,7 +126,7 @@ export const resetProjects = () => {
     };
 };
 
-export const getProjects = (switchToProjectId: $TSFixMe) => {
+export const getProjects = (switchToProjectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
             `project/projects?skip=${0}&limit=${9999}`,
@@ -204,7 +204,7 @@ export const getProjectBalanceSuccess = (project: $TSFixMe) => {
     };
 };
 
-export const getProjectBalance = (projectId: $TSFixMe) => {
+export const getProjectBalance = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`project/${projectId}/balance`, null);
 
@@ -340,18 +340,18 @@ export function switchProject(
     }
 
     if (
-        !User.getActiveSubProjectId('active_subproject_id') &&
+        !User.getActivesubProjectId('active_subproject_id') &&
         switchToMainProject
     ) {
         dispatch(setActiveSubProject(project._id, true));
     }
 
-    const activeSubProjectId = User.getActiveSubProjectId(
+    const activesubProjectId = User.getActivesubProjectId(
         'active_subproject_id'
     );
 
     // emit project id to connect to room in backend
-    socket?.emit('project_switch', activeSubProjectId);
+    socket?.emit('project_switch', activesubProjectId);
 
     dispatch(resetSubProjects());
     dispatch(resetAlert());
@@ -364,7 +364,7 @@ export function switchProject(
     dispatch(fetchNotificationsReset());
     dispatch(resetFetchTutorial());
     dispatch(resetFetchComponentResources());
-    dispatch(setActiveSubProject(activeSubProjectId));
+    dispatch(setActiveSubProject(activesubProjectId));
 
     if (!currentProjectId || project._id !== currentProjectId) {
         getSubProjects(project._id)(dispatch).then(res => {
@@ -379,18 +379,18 @@ export function switchProject(
     } else {
         getSubProjects(project._id)(dispatch);
     }
-    fetchAlert(activeSubProjectId)(dispatch);
+    fetchAlert(activesubProjectId)(dispatch);
 
-    fetchSubProjectStatusPages(activeSubProjectId)(dispatch);
-    fetchComponents({ projectId: activeSubProjectId })(dispatch); // default skip = 0, limit = 3
-    fetchMonitors(activeSubProjectId)(dispatch);
+    fetchSubProjectStatusPages(activesubProjectId)(dispatch);
+    fetchComponents({ projectId: activesubProjectId })(dispatch); // default skip = 0, limit = 3
+    fetchMonitors(activesubProjectId)(dispatch);
 
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);
     fetchUnresolvedIncidents(project._id, true)(dispatch);
 
-    fetchSchedules(activeSubProjectId)(dispatch);
-    fetchSubProjectSchedules(activeSubProjectId)(dispatch);
+    fetchSchedules(activesubProjectId)(dispatch);
+    fetchSubProjectSchedules(activesubProjectId)(dispatch);
     fetchNotifications(project._id)(dispatch);
     fetchTutorial()(dispatch);
     User.setProject(JSON.stringify(project));
@@ -445,7 +445,7 @@ export const resetProjectTokenError = (error: ErrorPayload) => {
     };
 };
 
-export const resetProjectToken = (projectId: $TSFixMe) => {
+export const resetProjectToken = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`project/${projectId}/resetToken`);
 
@@ -504,7 +504,7 @@ export const renameProjectError = (error: ErrorPayload) => {
     };
 };
 
-export const renameProject = (projectId: $TSFixMe, projectName: $TSFixMe) => {
+export const renameProject = (projectId: string, projectName: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`project/${projectId}/renameProject`, {
             projectName,
@@ -546,7 +546,7 @@ export const deleteProjectRequest = () => {
     };
 };
 
-export const deleteProjectSuccess = (projectId: $TSFixMe) => {
+export const deleteProjectSuccess = (projectId: string) => {
     return {
         type: types.DELETE_PROJECT_SUCCESS,
         payload: projectId,
@@ -560,7 +560,7 @@ export const deleteProjectError = (error: ErrorPayload) => {
     };
 };
 
-export const deleteProject = (projectId: $TSFixMe, feedback: $TSFixMe) => {
+export const deleteProject = (projectId: string, feedback: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`project/${projectId}/deleteProject`,
         {
@@ -614,7 +614,7 @@ export const changePlanError = (error: ErrorPayload) => {
 };
 
 export function changePlan(
-    projectId: $TSFixMe,
+    projectId: string,
     planId: $TSFixMe,
     projectName: $TSFixMe,
     oldPlan: $TSFixMe,
@@ -658,7 +658,7 @@ export function changePlan(
 }
 
 export function upgradeToEnterpriseMail(
-    projectId: $TSFixMe,
+    projectId: string,
     projectName: $TSFixMe,
     oldPlan: $TSFixMe
 ) {
@@ -722,7 +722,7 @@ export const exitProjectError = (error: ErrorPayload) => {
     };
 };
 
-export const exitProject = (projectId: $TSFixMe, userId: string) => {
+export const exitProject = (projectId: string, userId: string) => {
     return function (dispatch: Dispatch) {
         const promise =
             delete (`project/${projectId}/user/${userId}/exitProject`, null);
@@ -755,7 +755,7 @@ export const markProjectForDeleteRequest = () => {
     };
 };
 
-export const markProjectForDeleteSuccess = (projectId: $TSFixMe) => {
+export const markProjectForDeleteSuccess = (projectId: string) => {
     return {
         type: types.MARK_PROJECT_DELETE_SUCCESS,
         payload: projectId,
@@ -769,10 +769,7 @@ export const markProjectForDeleteError = (error: ErrorPayload) => {
     };
 };
 
-export const markProjectForDelete = (
-    projectId: $TSFixMe,
-    feedback: $TSFixMe
-) => {
+export const markProjectForDelete = (projectId: string, feedback: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`project/${projectId}/deleteProject`,
         {
@@ -815,10 +812,7 @@ export const alertOptionsUpdateError = (error: ErrorPayload) => {
     };
 };
 
-export const alertOptionsUpdate = (
-    projectId: $TSFixMe,
-    alertData: $TSFixMe
-) => {
+export const alertOptionsUpdate = (projectId: string, alertData: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `project/${projectId}/alertOptions`,
@@ -859,7 +853,7 @@ export const addBalanceError = (error: ErrorPayload) => {
     };
 };
 
-export const addBalance = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const addBalance = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`stripe/${projectId}/addBalance`, data);
 
@@ -1174,7 +1168,7 @@ export const fetchProjectDomainsFailure = (error: ErrorPayload) => {
 };
 
 export const fetchProjectDomains = (
-    projectId: $TSFixMe,
+    projectId: string,
     skip = 0,
     limit = 10
 ) => {
@@ -1394,7 +1388,7 @@ export const fetchTrialError = (error: ErrorPayload) => {
     };
 };
 
-export const fetchTrial = (projectId: $TSFixMe) => {
+export const fetchTrial = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`stripe/${projectId}/getTrial`);
 

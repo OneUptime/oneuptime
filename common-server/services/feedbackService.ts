@@ -12,7 +12,7 @@ export default class Service {
     //Param 3: userId: User Id.
     //Returns: promise
     async create(
-        projectId: $TSFixMe,
+        projectId: string,
         message: $TSFixMe,
         page: $TSFixMe,
         createdById: $TSFixMe

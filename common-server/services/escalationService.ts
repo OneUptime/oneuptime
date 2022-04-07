@@ -159,7 +159,7 @@ export default class Service {
     }
 
     async deleteEscalationMember(
-        projectId: $TSFixMe,
+        projectId: string,
         memberId: $TSFixMe,
         deletedById: $TSFixMe
     ) {

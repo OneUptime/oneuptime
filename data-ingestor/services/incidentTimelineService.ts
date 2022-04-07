@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
 import { post } from '../utils/api';
 import moment from 'moment';
 import Query from 'common-server/types/db/Query';
-import { realtimeUrl } from '../utils/config';
+import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

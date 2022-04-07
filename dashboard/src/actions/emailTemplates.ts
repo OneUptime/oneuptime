@@ -32,7 +32,7 @@ export const emailTemplatesReset = () => {
 };
 
 // Calls the API to get email templates
-export const getEmailTemplates = (projectId: $TSFixMe) => {
+export const getEmailTemplates = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`emailTemplate/${projectId}`);
         dispatch(emailTemplatesRequest(promise));
@@ -76,7 +76,7 @@ export const editEmailTemplateError = (error: ErrorPayload) => {
     };
 };
 
-export const editEmailTemplates = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const editEmailTemplates = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`emailTemplate/${projectId}`, data);
         dispatch(editEmailTemplateRequest());
@@ -117,7 +117,7 @@ export const resetEmailTemplatesSuccess = (emailTemplates: $TSFixMe) => {
 
 // Calls the API to reset email templates
 export const resetEmailTemplates = (
-    projectId: $TSFixMe,
+    projectId: string,
     templateId: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
@@ -159,7 +159,7 @@ export const smtpConfigSuccess = (config: $TSFixMe) => {
 };
 
 // Calls the API to reset email templates
-export const getSmtpConfig = (projectId: $TSFixMe) => {
+export const getSmtpConfig = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`emailSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
@@ -187,7 +187,7 @@ export const getSmtpConfig = (projectId: $TSFixMe) => {
     };
 };
 
-export const postSmtpConfig = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const postSmtpConfig = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`emailSmtp/${projectId}`, data);
         dispatch(smtpConfigRequest(promise));
@@ -237,7 +237,7 @@ export const deleteSmtpConfigSuccess = (config: $TSFixMe) => {
 };
 
 export function deleteSmtpConfig(
-    projectId: $TSFixMe,
+    projectId: string,
     smtpId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -269,7 +269,7 @@ export function deleteSmtpConfig(
 }
 
 export function updateSmtpConfig(
-    projectId: $TSFixMe,
+    projectId: string,
     smtpId: $TSFixMe,
     data: $TSFixMe
 ) {

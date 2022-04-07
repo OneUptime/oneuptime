@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import Query from 'common-server/types/db/Query';
 import { post } from '../utils/api';
 
-import { realtimeUrl } from '../utils/config';
+import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

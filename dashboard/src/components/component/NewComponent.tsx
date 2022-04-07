@@ -44,7 +44,7 @@ interface NewComponentProps {
     showUpgradeForm?: Function;
     toggleForm?: Function;
     showCancelBtn?: boolean;
-    activeSubProjectId?: string;
+    activesubProjectId?: string;
 }
 
 class NewComponent extends Component<ComponentProps> {
@@ -93,7 +93,7 @@ class NewComponent extends Component<ComponentProps> {
         const { upgradeModalId } = this.state;
         const postObj = { data: {}, criteria: {} };
 
-        postObj.projectId = this.props.activeSubProjectId;
+        postObj.projectId = this.props.activesubProjectId;
 
         postObj.name = values[`name_${this.props.index}`];
 
@@ -413,7 +413,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name_1000');
-    const activeSubProjectId = state.subProject.activeSubProject;
+    const activesubProjectId = state.subProject.activeSubProject;
 
     if (ownProps.edit) {
         const componentSlug = ownProps.match
@@ -431,7 +431,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
                 state.component.currentComponent.component &&
                 state.component.currentComponent.component._id,
             componentSlug,
-            activeSubProjectId,
+            activesubProjectId,
         };
     } else {
         return {
@@ -441,7 +441,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
             name,
             subProjects: state.subProject.subProjects.subProjects,
             schedules: state.schedule.schedules.data,
-            activeSubProjectId,
+            activesubProjectId,
         };
     }
 };
@@ -465,7 +465,7 @@ NewComponent.propTypes = {
     showUpgradeForm: PropTypes.func,
     toggleForm: PropTypes.func,
     showCancelBtn: PropTypes.bool,
-    activeSubProjectId: PropTypes.string,
+    activesubProjectId: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewComponentForm);

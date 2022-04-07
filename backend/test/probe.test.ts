@@ -28,7 +28,7 @@ import ContainerSecurityService from '../backend/services/containerSecurityServi
 let probeId: $TSFixMe;
 import GlobalConfig from './utils/globalConfig';
 import AirtableService from '../backend/services/airtableService';
-let token: $TSFixMe, userId, projectId: $TSFixMe, componentId: $TSFixMe;
+let token: $TSFixMe, userId, projectId: string, componentId: $TSFixMe;
 const probeKey = 'test-key';
 const sleep = (waitTimeInMs: $TSFixMe) =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));

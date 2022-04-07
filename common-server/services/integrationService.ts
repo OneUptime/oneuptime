@@ -15,7 +15,7 @@ export default class Service {
 
     // create a new integration
     async create(
-        projectId: $TSFixMe,
+        projectId: string,
         userId: string,
         data: $TSFixMe,
         integrationType: $TSFixMe,

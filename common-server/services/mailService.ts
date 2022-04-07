@@ -42,7 +42,7 @@ Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts) {
 });
 
 export default class MailService {
-    async getProjectSmtpSettings(projectId: $TSFixMe) {
+    async getProjectSmtpSettings(projectId: string) {
         let user,
             pass,
             host,
@@ -5620,7 +5620,7 @@ export default class MailService {
         replyAddress: $TSFixMe,
         projectName: $TSFixMe,
         monitorName: $TSFixMe,
-        projectId: $TSFixMe,
+        projectId: string,
         unsubscribeUrl: URL,
         monitorsAffected: $TSFixMe
     ) {
@@ -5845,7 +5845,7 @@ export default class MailService {
         emailTemplate: $TSFixMe,
         replyAddress: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: $TSFixMe,
+        projectId: string,
         unsubscribeUrl: URL,
         monitorName: $TSFixMe
     ) {
@@ -6865,7 +6865,7 @@ export default class MailService {
 
     async sendUpgradeToEnterpriseMail(
         projectName: $TSFixMe,
-        projectId: $TSFixMe,
+        projectId: string,
         oldPlan: $TSFixMe,
         email: $TSFixMe
     ) {
@@ -7176,7 +7176,7 @@ export default class MailService {
             throw error;
         }
     }
-    async hasCustomSmtpSettings(projectId: $TSFixMe) {
+    async hasCustomSmtpSettings(projectId: string) {
         const select =
             'projectId user pass host port from name iv secure enabled createdAt';
         const smtpConfigurations = await EmailSmtpService.findOneBy({

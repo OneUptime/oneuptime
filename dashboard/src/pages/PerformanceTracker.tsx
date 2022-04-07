@@ -39,7 +39,7 @@ class PerformanceTracker extends Component<ComponentProps> {
         requesting: false,
     };
 
-    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    prevClicked = (projectId: string, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .fetchPerformanceTrackers({
@@ -64,7 +64,7 @@ class PerformanceTracker extends Component<ComponentProps> {
             });
     };
 
-    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    nextClicked = (projectId: string, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .fetchPerformanceTrackers({

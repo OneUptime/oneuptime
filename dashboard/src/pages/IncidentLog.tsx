@@ -199,7 +199,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         }
     }
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { componentId } = this.props;
         if (componentId) {
@@ -233,7 +233,7 @@ class IncidentLog extends React.Component<IncidentLogProps> {
         });
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
 
         const { componentId } = this.props;
         if (componentId) {

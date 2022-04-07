@@ -36,7 +36,7 @@ export const resetCreateSubscriber = () => {
 
 // Calls the API to create new subscriber.
 export function createSubscriber(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -92,7 +92,7 @@ export const resetExportCsv = () => {
 
 // Calls the API to export subscribers to csv
 export function exportCSV(
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber,
@@ -150,10 +150,7 @@ export const resetDeleteSubscriber = () => {
 };
 
 // Calls the API to delete a subscriber.
-export const deleteSubscriber = (
-    projectId: $TSFixMe,
-    subscriberId: $TSFixMe
-) => {
+export const deleteSubscriber = (projectId: string, subscriberId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`subscriber/${projectId}/${subscriberId}`, {});
 
@@ -222,7 +219,7 @@ export const downloadCsvTemplate = () => {
  */
 export function importSubscribersFromCsvFile(
     data: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     monitorId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {

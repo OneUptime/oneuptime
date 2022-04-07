@@ -8,7 +8,7 @@ import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 
 export default class Service {
-    async create(data: $TSFixMe, projectId: $TSFixMe) {
+    async create(data: $TSFixMe, projectId: string) {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 
         const populate = [
@@ -63,7 +63,7 @@ export default class Service {
         return scheduledEventMessage;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: string) {
         if (!query) {
             query = {};
         }
@@ -167,7 +167,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string, projectId: $TSFixMe) {
+    async deleteBy(query: Query, userId: string, projectId: string) {
         const data = {
             deleted: true,
             event_state: 'Deleted',

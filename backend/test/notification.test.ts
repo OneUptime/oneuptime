@@ -18,7 +18,7 @@ const request = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
-let projectId: $TSFixMe, token: $TSFixMe, userId;
+let projectId: string, token: $TSFixMe, userId;
 
 describe('Notification API', function () {
     this.timeout(20000);

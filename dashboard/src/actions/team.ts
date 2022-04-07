@@ -23,7 +23,7 @@ export const teamLoadingError = (error: ErrorPayload) => {
 };
 
 // Calls the API to load team.
-export const teamLoading = (projectId: $TSFixMe) => {
+export const teamLoading = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`team/${projectId}`);
         dispatch(teamLoadingRequest());
@@ -61,7 +61,7 @@ export const subProjectTeamLoadingError = (error: ErrorPayload) => {
     };
 };
 // Calls the API to load team.
-export const subProjectTeamLoading = (projectId: $TSFixMe) => {
+export const subProjectTeamLoading = (projectId: string) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
@@ -101,7 +101,7 @@ export const teamCreateError = (error: ErrorPayload) => {
 };
 
 // Calls the API to create team members.
-export const teamCreate = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const teamCreate = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
@@ -154,7 +154,7 @@ export const resetTeamDelete = () => {
 };
 
 // Calls the API to delete team meber.
-export const teamDelete = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
+export const teamDelete = (projectId: string, teamMemberId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
@@ -197,7 +197,7 @@ export const teamMemberError = (error: ErrorPayload) => {
 };
 
 // Calls the API to get team member.
-export const getTeamMember = (projectId: $TSFixMe, teamMemberId: $TSFixMe) => {
+export const getTeamMember = (projectId: string, teamMemberId: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`team/${projectId}/${teamMemberId}`);
         dispatch(teamMemberRequest(teamMemberId));
@@ -237,7 +237,7 @@ export const teamUpdateRoleError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update team member role.
-export const teamUpdateRole = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const teamUpdateRole = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,

@@ -62,7 +62,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
             this.props.fetchMonitors(this.props.projectId);
         }
     }
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchscheduledEvents } = this.props;
         fetchscheduledEvents(
@@ -78,7 +78,7 @@ class ScheduledEventBox extends Component<ComponentProps> {
         this.props.prevPage(projectId);
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { fetchscheduledEvents } = this.props;
         fetchscheduledEvents(

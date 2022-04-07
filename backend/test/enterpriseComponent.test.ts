@@ -15,8 +15,8 @@ import ProjectService from '../backend/services/projectService';
 import ComponentService from '../backend/services/componentService';
 
 let token: $TSFixMe,
-    projectId: $TSFixMe,
-    newProjectId: $TSFixMe,
+    projectId: string,
+    newProjectId: string,
     componentId: $TSFixMe;
 
 describe('Enterprise Component API', function () {

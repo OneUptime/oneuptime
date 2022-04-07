@@ -18,7 +18,7 @@ import AirtableService from '../backend/services/airtableService';
 
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, projectId: $TSFixMe, scheduleId: $TSFixMe, userId;
+let token: $TSFixMe, projectId: string, scheduleId: $TSFixMe, userId;
 
 describe('Schedule API', function () {
     this.timeout(30000);
@@ -166,7 +166,7 @@ describe('Schedule API', function () {
     });
 });
 
-let subProjectId: $TSFixMe,
+let subProjectId: string,
     newUserToken: $TSFixMe,
     subProjectScheduleId: $TSFixMe;
 

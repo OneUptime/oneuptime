@@ -104,7 +104,7 @@ router.post(
 const getComponents = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const populateComponent = [
         { path: 'projectId', select: 'name' },
@@ -147,7 +147,7 @@ const getComponents = async (
 const getMonitors = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const query = {
         projectId: { $in: projectIds },
@@ -196,7 +196,7 @@ const getMonitors = async (
 const getStatusPages = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const populateStatusPage = [
         {
@@ -294,7 +294,7 @@ const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe) => {
 const getOnCallDuty = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const populate = [
         { path: 'userIds', select: 'name' },
@@ -348,7 +348,7 @@ const getOnCallDuty = async (
 const getSchedultEvent = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const populateScheduledEvent = [
         { path: 'resolvedBy', select: 'name' },
@@ -396,7 +396,7 @@ const getSchedultEvent = async (
 const getIncidents = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const isNumber = Number(val);
     if (isNumber) {
@@ -460,7 +460,7 @@ const getIncidents = async (
 const getErrorTrackers = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const components = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
@@ -512,7 +512,7 @@ const getErrorTrackers = async (
 const getLogContainers = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const components = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },
@@ -568,7 +568,7 @@ const getLogContainers = async (
 const getPerformanceTrackers = async (
     projectIds: $TSFixMe,
     val: $TSFixMe,
-    parentProjectId: $TSFixMe
+    parentProjectId: string
 ) => {
     const components = await ComponentService.findBy({
         query: { projectId: { $in: projectIds }, deleted: false },

@@ -943,7 +943,7 @@ router.delete(
             if (!subProjectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'SubProjectId must be present.',
+                    message: 'subProjectId must be present.',
                 });
             }
             const subProject = await ProjectService.deleteBy(
@@ -1188,7 +1188,7 @@ router.put(
             if (!subProjectId) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'SubProjectId must be present.',
+                    message: 'subProjectId must be present.',
                 });
             }
 

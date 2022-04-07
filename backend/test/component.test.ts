@@ -26,7 +26,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
     userId,
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,
     resourceCount = 0;
@@ -381,12 +381,12 @@ describe('Component API', function () {
     });
 });
 
-let subProjectId: $TSFixMe,
+let subProjectId: string,
     newUserToken: $TSFixMe,
     newUserId,
-    newProjectId: $TSFixMe,
+    newProjectId: string,
     otherUserId,
-    otherProjectId: $TSFixMe,
+    otherProjectId: string,
     subProjectComponentId: $TSFixMe,
     newComponentId: $TSFixMe;
 

@@ -13,8 +13,8 @@ import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 
-let projectId: $TSFixMe,
-    newProjectId: $TSFixMe,
+let projectId: string,
+    newProjectId: string,
     userRole: $TSFixMe,
     token: $TSFixMe;
 

@@ -7,7 +7,7 @@ import {
     NextFunction,
 } from 'common-server/utils/Express';
 
-import { clusterKey as CLUSTER_KEY } from '../utils/config';
+import { clusterKey as CLUSTER_KEY } from '../Config';
 
 global.probes = {};
 

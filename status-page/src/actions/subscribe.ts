@@ -72,7 +72,7 @@ export const validationError = (error: ErrorPayload) => {
 export const subscribeUser = (
     userDetails: $TSFixMe,
     monitors: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     notificationType: $TSFixMe
 ) => {

@@ -39,7 +39,7 @@ interface CallRoutingLogProps {
 class CallRoutingLog extends Component<ComponentProps> {
     override componentDidMount() { }
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { getCallRoutingLogs, limit } = this.props;
         getCallRoutingLogs(
@@ -49,7 +49,7 @@ class CallRoutingLog extends Component<ComponentProps> {
         );
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber) => {
 
         const { getCallRoutingLogs, limit } = this.props;
         getCallRoutingLogs(

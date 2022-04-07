@@ -67,7 +67,7 @@ export default class Service {
         return response;
     }
 
-    async getTeamMemberBy(projectId: $TSFixMe, teamMemberUserId: string) {
+    async getTeamMemberBy(projectId: string, teamMemberUserId: string) {
         let index;
         let subProject = null;
 
@@ -150,7 +150,7 @@ export default class Service {
     //Returns: promise
     async inviteTeamMembers(
         addedByUserId: string,
-        projectId: $TSFixMe,
+        projectId: string,
         emails: $TSFixMe,
         role: $TSFixMe
     ) {
@@ -254,7 +254,7 @@ export default class Service {
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-    async getTeamMembers(projectId: $TSFixMe) {
+    async getTeamMembers(projectId: string) {
         const _this = this;
 
         const subProject = await ProjectService.findOneBy({
@@ -323,7 +323,7 @@ export default class Service {
     //Param 5: project: Project.
     //Returns: promise
     async inviteTeamMembersMethod(
-        projectId: $TSFixMe,
+        projectId: string,
         emails: $TSFixMe,
         role: $TSFixMe,
         addedBy: $TSFixMe,
@@ -579,7 +579,7 @@ export default class Service {
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
     async removeTeamMember(
-        projectId: $TSFixMe,
+        projectId: string,
         userId: string,
         teamMemberUserId: string
     ) {
@@ -763,7 +763,7 @@ export default class Service {
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
     async updateTeamMemberRole(
-        projectId: $TSFixMe,
+        projectId: string,
         userId: string,
         teamMemberUserId: string,
         role: $TSFixMe

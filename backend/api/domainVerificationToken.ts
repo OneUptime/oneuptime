@@ -297,7 +297,7 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, domainId } = req.params;
-            const projectArr = await ProjectService.findSubprojectId(projectId);
+            const projectArr = await ProjectService.findsubProjectId(projectId);
             const projectIdInArr = await DomainVerificationService.findDomain(
                 domainId,
 

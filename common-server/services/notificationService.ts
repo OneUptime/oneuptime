@@ -32,7 +32,7 @@ export default class Service {
     }
 
     async create(
-        projectId: $TSFixMe,
+        projectId: string,
         message: $TSFixMe,
         userId: string,
         icon: $TSFixMe,

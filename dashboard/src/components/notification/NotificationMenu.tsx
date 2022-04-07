@@ -37,7 +37,7 @@ class NotificationMenu extends Component<ComponentProps> {
         MessageBoxId: uuidv4(),
     };
 
-    markAllAsRead(projectId: $TSFixMe) {
+    markAllAsRead(projectId: string) {
 
         this.props.markAllAsRead(projectId);
     }

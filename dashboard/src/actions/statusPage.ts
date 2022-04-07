@@ -44,7 +44,7 @@ export const removeCertFile = () => {
     };
 };
 
-export const uploadCertFile = (projectId: $TSFixMe, file: $TSFixMe) => {
+export const uploadCertFile = (projectId: string, file: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const data = new FormData();
         if (file) {
@@ -108,7 +108,7 @@ export const removePrivateKeyFile = () => {
     };
 };
 
-export const uploadPrivateKey = (projectId: $TSFixMe, file: $TSFixMe) => {
+export const uploadPrivateKey = (projectId: string, file: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const data = new FormData();
         if (file) {
@@ -168,10 +168,7 @@ export const updateStatusPageSettingError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update setting.
-export const updateStatusPageSetting = (
-    projectId: $TSFixMe,
-    data: $TSFixMe
-) => {
+export const updateStatusPageSetting = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageSettingRequest());
@@ -214,10 +211,7 @@ export const updateStatusPageMonitorsError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update monitors.
-export function updateStatusPageMonitors(
-    projectId: $TSFixMe,
-    values: $TSFixMe
-) {
+export function updateStatusPageMonitors(projectId: string, values: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageMonitorsRequest());
@@ -259,7 +253,7 @@ export const updatePrivateStatusPageError = (error: ErrorPayload) => {
 
 // Calls the API to update private statuspages.
 export const updatePrivateStatusPage = (
-    projectId: $TSFixMe,
+    projectId: string,
     values: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
@@ -301,10 +295,7 @@ export const updateSubscriberOptionError = (error: ErrorPayload) => {
 };
 
 // update status page multi language
-export function updateStatusPageLanguage(
-    projectId: $TSFixMe,
-    values: $TSFixMe
-) {
+export function updateStatusPageLanguage(projectId: string, values: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLanguageRequest());
@@ -344,10 +335,7 @@ export const updateStatusPageLanguageError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update private statuspages.
-export const updateSubscriberOption = (
-    projectId: $TSFixMe,
-    values: $TSFixMe
-) => {
+export const updateSubscriberOption = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateSubscriberOptionRequest());
@@ -435,10 +423,7 @@ export const updateStatusPageThemeError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update branding.
-export function updateStatusPageBranding(
-    projectId: $TSFixMe,
-    values: $TSFixMe
-) {
+export function updateStatusPageBranding(projectId: string, values: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const data = new FormData();
         if (values.favicon && values.favicon[0]) {
@@ -480,7 +465,7 @@ export function updateStatusPageBranding(
 }
 
 // Calls the API to update the theme
-export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const updateTheme = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}/theme`, data);
         dispatch(updateStatusPageThemeRequest());
@@ -500,7 +485,7 @@ export const updateTheme = (projectId: $TSFixMe, data: $TSFixMe) => {
 };
 
 // Calls the API to update status page name.
-export const updateStatusPageName = (projectId: $TSFixMe, values: $TSFixMe) => {
+export const updateStatusPageName = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageNameRequest());
@@ -541,10 +526,7 @@ export const updateStatusPageLinksError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update links.
-export const updateStatusPageLinks = (
-    projectId: $TSFixMe,
-    values: $TSFixMe
-) => {
+export const updateStatusPageLinks = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, values);
         dispatch(updateStatusPageLinksRequest());
@@ -586,7 +568,7 @@ export const updateStatusPageCustomHTMLError = (error: ErrorPayload) => {
 
 // Calls the API to update links.
 export function updateStatusPageCustomHTML(
-    projectId: $TSFixMe,
+    projectId: string,
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -636,7 +618,7 @@ export const fetchProjectStatusPageError = (error: ErrorPayload) => {
 
 // Gets list of statuspages in a project.
 export function fetchProjectStatusPage(
-    projectId: $TSFixMe,
+    projectId: string,
     refresh: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -691,7 +673,7 @@ export const fetchSubProjectStatusPagesError = (error: ErrorPayload) => {
 
 // Gets status pages by subProjectId.
 export function fetchSubProjectStatusPages(
-    projectId: $TSFixMe,
+    projectId: string,
     refresh: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -742,7 +724,7 @@ export const fetchIncidentStatusPagesError = (error: ErrorPayload) => {
 
 // Gets status pages pointing to the incident
 export function fetchIncidentStatusPages(
-    projectId: $TSFixMe,
+    projectId: string,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -786,10 +768,7 @@ export const resetStatusBubbleIdError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update setting.
-export function resetStatusBubbleId(
-    projectId: $TSFixMe,
-    statusPageId: $TSFixMe
-) {
+export function resetStatusBubbleId(projectId: string, statusPageId: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `status-page/${projectId}/${statusPageId}/resetBubbleId`,
@@ -837,10 +816,7 @@ export const deleteStatusPageError = (error: ErrorPayload) => {
 };
 
 // Calls the API to get status page.
-export function deleteStatusPage(
-    projectId: $TSFixMe,
-    statusPageSlug: $TSFixMe
-) {
+export function deleteStatusPage(projectId: string, statusPageSlug: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = delete (`status-page/${projectId}/${statusPageSlug}`,
         null);
@@ -900,7 +876,7 @@ export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
 };
 
 export function createDuplicateStatusPage(
-    projectId: $TSFixMe,
+    projectId: string,
     subProjectId = null,
     statusPageSlug: $TSFixMe,
     data: $TSFixMe
@@ -970,10 +946,7 @@ export const updateStatusPageEmbeddedCssError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update setting.
-export function updateStatusPageEmbeddedCss(
-    projectId: $TSFixMe,
-    data: $TSFixMe
-) {
+export function updateStatusPageEmbeddedCss(projectId: string, data: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
@@ -1016,10 +989,7 @@ export const resetBrandingColorsError = (error: ErrorPayload) => {
 };
 
 // Calls the API to reset colors.
-export function resetBrandingColors(
-    projectId: $TSFixMe,
-    statusPageId: $TSFixMe
-) {
+export function resetBrandingColors(projectId: string, statusPageId: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `status-page/${projectId}/${statusPageId}/resetColors`
@@ -1062,10 +1032,7 @@ export const resetStatusPageEmbeddedCssError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update setting.
-export function resetStatusPageEmbeddedCss(
-    projectId: $TSFixMe,
-    data: $TSFixMe
-) {
+export function resetStatusPageEmbeddedCss(projectId: string, data: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
@@ -1105,7 +1072,7 @@ export const updateStatusPageLayoutError = (error: ErrorPayload) => {
     };
 };
 
-export const updateStatusPageLayout = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const updateStatusPageLayout = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`status-page/${projectId}`, data);
         dispatch(updateStatusPageLayoutRequest());
@@ -1147,7 +1114,7 @@ export const fetchSubscriberFailure = (error: ErrorPayload) => {
 };
 
 export function fetchStatusPageSubscribers(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -1190,7 +1157,7 @@ export const createExternalStatusPageFailure = (error: ErrorPayload) => {
 };
 
 export function createExternalStatusPage(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -1237,7 +1204,7 @@ export const updateExternalStatusPageFailure = (error: ErrorPayload) => {
 };
 
 export function updateExternalStatusPage(
-    projectId: $TSFixMe,
+    projectId: string,
     externalStatusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -1284,7 +1251,7 @@ export const fetchExternalStatusPagesFailure = (error: ErrorPayload) => {
 };
 
 export function fetchExternalStatusPages(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -1329,7 +1296,7 @@ export const deleteExternalStatusPageFailure = (error: ErrorPayload) => {
 };
 
 export function deleteExternalStatusPage(
-    projectId: $TSFixMe,
+    projectId: string,
     externalStatusPageId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -1374,7 +1341,7 @@ export const createAnnouncementFailure = (error: ErrorPayload) => {
 };
 
 export function createAnnouncement(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     data: $TSFixMe
 ) {
@@ -1401,7 +1368,7 @@ export function createAnnouncement(
 }
 
 export function updateAnnouncement(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     announcementId: $TSFixMe,
     data: $TSFixMe
@@ -1449,7 +1416,7 @@ export const fetchAnnouncementFailure = (error: ErrorPayload) => {
 };
 
 export function fetchAnnouncements(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     skip = 0,
     limit: PositiveNumber
@@ -1492,7 +1459,7 @@ export const fetchAnnouncementLogsFailure = (error: ErrorPayload) => {
 };
 
 export function fetchAnnouncementLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageId: $TSFixMe,
     skip = 0,
     limit: PositiveNumber
@@ -1529,7 +1496,7 @@ export const fetchSingleAnnouncementFailure = (error: ErrorPayload) => {
 };
 
 export function fetchSingleAnnouncement(
-    projectId: $TSFixMe,
+    projectId: string,
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
 ) {
@@ -1596,7 +1563,7 @@ export const deleteAnnouncementFailure = (error: ErrorPayload) => {
 };
 
 export function deleteAnnouncement(
-    projectId: $TSFixMe,
+    projectId: string,
     announcementId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -1616,7 +1583,7 @@ export function deleteAnnouncement(
 }
 
 export function deleteAnnouncementLog(
-    projectId: $TSFixMe,
+    projectId: string,
     announcementLogId: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
@@ -1637,7 +1604,7 @@ export function deleteAnnouncementLog(
 
 // Calls the API to delete StatusPages after deleting the project
 
-export const deleteProjectStatusPages = (projectId: $TSFixMe) => {
+export const deleteProjectStatusPages = (projectId: string) => {
     return {
         type: types.DELETE_PROJECT_STATUSPAGES,
         payload: projectId,

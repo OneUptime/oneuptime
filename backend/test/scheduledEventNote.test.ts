@@ -22,7 +22,7 @@ import scheduledEventNoteService from '../backend/services/scheduledEventNoteSer
 
 let token: $TSFixMe,
     userId,
-    projectId: $TSFixMe,
+    projectId: string,
     scheduledEventId: $TSFixMe,
     componentId,
     monitorId: $TSFixMe,

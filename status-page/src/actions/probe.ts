@@ -5,7 +5,7 @@ import ErrorPayload from 'common-ui/src/payload-types/error';
 import PositiveNumber from 'common/types/PositiveNumber';
 // Fetch Project Probes list
 export function getProbes(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {

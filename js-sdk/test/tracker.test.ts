@@ -25,7 +25,7 @@ describe('Tracker Timeline', function () {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
     this.timeout(timeout + 1000);
-    let projectId: $TSFixMe, token: $TSFixMe, componentId;
+    let projectId: string, token: $TSFixMe, componentId;
     // create a new user
     const component = { name: 'Our Component' };
 

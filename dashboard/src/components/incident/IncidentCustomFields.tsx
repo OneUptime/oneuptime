@@ -36,7 +36,7 @@ class IncidentCustomFields extends Component<ComponentProps> {
         fetchCustomFields(projectId, 0, limit);
     }
 
-    prevClicked = (projectId: $TSFixMe) => {
+    prevClicked = (projectId: string) => {
 
         const { fetchCustomFields, skip, limit } = this.props;
         fetchCustomFields(
@@ -48,7 +48,7 @@ class IncidentCustomFields extends Component<ComponentProps> {
         this.props.paginate('prev');
     };
 
-    nextClicked = (projectId: $TSFixMe) => {
+    nextClicked = (projectId: string) => {
 
         const { fetchCustomFields, skip, limit } = this.props;
         fetchCustomFields(projectId, skip ? Number(skip) + limit : limit, 10);

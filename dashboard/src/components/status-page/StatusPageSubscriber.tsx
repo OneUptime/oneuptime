@@ -40,7 +40,7 @@ class StatusPageSubscriber extends Component<ComponentProps> {
         };
     }
 
-    deleteSubscriber = async (_projectId: $TSFixMe, _id: $TSFixMe, setLoading: $TSFixMe) => {
+    deleteSubscriber = async (_projectId: string, _id: $TSFixMe, setLoading: $TSFixMe) => {
         const {
 
             fetchStatusPageSubscribers,

@@ -15,7 +15,7 @@ import ProjectService from '../backend/services/projectService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 
-let token: $TSFixMe, projectId: $TSFixMe, userId: string;
+let token: $TSFixMe, projectId: string, userId: string;
 
 describe('Monitor Criteria API', function () {
     this.timeout(20000);

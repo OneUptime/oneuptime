@@ -20,7 +20,7 @@ export const addGroupFailure = (error: ErrorPayload) => ({
 });
 
 export const createGroup =
-    (projectId: $TSFixMe, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addGroupRequest());
 
         try {
@@ -60,7 +60,7 @@ export const updateGroupFailure = (error: ErrorPayload) => ({
 });
 
 export const updateGroup =
-    (projectId: $TSFixMe, groupId: $TSFixMe, data: $TSFixMe) =>
+    (projectId: string, groupId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateGroupRequest(groupId));
 
@@ -137,7 +137,7 @@ export const getProjectGroupsFailure = (error: ErrorPayload) => ({
 });
 
 export const getProjectGroups =
-    (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         dispatch(getProjectGroupsRequest());
         try {
@@ -175,7 +175,7 @@ export const deleteGroupFailure = (error: ErrorPayload) => ({
 });
 
 export const deleteGroup =
-    (projectId: $TSFixMe, groupId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: string, groupId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteGroupRequest());
 
         try {

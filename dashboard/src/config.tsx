@@ -72,7 +72,7 @@ export const User = {
         return localStorage.getItem('access_token');
     },
 
-    setCurrentProjectId(projectId: $TSFixMe) {
+    setCurrentProjectId(projectId: string) {
         localStorage.setItem('current_project_id', projectId);
     },
 
@@ -80,11 +80,11 @@ export const User = {
         return localStorage.getItem('current_project_id');
     },
 
-    setActiveSubProjectId(id: $TSFixMe) {
+    setActivesubProjectId(id: $TSFixMe) {
         return localStorage.setItem('active_subproject_id', id);
     },
 
-    getActiveSubProjectId() {
+    getActivesubProjectId() {
         return localStorage.getItem('active_subproject_id');
     },
 
@@ -926,7 +926,7 @@ function mapNestedCriteria(criteriaObj: $TSFixMe, innerContainer: $TSFixMe, cr: 
 export function renderIfSubProjectAdmin(
     currentProject: $TSFixMe,
     subProjects: $TSFixMe,
-    subProjectId: $TSFixMe
+    subProjectId: string
 ) {
     const userId = User.getUserId();
     let renderItems = false;
@@ -979,7 +979,7 @@ export function renderIfSubProjectAdmin(
 export function renderIfUserInSubProject(
     currentProject: $TSFixMe,
     subProjects: $TSFixMe,
-    subProjectId: $TSFixMe
+    subProjectId: string
 ) {
     const userId = User.getUserId();
     let renderItems = false;

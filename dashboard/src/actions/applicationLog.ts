@@ -6,7 +6,7 @@ import PositiveNumber from 'common/types/PositiveNumber';
 //Create new log container
 //props -> {name: '', type, data -> { data.url}}
 export function createApplicationLog(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     values: $TSFixMe
 ) {
@@ -68,7 +68,7 @@ export const resetCreateApplicationLog = () => {
 };
 
 export function fetchApplicationLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     skip = 0,
     limit = 0,
@@ -123,7 +123,7 @@ export const resetFetchApplicationLogs = () => {
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
 export function deleteApplicationLog(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
@@ -184,7 +184,7 @@ export const deleteComponentApplicationLogs = (componentId: $TSFixMe) => {
 };
 
 export function fetchLogs(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe,
     skip: PositiveNumber,
@@ -260,7 +260,7 @@ export const resetFetchLogs = () => {
 };
 
 export function resetApplicationLogKey(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
@@ -316,7 +316,7 @@ export const editApplicationLogSwitch = (index: $TSFixMe) => {
 };
 //Edit new applicationLog
 export function editApplicationLog(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe,
     values: $TSFixMe
@@ -373,7 +373,7 @@ export const editApplicationLogFailure = (error: ErrorPayload) => {
 };
 
 export function fetchStats(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ) {
@@ -441,7 +441,7 @@ export const getLogSuccess = (log: $TSFixMe) => {
 };
 
 export function searchLog(
-    projectId: $TSFixMe,
+    projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe,
     payload: $TSFixMe

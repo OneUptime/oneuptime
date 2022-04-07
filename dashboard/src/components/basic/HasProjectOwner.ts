@@ -4,7 +4,7 @@
 // returns JSX.Element or NULL
 const HasProjectOwner = (
     project: $TSFixMe,
-    projectId: $TSFixMe,
+    projectId: string,
     subProjects: $TSFixMe
 ) => {
     if (project._id === projectId) {

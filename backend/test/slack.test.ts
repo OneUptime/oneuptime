@@ -13,7 +13,7 @@ import GlobalConfig from './utils/globalConfig';
 
 // eslint-disable-next-line
 let token: $TSFixMe,
-    projectId: $TSFixMe;
+    projectId: string;
 
 describe('Slack API', function () {
     this.timeout(20000);

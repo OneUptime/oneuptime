@@ -66,7 +66,7 @@ export const allNotificationReadSuccess = (userId: string) => {
 };
 
 // Calls the API to get all notifications.
-export const fetchNotifications = (projectId: $TSFixMe) => {
+export const fetchNotifications = (projectId: string) => {
     return async function (dispatch: Dispatch) {
         try {
             const notifications = await BackendAPI.get(
@@ -94,7 +94,7 @@ export const fetchNotifications = (projectId: $TSFixMe) => {
     };
 };
 
-export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
+export const markAsRead = (projectId: string, notificationIds: $TSFixMe) => {
     return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
@@ -137,10 +137,7 @@ export const markAsRead = (projectId: $TSFixMe, notificationIds: $TSFixMe) => {
     };
 };
 
-export function closeNotification(
-    projectId: $TSFixMe,
-    notificationId: $TSFixMe
-) {
+export function closeNotification(projectId: string, notificationId: $TSFixMe) {
     return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
@@ -173,7 +170,7 @@ export function closeNotification(
     };
 }
 
-export const markAllAsRead = (projectId: $TSFixMe) => {
+export const markAllAsRead = (projectId: string) => {
     return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
@@ -200,7 +197,7 @@ export const markAllAsRead = (projectId: $TSFixMe) => {
 };
 
 export function billingActionTaken(
-    projectId: $TSFixMe,
+    projectId: string,
     notificationId: $TSFixMe,
     values: $TSFixMe
 ) {
@@ -230,7 +227,7 @@ export function billingActionTaken(
     };
 }
 
-export const resetProjectNotification = (projectId: $TSFixMe) => {
+export const resetProjectNotification = (projectId: string) => {
     return {
         type: types.RESET_PROJECT_NOTIFICATIONS,
         payload: projectId,

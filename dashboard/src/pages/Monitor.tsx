@@ -77,7 +77,7 @@ class MonitorDashboardView extends Component<ComponentProps> {
         page: 1,
     };
 
-    prevClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    prevClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .fetchPaginatedMonitors({
@@ -103,7 +103,7 @@ class MonitorDashboardView extends Component<ComponentProps> {
             });
     };
 
-    nextClicked = (projectId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    nextClicked = (projectId: string, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .fetchPaginatedMonitors({

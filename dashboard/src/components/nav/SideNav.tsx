@@ -457,14 +457,14 @@ const mapStateToProps = function (state: RootState) {
 
     const currentProject = state.project.currentProject;
     const subProjects = state.subProject.subProjects.subProjects;
-    const activeSubProjectId = state.subProject.activeSubProject;
+    const activesubProjectId = state.subProject.activeSubProject;
     const allProjects = [...subProjects];
     if (currentProject) {
         allProjects.push(currentProject);
     }
 
     const activeProject = allProjects.find(
-        project => String(project._id) === String(activeSubProjectId)
+        project => String(project._id) === String(activesubProjectId)
     );
 
     return {
@@ -477,7 +477,7 @@ const mapStateToProps = function (state: RootState) {
         currentProject: state.project.currentProject,
         subProjects: state.subProject.subProjects.subProjects,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
-        activeSubProjectId: state.subProject.activeSubProject,
+        activesubProjectId: state.subProject.activeSubProject,
         activeProject,
     };
 };
@@ -522,7 +522,7 @@ SideNav.propTypes = {
 
 interface WrappedSideNavProps {
     currentProject?: object;
-    activeSubProjectId?: string;
+    activesubProjectId?: string;
 }
 
 // since sideNav is above page routes we have no access to the pages' props.match,
@@ -530,7 +530,7 @@ interface WrappedSideNavProps {
 
 const WrappedSideNav = (props: WrappedSideNavProps) => {
     const hideProjectNav =
-        props.currentProject?._id !== props.activeSubProjectId;
+        props.currentProject?._id !== props.activesubProjectId;
 
     const titleToExclude = [
         'Project Settings',
@@ -584,7 +584,7 @@ const WrappedSideNav = (props: WrappedSideNavProps) => {
 
 WrappedSideNav.propTypes = {
     currentProject: PropTypes.object,
-    activeSubProjectId: PropTypes.string,
+    activesubProjectId: PropTypes.string,
 };
 
 export default withRouter(

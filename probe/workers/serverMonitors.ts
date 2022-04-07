@@ -4,7 +4,7 @@ import fs from 'fs';
 import { NodeSSH } from 'node-ssh';
 import fetch from 'node-fetch-commonjs';
 
-import { COMMAND, serverUrl } from '../utils/config';
+import { COMMAND, serverUrl } from '../Config';
 
 export default {
     run: async ({ monitor }: $TSFixMe) => {

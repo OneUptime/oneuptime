@@ -55,7 +55,7 @@ class Container extends Component<ComponentProps> {
         page: 1,
     };
 
-    prevClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    prevClicked = (projectId: string, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .getContainerSecurities({
@@ -80,7 +80,7 @@ class Container extends Component<ComponentProps> {
             });
     };
 
-    nextClicked = (projectId: $TSFixMe, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
+    nextClicked = (projectId: string, componentId: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) => {
         this.props
 
             .getContainerSecurities({

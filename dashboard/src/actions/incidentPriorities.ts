@@ -24,7 +24,7 @@ function fetchIncidentPrioritiesFailure(error: ErrorPayload) {
 }
 
 export function fetchIncidentPriorities(
-    projectId: $TSFixMe,
+    projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
@@ -48,7 +48,7 @@ export function fetchIncidentPriorities(
     };
 }
 
-export const createIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const createIncidentPriority = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `incidentPriorities/${projectId}`,
@@ -87,7 +87,7 @@ function createIncidentPriorityFailure(data: $TSFixMe) {
     };
 }
 
-export const updateIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const updateIncidentPriority = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`incidentPriorities/${projectId}`, data);
         dispatch(updateIncidentPriorityRequest());
@@ -123,7 +123,7 @@ function updateIncidentPriorityFailure(data: $TSFixMe) {
     };
 }
 
-export const deleteIncidentPriority = (projectId: $TSFixMe, data: $TSFixMe) => {
+export const deleteIncidentPriority = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
         const promise = delete (`incidentPriorities/${projectId}`, data);
         dispatch(deleteIncidentPriorityRequest());
