@@ -138,12 +138,11 @@ export default class Service {
     }
 
     async removeGroupMember(groupId: $TSFixMe, memberId: $TSFixMe) {
-        const _this = this;
-        const group = await _this.findOneBy({ _id: groupId });
+        const group = await this.findOneBy({ _id: groupId });
         const teamMembers = group.teams;
         const data = teamMembers.filter((id: $TSFixMe) => id !== memberId);
 
-        const newGroup = await _this.updateOneBy(
+        const newGroup = await this.updateOneBy(
             { _id: groupId },
             { teams: data }
         );

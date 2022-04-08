@@ -221,19 +221,19 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
         this.setState({ fileName: fileName, fileUploaded: true });
     };
     removeIntroAudio = (backup: $TSFixMe) => {
-        const _this = this;
+        
 
         const { currentProject, data, removeIntroAudio } = this.props;
         removeIntroAudio(currentProject._id, data.callRoutingId, backup).then(
             function () {
                 if (backup) {
-                    _this.setState({
+                    this.setState({
                         backupFileName: '',
                         backupFileUploaded: false,
                     });
                     return;
                 } else {
-                    _this.setState({ fileName: '', fileUploaded: false });
+                    this.setState({ fileName: '', fileUploaded: false });
                     return;
                 }
             },

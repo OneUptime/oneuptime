@@ -158,8 +158,8 @@ export default class Service {
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        const _this = this;
-        let schedule = await _this.findOneBy({
+
+        let schedule = await this.findOneBy({
             query,
             select: '_id userIds monitorIds',
         });
@@ -231,7 +231,7 @@ export default class Service {
         const select =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        schedule = await _this.findBy({
+        schedule = await this.findBy({
             query: { _id: query._id },
             limit: 10,
             skip: 0,
@@ -292,7 +292,6 @@ export default class Service {
         escalations: $TSFixMe,
         userId: string
     ) {
-        const _this = this;
         const escalationIds = [];
         for (const data of escalations) {
             let escalation = {};
@@ -309,21 +308,20 @@ export default class Service {
         }
 
         if (escalationIds && escalationIds.length) {
-            await _this.escalationCheck(escalationIds, scheduleId, userId);
+            await this.escalationCheck(escalationIds, scheduleId, userId);
         }
-        await _this.updateOneBy(
+        await this.updateOneBy(
             { _id: scheduleId },
             { escalationIds: escalationIds }
         );
 
-        const scheduleEscalation = await _this.getEscalations(scheduleId);
+        const scheduleEscalation = await this.getEscalations(scheduleId);
 
         return scheduleEscalation.escalations;
     }
 
     async getEscalations(scheduleId: $TSFixMe) {
-        const _this = this;
-        const schedule = await _this.findOneBy({
+        const schedule = await this.findOneBy({
             query: { _id: scheduleId },
             select: '_id escalationIds',
         });
@@ -398,8 +396,7 @@ export default class Service {
         scheduleId: $TSFixMe,
         userId: string
     ) {
-        const _this = this;
-        let scheduleIds = await _this.findOneBy({
+        let scheduleIds = await this.findOneBy({
             query: { _id: scheduleId },
             select: '_id escalationIds',
         });
@@ -424,7 +421,6 @@ export default class Service {
     }
 
     async getSubProjectSchedules(subProjectIds: $TSFixMe) {
-        const _this = this;
         const subProjectSchedules = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
                 const populate = [
@@ -457,14 +453,14 @@ export default class Service {
                     '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault  userIds';
 
                 const query = { projectId: id };
-                const schedules = await _this.findBy({
+                const schedules = await this.findBy({
                     query,
                     limit: 10,
                     skip: 0,
                     populate,
                     select,
                 });
-                const count = await _this.countBy(query);
+                const count = await this.countBy(query);
                 return { schedules, count, _id: id, skip: 0, limit: 10 };
             })
         );
@@ -477,7 +473,6 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
         const populate = [
             { path: 'userIds', select: 'name' },
@@ -500,12 +495,12 @@ export default class Service {
         const select =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        const schedule = await _this.findBy({ query, populate, select });
+        const schedule = await this.findBy({ query, populate, select });
         if (schedule && schedule.length > 1) {
             const schedules = await Promise.all(
                 schedule.map(async (schedule: $TSFixMe) => {
                     const scheduleId = schedule._id;
-                    schedule = await _this.updateOneBy(
+                    schedule = await this.updateOneBy(
                         { _id: scheduleId, deleted: true },
                         {
                             deleted: false,

@@ -216,7 +216,6 @@ export default class Service {
         data: $TSFixMe,
         receivedAt: $TSFixMe
     ) {
-        const _this = this;
         receivedAt = moment(receivedAt).format();
         // handle incoming/outgoing request
         const allData = [];
@@ -239,15 +238,15 @@ export default class Service {
                 createdAt: receivedAt,
             });
         }
-        await _this.createMany(allData);
+        await this.createMany(allData);
 
         // fetch the stored data in that time frame
         // get the total avg time, and probably the total avg max time
         // send realtime update to frontend and store
         const [time, count, error] = await Promise.all([
-            _this.structureMetricsTime(appId, receivedAt, receivedAt),
-            _this.structureMetricsCount(appId, receivedAt, receivedAt),
-            _this.structureMetricsError(appId, receivedAt, receivedAt),
+            this.structureMetricsTime(appId, receivedAt, receivedAt),
+            this.structureMetricsCount(appId, receivedAt, receivedAt),
+            this.structureMetricsError(appId, receivedAt, receivedAt),
         ]);
         // send realtime update to frontend
         // handle this in the background, so we don't delay api calls
@@ -261,7 +260,6 @@ export default class Service {
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ) {
-        const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
 
@@ -269,7 +267,7 @@ export default class Service {
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
         const dataBank = {};
-        const timeMetrics = await _this.findBy({
+        const timeMetrics = await this.findBy({
             query: {
                 performanceTrackerId: appId,
                 createdAt: { $gte: startDate, $lte: endDate },
@@ -315,14 +313,13 @@ export default class Service {
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ) {
-        const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
         const dataBank = {};
         const select = 'createdAt metrics';
-        const timeMetrics = await _this.findBy({
+        const timeMetrics = await this.findBy({
             query: {
                 performanceTrackerId: appId,
                 createdAt: { $gte: startDate, $lte: endDate },
@@ -366,14 +363,13 @@ export default class Service {
         startDate: $TSFixMe,
         endDate: $TSFixMe
     ) {
-        const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
         const dataBank = {};
         const select = 'createdAt metrics';
-        const timeMetrics = await _this.findBy({
+        const timeMetrics = await this.findBy({
             query: {
                 performanceTrackerId: appId,
                 createdAt: { $gte: startDate, $lte: endDate },

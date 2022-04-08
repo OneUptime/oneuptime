@@ -16,10 +16,9 @@ export default {
     },
 
     generateBulkEmails: function (numberOfEmails = 10) {
-        const _this = this;
         let emails = '';
         for (let i = 0; i < numberOfEmails; i++) {
-            emails += _this.generateRandomString(10) + '@oneuptime.com,';
+            emails += this.generateRandomString(10) + '@oneuptime.com,';
         }
         // remove the last comma
         emails = emails.slice(0, emails.length - 1);

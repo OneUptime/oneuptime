@@ -10,8 +10,6 @@ import Query from '../types/db/Query';
 
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
-
         // prepare issue model
         let issue = new IssueModel();
 
@@ -40,7 +38,7 @@ export default class Service {
         const selectIssue =
             'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
-        issue = await _this.findOneBy({
+        issue = await this.findOneBy({
             query: { _id: savedIssue._id },
             select: selectIssue,
             populate: populateIssue,

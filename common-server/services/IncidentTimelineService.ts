@@ -179,7 +179,6 @@ export default class Service {
     // fetches just the last/latest incident timeline
     // this timelines will be used in status page
     async getIncidentLastTimelines(incidents: $TSFixMe) {
-        const _this = this;
         const skip = 0,
             limit = 1;
 
@@ -194,7 +193,7 @@ export default class Service {
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
         let timelines = await Promise.all(
             incidents.map(async (incident: $TSFixMe) => {
-                const timeline = await _this.findBy({
+                const timeline = await this.findBy({
                     query: { incidentId: incident._id },
                     skip,
                     limit,

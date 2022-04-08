@@ -39,7 +39,6 @@ export default class Service {
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
     async create(data: $TSFixMe) {
-        const _this = this;
         let subProject = null;
 
         const query = {
@@ -48,7 +47,7 @@ export default class Service {
             projectId: data.projectId,
         };
         const select = 'name _id';
-        const existingMonitor = await _this.findBy({
+        const existingMonitor = await this.findBy({
             query,
             select,
         });
@@ -79,7 +78,7 @@ export default class Service {
                 query: { parentProjectId: project._id },
                 select: '_id users', // Subprojects require it for monitor creation
             }),
-            _this.countBy({
+            this.countBy({
                 projectId: { $in: subProjectIds },
             }),
             ResourceCategoryService.findBy({
@@ -229,7 +228,7 @@ export default class Service {
                     { path: 'componentId', select: 'name' },
                     { path: 'incidentCommunicationSla', select: '_id' },
                 ];
-                const populatedMonitor = await _this.findOneBy({
+                const populatedMonitor = await this.findOneBy({
                     query: { _id: savedMonitor._id },
                     select,
                     populate,
@@ -404,8 +403,6 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe, unsetData: $TSFixMe) {
-        const _this = this;
-
         if (!query) {
             query = {};
         }
@@ -417,7 +414,7 @@ export default class Service {
         let errorMsg;
         if (data && data.customFields && data.customFields.length > 0) {
             const select = '_id';
-            const monitor = await _this.findOneBy({ query, select });
+            const monitor = await this.findOneBy({ query, select });
             for (const field of data.customFields) {
                 if (field.uniqueField) {
                     const query = {
@@ -429,7 +426,7 @@ export default class Service {
                             },
                         },
                     };
-                    const _monitor = await _this.findOneBy({
+                    const _monitor = await this.findOneBy({
                         query,
                         select,
                     });
@@ -717,7 +714,6 @@ export default class Service {
     ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
-        const _this = this;
 
         const select =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
@@ -735,14 +731,14 @@ export default class Service {
         const subProjectMonitors = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
                 const [monitors, count] = await Promise.all([
-                    _this.findBy({
+                    this.findBy({
                         query: { projectId: id },
                         limit,
                         skip,
                         select,
                         populate,
                     }),
-                    _this.countBy({ projectId: id }),
+                    this.countBy({ projectId: id }),
                 ]);
 
                 const monitorsWithStatus = await Promise.all(
@@ -834,7 +830,6 @@ export default class Service {
     ) {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
-        const _this = this;
 
         const select =
             '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
@@ -849,14 +844,14 @@ export default class Service {
         ];
 
         const [monitors, count] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query: { componentId },
                 limit,
                 skip,
                 select,
                 populate,
             }),
-            _this.countBy({ componentId }),
+            this.countBy({ componentId }),
         ]);
 
         const monitorsWithStatus = await Promise.all(
@@ -1472,9 +1467,8 @@ export default class Service {
     }
     // yet to be edited
     async getManualMonitorTime(monitorId: $TSFixMe) {
-        const _this = this;
         const [monitorTime, monitorIncidents] = await Promise.all([
-            _this.findOneBy({
+            this.findOneBy({
                 query: { _id: monitorId },
                 select: 'createdAt',
             }),
@@ -1594,16 +1588,15 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
         const select = '_id';
-        const monitor = await _this.findBy({ query, select });
+        const monitor = await this.findBy({ query, select });
         if (monitor && monitor.length > 0) {
             const monitors = await Promise.all(
                 monitor.map(async (monitor: $TSFixMe) => {
                     const monitorId = monitor._id;
 
-                    monitor = await _this.updateOneBy(
+                    monitor = await this.updateOneBy(
                         { _id: monitorId, deleted: true },
                         {
                             deleted: false,
@@ -1631,7 +1624,6 @@ export default class Service {
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
     async updateMonitorSlaStat(query: Query) {
-        const _this = this;
         const currentDate = moment().format();
         let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
         const populate = [
@@ -1661,13 +1653,13 @@ export default class Service {
                     .subtract(Number(monitorSla.frequency), 'days')
                     .format();
 
-                const monitorStatus = await _this.getMonitorStatuses(
+                const monitorStatus = await this.getMonitorStatuses(
                     monitor._id,
                     startDate,
                     currentDate
                 );
                 if (monitorStatus && monitorStatus.length > 0) {
-                    const { uptimePercent } = await _this.calculateTime(
+                    const { uptimePercent } = await this.calculateTime(
                         monitorStatus[0].statuses,
                         startDate,
                         Number(monitorSla.frequency)

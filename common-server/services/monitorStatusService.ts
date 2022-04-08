@@ -111,12 +111,12 @@ export default class Service {
                 dataList.push(data);
             }
         }
-        const _this = this;
+
         if (dataList.length > 0) {
             const docs = await MonitorStatusModel.insertMany(dataList);
             // we don't want to await this ):
 
-            docs.forEach((doc: $TSFixMe) => _this.sendMonitorStatus(doc));
+            docs.forEach((doc: $TSFixMe) => this.sendMonitorStatus(doc));
 
             return docs;
         }
@@ -217,7 +217,6 @@ export default class Service {
     }
 
     async deleteBy(query: Query, userId: string) {
-        const _this = this;
         if (!query) {
             query = {};
         }
@@ -246,7 +245,7 @@ export default class Service {
             });
             if (previousMonitorStatuses && previousMonitorStatuses.length) {
                 const previousMonitorStatus = previousMonitorStatuses[0];
-                await _this.updateOneBy(
+                await this.updateOneBy(
                     { _id: previousMonitorStatus._id },
                     { endTime }
                 );

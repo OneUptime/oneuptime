@@ -21,14 +21,13 @@ const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data) {
-        const _this = this;
         let probeKey;
         if (data.probeKey) {
             probeKey = data.probeKey;
         } else {
             probeKey = uuidv1();
         }
-        const storedProbe = await _this.findOneBy({
+        const storedProbe = await this.findOneBy({
             probeName: data.probeName,
         });
         if (storedProbe && storedProbe.probeName) {
@@ -55,7 +54,7 @@ export default {
             probe.deleted = false;
 
             const result = await probeCollection.insertOne(probe);
-            const savedProbe = await _this.findOneBy({
+            const savedProbe = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
             return savedProbe;
@@ -115,8 +114,6 @@ export default {
     },
 
     saveMonitorLog: async function (data) {
-        const _this = this;
-
         let monitorStatus = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
@@ -167,10 +164,10 @@ export default {
                 )
                     return { retry: true, retryCount: data.retryCount };
 
-                await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
-            const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(data);
+            const incidentIdsOrRetry = await this.incidentCreateOrUpdate(data);
 
             if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
 
@@ -192,7 +189,7 @@ export default {
         } else {
             // should make sure all unresolved incidents for the monitor is resolved
             if (data.status === 'online') {
-                await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
             const incidents = await IncidentService.findBy({
@@ -884,7 +881,6 @@ export default {
     },
 
     probeHttpRequest: async function (monitor, probeId) {
-        const _this = this;
         let status, reason;
         let matchedCriterion;
         const lastPingTime = monitor.lastPingTime;
@@ -896,7 +892,7 @@ export default {
             matchedCriterion: matchedUpCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.up
-                ? _this.incomingCondition(payload, monitor.criteria.up)
+                ? this.incomingCondition(payload, monitor.criteria.up)
                 : false;
 
         const {
@@ -905,7 +901,7 @@ export default {
             matchedCriterion: matchedDegradedCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.degraded
-                ? _this.incomingCondition(payload, monitor.criteria.degraded)
+                ? this.incomingCondition(payload, monitor.criteria.degraded)
                 : false;
 
         const {
@@ -914,7 +910,7 @@ export default {
             matchedCriterion: matchedDownCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.down
-                ? _this.incomingCondition(payload, [
+                ? this.incomingCondition(payload, [
                       ...monitor.criteria.down.filter(
                           criterion => criterion.default !== true
                       ),
@@ -1000,7 +996,7 @@ export default {
                 matchedCriterion
             ),
 
-            _this.saveMonitorLog(logData),
+            this.saveMonitorLog(logData),
         ]);
 
         return log;

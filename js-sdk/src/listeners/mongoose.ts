@@ -10,22 +10,21 @@ class MongooseListener {
     }
 
     wrapAsync(orig, name) {
-        const _this = this;
         return async function () {
             const uuid = uuidv4();
 
             const operation = this.op;
             name = name || `mongoose.${operation}`; // mongose Query.exec specific
-            const result = _this.start(uuid, {
+            const result = this.start(uuid, {
                 path: operation,
                 type: 'mongoose',
             });
             try {
                 const res = await orig.apply(this, arguments);
-                _this.end(uuid, result, name);
+                this.end(uuid, result, name);
                 return res;
             } catch (err) {
-                _this.end(uuid, result, name);
+                this.end(uuid, result, name);
                 throw err;
             }
         };

@@ -71,7 +71,6 @@ export default class Service {
     }
 
     async search({ filter, skip, limit }: $TSFixMe) {
-        const _this = this;
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };
@@ -79,8 +78,8 @@ export default class Service {
         const populate = [{ path: 'projectId', select: 'name' }];
         const select = 'from to projectId content status error';
         const [searchedCallLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({ query, skip, limit, select, populate }),
-            _this.countBy({ query }),
+            this.findBy({ query, skip, limit, select, populate }),
+            this.countBy({ query }),
         ]);
 
         return { searchedCallLogs, totalSearchCount };

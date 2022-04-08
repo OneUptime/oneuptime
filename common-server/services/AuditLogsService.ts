@@ -36,7 +36,6 @@ export default class Service {
     }
 
     async search({ filter, skip, limit }: $TSFixMe) {
-        const _this = this;
         const query = {
             'request.apiSection': {
                 $regex: new RegExp(filter),
@@ -52,14 +51,14 @@ export default class Service {
         const selectAuditLog = 'userId projectId request response createdAt';
 
         const [searchedAuditLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query,
                 skip,
                 limit,
                 populate: populateAuditLog,
                 select: selectAuditLog,
             }),
-            _this.countBy({ query }),
+            this.countBy({ query }),
         ]);
 
         return { searchedAuditLogs, totalSearchCount };

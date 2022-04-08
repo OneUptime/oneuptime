@@ -494,7 +494,6 @@ export default class Service {
             select,
         });
 
-        const _this = this;
         await Promise.all(
             scheduledEvents.map(async (event: $TSFixMe) => {
                 // remove the monitor from scheduled event monitors list
@@ -511,7 +510,7 @@ export default class Service {
                             { new: true }
                         );
 
-                    updatedEvent = await _this.findOneBy({
+                    updatedEvent = await this.findOneBy({
                         query: { _id: updatedEvent._id },
                         select,
                         populate,
@@ -551,7 +550,6 @@ export default class Service {
      * @param {object} data data to be used to update the schedule
      */
     async resolveScheduledEvent(query: Query, data: $TSFixMe) {
-        const _this = this;
         data.resolved = true;
         data.resolvedAt = Date.now();
         let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -619,7 +617,7 @@ export default class Service {
             );
 
             postObj.monitors = monitors;
-            _this.create({ projectId }, postObj, true);
+            this.create({ projectId }, postObj, true);
         }
         // populate the necessary data
         const populate = [
@@ -638,7 +636,7 @@ export default class Service {
         const select =
             'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt';
 
-        resolvedScheduledEvent = await _this.findOneBy({
+        resolvedScheduledEvent = await this.findOneBy({
             query: { _id: resolvedScheduledEvent._id },
             select,
             populate,

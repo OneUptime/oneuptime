@@ -163,8 +163,7 @@ export default class Service {
         memberId: $TSFixMe,
         deletedById: $TSFixMe
     ) {
-        const _this = this;
-        const escalations = await _this.findBy({
+        const escalations = await this.findBy({
             query: { projectId },
             select: '_id teams scheduleId',
         });
@@ -224,14 +223,11 @@ export default class Service {
                                 { _id: schedule._id },
                                 { escalationIds: rmEscalation }
                             ),
-                            _this.deleteBy(
-                                { _id: escalation._id },
-                                deletedById
-                            ),
+                            this.deleteBy({ _id: escalation._id }, deletedById),
                         ]);
                     }
                 }
-                await _this.updateOneBy(
+                await this.updateOneBy(
                     {
                         _id: escalation._id,
                     },
@@ -247,14 +243,13 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
-        let escalation = await _this.findBy({ query, select: '_id' });
+        let escalation = await this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {
             const escalations = await Promise.all(
                 escalation.map(async (escalation: $TSFixMe) => {
                     const escalationId = escalation._id;
-                    escalation = await _this.updateOneBy(
+                    escalation = await this.updateOneBy(
                         { _id: escalationId, deleted: true },
                         {
                             deleted: false,
@@ -270,7 +265,7 @@ export default class Service {
             escalation = escalation[0];
             if (escalation) {
                 const escalationId = escalation._id;
-                escalation = await _this.updateOneBy(
+                escalation = await this.updateOneBy(
                     { _id: escalationId, deleted: true },
                     {
                         deleted: false,

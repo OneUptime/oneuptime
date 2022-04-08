@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer';
-
 import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import Whitepapers from '../config/whitepaper';
@@ -11,13 +10,14 @@ import DateTime from '../utils/DateTime';
 import Path from 'path';
 import fsp from 'fs/promises';
 import moment from 'moment';
-
 import { isEmpty } from 'lodash';
+import UppercaseFirstLetter from '../utils/UppercaseFirstLetter';
+import Email from 'common/types/Email';
+import BadDataException from 'common/types/exception/BadDataException';
+
 const helpers = {
     year: DateTime.getCurrentYear,
 };
-
-import UppercaseFirstLetter from '../utils/UppercaseFirstLetter';
 
 const options = {
     viewEngine: {
@@ -1290,16 +1290,13 @@ export default class MailService {
         }
     }
 
-    async sendRequestDemoEmail(to: $TSFixMe) {
+    async sendRequestDemoEmail(to: Email) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             if (!to) {
-                const error = new Error('Email not found');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Email to cannot be null');
             } else {
                 let accountMail = await this.getSmtpSettings();
                 if (!isEmpty(accountMail)) {
@@ -1444,11 +1441,7 @@ export default class MailService {
         let smtpServer;
         try {
             if (!to || whitepaperName) {
-                const error = new Error('Email or Whitepaper found');
-
-                error.code = 400;
-
-                throw error;
+                throw new BadDataException('Email or Whitepaper found');
             } else {
                 let link = null;
 

@@ -115,7 +115,7 @@ export class SubProjects extends Component<SubProjectsProps>{
         const { subProjects } = subProjectState;
         const canNext = count > skip + limit ? false : true;
         const canPrev = skip <= 0 ? true : false;
-        const _this = this;
+        
         const numbersOfPage = Math.ceil(parseInt(count) / 10);
 
         return (
@@ -291,7 +291,7 @@ export class SubProjects extends Component<SubProjectsProps>{
                                                 type="button"
                                                 disabled={canPrev}
                                                 onClick={() =>
-                                                    _this.paginatePrev()
+                                                    this.paginatePrev()
                                                 }
                                             >
                                                 <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
@@ -310,7 +310,7 @@ export class SubProjects extends Component<SubProjectsProps>{
                                                 type="button"
                                                 disabled={canNext}
                                                 onClick={() =>
-                                                    _this.paginateNext()
+                                                    this.paginateNext()
                                                 }
                                             >
                                                 <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">

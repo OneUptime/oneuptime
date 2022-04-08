@@ -13,7 +13,7 @@ const _this = {
         };
     },
     post: (url: URL, data: $TSFixMe, withBaseUrl = false) => {
-        const headers = _this.getHeaders();
+        const headers = this.getHeaders();
 
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
@@ -41,7 +41,7 @@ const _this = {
     },
 
     get: (url: URL, withBaseUrl = false) => {
-        const headers = _this.getHeaders();
+        const headers = this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
@@ -63,7 +63,7 @@ const _this = {
     },
 
     put: (url: URL, data: $TSFixMe, withBaseUrl: URL) => {
-        const headers = _this.getHeaders();
+        const headers = this.getHeaders();
         return new Promise((resolve, reject) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
@@ -90,7 +90,7 @@ const _this = {
     },
 
     delete: (url: URL, data: $TSFixMe, withBaseUrl: URL) => {
-        const headers = _this.getHeaders();
+        const headers = this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'DELETE',

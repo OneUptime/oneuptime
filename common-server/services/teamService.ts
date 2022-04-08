@@ -159,7 +159,7 @@ export default class Service {
             select: 'name _id',
         });
         emails = emails.toLowerCase().split(',');
-        const _this = this;
+
         let subProject = null;
 
         //Checks if users to be added to project are not duplicate.
@@ -189,14 +189,14 @@ export default class Service {
                     select: 'seats',
                 });
             }
-            const teamMembers = await _this.getTeamMembers(projectId);
+            const teamMembers = await this.getTeamMembers(projectId);
             let projectSeats = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
 
             // Checks if users to be added as team members are already present or not.
-            const isUserInProject = await _this.checkUser(teamMembers, emails);
+            const isUserInProject = await this.checkUser(teamMembers, emails);
             if (isUserInProject) {
                 const error = new Error(
                     'These users are already members of the project.'
@@ -228,7 +228,7 @@ export default class Service {
                     }
 
                     if (isHiddenAdminUser && isHiddenAdminUser.length > 0) {
-                        await _this.removeTeamMember(
+                        await this.removeTeamMember(
                             projectId,
                             addedBy._id,
                             adminUser._id
@@ -238,7 +238,7 @@ export default class Service {
 
                 // Get no of users to be added
                 const extraUsersToAdd = emails.length;
-                const invite = await _this.inviteTeamMembersMethod(
+                const invite = await this.inviteTeamMembersMethod(
                     projectId,
                     emails,
                     role,
@@ -255,8 +255,6 @@ export default class Service {
     //Param 1: projectId: Project id.
     //Returns: promise
     async getTeamMembers(projectId: string) {
-        const _this = this;
-
         const subProject = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
@@ -266,12 +264,12 @@ export default class Service {
                 query: { _id: subProject.parentProjectId },
                 select: '_id',
             });
-            return await _this.getTeamMembersBy({
+            return await this.getTeamMembersBy({
                 _id: project._id,
             });
         }
         if (subProject) {
-            return await _this.getTeamMembersBy({
+            return await this.getTeamMembersBy({
                 _id: subProject._id,
             });
         }
@@ -331,7 +329,7 @@ export default class Service {
     ) {
         const invitedTeamMembers = [];
         let projectUsers = [];
-        const _this = this;
+
         let subProject = null;
 
         let project = await ProjectService.findOneBy({
@@ -374,7 +372,7 @@ export default class Service {
         for (const member of invitedTeamMembers) {
             let registerUrl = `${global.accountsHost}/register`;
             if (member.name) {
-                projectUsers = await _this.getTeamMembersBy({
+                projectUsers = await this.getTeamMembersBy({
                     parentProjectId: project._id,
                 });
                 const userInProject = projectUsers.find(
@@ -473,7 +471,7 @@ export default class Service {
                 role: role,
             });
         }
-        const existingUsers = await _this.getTeamMembersBy({
+        const existingUsers = await this.getTeamMembersBy({
             parentProjectId: project._id,
         });
 
@@ -507,7 +505,7 @@ export default class Service {
                 );
             }
         }
-        projectUsers = await _this.getTeamMembersBy({
+        projectUsers = await this.getTeamMembersBy({
             parentProjectId: project._id,
         });
 
@@ -542,7 +540,7 @@ export default class Service {
         );
 
         let response = [];
-        let team = await _this.getTeamMembersBy({ _id: project._id });
+        let team = await this.getTeamMembersBy({ _id: project._id });
         let teamusers = {
             projectId: project._id,
             team: team,
@@ -556,7 +554,7 @@ export default class Service {
         if (subProjectTeams.length > 0) {
             const subProjectTeamsUsers = await Promise.all(
                 subProjectTeams.map(async (subProject: $TSFixMe) => {
-                    team = await _this.getTeamMembersBy({
+                    team = await this.getTeamMembersBy({
                         _id: subProject._id,
                     });
                     teamusers = {
@@ -583,7 +581,6 @@ export default class Service {
         userId: string,
         teamMemberUserId: string
     ) {
-        const _this = this;
         let index;
         let subProject = null;
 
@@ -711,7 +708,7 @@ export default class Service {
                         'information'
                     );
                 }
-                let team = await _this.getTeamMembersBy({
+                let team = await this.getTeamMembersBy({
                     _id: project._id,
                 });
 
@@ -730,7 +727,7 @@ export default class Service {
                 if (subProjectTeams.length > 0) {
                     const subProjectTeamsUsers = await Promise.all(
                         subProjectTeams.map(async (subProject: $TSFixMe) => {
-                            team = await _this.getTeamMembersBy({
+                            team = await this.getTeamMembersBy({
                                 _id: subProject._id,
                             });
                             teamusers = {
@@ -743,7 +740,7 @@ export default class Service {
 
                     response = response.concat(subProjectTeamsUsers);
                 }
-                team = await _this.getTeamMembersBy({ _id: projectId });
+                team = await this.getTeamMembersBy({ _id: projectId });
                 // run in the background
                 // RealTimeService.deleteTeamMember(project._id, {
                 //     response,
@@ -768,7 +765,6 @@ export default class Service {
         teamMemberUserId: string,
         role: $TSFixMe
     ) {
-        const _this = this;
         let previousRole = '';
         const nextRole = role;
         let index;
@@ -895,7 +891,7 @@ export default class Service {
 
                 // send response
                 let response = [];
-                let team = await _this.getTeamMembersBy({
+                let team = await this.getTeamMembersBy({
                     _id: project._id,
                 });
                 let teamusers = {
@@ -911,7 +907,7 @@ export default class Service {
                 if (subProjectTeams.length > 0) {
                     const subProjectTeamsUsers = await Promise.all(
                         subProjectTeams.map(async (subProject: $TSFixMe) => {
-                            team = await _this.getTeamMembersBy({
+                            team = await this.getTeamMembersBy({
                                 _id: subProject._id,
                             });
                             teamusers = {
@@ -924,7 +920,7 @@ export default class Service {
 
                     response = response.concat(subProjectTeamsUsers);
                 }
-                team = await _this.getTeamMembersBy({ _id: projectId });
+                team = await this.getTeamMembersBy({ _id: projectId });
 
                 // run in the background
                 RealTimeService.updateTeamMemberRole(project._id, {

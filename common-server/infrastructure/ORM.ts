@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import logger from './Logger';
+import logger from '../utils/Logger';
 
 import { databaseUrl, isMongoReplicaSet } from '../Config';
 

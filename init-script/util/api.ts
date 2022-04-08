@@ -12,7 +12,7 @@ const _this = {
     },
 
     delete: (url: URL, data: $TSFixMe) => {
-        const headers = _this.getHeaders();
+        const headers = this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'DELETE',

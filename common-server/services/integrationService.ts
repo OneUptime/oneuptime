@@ -21,7 +21,6 @@ export default class Service {
         integrationType: $TSFixMe,
         notificationOptions: $TSFixMe
     ) {
-        const _this = this;
         const integrationModel = new IntegrationModel(data);
 
         integrationModel.projectId = projectId;
@@ -56,7 +55,7 @@ export default class Service {
                 populate: [{ path: 'componentId', select: 'name' }],
             },
         ];
-        integration = await _this.findOneBy({
+        integration = await this.findOneBy({
             query: { _id: integration._id },
             select,
             populate,
@@ -104,13 +103,12 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe) {
-        const _this = this;
         if (!query) {
             query = {};
         }
 
         if (!data._id) {
-            const integration = await _this.create(
+            const integration = await this.create(
                 data.projectId,
                 data.userId,
                 data,
@@ -152,7 +150,7 @@ export default class Service {
                     populate: [{ path: 'componentId', select: 'name' }],
                 },
             ];
-            updatedIntegration = await _this.findOneBy({
+            updatedIntegration = await this.findOneBy({
                 query: { _id: updatedIntegration._id },
                 select,
                 populate,
@@ -203,7 +201,6 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
         const select =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
@@ -216,12 +213,12 @@ export default class Service {
                 populate: [{ path: 'componentId', select: 'name' }],
             },
         ];
-        const integration = await _this.findBy({ query, select, populate });
+        const integration = await this.findBy({ query, select, populate });
         if (integration && integration.length > 1) {
             const integrations = await Promise.all(
                 integration.map(async (integration: $TSFixMe) => {
                     const integrationId = integration._id;
-                    integration = await _this.updateOneBy(
+                    integration = await this.updateOneBy(
                         {
                             _id: integrationId,
                         },

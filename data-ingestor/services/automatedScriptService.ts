@@ -76,7 +76,6 @@ export default {
         resources,
         stackSize = 0,
     }: $TSFixMe) {
-        const _this = this;
         if (stackSize === 3) {
             const resource = resources[0];
             if (resource) {
@@ -101,7 +100,7 @@ export default {
                         return null;
                 }
 
-                await _this.createLog(resource.automatedScript, data);
+                await this.createLog(resource.automatedScript, data);
             }
         }
 
@@ -119,7 +118,7 @@ export default {
             const automatedScriptId = event.automatedScript;
             switch (resourceType) {
                 case 'automatedScript':
-                    return _this.runAutomatedScript({
+                    return this.runAutomatedScript({
                         automatedScriptId,
                         triggeredId,
                         triggeredBy,
@@ -139,9 +138,8 @@ export default {
         triggeredBy = 'script',
         stackSize,
     }: $TSFixMe) {
-        const _this = this;
         const { script, scriptType, successEvent, failureEvent } =
-            await _this.findOneBy({
+            await this.findOneBy({
                 _id: ObjectId(automatedScriptId),
             });
         let data = null;
@@ -188,7 +186,7 @@ export default {
             : null;
 
         if (data.success && successEvent.length > 0) {
-            await _this.runResource({
+            await this.runResource({
                 triggeredId: automatedScriptId,
                 resources: successEvent,
                 stackSize,
@@ -196,17 +194,17 @@ export default {
         }
 
         if (!data.success && failureEvent.length > 0) {
-            await _this.runResource({
+            await this.runResource({
                 triggeredId: automatedScriptId,
                 resources: failureEvent,
                 stackSize,
             });
         }
-        const automatedScriptLog = await _this.createLog(
+        const automatedScriptLog = await this.createLog(
             automatedScriptId,
             data
         );
-        await _this.updateOne(
+        await this.updateOne(
             { _id: ObjectId(automatedScriptId) },
             { updatedAt: new Date(moment().format()) }
         );

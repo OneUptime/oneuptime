@@ -48,33 +48,32 @@ class OneUptimeListener {
     }
     // set up console listener
     _setUpConsoleListener() {
-        const _this = this;
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
         const console = (function (oldCons) {
             return {
                 log: function (text: $TSFixMe) {
                     oldCons.log(text);
-                    // _this._logConsoleEvent(text, _this.utilObj.getErrorType().INFO);
+                    // this._logConsoleEvent(text, this.utilObj.getErrorType().INFO);
                 },
                 info: function (text: $TSFixMe) {
                     oldCons.info(text);
-                    _this._logConsoleEvent(
+                    this._logConsoleEvent(
                         text,
-                        _this.utilObj.getErrorType().INFO
+                        this.utilObj.getErrorType().INFO
                     );
                 },
                 warn: function (text: $TSFixMe) {
                     oldCons.warn(text);
-                    _this._logConsoleEvent(
+                    this._logConsoleEvent(
                         text,
-                        _this.utilObj.getErrorType().WARNING
+                        this.utilObj.getErrorType().WARNING
                     );
                 },
                 error: function (text: $TSFixMe) {
                     oldCons.error(text);
-                    _this._logConsoleEvent(
+                    this._logConsoleEvent(
                         text,
-                        _this.utilObj.getErrorType().ERROR
+                        this.utilObj.getErrorType().ERROR
                     );
                 },
             };
@@ -85,16 +84,15 @@ class OneUptimeListener {
     }
     // set up dom listener
     _setUpDomListener() {
-        const _this = this;
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
-                    if (!_this.keypressTimeout) {
+                    if (!this.keypressTimeout) {
                         // confirm the event is new
-                        if (_this.lastEvent === event) {
+                        if (this.lastEvent === event) {
                             return;
                         }
-                        _this.lastEvent = event;
+                        this.lastEvent = event;
                         // set up how to send this log to the server
                         this._logClickEvent(
                             event,
@@ -103,11 +101,11 @@ class OneUptimeListener {
                     }
                     // not logging cus of timeout
 
-                    clearTimeout(_this.keypressTimeout);
+                    clearTimeout(this.keypressTimeout);
 
-                    _this.keypressTimeout = setTimeout(() => {
-                        _this.keypressTimeout = undefined;
-                    }, _this.debounceDuration);
+                    this.keypressTimeout = setTimeout(() => {
+                        this.keypressTimeout = undefined;
+                    }, this.debounceDuration);
                 });
             }
         });
@@ -115,7 +113,7 @@ class OneUptimeListener {
     // set up xhr listener
     _setUpXhrListener() {
         const open = window.XMLHttpRequest.prototype.open;
-        const _this = this;
+
         function openReplacement(this: $TSFixMe, method: $TSFixMe, url: URL) {
             const obj = {
                 method,
@@ -124,16 +122,16 @@ class OneUptimeListener {
             };
             this.addEventListener('load', function (thisObj: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
-                if (!url.startsWith(_this.BASE_URL)) {
+                if (!url.startsWith(this.BASE_URL)) {
                     obj.status_code = thisObj.status;
-                    _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
+                    this._logXHREvent(obj, this.utilObj.getErrorType().INFO);
                 }
             });
             this.addEventListener('error', function (thisObj: $TSFixMe) {
                 // check if it is not a request to OneUptime servers
-                if (!url.startsWith(_this.BASE_URL)) {
+                if (!url.startsWith(this.BASE_URL)) {
                     obj.status_code = thisObj.status;
-                    _this._logXHREvent(obj, _this.utilObj.getErrorType().INFO);
+                    this._logXHREvent(obj, this.utilObj.getErrorType().INFO);
                 }
             });
 
@@ -147,7 +145,7 @@ class OneUptimeListener {
     // set up fetch listener
     _setUpFetchListener() {
         const currentFetch = global.fetch;
-        const _this = this;
+
         global.fetch = function (url, options) {
             const obj = {
                 url,
@@ -165,8 +163,8 @@ class OneUptimeListener {
                 }
             );
 
-            if (!url.startsWith(_this.BASE_URL)) {
-                _this._logFetchEvent(obj, _this.utilObj.getErrorType().INFO);
+            if (!url.startsWith(this.BASE_URL)) {
+                this._logFetchEvent(obj, this.utilObj.getErrorType().INFO);
             }
 
             return promise;
@@ -175,7 +173,7 @@ class OneUptimeListener {
     _setUpHttpsListener() {
         override(Http);
         override(Https);
-        const _this = this;
+
         function override(module: $TSFixMe) {
             const original = module.request;
 
@@ -190,10 +188,10 @@ class OneUptimeListener {
                             response.on('end', () => {
                                 // get status from final response
                                 log.status = response.statusCode;
-                                if (!log.url.startsWith(_this.BASE_URL)) {
-                                    _this._logHttpRequestEvent(
+                                if (!log.url.startsWith(this.BASE_URL)) {
+                                    this._logHttpRequestEvent(
                                         log,
-                                        _this.utilObj.getErrorType().INFO
+                                        this.utilObj.getErrorType().INFO
                                     );
                                 }
                             });

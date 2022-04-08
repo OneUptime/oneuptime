@@ -21,7 +21,6 @@ class IncomingListener {
     _setUpIncomingListener() {
         override(Http);
         override(Https);
-        const _this = this;
 
         function override(module) {
             const emit = module.Server.prototype.emit;
@@ -33,8 +32,8 @@ class IncomingListener {
                     let finalPattern = path;
 
                     // this will only work with express application
-                    if (_this.app && _this.app._router) {
-                        const routes = getRoutes(_this.app);
+                    if (this.app && this.app._router) {
+                        const routes = getRoutes(this.app);
                         for (const [key, value] of Object.entries(routes)) {
                             if (key === String(method).toLowerCase()) {
                                 for (const val of value) {
@@ -52,7 +51,7 @@ class IncomingListener {
 
                     req.apm = {};
                     req.apm.uuid = uuidv4();
-                    const result = _this.start(req.apm.uuid, {
+                    const result = this.start(req.apm.uuid, {
                         path: finalPattern,
                         type: 'incoming',
                         method,
@@ -65,19 +64,19 @@ class IncomingListener {
                             res.statusCode < 600
                         ) {
                             // error must have occurred
-                            const originalValue = _this.store.getValue(
+                            const originalValue = this.store.getValue(
                                 req.apm.uuid
                             );
                             if (originalValue && originalValue !== undefined) {
                                 originalValue.errorCount = 1;
-                                _this.store.setValue(
+                                this.store.setValue(
                                     req.apm.uuid,
                                     originalValue
                                 );
                             }
                         }
 
-                        _this.end(req.apm.uuid, result, 'request');
+                        this.end(req.apm.uuid, result, 'request');
                     });
                 }
                 return emit.apply(this, arguments);

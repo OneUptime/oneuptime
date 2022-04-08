@@ -17,7 +17,6 @@ class OutgoingListener {
     _setUpOutgoingListener() {
         override(Http);
         override(Https);
-        const _this = this;
 
         function override(module) {
             const original = module.request;
@@ -36,7 +35,7 @@ class OutgoingListener {
                 const emit = req.emit;
                 req.apm = {};
                 req.apm.uuid = uuidv4();
-                const result = _this.start(req.apm.uuid, {
+                const result = this.start(req.apm.uuid, {
                     path: `${protocol}//${host}${path}`, // store full path for outgoing requests
                     type: 'outgoing',
                     method,
@@ -46,22 +45,22 @@ class OutgoingListener {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {
-                                _this.end(req.apm.uuid, result, 'response');
+                                this.end(req.apm.uuid, result, 'response');
                             });
                             break;
                         }
                         case 'error': {
-                            const originalValue = _this.store.getValue(
+                            const originalValue = this.store.getValue(
                                 req.apm.uuid
                             );
                             if (originalValue && originalValue !== undefined) {
                                 originalValue.errorCount = 1;
-                                _this.store.setValue(
+                                this.store.setValue(
                                     req.apm.uuid,
                                     originalValue
                                 );
                             }
-                            _this.end(req.apm.uuid, result, 'response');
+                            this.end(req.apm.uuid, result, 'response');
                             break;
                         }
                     }

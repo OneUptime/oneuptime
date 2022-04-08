@@ -115,11 +115,10 @@ export default class Service {
     }
 
     async getTemplates(projectId: string) {
-        const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
             defaultTemplate.map(async template => {
-                const emailTemplate = await _this.findOneBy({
+                const emailTemplate = await this.findOneBy({
                     query: {
                         projectId: projectId,
                         emailType: template.emailType,
@@ -136,9 +135,8 @@ export default class Service {
     }
 
     async resetTemplate(projectId: string, templateId: $TSFixMe) {
-        const _this = this;
         const select = 'projectId subject body emailType allowedVariables';
-        const oldTemplate = await _this.findOneBy({
+        const oldTemplate = await this.findOneBy({
             query: { _id: templateId },
             select,
             populate: [{ path: 'projectId', select: 'nmae' }],
@@ -146,7 +144,7 @@ export default class Service {
         const newTemplate = defaultTemplate.filter(
             template => template.emailType === oldTemplate.emailType
         )[0];
-        const resetTemplate = await _this.updateOneBy(
+        const resetTemplate = await this.updateOneBy(
             {
                 _id: oldTemplate._id,
             },

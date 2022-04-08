@@ -1,5 +1,5 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-import { Document } from '../../utils/ORM';
+import { Document } from '../../infrastructure/ORM';
 
 export default interface SearchResult {
     items: Array<Document>;

@@ -1,4 +1,4 @@
-import './ENV';
+import './Env';
 import './Process';
 import logger from './Logger';
 import cors from 'cors';

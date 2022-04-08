@@ -9,14 +9,13 @@ const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data) {
-        const _this = this;
         let probeKey;
         if (data.probeKey) {
             probeKey = data.probeKey;
         } else {
             probeKey = uuidv1();
         }
-        const storedProbe = await _this.findOneBy({
+        const storedProbe = await this.findOneBy({
             probeName: data.probeName,
         });
         if (storedProbe && storedProbe.probeName) {
@@ -43,7 +42,7 @@ export default {
             probe.deleted = false;
 
             const result = await probeCollection.insertOne(probe);
-            const savedProbe = await _this.findOneBy({
+            const savedProbe = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
             return savedProbe;

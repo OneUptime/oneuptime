@@ -109,7 +109,7 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
 
             allNumbers,
         } = this.props;
-        const _this = this;
+        
         const isRequesting = allNumbers && allNumbers.requesting;
         const count = callRoutingNumbers.count && callRoutingNumbers.count;
 
@@ -198,7 +198,7 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
                                 callRoutingNumbers.numbers &&
                                 callRoutingNumbers.numbers.length > 0 ? (
                                 callRoutingNumbers.numbers.map((number: $TSFixMe, i: $TSFixMe) => {
-                                    const { result } = _this.getName(number);
+                                    const { result } = this.getName(number);
                                     return (
                                         <tr
                                             id={`routing_number_${number._id}_${i}`}

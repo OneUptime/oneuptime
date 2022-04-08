@@ -8,8 +8,6 @@ import PositiveNumber from 'common/types/PositiveNumber';
 
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
-
         // prepare  log model
         let log = new LogModel();
         let content;
@@ -44,7 +42,7 @@ export default class Service {
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
         const populateLog = [{ path: 'applicationLogId', select: 'name' }];
-        log = await _this.findOneBy({
+        log = await this.findOneBy({
             query: { _id: savedlog._id },
             select: selectLog,
             populate: populateLog,
@@ -117,14 +115,13 @@ export default class Service {
 
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
-        const _this = this;
 
         const selectLog =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
         const populateLog = [{ path: 'applicationLogId', select: 'name' }];
 
-        const logs = await _this.findBy({
+        const logs = await this.findBy({
             query: { applicationLogId: applicationLogId },
             limit,
             skip,
@@ -149,7 +146,6 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
-        const _this = this;
         query.stringifiedContent = {
             $regex: new RegExp(filter),
             $options: 'i',
@@ -159,21 +155,20 @@ export default class Service {
 
         const populateLog = [{ path: 'applicationLogId', select: 'name' }];
         const [searchedLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query,
                 skip,
                 limit,
                 select: selectLog,
                 populate: populateLog,
             }),
-            _this.countBy(query),
+            this.countBy(query),
         ]);
 
         return { searchedLogs, totalSearchCount };
     }
 
     async searchByDuration(query: Query) {
-        const _this = this;
         if (!query) {
             query = {};
         }
@@ -194,12 +189,12 @@ export default class Service {
         const populateLog = [{ path: 'applicationLogId', select: 'name' }];
 
         const [searchedLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query,
                 select: selectLog,
                 populate: populateLog,
             }),
-            _this.countBy(query),
+            this.countBy(query),
         ]);
 
         return { searchedLogs, totalSearchCount };

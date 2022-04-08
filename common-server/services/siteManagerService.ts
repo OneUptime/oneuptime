@@ -53,7 +53,6 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe) {
-        const _this = this;
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -67,7 +66,7 @@ export default class Service {
         );
 
         if (!siteManager) {
-            siteManager = await _this.create(data);
+            siteManager = await this.create(data);
         }
 
         return siteManager;

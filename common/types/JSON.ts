@@ -6,7 +6,9 @@ export type JSONValue =
     | Array<boolean>
     | boolean
     | JSONObject
-    | JSONArray;
+    | JSONArray
+    | Date
+    | Array<Date>;
 
 export interface JSONObject {
     [x: string]: JSONValue;

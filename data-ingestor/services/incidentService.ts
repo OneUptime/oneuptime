@@ -47,8 +47,7 @@ export default {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
-        const _this = this;
-        const oldIncident = await _this.findOneBy({
+        const oldIncident = await this.findOneBy({
             query: { _id: ObjectId(query._id), deleted: { $ne: null } },
         });
 
@@ -73,7 +72,7 @@ export default {
             $set: data,
         });
 
-        updatedIncident = await _this.findOneBy({
+        updatedIncident = await this.findOneBy({
             query,
         });
         // TODO

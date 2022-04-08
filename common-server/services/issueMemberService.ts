@@ -1,7 +1,5 @@
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
-
         // prepare issue member model
         let issueMember = new IssueMemberModel();
 
@@ -21,7 +19,7 @@ export default class Service {
 
             { path: 'userId', select: 'name email' },
         ];
-        issueMember = await _this.findOneBy({
+        issueMember = await this.findOneBy({
             query: { _id: savedIssueMember._id },
             select: selectIssueMember,
             populate: populateIssueMember,

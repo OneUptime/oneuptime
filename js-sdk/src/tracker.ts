@@ -150,7 +150,6 @@ class ErrorTracker {
     }
     // set up error listener
     _setUpErrorListener() {
-        const _this = this;
         window.onerror = async function (message, file, line, col, error) {
             const errorEvent = { message, file, line, col, error };
 
@@ -162,36 +161,35 @@ class ErrorTracker {
                 return; // third party error
             } else {
                 // construct the error object
-                const errorObj = await _this.utilObj._getErrorStackTrace(
+                const errorObj = await this.utilObj._getErrorStackTrace(
                     errorEvent
                 );
 
                 // set the a handled tag
-                _this.setTag('handled', 'false');
+                this.setTag('handled', 'false');
                 // prepare to send to server
-                _this.prepareErrorObject('error', errorObj);
+                this.prepareErrorObject('error', errorObj);
 
                 // send to the server
-                _this.sendErrorEventToServer();
+                this.sendErrorEventToServer();
             }
         };
     }
     _setUpNodeErrorListener() {
-        const _this = this;
         process
             .on('uncaughtException', err => {
                 // display for the user
                 //eslint-disable-next-line no-console
                 console.info(`${err}`);
                 // any uncaught error
-                _this._manageErrorNode(err);
+                this._manageErrorNode(err);
             })
             .on('unhandledRejection', err => {
                 // display this for the user
                 //eslint-disable-next-line no-console
                 console.info(`UnhandledPromiseRejectionWarning: ${err.stack}`);
                 // any unhandled promise error
-                _this._manageErrorNode(err);
+                this._manageErrorNode(err);
             });
     }
     async _manageErrorNode(error: $TSFixMe) {

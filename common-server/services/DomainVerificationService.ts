@@ -134,13 +134,12 @@ export default class Service {
     }
 
     async resetDomain(domain: $TSFixMe) {
-        const _this = this;
         const updateObj = {
             verificationToken: 'oneuptime=' + randomChar(),
             verified: false,
             updatedAt: new Date(),
         };
-        const updatedDomain = await _this.updateOneBy(
+        const updatedDomain = await this.updateOneBy(
             { _id: domain },
             updateObj
         );
@@ -318,11 +317,10 @@ export default class Service {
     }
 
     async findDomain(domainId: $TSFixMe, projectArr = []) {
-        const _this = this;
         let projectId;
         for (const pId of projectArr) {
             const populateDomainVerify = [{ path: 'projectId', select: '_id' }];
-            const check = await _this.findOneBy({
+            const check = await this.findOneBy({
                 query: { _id: domainId, projectId: pId },
                 select: 'projectId',
                 populate: populateDomainVerify,

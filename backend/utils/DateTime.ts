@@ -100,7 +100,7 @@ const _this = {
         if (typeof date2 === 'string') {
             date2 = new Date(date2);
         }
-        if (_this.greaterThan(date1, date2)) {
+        if (this.greaterThan(date1, date2)) {
             return 0;
         }
         return differenceInMonths(date2, date1);
@@ -113,7 +113,7 @@ const _this = {
         if (typeof date2 === 'string') {
             date2 = new Date(date2);
         }
-        if (_this.greaterThan(date1, date2)) {
+        if (this.greaterThan(date1, date2)) {
             return 0;
         }
         return differenceInDays(date2, date1);
@@ -126,7 +126,7 @@ const _this = {
         if (typeof date2 === 'string') {
             date2 = new Date(date2);
         }
-        if (_this.greaterThan(date1, date2)) {
+        if (this.greaterThan(date1, date2)) {
             return 0;
         }
         return differenceInWeeks(date2, date1);
@@ -165,10 +165,7 @@ const _this = {
             endDate = new Date(endDate);
         }
 
-        if (
-            _this.greaterThan(startDate, date) &&
-            _this.lessThan(date, endDate)
-        ) {
+        if (this.greaterThan(startDate, date) && this.lessThan(date, endDate)) {
             return true;
         }
 
@@ -209,7 +206,7 @@ const _this = {
                 `${today.getFullYear()}-${
                     today.getMonth() + 1
                 }-${today.getDate()} ${date.getHours()}:${date.getMinutes()}`,
-                _this.getCurrentTimezone()
+                this.getCurrentTimezone()
             )
             .toDate();
     },
@@ -222,7 +219,7 @@ const _this = {
         const current = new Date();
         date = moment(date).add(1, 'minutes').toDate();
 
-        return _this.lessThan(date, current);
+        return this.lessThan(date, current);
     },
 
     getCurrentYear: () => {

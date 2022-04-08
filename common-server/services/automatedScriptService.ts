@@ -160,14 +160,12 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
-        const _this = this;
-        const response = await _this.findAllLogs(query, skip, limit);
+        const response = await this.findAllLogs(query, skip, limit);
         return response;
     }
 
     async createScript(data: $TSFixMe) {
-        const _this = this;
-        const response = await _this.create(data);
+        const response = await this.create(data);
         return response;
     }
 
@@ -177,7 +175,6 @@ export default class Service {
         resources,
         stackSize = 0,
     }: $TSFixMe) {
-        const _this = this;
         if (stackSize === 3) {
             const resource = resources[0];
             if (resource) {
@@ -202,7 +199,7 @@ export default class Service {
                         return null;
                 }
 
-                await _this.createLog(resource.automatedScript, data);
+                await this.createLog(resource.automatedScript, data);
             }
         }
 
@@ -220,7 +217,7 @@ export default class Service {
             const automatedScriptId = event.automatedScript;
             switch (resourceType) {
                 case 'automatedScript':
-                    return _this.runAutomatedScript({
+                    return this.runAutomatedScript({
                         automatedScriptId,
                         triggeredId,
                         triggeredBy,
@@ -240,13 +237,12 @@ export default class Service {
         triggeredBy = 'script',
         stackSize,
     }: $TSFixMe) {
-        const _this = this;
         const selectScript =
             'name script scriptType slug projectId successEvent failureEvent';
         const populateScript = [{ path: 'createdById', select: 'name' }];
 
         const { script, scriptType, successEvent, failureEvent } =
-            await _this.findOneBy({
+            await this.findOneBy({
                 query: { _id: automatedScriptId },
                 select: selectScript,
                 populate: populateScript,
@@ -290,7 +286,7 @@ export default class Service {
             : null;
 
         if (data.success && successEvent.length > 0) {
-            await _this.runResource({
+            await this.runResource({
                 triggeredId: automatedScriptId,
                 resources: successEvent,
                 stackSize,
@@ -298,17 +294,17 @@ export default class Service {
         }
 
         if (!data.success && failureEvent.length > 0) {
-            await _this.runResource({
+            await this.runResource({
                 triggeredId: automatedScriptId,
                 resources: failureEvent,
                 stackSize,
             });
         }
-        const automatedScriptLog = await _this.createLog(
+        const automatedScriptLog = await this.createLog(
             automatedScriptId,
             data
         );
-        await _this.updateOne(
+        await this.updateOne(
             { _id: automatedScriptId },
             { updatedAt: new Date() }
         );
@@ -316,7 +312,6 @@ export default class Service {
     }
 
     async removeScriptFromEvent({ projectId, id }: $TSFixMe) {
-        const _this = this;
         const scripts = await ScriptModel.find({ projectId }).lean();
         await Promise.all(
             scripts.map(async (script: $TSFixMe) => {
@@ -328,7 +323,7 @@ export default class Service {
                     (script: $TSFixMe) =>
                         String(script.automatedScript) !== String(id)
                 );
-                return await _this.updateOne(
+                return await this.updateOne(
                     { _id: script._id },
                     { successEvent, failureEvent }
                 );

@@ -1,7 +1,6 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
         // check if component exist
         const componentCount = await ComponentService.countBy({
             _id: data.componentId,
@@ -16,7 +15,7 @@ export default class Service {
         // try to find in the application log if the name already exist for that component
         const select =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
-        const existingErrorTracker = await _this.findBy({
+        const existingErrorTracker = await this.findBy({
             query: { name: data.name, componentId: data.componentId },
             select,
             populate: [
@@ -56,7 +55,7 @@ export default class Service {
             errorTracker.slug = getSlug(data.name);
         }
         const savedErrorTracker = await errorTracker.save();
-        errorTracker = await _this.findOneBy({
+        errorTracker = await this.findOneBy({
             query: { _id: savedErrorTracker._id },
             select,
             populate: [
@@ -142,12 +141,12 @@ export default class Service {
 
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
-        const _this = this;
+
         const select =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
         const [errorTrackers, count] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query: { componentId: componentId },
                 limit,
                 skip,
@@ -157,7 +156,7 @@ export default class Service {
                     { path: 'resourceCategory', select: 'name' },
                 ],
             }),
-            _this.countBy({ componentId }),
+            this.countBy({ componentId }),
         ]);
 
         return { errorTrackers, count, skip, limit };

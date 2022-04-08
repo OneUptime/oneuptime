@@ -118,12 +118,11 @@ export default class Service {
     }
 
     async getTemplates(projectId: string) {
-        const _this = this;
         const populate = [{ path: 'projectId', select: 'name' }];
         const select = 'projectId body smsType allowedVariables';
         const templates = await Promise.all(
             defaultSmsTemplate.map(async template => {
-                const smsTemplate = await _this.findOneBy({
+                const smsTemplate = await this.findOneBy({
                     query: {
                         projectId: projectId,
                         smsType: template.smsType,
@@ -140,15 +139,14 @@ export default class Service {
     }
 
     async resetTemplate(projectId: string, templateId: $TSFixMe) {
-        const _this = this;
-        const oldTemplate = await _this.findOneBy({
+        const oldTemplate = await this.findOneBy({
             query: { _id: templateId },
             select: 'smsType _id',
         });
         const newTemplate = defaultSmsTemplate.filter(
             template => template.smsType === oldTemplate.smsType
         )[0];
-        const resetTemplate = await _this.updateOneBy(
+        const resetTemplate = await this.updateOneBy(
             {
                 _id: oldTemplate._id,
             },

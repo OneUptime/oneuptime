@@ -40,8 +40,6 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe) {
-        const _this = this;
-
         if (!query) {
             query = {};
         }
@@ -69,7 +67,7 @@ export default class Service {
             { path: 'projectId', select: 'name' },
         ];
         const [customField, incomingRequests] = await Promise.all([
-            _this.findOneBy({
+            this.findOneBy({
                 query,
                 select: selectCustomField,
                 populate: populateCustomField,

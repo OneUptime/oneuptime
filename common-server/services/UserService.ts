@@ -320,7 +320,6 @@ export default class Service {
     }
 
     async sendToken(user: $TSFixMe, email: $TSFixMe) {
-        const _this = this;
         const verificationTokenModel = new VerificationTokenModel({
             userId: user._id,
             token: crypto.randomBytes(16).toString('hex'),
@@ -339,14 +338,14 @@ export default class Service {
             }
 
             if (email !== user.email) {
-                _this
-                    .updateOneBy({ _id: user._id }, { tempEmail: email })
-                    .catch(error => {
+                this.updateOneBy({ _id: user._id }, { tempEmail: email }).catch(
+                    error => {
                         ErrorService.log(
                             'UserService.sendToken > UserService.updateOneBy',
                             error
                         );
-                    });
+                    }
+                );
             }
         }
 
@@ -357,13 +356,12 @@ export default class Service {
     //Param 1: data: User details.
     //Returns: promise.
     async signup(data: $TSFixMe) {
-        const _this = this;
         const email = data.email;
         const stripePlanId = data.planId || null;
         const paymentIntent = data.paymentIntent || null;
 
         if (util.isEmailValid(email)) {
-            let user = await _this.findOneBy({
+            let user = await this.findOneBy({
                 query: { email: email },
                 select: '_id',
             });
@@ -390,11 +388,11 @@ export default class Service {
                     customerId = processedPaymentIntent.customer;
                 }
                 // IS_SAAS_SERVICE: save a user only when payment method is charged and then next steps
-                user = await _this.create(data);
+                user = await this.create(data);
 
                 if (IS_SAAS_SERVICE && paymentIntent !== null) {
                     //update customer Id
-                    user = await _this.updateOneBy(
+                    user = await this.updateOneBy(
                         { _id: user._id },
                         {
                             stripeCustomerId: customerId,
@@ -409,7 +407,7 @@ export default class Service {
                 }
                 let verificationToken;
                 if (user.role !== 'master-admin' || !customerId) {
-                    verificationToken = await _this.sendToken(user, user.email);
+                    verificationToken = await this.sendToken(user, user.email);
                 }
 
                 const projectName = 'Unnamed Project';
@@ -485,13 +483,12 @@ export default class Service {
         secretKey: $TSFixMe,
         counter: $TSFixMe
     ) {
-        const _this = this;
         hotp.options = { digits: 8 };
         const isValid = hotp.check(code, secretKey, counter);
         if (isValid) {
             const select =
                 'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-            const user = await _this.findOneBy({
+            const user = await this.findOneBy({
                 query: { twoFactorSecretCode: secretKey },
                 select,
             });
@@ -499,7 +496,7 @@ export default class Service {
                 if (backupCode.code === code) backupCode.used = true;
                 return backupCode;
             });
-            await _this.updateOneBy(
+            await this.updateOneBy(
                 { twoFactorSecretCode: secretKey },
                 { backupCodes }
             );
@@ -509,8 +506,7 @@ export default class Service {
     }
 
     async generateTwoFactorSecret(userId: string) {
-        const _this = this;
-        const user = await _this.findOneBy({
+        const user = await this.findOneBy({
             query: { _id: userId },
             select: 'email',
         });
@@ -518,7 +514,7 @@ export default class Service {
             length: 20,
             name: `OneUptime (${user.email})`,
         });
-        const backupCodes = await _this.generateUserBackupCodes(
+        const backupCodes = await this.generateUserBackupCodes(
             secretCode.base32,
             8
         );
@@ -527,13 +523,12 @@ export default class Service {
             otpauth_url: secretCode.otpauth_url,
             backupCodes,
         };
-        await _this.updateOneBy({ _id: userId }, data);
+        await this.updateOneBy({ _id: userId }, data);
         return { otpauth_url: secretCode.otpauth_url };
     }
 
     async verifyAuthToken(token: $TSFixMe, userId: string) {
-        const _this = this;
-        const user = await _this.findOneBy({
+        const user = await this.findOneBy({
             query: { _id: userId },
             select: '_id twoFactorSecretCode',
         });
@@ -543,7 +538,7 @@ export default class Service {
             token: token,
         });
         if (isValidCode) {
-            const updatedUser = await _this.updateOneBy(
+            const updatedUser = await this.updateOneBy(
                 { _id: user._id },
                 { twoFactorAuthEnabled: true }
             );
@@ -563,7 +558,6 @@ export default class Service {
         clientIP: $TSFixMe,
         userAgent: $TSFixMe
     ) {
-        const _this = this;
         let user = null;
         if (util.isEmailValid(email)) {
             // find user if present in db.
@@ -576,10 +570,10 @@ export default class Service {
                 email === process.env.ADMIN_EMAIL.toLowerCase() &&
                 process.env.ADMIN_PASSWORD === password
             ) {
-                const count = await _this.countBy({});
+                const count = await this.countBy({});
                 if (count === 0) {
                     //create a new admin user.
-                    user = await _this.create({
+                    user = await this.create({
                         name: 'OneUptime Admin',
                         email: process.env.ADMIN_EMAIL,
                         password: process.env.ADMIN_PASSWORD,
@@ -590,7 +584,7 @@ export default class Service {
 
             const select =
                 'createdAt password cachedPassword name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-            user = await _this.findOneBy({
+            user = await this.findOneBy({
                 query: { email: email },
                 select,
             });
@@ -617,7 +611,7 @@ export default class Service {
                     );
 
                     if (daysAfterPaymentFailed >= 15) {
-                        user = await _this.updateOneBy(
+                        user = await this.updateOneBy(
                             { _id: user._id },
                             { disabled: true }
                         );
@@ -712,7 +706,6 @@ export default class Service {
     //Param 1: email: User email.
     //Returns: promise.
     async forgotPassword(email: $TSFixMe) {
-        const _this = this;
         if (util.isEmailValid(email)) {
             let user = await this.findOneBy({
                 query: { email: email },
@@ -736,7 +729,7 @@ export default class Service {
                 const token = buf.toString('hex');
 
                 //update a user.
-                user = await _this.updateOneBy(
+                user = await this.updateOneBy(
                     {
                         _id: user._id,
                     },
@@ -762,8 +755,7 @@ export default class Service {
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
     async resetPassword(password: $TSFixMe, token: $TSFixMe) {
-        const _this = this;
-        let user = await _this.findOneBy({
+        let user = await this.findOneBy({
             query: {
                 resetPasswordToken: token,
                 resetPasswordExpires: {
@@ -789,7 +781,7 @@ export default class Service {
             const hash = await bcrypt.hash(password, constants.saltRounds);
 
             //update a user.
-            user = await _this.updateOneBy(
+            user = await this.updateOneBy(
                 {
                     _id: user._id,
                 },
@@ -814,8 +806,8 @@ export default class Service {
             error.code = 400;
             throw error;
         }
-        const _this = this;
-        const user = await _this.findOneBy({
+
+        const user = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
         });
@@ -837,7 +829,7 @@ export default class Service {
             const passwordToCache = user.isAdminMode
                 ? user.cachedPassword
                 : user.password;
-            const updatedUser = await _this.updateOneBy(
+            const updatedUser = await this.updateOneBy(
                 {
                     _id: userId,
                 },
@@ -854,8 +846,7 @@ export default class Service {
 
     // Descripiton: revert from admin mode and replce user password
     async exitAdminMode(userId: string) {
-        const _this = this;
-        const user = await _this.findOneBy({
+        const user = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
         });
@@ -876,7 +867,7 @@ export default class Service {
 
             //update the user.
             const passwordToRestore = user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
-            const updatedUser = await _this.updateOneBy(
+            const updatedUser = await this.updateOneBy(
                 {
                     _id: userId,
                 },
@@ -896,8 +887,7 @@ export default class Service {
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
     async getNewToken(refreshToken: $TSFixMe) {
-        const _this = this;
-        let user = await _this.findOneBy({
+        let user = await this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
             select: '_id',
         });
@@ -915,7 +905,7 @@ export default class Service {
             })}`;
             const jwtRefreshToken = randToken.uid(256);
 
-            user = await _this.updateOneBy(
+            user = await this.updateOneBy(
                 { _id: user._id },
                 { jwtRefreshToken: jwtRefreshToken }
             );
@@ -929,9 +919,8 @@ export default class Service {
     }
 
     async changePassword(data: $TSFixMe) {
-        const _this = this;
         const currentPassword = data.currentPassword;
-        let user = await _this.findOneBy({
+        let user = await this.findOneBy({
             query: { _id: data._id },
             select: 'isAdminMode cachedPassword password',
         });
@@ -954,7 +943,7 @@ export default class Service {
             const hash = await bcrypt.hash(newPassword, constants.saltRounds);
 
             data.password = hash;
-            user = await _this.updateOneBy({ _id: data._id }, data);
+            user = await this.updateOneBy({ _id: data._id }, data);
 
             return user;
         } else {
@@ -966,10 +955,9 @@ export default class Service {
     }
 
     async getAllUsers(skip: PositiveNumber, limit: PositiveNumber) {
-        const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        let users = await _this.findBy({
+        let users = await this.findBy({
             query: { _id: { $ne: null }, deleted: { $ne: null } },
             skip,
             limit,
@@ -1028,16 +1016,15 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
 
         const select = '_id';
-        let user = await _this.findBy({ query, select });
+        let user = await this.findBy({ query, select });
         if (user && user.length > 1) {
             const users = await Promise.all(
                 user.map(async (user: $TSFixMe) => {
                     query._id = user._id;
-                    user = await _this.updateOneBy(query._id, {
+                    user = await this.updateOneBy(query._id, {
                         deleted: false,
                         deletedBy: null,
                         deletedAt: null,
@@ -1050,7 +1037,7 @@ export default class Service {
             user = user[0];
             if (user) {
                 query._id = user._id;
-                user = await _this.updateOneBy(query, {
+                user = await this.updateOneBy(query, {
                     deleted: false,
                     deletedBy: null,
                     deletedAt: null,
@@ -1061,8 +1048,7 @@ export default class Service {
     }
 
     async addNotes(userId: string, notes: $TSFixMe) {
-        const _this = this;
-        const user = await _this.updateOneBy(
+        const user = await this.updateOneBy(
             {
                 _id: userId,
             },
@@ -1078,10 +1064,9 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
-        const _this = this;
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        let users = await _this.findBy({ query, skip, limit, select });
+        let users = await this.findBy({ query, skip, limit, select });
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects

@@ -33,13 +33,13 @@ const composableComponent = (ComposedComponent: $TSFixMe) => {
             }
         };
         onConfirm = (value: $TSFixMe) => {
-            const _this = this;
+            
 
             if (this.props.item.onConfirm) {
 
                 this.props.item.onConfirm(value).then(
 
-                    () => _this.props.onClose(_this.props.item),
+                    () => this.props.onClose(this.props.item),
                     () => { }
                 );
             } else {

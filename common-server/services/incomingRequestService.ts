@@ -41,7 +41,6 @@ export default class Service {
     }
 
     async create(data: $TSFixMe) {
-        const _this = this;
         if (
             !data.selectAllMonitors &&
             data.createIncident &&
@@ -134,7 +133,7 @@ export default class Service {
             ...data,
         });
 
-        incomingRequest = await _this.findOneBy({
+        incomingRequest = await this.findOneBy({
             query: { _id: incomingRequest._id },
             select,
             populate,
@@ -148,10 +147,9 @@ export default class Service {
     async getRequestUrl(projectId: string, requestId: $TSFixMe) {
         // create a unique request url
         // update incomingRequest collection with the new url
-        const _this = this;
 
         const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
-        const updatedIncomingRequest = await _this.updateOneBy(
+        const updatedIncomingRequest = await this.updateOneBy(
             { requestId, projectId },
             { url: requestUrl },
             true
@@ -160,7 +158,6 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe, excludeMonitors: $TSFixMe) {
-        const _this = this;
         let unsetData = {};
         if (!query) {
             query = {};
@@ -347,7 +344,7 @@ export default class Service {
             { path: 'projectId', select: 'name' },
         ];
 
-        updatedIncomingRequest = await _this.findOneBy({
+        updatedIncomingRequest = await this.findOneBy({
             query: { _id: query.requestId },
             select,
             populate,
@@ -540,7 +537,6 @@ export default class Service {
     }
 
     async handleIncomingRequestAction(data: $TSFixMe) {
-        const _this = this;
         const selectIncPriority =
             'projectId name color createdAt deletedAt deleted deletedById';
         const selectIncSettings =
@@ -569,7 +565,7 @@ export default class Service {
                     },
                     select: selectIncSettings,
                 }),
-                _this.findOneBy({
+                this.findOneBy({
                     query: { _id: data.requestId, projectId: data.projectId },
                     select: selectInRequest,
                     populate: populateInRequest,

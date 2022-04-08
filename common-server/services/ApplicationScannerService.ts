@@ -1,6 +1,5 @@
 export default class Service {
     async create(data) {
-        const _this = this;
         let applicationScannerKey;
         if (data.applicationScannerKey) {
             applicationScannerKey = data.applicationScannerKey;
@@ -8,7 +7,7 @@ export default class Service {
             applicationScannerKey = uuidv1();
         }
 
-        const storedApplicationScanner = await _this.findOneBy({
+        const storedApplicationScanner = await this.findOneBy({
             query: { applicationScannerName: data.applicationScannerName },
             select: 'applicationScannerName',
         });

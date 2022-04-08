@@ -15,7 +15,6 @@ import PositiveNumber from 'common/types/PositiveNumber';
 
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
         // check component exists
         const componentCount = await ComponentService.countBy({
             _id: data.componentId,
@@ -28,7 +27,7 @@ export default class Service {
             throw error;
         }
         // try to find in the application log if the name already exist for that component
-        const existingApplicationLogCount = await _this.countBy({
+        const existingApplicationLogCount = await this.countBy({
             name: data.name,
             componentId: data.componentId,
         });
@@ -66,7 +65,7 @@ export default class Service {
         ];
         const select =
             'componentId name slug resourceCategory showQuickStart createdById key';
-        applicationLog = await _this.findOneBy({
+        applicationLog = await this.findOneBy({
             query: { _id: savedApplicationLog._id },
             populate,
             select,
@@ -141,7 +140,6 @@ export default class Service {
 
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
-        const _this = this;
 
         const populateAppLogs = [
             {
@@ -158,14 +156,14 @@ export default class Service {
         const selectAppLogs =
             'componentId name slug resourceCategory showQuickStart createdById key';
         const [applicationLogs, count] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query: { componentId: componentId },
                 limit,
                 skip,
                 populate: populateAppLogs,
                 select: selectAppLogs,
             }),
-            _this.countBy({ componentId }),
+            this.countBy({ componentId }),
         ]);
 
         return { applicationLogs, count, skip, limit };

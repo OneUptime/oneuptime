@@ -248,7 +248,7 @@ const _this = {
         next: NextFunction
     ) {
         if (!req.user) {
-            req = await _this.getUser(req);
+            req = await this.getUser(req);
         }
 
         if (req && req.authorizationType === 'MASTER-ADMIN') {
@@ -276,7 +276,7 @@ const _this = {
     ) {
         const projectId = apiMiddleware.getProjectId(req);
 
-        if (_this.isUserMasterAdmin(req, res)) {
+        if (this.isUserMasterAdmin(req, res)) {
             if (next) {
                 return next();
             } else {

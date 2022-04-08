@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../infrastructure/ORM';
 import TeamMemberSchema from './EscalationTeamMember';
 
 const Schema = mongoose.Schema;

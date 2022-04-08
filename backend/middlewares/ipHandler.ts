@@ -64,7 +64,7 @@ const _this = {
             );
         }
 
-        let clientIp = _this.getClientIp(req); // returns client ip or null
+        let clientIp = this.getClientIp(req); // returns client ip or null
         if (Array.isArray(clientIp)) {
             clientIp = clientIp[0]; // get the first item on the list
         }
@@ -81,10 +81,10 @@ const _this = {
         const ipFound = ipWhitelist.some(ip => {
             if (ip.indexOf('-') !== -1) {
                 const ipRange = ip.split('-').map((ip: $TSFixMe) => ip.trim());
-                return _this.inRange(clientIp, ipRange);
+                return this.inRange(clientIp, ipRange);
             }
 
-            return _this.check_single_cidr(clientIp, ip);
+            return this.check_single_cidr(clientIp, ip);
         });
 
         if (ipFound) {
@@ -161,9 +161,9 @@ const _this = {
     },
 
     inRange: function (ip: $TSFixMe, range: $TSFixMe) {
-        const min = _this.IPtoNum(range[0]);
-        const max = _this.IPtoNum(range[1]);
-        ip = _this.IPtoNum(ip);
+        const min = this.IPtoNum(range[0]);
+        const max = this.IPtoNum(range[1]);
+        ip = this.IPtoNum(ip);
 
         if (isNaN(min) || isNaN(max) || isNaN(ip)) {
             return false;

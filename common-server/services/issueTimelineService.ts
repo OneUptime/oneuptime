@@ -5,8 +5,6 @@ import FindBy from '../types/db/FindBy';
 
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
-
         // prepare issue timeline model
         const issueTimeline = new IssueTimelineModel();
 
@@ -25,7 +23,7 @@ export default class Service {
         const selectIssueTimeline =
             'issueId createdById createdAt status deleted';
 
-        savedIssueTimeline = await _this.findOneBy({
+        savedIssueTimeline = await this.findOneBy({
             query: { _id: issueTimeline._id },
             select: selectIssueTimeline,
             populate: populateIssueTimeline,

@@ -15,7 +15,6 @@ import Query from '../types/db/Query';
 
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
         // check if component exists
         const componentCount = await ComponentService.countBy({
             _id: data.componentId,
@@ -29,7 +28,7 @@ export default class Service {
             throw error;
         }
         // check if a performance tracker already exist with the same name for a particular component
-        const existingPerformanceTracker = await _this.findBy({
+        const existingPerformanceTracker = await this.findBy({
             query: { name: data.name, componentId: data.componentId },
             select: '_id',
         });
@@ -64,7 +63,7 @@ export default class Service {
                 populate: { path: 'projectId', select: 'name slug' },
             },
         ];
-        performanceTracker = await _this.findOneBy({
+        performanceTracker = await this.findOneBy({
             query: { _id: performanceTracker._id },
             select,
             populate,
@@ -134,8 +133,6 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ) {
-        const _this = this;
-
         // Check if component exists
         const componentCount = await ComponentService.countBy({
             _id: componentId,
@@ -160,7 +157,7 @@ export default class Service {
                 populate: { path: 'projectId', select: 'name slug' },
             },
         ];
-        const performanceTracker = await _this.findBy({
+        const performanceTracker = await this.findBy({
             query: { componentId },
             limit,
             skip,

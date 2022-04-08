@@ -7,7 +7,6 @@ import Query from '../types/db/Query';
 
 export default class Service {
     async create(data: $TSFixMe) {
-        const _this = this;
         const subscriberModel = new SubscriberModel();
 
         subscriberModel.projectId = data.projectId || null;
@@ -37,7 +36,7 @@ export default class Service {
         ];
         const select =
             '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
-        return await _this.findByOne({
+        return await this.findByOne({
             query: { _id: subscriber._id },
             select,
             populate,
@@ -222,7 +221,6 @@ export default class Service {
     }
 
     async subscribe(data: $TSFixMe, monitors: $TSFixMe) {
-        const _this = this;
         const populateStatusPage = [
             { path: 'monitors.monitor', select: '_id' },
         ];
@@ -242,7 +240,7 @@ export default class Service {
             const newSubscriber = Object.assign({}, data, {
                 monitorId: monitor._id ?? monitor,
             });
-            const hasSubscribed = await _this.subscriberCheck(newSubscriber);
+            const hasSubscribed = await this.subscriberCheck(newSubscriber);
             if (hasSubscribed) {
                 const error = new Error(
                     'You are already subscribed to this monitor.'
@@ -253,7 +251,7 @@ export default class Service {
                 throw error;
             } else {
                 if (newSubscriber.alertVia === 'email') {
-                    const subscriberExist = await _this.findByOne({
+                    const subscriberExist = await this.findByOne({
                         query: {
                             monitorId: newSubscriber.monitorId,
                             contactEmail: newSubscriber.contactEmail,
@@ -262,7 +260,7 @@ export default class Service {
                         select: '_id',
                     });
                     if (subscriberExist) {
-                        return await _this.updateOneBy(
+                        return await this.updateOneBy(
                             {
                                 monitorId: newSubscriber.monitorId,
                                 contactEmail: newSubscriber.contactEmail,
@@ -270,10 +268,10 @@ export default class Service {
                             { subscribed: true }
                         );
                     } else {
-                        return await _this.create(newSubscriber);
+                        return await this.create(newSubscriber);
                     }
                 } else {
-                    return await _this.create(newSubscriber);
+                    return await this.create(newSubscriber);
                 }
             }
         });
@@ -282,16 +280,15 @@ export default class Service {
     }
 
     async subscribeFromCSVFile(subscribers: $TSFixMe) {
-        const _this = this;
         const { data, projectId, monitorId } = subscribers;
         const success = data.map(async (subscriber: $TSFixMe) => {
             const newSubscriber = Object.assign({}, subscriber, {
                 monitorId,
                 projectId,
             });
-            const hasSubscribed = await _this.subscriberCheck(newSubscriber);
+            const hasSubscribed = await this.subscriberCheck(newSubscriber);
             if (!hasSubscribed) {
-                return await _this.create(newSubscriber);
+                return await this.create(newSubscriber);
             }
             return [];
         });
@@ -299,8 +296,7 @@ export default class Service {
     }
 
     async subscriberCheck(subscriber: $TSFixMe) {
-        const _this = this;
-        const existingSubscriber = await _this.findByOne({
+        const existingSubscriber = await this.findByOne({
             query: {
                 monitorId: subscriber.monitorId,
                 subscribed: true,
@@ -363,14 +359,13 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
-        let subscriber = await _this.findBy({ query, select: '_id' });
+        let subscriber = await this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {
             const subscribers = await Promise.all(
                 subscriber.map(async subscriber => {
                     const subscriberId = subscriber._id;
-                    subscriber = await _this.updateOneBy(
+                    subscriber = await this.updateOneBy(
                         { _id: subscriberId, deleted: true },
                         {
                             deleted: false,
@@ -386,7 +381,7 @@ export default class Service {
             subscriber = subscriber[0];
             if (subscriber) {
                 const subscriberId = subscriber._id;
-                subscriber = await _this.updateOneBy(
+                subscriber = await this.updateOneBy(
                     { _id: subscriberId, deleted: true },
                     {
                         deleted: false,

@@ -257,7 +257,6 @@ export default class Service {
         newDomain: $TSFixMe,
         oldDomain: $TSFixMe
     ) {
-        const _this = this;
         const populateStatusPage = [
             {
                 path: 'domains.domainVerificationToken',
@@ -265,7 +264,7 @@ export default class Service {
             },
         ];
 
-        const statusPages = await _this.findBy({
+        const statusPages = await this.findBy({
             query: {
                 domains: {
                     $elemMatch: { domainVerificationToken: domainId },
@@ -292,7 +291,7 @@ export default class Service {
             }
 
             if (domains && domains.length > 0) {
-                await _this.updateOneBy({ _id: statusPageId }, { domains });
+                await this.updateOneBy({ _id: statusPageId }, { domains });
             }
         }
     }
@@ -308,7 +307,6 @@ export default class Service {
         autoProvisioning: $TSFixMe
     ) {
         let createdDomain = {};
-        const _this = this;
 
         const existingBaseDomain = await DomainVerificationService.findOneBy({
             query: { domain: newDomain },
@@ -353,7 +351,7 @@ export default class Service {
         for (const eachDomain of domainList) {
             if (String(eachDomain._id) === String(domainId)) {
                 if (eachDomain.domain !== newDomain) {
-                    doesDomainExist = await _this.doesDomainExist(newDomain);
+                    doesDomainExist = await this.doesDomainExist(newDomain);
                 }
                 // if domain exist
                 // break the loop
@@ -734,8 +732,6 @@ export default class Service {
     }
 
     async getNotes(query: Query, skip: PositiveNumber, limit: PositiveNumber) {
-        const _this = this;
-
         if (!skip) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 5;
@@ -746,7 +742,7 @@ export default class Service {
 
         if (!query) query = {};
 
-        const statuspages = await _this.findBy({
+        const statuspages = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -944,8 +940,6 @@ export default class Service {
     }
 
     async getEvents(query: Query, skip: PositiveNumber, limit: PositiveNumber) {
-        const _this = this;
-
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -957,7 +951,7 @@ export default class Service {
         if (!query) query = {};
         query.deleted = false;
 
-        const statuspages = await _this.findBy({
+        const statuspages = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -1048,8 +1042,6 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
-        const _this = this;
-
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1061,7 +1053,7 @@ export default class Service {
         if (!query) query = {};
         query.deleted = false;
 
-        const statuspages = await _this.findBy({
+        const statuspages = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -1154,8 +1146,6 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ) {
-        const _this = this;
-
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1167,7 +1157,7 @@ export default class Service {
         if (!query) query = {};
         query.deleted = false;
 
-        const statuspages = await _this.findBy({
+        const statuspages = await this.findBy({
             query,
             skip: 0,
             limit,
@@ -1455,11 +1445,9 @@ export default class Service {
     }
 
     async getIncidents(query: Query) {
-        const _this = this;
-
         if (!query) query = {};
 
-        const statuspages = await _this.findBy({
+        const statuspages = await this.findBy({
             query,
             select: 'monitors',
             populate: [
@@ -1555,19 +1543,17 @@ export default class Service {
         skip = 0,
         limit = 10,
     }: $TSFixMe) {
-        const _this = this;
-
         const selectStatusPage = 'slug title name description _id';
 
         const [data, count] = await Promise.all([
-            _this.findBy({
+            this.findBy({
                 query: { projectId },
                 skip: skip,
                 limit: limit,
                 select: selectStatusPage,
                 pupulate: [],
             }),
-            _this.countBy({ query: { projectId } }),
+            this.countBy({ query: { projectId } }),
         ]);
 
         return {
@@ -1582,7 +1568,6 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
 
         const populateStatusPage = [
@@ -1604,7 +1589,7 @@ export default class Service {
         const selectStatusPage =
             'multipleNotificationTypes domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const statusPage = await _this.findBy({
+        const statusPage = await this.findBy({
             query,
             populate: populateStatusPage,
             select: selectStatusPage,
@@ -1614,7 +1599,7 @@ export default class Service {
             const statusPages = await Promise.all(
                 statusPage.map(async (statusPage: $TSFixMe) => {
                     const statusPageId = statusPage._id;
-                    statusPage = await _this.updateOneBy(
+                    statusPage = await this.updateOneBy(
                         { _id: statusPageId, deleted: true },
                         {
                             deleted: false,
@@ -1704,8 +1689,7 @@ export default class Service {
     }
 
     async doesDomainExist(domain: $TSFixMe) {
-        const _this = this;
-        const statusPage = await _this.countBy({
+        const statusPage = await this.countBy({
             query: {
                 domains: { $elemMatch: { domain } },
             },
@@ -1885,13 +1869,12 @@ export default class Service {
     }
 
     async updateAnnouncement(query: Query, data: $TSFixMe) {
-        const _this = this;
         if (!query) {
             query = {};
         }
         query.deleted = false;
         if (!data.hideAnnouncement) {
-            await _this.updateManyAnnouncement({
+            await this.updateManyAnnouncement({
                 statusPageId: query.statusPageId,
             });
         }
@@ -1921,7 +1904,7 @@ export default class Service {
             endDate: new Date(),
             updatedById: data.createdById,
         };
-        await _this.updateAnnouncementLog({ active: true }, log);
+        await this.updateAnnouncementLog({ active: true }, log);
 
         return response;
     }

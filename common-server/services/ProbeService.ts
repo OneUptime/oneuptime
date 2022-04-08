@@ -18,7 +18,6 @@ import FindBy from '../types/db/FindBy';
 
 export default class Service {
     async create(data) {
-        const _this = this;
         let probeKey;
         if (data.probeKey) {
             probeKey = data.probeKey;
@@ -26,7 +25,7 @@ export default class Service {
             probeKey = uuidv1();
         }
 
-        const storedProbe = await _this.findOneBy({
+        const storedProbe = await this.findOneBy({
             query: { probeName: data.probeName },
             select: 'probeName',
         });
@@ -197,8 +196,6 @@ export default class Service {
     }
 
     async saveMonitorLog(data) {
-        const _this = this;
-
         let monitorStatus = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId, probeId: data.probeId },
             select: 'status',
@@ -247,10 +244,10 @@ export default class Service {
                 )
                     return { retry: true, retryCount: data.retryCount };
 
-                await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
-            const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(data);
+            const incidentIdsOrRetry = await this.incidentCreateOrUpdate(data);
 
             if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
 
@@ -272,7 +269,7 @@ export default class Service {
         } else {
             // should make sure all unresolved incidents for the monitor is resolved
             if (data.status === 'online') {
-                await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
             const incidents = await IncidentService.findBy({
@@ -997,11 +994,10 @@ export default class Service {
     }
 
     async processHttpRequest(data) {
-        const _this = this;
         const { monitor, body } = data;
         let { queryParams, headers } = data;
-        queryParams = _this.toArray(queryParams);
-        headers = _this.toArray(headers);
+        queryParams = this.toArray(queryParams);
+        headers = this.toArray(headers);
         let status, reason;
         let matchedCriterion;
         const lastPingTime = monitor.lastPingTime;
@@ -1012,7 +1008,7 @@ export default class Service {
             failedReasons: upFailedReasons,
             matchedCriterion: matchedUpCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.up
-            ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
+            ? this.conditions(monitor.type, monitor.criteria.up, payload, {
                   body,
                   queryParams,
                   headers,
@@ -1024,7 +1020,7 @@ export default class Service {
             failedReasons: degradedFailedReasons,
             matchedCriterion: matchedDegradedCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.degraded
-            ? _this.conditions(
+            ? this.conditions(
                   monitor.type,
                   monitor.criteria.degraded,
                   payload,
@@ -1041,7 +1037,7 @@ export default class Service {
             failedReasons: downFailedReasons,
             matchedCriterion: matchedDownCriterion,
         } = await (monitor && monitor.criteria && monitor.criteria.down
-            ? _this.conditions(monitor.type, monitor.criteria.down, payload, {
+            ? this.conditions(monitor.type, monitor.criteria.down, payload, {
                   body,
                   queryParams,
                   headers,
@@ -1115,14 +1111,13 @@ export default class Service {
 
         const [, log] = await Promise.all([
             MonitorService.updateCriterion(monitor._id, matchedCriterion),
-            _this.saveMonitorLog(logData),
+            this.saveMonitorLog(logData),
             MonitorService.updateMonitorPingTime(monitor._id),
         ]);
         return log;
     }
 
     async probeHttpRequest(monitor, probeId) {
-        const _this = this;
         let status, reason;
         let matchedCriterion;
         const lastPingTime = monitor.lastPingTime;
@@ -1130,7 +1125,7 @@ export default class Service {
 
         const { eventOccurred: validUp, matchedCriterion: matchedUpCriterion } =
             monitor && monitor.criteria && monitor.criteria.up
-                ? _this.incomingCondition(payload, monitor.criteria.up)
+                ? this.incomingCondition(payload, monitor.criteria.up)
                 : false;
 
         const {
@@ -1139,7 +1134,7 @@ export default class Service {
             matchedCriterion: matchedDegradedCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.degraded
-                ? _this.incomingCondition(payload, monitor.criteria.degraded)
+                ? this.incomingCondition(payload, monitor.criteria.degraded)
                 : false;
 
         const {
@@ -1148,7 +1143,7 @@ export default class Service {
             matchedCriterion: matchedDownCriterion,
         } =
             monitor && monitor.criteria && monitor.criteria.down
-                ? _this.incomingCondition(payload, [
+                ? this.incomingCondition(payload, [
                       ...monitor.criteria.down.filter(
                           criterion => criterion.default !== true
                       ),
@@ -1231,7 +1226,7 @@ export default class Service {
         const [, log] = await Promise.all([
             MonitorService.updateCriterion(monitor._id, matchedCriterion),
 
-            _this.saveMonitorLog(logData),
+            this.saveMonitorLog(logData),
         ]);
 
         return log;

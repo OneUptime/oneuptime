@@ -1,13 +1,12 @@
 export default class Service {
     async create(data) {
-        const _this = this;
         let containerScannerKey;
         if (data.containerScannerKey) {
             containerScannerKey = data.containerScannerKey;
         } else {
             containerScannerKey = uuidv1();
         }
-        const storedContainerScanner = await _this.findOneBy({
+        const storedContainerScanner = await this.findOneBy({
             containerScannerName: data.containerScannerName,
         });
         if (

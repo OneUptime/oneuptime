@@ -1,3 +1,11 @@
+import Crypto from 'crypto';
+import EmailSmtpModel from '../models/smtp';
+import EncryptDecrypt from '../config/encryptDecrypt';
+
+import FindOneBy from '../types/db/FindOneBy';
+import FindBy from '../types/db/FindBy';
+import Query from '../types/db/Query';
+
 export default class Service {
     async create(data: $TSFixMe) {
         const iv = Crypto.randomBytes(16);
@@ -183,11 +191,3 @@ export default class Service {
         return 'Email Smtp(s) removed successfully';
     }
 }
-
-import Crypto from 'crypto';
-import EmailSmtpModel from '../models/smtp';
-import EncryptDecrypt from '../config/encryptDecrypt';
-
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';

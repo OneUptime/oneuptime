@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields, UniqueFields } from '../utils/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../infrastructure/ORM';
 const Schema = mongoose.Schema;
 
 const { EMAIL_VERIFY_TIME } = process.env;

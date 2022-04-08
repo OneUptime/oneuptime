@@ -191,7 +191,6 @@ export default class Service {
         eventType,
         alertProgress,
     }: $TSFixMe) {
-        const _this = this;
         alertProgress =
             alertProgress && `${alertProgress.current}/${alertProgress.total}`;
         const alert = new AlertModel();
@@ -226,7 +225,7 @@ export default class Service {
 
         const [savedAlert] = await Promise.all([
             alert.save(),
-            _this.sendRealTimeUpdate({
+            this.sendRealTimeUpdate({
                 incidentId,
                 projectId,
             }),
@@ -235,8 +234,6 @@ export default class Service {
     }
 
     async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe) {
-        const _this = this;
-
         const populateIncidentMessage = [
             {
                 path: 'incidentId',
@@ -308,7 +305,7 @@ export default class Service {
                     select: selectIncTimeline,
                     populate: populateIncTimeline,
                 }),
-                _this.findBy({
+                this.findBy({
                     query: {
                         incidentId,
                     },
@@ -442,8 +439,6 @@ export default class Service {
 
     async sendCreatedIncident(incident: $TSFixMe, monitor: $TSFixMe) {
         if (incident) {
-            const _this = this;
-
             const scheduleList = await this.getSchedulesForAlerts(
                 incident,
                 monitor
@@ -451,7 +446,7 @@ export default class Service {
 
             if (scheduleList.length > 0) {
                 for (const schedule of scheduleList) {
-                    _this.sendAlertsToTeamMembersInSchedule({
+                    this.sendAlertsToTeamMembersInSchedule({
                         schedule,
                         incident,
                         monitorId: monitor._id,
@@ -476,7 +471,6 @@ export default class Service {
         incident,
         monitorId,
     }: $TSFixMe) {
-        const _this = this;
         const projectId = incident.projectId._id
             ? incident.projectId._id
             : incident.projectId;
@@ -646,9 +640,9 @@ export default class Service {
             !shouldSendCallReminder &&
             !shouldSendPushReminder
         ) {
-            _this.escalate({ schedule, incident, alertProgress, monitor });
+            this.escalate({ schedule, incident, alertProgress, monitor });
         } else {
-            _this.sendAlertsToTeamMembersInEscalationPolicy({
+            this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
                 monitor,
                 incident,
@@ -660,7 +654,6 @@ export default class Service {
     }
 
     async escalate({ schedule, incident, alertProgress, monitor }: $TSFixMe) {
-        const _this = this;
         const selectOnCallScheduleStatus =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
@@ -737,7 +730,7 @@ export default class Service {
         };
         await OnCallScheduleStatusService.updateOneBy({ query, data });
 
-        _this.sendAlertsToTeamMembersInEscalationPolicy({
+        this.sendAlertsToTeamMembersInEscalationPolicy({
             escalation: nextEscalationPolicy,
             monitor,
             incident,
@@ -755,7 +748,6 @@ export default class Service {
         onCallScheduleStatus,
         alertProgress,
     }: $TSFixMe) {
-        const _this = this;
         const monitorId = monitor._id;
 
         const projectId = incident.projectId._id
@@ -868,7 +860,7 @@ export default class Service {
 
         const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
         for (const teamMember of allUsers) {
-            const isOnDuty = await _this.checkIsOnDuty(
+            const isOnDuty = await this.checkIsOnDuty(
                 teamMember.startTime,
                 teamMember.endTime
             );
@@ -899,7 +891,7 @@ export default class Service {
 
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
-                    await _this.create({
+                    await this.create({
                         projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.Call,
@@ -914,7 +906,7 @@ export default class Service {
                     });
                 }
                 if (escalation.email && shouldSendEmailReminder) {
-                    await _this.create({
+                    await this.create({
                         projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.Email,
@@ -929,7 +921,7 @@ export default class Service {
                     });
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
-                    await _this.create({
+                    await this.create({
                         projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.SMS,
@@ -944,7 +936,7 @@ export default class Service {
                     });
                 }
                 if (escalation.push && shouldSendPushReminder) {
-                    await _this.create({
+                    await this.create({
                         projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.Push,
@@ -967,7 +959,7 @@ export default class Service {
                  */
 
                 if (escalation.sms && shouldSendSMSReminder) {
-                    await _this.sendSMSAlert({
+                    await this.sendSMSAlert({
                         incident,
                         user,
                         project,
@@ -981,7 +973,7 @@ export default class Service {
                 }
 
                 if (escalation.email && shouldSendEmailReminder) {
-                    _this.sendEmailAlert({
+                    this.sendEmailAlert({
                         incident,
                         user,
                         project,
@@ -995,7 +987,7 @@ export default class Service {
                 }
 
                 if (escalation.call && shouldSendCallReminder) {
-                    await _this.sendCallAlert({
+                    await this.sendCallAlert({
                         incident,
                         user,
                         project,
@@ -1009,7 +1001,7 @@ export default class Service {
                 }
 
                 if (escalation.push && shouldSendPushReminder) {
-                    await _this.sendPushAlert({
+                    await this.sendPushAlert({
                         incident,
                         user,
                         monitor,
@@ -1034,7 +1026,6 @@ export default class Service {
         eventType,
         pushProgress,
     }: $TSFixMe) {
-        const _this = this;
         let pushMessage;
         const userData = await UserService.findOneBy({
             query: { _id: user._id },
@@ -1091,7 +1082,7 @@ export default class Service {
             }
             return Promise.all(promiseFuncs)
                 .then(async () => {
-                    return await _this.create({
+                    return await this.create({
                         projectId: incident.projectId._id || incident.projectId,
                         monitorId: monitor._id,
                         schedule: schedule._id,
@@ -1106,7 +1097,7 @@ export default class Service {
                     });
                 })
                 .catch(async e => {
-                    return await _this.create({
+                    return await this.create({
                         projectId: incident.projectId._id || incident.projectId,
                         monitorId: monitor._id,
                         schedule: schedule._id,
@@ -1123,7 +1114,7 @@ export default class Service {
                     });
                 });
         } else {
-            return await _this.create({
+            return await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
@@ -1153,7 +1144,6 @@ export default class Service {
         eventType,
         emailProgress,
     }: $TSFixMe) {
-        const _this = this;
         const probeName =
             incident.probes.length > 0 && incident.probes[0].probeId.probeName;
         let date = new Date();
@@ -1208,7 +1198,7 @@ export default class Service {
                 ) {
                     errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
-                return await _this.create({
+                return await this.create({
                     projectId: incident.projectId._id || incident.projectId,
                     monitorId,
                     schedule: schedule._id,
@@ -1263,7 +1253,7 @@ export default class Service {
                 probeName,
                 emailProgress,
             });
-            return await _this.create({
+            return await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 monitorId,
                 schedule: schedule._id,
@@ -1277,7 +1267,7 @@ export default class Service {
                 alertProgress: emailProgress,
             });
         } catch (e) {
-            return await _this.create({
+            return await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 monitorId,
                 schedule: schedule._id,
@@ -1391,7 +1381,6 @@ export default class Service {
         eventType,
         callProgress,
     }: $TSFixMe) {
-        const _this = this;
         let alert;
         const date = new Date();
         const monitorId = monitor._id;
@@ -1401,7 +1390,7 @@ export default class Service {
             expiresIn: 12 * 60 * 60 * 1000,
         });
         if (!user.alertPhoneNumber) {
-            return await _this.create({
+            return await this.create({
                 projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1448,7 +1437,7 @@ export default class Service {
             } else if (IS_SAAS_SERVICE && !project.alertEnable) {
                 errorMessageText = 'Alert Disabled for this project';
             }
-            return await _this.create({
+            return await this.create({
                 projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1467,7 +1456,7 @@ export default class Service {
 
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             const doesPhoneNumberComplyWithHighRiskConfig =
-                await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                await this.doesPhoneNumberComplyWithHighRiskConfig(
                     projectId,
                     user.alertPhoneNumber
                 );
@@ -1484,7 +1473,7 @@ export default class Service {
                     errorMessageText =
                         'Calls to High Risk country not enabled for this project';
                 }
-                return await _this.create({
+                return await this.create({
                     projectId,
                     monitorId,
                     schedule: schedule._id,
@@ -1509,7 +1498,7 @@ export default class Service {
             );
 
             if (!status.success) {
-                return await _this.create({
+                return await this.create({
                     projectId,
                     monitorId,
                     schedule: schedule._id,
@@ -1538,7 +1527,7 @@ export default class Service {
             callProgress
         );
         if (alertStatus && alertStatus.code && alertStatus.code === 400) {
-            return await _this.create({
+            return await this.create({
                 projectId: project._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1554,7 +1543,7 @@ export default class Service {
                 alertProgress: callProgress,
             });
         } else if (alertStatus) {
-            alert = await _this.create({
+            alert = await this.create({
                 projectId: project._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1602,13 +1591,12 @@ export default class Service {
         eventType,
         smsProgress,
     }: $TSFixMe) {
-        const _this = this;
         let alert;
         const projectId = project._id;
         const date = new Date();
         const monitorId = monitor._id;
         if (!user.alertPhoneNumber) {
-            return await _this.create({
+            return await this.create({
                 projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1657,7 +1645,7 @@ export default class Service {
             } else {
                 errorMessageText = 'Error';
             }
-            return await _this.create({
+            return await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1676,7 +1664,7 @@ export default class Service {
 
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             const doesPhoneNumberComplyWithHighRiskConfig =
-                await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                await this.doesPhoneNumberComplyWithHighRiskConfig(
                     incident.projectId._id || incident.projectId,
                     user.alertPhoneNumber
                 );
@@ -1693,7 +1681,7 @@ export default class Service {
                     errorMessageText =
                         'SMS to High Risk country not enabled for this project';
                 }
-                return await _this.create({
+                return await this.create({
                     projectId: incident.projectId._id || incident.projectId,
                     monitorId,
                     schedule: schedule._id,
@@ -1718,7 +1706,7 @@ export default class Service {
             );
 
             if (!status.success) {
-                return await _this.create({
+                return await this.create({
                     projectId: incident.projectId._id || incident.projectId,
                     monitorId,
                     schedule: schedule._id,
@@ -1750,7 +1738,7 @@ export default class Service {
         );
 
         if (sendResult && sendResult.code && sendResult.code === 400) {
-            await _this.create({
+            await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 monitorId,
                 alertVia: AlertType.SMS,
@@ -1767,7 +1755,7 @@ export default class Service {
             });
         } else if (sendResult) {
             const alertStatus = 'Success';
-            alert = await _this.create({
+            alert = await this.create({
                 projectId: incident.projectId._id || incident.projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1868,7 +1856,6 @@ export default class Service {
         statusNoteStatus: $TSFixMe,
         projectId: string
     ) {
-        const _this = this;
         const uuid = new Date().getTime();
         const track = {};
 
@@ -1888,7 +1875,7 @@ export default class Service {
             statusPageSlug,
             subscribers,
         }: $TSFixMe) => {
-            await _this.sendSubscriberAlert(
+            await this.sendSubscriberAlert(
                 subscriber,
                 incident,
                 'Investigation note is created',
@@ -1950,7 +1937,6 @@ export default class Service {
         incident: $TSFixMe,
         monitors: $TSFixMe
     ) {
-        const _this = this;
         const uuid = new Date().getTime();
 
         const populateStatusPage = [
@@ -1973,7 +1959,7 @@ export default class Service {
             enabledStatusPage,
             subscribers,
         }: $TSFixMe) => {
-            await _this.sendSubscriberAlert(
+            await this.sendSubscriberAlert(
                 subscriber,
                 incident,
                 'Subscriber Incident Created',
@@ -2052,7 +2038,6 @@ export default class Service {
     }
 
     async sendAcknowledgedIncidentMail(incident: $TSFixMe, monitor: $TSFixMe) {
-        const _this = this;
         if (incident) {
             const projectId = incident.projectId._id
                 ? incident.projectId._id
@@ -2188,7 +2173,7 @@ export default class Service {
                     continue;
                 }
                 for (const teamMember of activeTeam.teamMembers) {
-                    const isOnDuty = await _this.checkIsOnDuty(
+                    const isOnDuty = await this.checkIsOnDuty(
                         teamMember.startTime,
                         teamMember.endTime
                     );
@@ -2203,7 +2188,7 @@ export default class Service {
 
                     if (!isOnDuty) {
                         if (escalation.email) {
-                            await _this.create({
+                            await this.create({
                                 projectId,
                                 monitorId: monitor._id,
                                 alertVia: AlertType.Email,
@@ -2218,7 +2203,7 @@ export default class Service {
                         }
                     } else {
                         if (escalation.email) {
-                            await _this.sendAcknowledgeEmailAlert({
+                            await this.sendAcknowledgeEmailAlert({
                                 incident,
                                 user,
                                 project,
@@ -2245,8 +2230,6 @@ export default class Service {
         onCallScheduleStatus,
         eventType,
     }: $TSFixMe) {
-        const _this = this;
-
         const projectId = incident.projectId._id || incident.projectId;
         try {
             let date = new Date();
@@ -2294,7 +2277,7 @@ export default class Service {
                 ) {
                     errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
-                return await _this.create({
+                return await this.create({
                     projectId,
                     monitorId: monitor._id,
                     schedule: schedule._id,
@@ -2375,7 +2358,7 @@ export default class Service {
                     ? incident.acknowledgedBy.name
                     : 'Unknown User',
             });
-            return await _this.create({
+            return await this.create({
                 projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
@@ -2388,7 +2371,7 @@ export default class Service {
                 alertStatus: 'Success',
             });
         } catch (e) {
-            return await _this.create({
+            return await this.create({
                 projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
@@ -2406,7 +2389,6 @@ export default class Service {
     }
 
     async sendResolveIncidentMail(incident: $TSFixMe, monitor: $TSFixMe) {
-        const _this = this;
         if (incident) {
             const projectId = incident.projectId._id
                 ? incident.projectId._id
@@ -2543,7 +2525,7 @@ export default class Service {
                 }
                 for (const teamMember of activeTeam.teamMembers) {
                     const [isOnDuty, user] = await Promise.all([
-                        _this.checkIsOnDuty(
+                        this.checkIsOnDuty(
                             teamMember.startTime,
                             teamMember.endTime
                         ),
@@ -2559,7 +2541,7 @@ export default class Service {
 
                     if (!isOnDuty) {
                         if (escalation.email) {
-                            await _this.create({
+                            await this.create({
                                 projectId,
                                 monitorId: monitor._id,
                                 alertVia: AlertType.Email,
@@ -2574,7 +2556,7 @@ export default class Service {
                         }
                     } else {
                         if (escalation.email) {
-                            await _this.sendResolveEmailAlert({
+                            await this.sendResolveEmailAlert({
                                 incident,
                                 user,
                                 project,
@@ -2601,7 +2583,6 @@ export default class Service {
         onCallScheduleStatus,
         eventType,
     }: $TSFixMe) {
-        const _this = this;
         const projectId = incident.projectId._id || incident.projectId;
 
         try {
@@ -2648,7 +2629,7 @@ export default class Service {
                 ) {
                     errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
-                return await _this.create({
+                return await this.create({
                     projectId,
                     monitorId: monitor._id,
                     schedule: schedule._id,
@@ -2726,7 +2707,7 @@ export default class Service {
                     ? incident.resolvedBy.name
                     : 'Unknown User',
             });
-            return await _this.create({
+            return await this.create({
                 projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
@@ -2739,7 +2720,7 @@ export default class Service {
                 alertStatus: 'Success',
             });
         } catch (e) {
-            return await _this.create({
+            return await this.create({
                 projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
@@ -2760,7 +2741,6 @@ export default class Service {
         incident: $TSFixMe,
         monitors: $TSFixMe
     ) {
-        const _this = this;
         const uuid = new Date().getTime();
         const track = {};
         const populateStatusPage = [
@@ -2782,7 +2762,7 @@ export default class Service {
             enabledStatusPage,
             subscribers,
         }: $TSFixMe) => {
-            await _this.sendSubscriberAlert(
+            await this.sendSubscriberAlert(
                 subscriber,
                 incident,
                 'Subscriber Incident Acknowledged',
@@ -2864,7 +2844,6 @@ export default class Service {
         incident: $TSFixMe,
         monitors: $TSFixMe
     ) {
-        const _this = this;
         const uuid = new Date().getTime();
         const track = {};
         const populateStatusPage = [
@@ -2886,7 +2865,7 @@ export default class Service {
             enabledStatusPage,
             subscribers,
         }: $TSFixMe) => {
-            await _this.sendSubscriberAlert(
+            await this.sendSubscriberAlert(
                 subscriber,
                 incident,
                 'Subscriber Incident Resolved',
@@ -2980,7 +2959,6 @@ export default class Service {
         id: $TSFixMe,
         monitor: $TSFixMe
     ) {
-        const _this = this;
         const date = new Date();
         const isStatusPageNoteAlert = note && incidentState && statusNoteStatus;
         const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
@@ -3505,10 +3483,9 @@ export default class Service {
                         id,
                     });
                 }
-                const countryCode =
-                    await _this.mapCountryShortNameToCountryCode(
-                        subscriber.countryCode
-                    );
+                const countryCode = await this.mapCountryShortNameToCountryCode(
+                    subscriber.countryCode
+                );
                 let contactPhone = subscriber.contactPhone;
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
@@ -3519,7 +3496,7 @@ export default class Service {
                         (user: $TSFixMe) => user.role === 'Owner'
                     )[0];
                     const doesPhoneNumberComplyWithHighRiskConfig =
-                        await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                        await this.doesPhoneNumberComplyWithHighRiskConfig(
                             projectId,
                             contactPhone
                         );
@@ -3894,7 +3871,6 @@ export default class Service {
     }
 
     async getSubProjectAlerts(subProjectIds: $TSFixMe) {
-        const _this = this;
         const populateAlert = [
             { path: 'userId', select: 'name email' },
             { path: 'monitorId', select: 'name' },
@@ -3906,14 +3882,14 @@ export default class Service {
 
         const subProjectAlerts = await Promise.all(
             subProjectIds.map(async (id: $TSFixMe) => {
-                const alerts = await _this.findBy({
+                const alerts = await this.findBy({
                     query: { projectId: id },
                     skip: 0,
                     limit: 10,
                     select: selectAlert,
                     populate: populateAlert,
                 });
-                const count = await _this.countBy({ projectId: id });
+                const count = await this.countBy({ projectId: id });
                 return { alerts, count, _id: id, skip: 0, limit: 10 };
             })
         );
@@ -3926,14 +3902,13 @@ export default class Service {
     }
 
     async restoreBy(query: Query) {
-        const _this = this;
         query.deleted = true;
-        let alert = await _this.findBy({ query, select: '_id' });
+        let alert = await this.findBy({ query, select: '_id' });
         if (alert && alert.length > 1) {
             const alerts = await Promise.all(
                 alert.map(async (alert: $TSFixMe) => {
                     const alertId = alert._id;
-                    alert = await _this.updateOneBy(
+                    alert = await this.updateOneBy(
                         {
                             _id: alertId,
                         },
@@ -3951,7 +3926,7 @@ export default class Service {
             alert = alert[0];
             if (alert) {
                 const alertId = alert._id;
-                alert = await _this.updateOneBy(
+                alert = await this.updateOneBy(
                     {
                         _id: alertId,
                     },
@@ -3968,7 +3943,6 @@ export default class Service {
 
     //Return true, if the limit is not reached yet.
     async checkPhoneAlertsLimit(projectId: string) {
-        const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
         );
@@ -3977,7 +3951,7 @@ export default class Service {
         }
         const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
         const [alerts, smsCounts, project, twilioSettings] = await Promise.all([
-            _this.countBy({
+            this.countBy({
                 projectId: projectId,
                 alertVia: { $in: [AlertType.Call, AlertType.SMS] },
                 error: { $in: [null, undefined, false] },
@@ -4046,7 +4020,6 @@ export default class Service {
     }
 
     async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe) {
-        const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
             const track = {};
@@ -4055,7 +4028,7 @@ export default class Service {
                 component,
                 subscribers,
             }: $TSFixMe) => {
-                await _this.sendSubscriberScheduledEventAlert(
+                await this.sendSubscriberScheduledEventAlert(
                     subscriber,
                     schedule,
                     'Subscriber Scheduled Maintenance Created',
@@ -4097,7 +4070,6 @@ export default class Service {
     }
 
     async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe) {
-        const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
             const track = {};
@@ -4106,7 +4078,7 @@ export default class Service {
                 component,
                 subscribers,
             }: $TSFixMe) => {
-                await _this.sendSubscriberScheduledEventAlert(
+                await this.sendSubscriberScheduledEventAlert(
                     subscriber,
                     schedule,
                     'Subscriber Scheduled Maintenance Resolved',
@@ -4148,7 +4120,6 @@ export default class Service {
     }
 
     async sendCancelledScheduledEventToSubscribers(schedule: $TSFixMe) {
-        const _this = this;
         const uuid = new Date().getTime();
         if (schedule) {
             for (const monitor of schedule.monitors) {
@@ -4160,7 +4131,7 @@ export default class Service {
                 );
 
                 for (const subscriber of subscribers) {
-                    await _this.sendSubscriberScheduledEventAlert(
+                    await this.sendSubscriberScheduledEventAlert(
                         subscriber,
                         schedule,
                         'Subscriber Scheduled Maintenance Cancelled',
@@ -4174,7 +4145,6 @@ export default class Service {
     }
 
     async sendScheduledEventInvestigationNoteToSubscribers(message: $TSFixMe) {
-        const _this = this;
         const uuid = new Date().getTime();
 
         const monitorIds =
@@ -4407,7 +4377,7 @@ export default class Service {
                             });
                         }
                         const countryCode =
-                            await _this.mapCountryShortNameToCountryCode(
+                            await this.mapCountryShortNameToCountryCode(
                                 subscriber.countryCode
                             );
 
@@ -4421,7 +4391,7 @@ export default class Service {
                                 (user: $TSFixMe) => user.role === 'Owner'
                             )[0];
                             const doesPhoneNumberComplyWithHighRiskConfig =
-                                await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                                await this.doesPhoneNumberComplyWithHighRiskConfig(
                                     projectId,
                                     contactPhone
                                 );
@@ -4596,7 +4566,6 @@ export default class Service {
         totalSubscribers: $TSFixMe,
         id: $TSFixMe
     ) {
-        const _this = this;
         const date = new Date();
         const projectName = schedule.projectId.name;
         const projectId = schedule.projectId._id;
@@ -4823,10 +4792,9 @@ export default class Service {
                         id,
                     });
                 }
-                const countryCode =
-                    await _this.mapCountryShortNameToCountryCode(
-                        subscriber.countryCode
-                    );
+                const countryCode = await this.mapCountryShortNameToCountryCode(
+                    subscriber.countryCode
+                );
                 let contactPhone = subscriber.contactPhone;
                 if (countryCode) {
                     contactPhone = countryCode + contactPhone;
@@ -4837,7 +4805,7 @@ export default class Service {
                         (user: $TSFixMe) => user.role === 'Owner'
                     )[0];
                     const doesPhoneNumberComplyWithHighRiskConfig =
-                        await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                        await this.doesPhoneNumberComplyWithHighRiskConfig(
                             projectId,
                             contactPhone
                         );
@@ -5047,7 +5015,6 @@ export default class Service {
     }
 
     async sendAnnouncementNotificationToSubscribers(message: $TSFixMe) {
-        const _this = this;
         const uuid = new Date().getTime();
 
         if (message) {
@@ -5235,7 +5202,7 @@ export default class Service {
                         });
                     }
                     const countryCode =
-                        await _this.mapCountryShortNameToCountryCode(
+                        await this.mapCountryShortNameToCountryCode(
                             subscriber.countryCode
                         );
                     let contactPhone = subscriber.contactPhone;
@@ -5248,7 +5215,7 @@ export default class Service {
                             (user: $TSFixMe) => user.role === 'Owner'
                         )[0];
                         const doesPhoneNumberComplyWithHighRiskConfig =
-                            await _this.doesPhoneNumberComplyWithHighRiskConfig(
+                            await this.doesPhoneNumberComplyWithHighRiskConfig(
                                 projectId,
                                 contactPhone
                             );

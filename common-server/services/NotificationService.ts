@@ -89,13 +89,12 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe) {
-        const _this = this;
         if (!query) {
             query = {};
         }
 
         if (!query['deleted']) query['deleted'] = false;
-        let notification = await _this.findOneBy({
+        let notification = await this.findOneBy({
             query,
             select: 'read closed',
         });
