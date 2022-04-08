@@ -1,4 +1,4 @@
-import { clusterKey as CLUSTER_KEY } from '../Config';
+import { ClusterKey as CLUSTER_KEY } from '../Config';
 import {
     ExpressRequest,
     ExpressResponse,

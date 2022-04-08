@@ -1,65 +1,57 @@
-import IssueTimelineModel from '../models/issueTimeline';
+import Model, { requiredFields, uniqueFields } from '../models/IssueTimeline';
+import DatabaseService from './DatabaseService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-
-export default class Service {
-    async create(data: $TSFixMe) {
-        // prepare issue timeline model
-        const issueTimeline = new IssueTimelineModel();
-
-        issueTimeline.status = data.status;
-
-        issueTimeline.issueId = data.issueId;
-
-        issueTimeline.createdById = data.createdById;
-
-        let savedIssueTimeline = await issueTimeline.save();
-        const populateIssueTimeline = [
-            { path: 'issueId', select: 'name' },
-            { path: 'createdById', select: 'name' },
-        ];
-
-        const selectIssueTimeline =
-            'issueId createdById createdAt status deleted';
-
-        savedIssueTimeline = await this.findOneBy({
-            query: { _id: issueTimeline._id },
-            select: selectIssueTimeline,
-            populate: populateIssueTimeline,
+export default class IssueTimelineService extends DatabaseService<
+    typeof Model
+> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Issue Timeline',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: '',
         });
-        return savedIssueTimeline;
-    }
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        const issueTimelineQuery = IssueTimelineModel.findOne(query)
-            .sort(sort)
-            .lean();
-
-        issueTimelineQuery.select(select);
-        issueTimelineQuery.populate(populate);
-
-        const issueTimeline = await issueTimelineQuery;
-
-        return issueTimeline;
-    }
-    // get a list of IssueTimeline
-    async findBy({ query, select, populate, sort }: FindBy) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        const issuesQuery = IssueTimelineModel.find(query).sort(sort).lean();
-
-        issuesQuery.select(select);
-        issuesQuery.populate(populate);
-
-        const issues = await issuesQuery;
-        return issues;
     }
 }

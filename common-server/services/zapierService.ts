@@ -1,3 +1,18 @@
+import axios from 'axios';
+import ProjectService from './ProjectService';
+import IncidentService from './IncidentService';
+import IncidentTimelineService from './IncidentTimelineService';
+import MonitorService from './MonitorService';
+import ZapierModel from '../models/zapier';
+import IncidentModel from '../models/incident';
+import NotificationService from './NotificationService';
+import RealTimeService from './realTimeService';
+import IncidentMessageService from './IncidentMessageService';
+import IncidentMessageModel from '../models/incidentMessage';
+
+import FindOneBy from '../types/db/FindOneBy';
+import Query from '../types/db/Query';
+
 export default class Service {
     async findBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -335,19 +350,14 @@ export default class Service {
                 });
 
                 const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
-                try {
-                    NotificationService.create(
-                        incident.projectId,
-                        msg,
-                        null,
-                        'warning'
-                    );
-                } catch (error) {
-                    ErrorService.log(
-                        'zapierService.createIncident > NotificationService.create',
-                        error
-                    );
-                }
+
+                NotificationService.create(
+                    incident.projectId,
+                    msg,
+                    null,
+                    'warning'
+                );
+
                 // run in the background
                 RealTimeService.sendCreatedIncident(incident);
 
@@ -934,19 +944,3 @@ export default class Service {
         return 'Zapier(s) removed successfully';
     }
 }
-
-import axios from 'axios';
-import ProjectService from './ProjectService';
-import ErrorService from '../utils/error';
-import IncidentService from './IncidentService';
-import IncidentTimelineService from './IncidentTimelineService';
-import MonitorService from './MonitorService';
-import ZapierModel from '../models/zapier';
-import IncidentModel from '../models/incident';
-import NotificationService from './NotificationService';
-import RealTimeService from './realTimeService';
-import IncidentMessageService from './IncidentMessageService';
-import IncidentMessageModel from '../models/incidentMessage';
-
-import FindOneBy from '../types/db/FindOneBy';
-import Query from '../types/db/Query';

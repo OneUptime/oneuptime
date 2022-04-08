@@ -1,11 +1,11 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 import AirtableLib from 'airtable';
 import Dictionary from 'common/types/Dictionary';
-import { airtableApiKey, airtableBaseId } from '../Config';
+import { AirtableApiKey, AirtableBaseId } from '../Config';
 
 class Airtable {
-    private static base = new AirtableLib({ apiKey: airtableApiKey }).base(
-        airtableBaseId
+    private static base = new AirtableLib({ apiKey: AirtableApiKey }).base(
+        AirtableBaseId
     );
 
     public static async find(

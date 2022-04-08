@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
-import { tokenSecret } from '../Config';
+import { TokenSecret } from '../Config';
 
 class JSONWebToken {
     static sign(data: string, expiresIn: Date): string {
-        return jwt.sign({ data }, tokenSecret, {
+        return jwt.sign({ data }, TokenSecret, {
             expiresIn: String(expiresIn),
         });
     }

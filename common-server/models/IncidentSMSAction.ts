@@ -1,6 +1,7 @@
 import mongoose, { RequiredFields, UniqueFields } from '../infrastructure/ORM';
 
 const Schema = mongoose.Schema;
+
 const schema = new Schema({
     incidentId: { type: String, ref: 'Incident', index: true }, //which project this incident belongs to.
     userId: { type: String, ref: 'User', index: true }, // which User will perfom this action.

@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import logger from '../utils/Logger';
 
-import { databaseUrl, isMongoReplicaSet } from '../Config';
+import { DatabaseUrl, IsMongoReplicaSet } from '../Config';
 
 let options = {};
 
-if (isMongoReplicaSet) {
+if (IsMongoReplicaSet) {
     options = {
         // commented because this was having issues reading "latest" data that was saved on primary.
         // readPreference: 'secondaryPreferred',
@@ -14,7 +14,7 @@ if (isMongoReplicaSet) {
 }
 
 mongoose
-    .connect(databaseUrl, options)
+    .connect(DatabaseUrl, options)
     .then(() => {
         return logger.info('Mongo connected');
     })

@@ -1,5 +1,5 @@
 import MongoDB from 'mongodb';
-import { databaseUrl, databaseName } from '../Config';
+import { DatabaseUrl, DatabaseName } from '../Config';
 import Grid from 'gridfs-stream';
 
 export default class Database {
@@ -8,7 +8,7 @@ export default class Database {
     private static fileClient: MongoDB.Collection;
 
     public static getClient(): MongoDB.MongoClient {
-        this.databaseClient = new MongoDB.MongoClient(databaseUrl);
+        this.databaseClient = new MongoDB.MongoClient(DatabaseUrl);
         return this.databaseClient;
     }
 
@@ -38,6 +38,6 @@ export default class Database {
             await this.connect();
             this.databaseConnected = true;
         }
-        return this.databaseClient.db(databaseName);
+        return this.databaseClient.db(DatabaseName);
     }
 }

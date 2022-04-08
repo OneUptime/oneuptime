@@ -1,27 +1,60 @@
-import incidentSMSActionModel from '../models/incidentSMSAction';
-import Query from '../types/db/Query';
+import Model, {
+    requiredFields,
+    uniqueFields,
+} from '../models/IncidentSMSAction';
+import DatabaseService from './DatabaseService';
 
-export default class Service {
-    async findBy(query: Query) {
-        const alerts = await incidentSMSActionModel.find(query).lean();
-        return alerts;
-    }
-
-    async updateOneBy(query: Query, data: $TSFixMe) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        const incidentafter = await incidentSMSActionModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
+export default class IncidentSMSActionService extends DatabaseService<
+    typeof Model
+> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Incident SMS Action',
+            publicListProps: {
+                populate: [],
+                select: [],
             },
-            {
-                new: true,
-            }
-        );
-        return incidentafter;
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: '',
+        });
     }
 }

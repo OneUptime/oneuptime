@@ -30,6 +30,7 @@ export default class Service {
             status
         );
     }
+
     async findBy({ query, skip, limit, select, populate, sort }: FindBy) {
         const logsQuery = LoginHistoryModel.find(query)
             .lean()
