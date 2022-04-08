@@ -1,6 +1,6 @@
 import LocalStorage from './localstorage';
-import Email from 'common/types/email';
-import URL from 'common/types/api/url';
+import Email from 'common/types/Email';
+import URL from 'common/types/api/URL';
 import { JSONObject } from 'common/types/JSON';
 
 export default class User {

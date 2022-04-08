@@ -1,56 +1,68 @@
-export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        if (!query['deleted']) query['deleted'] = false;
+import PaymentService from './PaymentService';
+import TwilioService from './TwilioService';
+import ScheduleService from './ScheduleService';
+import AlertService from './AlertService';
+import EscalationService from './EscalationService';
+import UserService from './UserService';
+import twilio from 'twilio';
+import { IS_SAAS_SERVICE } from '../config/server';
+import ProjectService from './ProjectService';
+import FileService from './FileService';
+import Query from '../types/db/Query';
+import Model, { requiredFields, uniqueFields } from '../models/CallRouting';
+import DatabaseService from './DatabaseService';
+import CallRoutingLogService from './CallRoutingLogService';
 
-        const callRoutingQuery = CallRoutingModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-        callRoutingQuery.select(select);
-        callRoutingQuery.populate(populate);
-
-        const callRouting = await callRoutingQuery;
-        return callRouting;
-    }
-
-    async create(data: $TSFixMe) {
-        const callRoutingModel = new CallRoutingModel();
-
-        callRoutingModel.projectId = data.projectId;
-
-        callRoutingModel.phoneNumber = data.phoneNumber;
-
-        callRoutingModel.locality = data.locality;
-
-        callRoutingModel.region = data.region;
-
-        callRoutingModel.capabilities = data.capabilities;
-
-        callRoutingModel.price = data.price;
-
-        callRoutingModel.priceUnit = data.priceUnit;
-
-        callRoutingModel.countryCode = data.countryCode;
-
-        callRoutingModel.numberType = data.numberType;
-
-        callRoutingModel.stripeSubscriptionId = data.stripeSubscriptionId;
-
-        callRoutingModel.sid = data.sid;
-
-        const numbers = await callRoutingModel.save();
-        return numbers;
-    }
-
-    async countBy(query: Query) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        const count = await CallRoutingModel.countDocuments(query);
-        return count;
+export default class CallRoutingService extends DatabaseService<typeof Model> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Call Routing',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: true,
+            slugifyField: '',
+        });
     }
 
     async deleteBy(query: Query, userId: string) {
@@ -59,7 +71,7 @@ export default class Service {
         }
 
         query.deleted = false;
-        const numbers = await CallRoutingModel.findOneAndUpdate(
+        const numbers = await Model.findOneAndUpdate(
             query,
             {
                 $set: {
@@ -73,63 +85,13 @@ export default class Service {
             }
         );
         const stripeSubscriptionId = numbers.stripeSubscriptionId;
+
         await Promise.all([
             TwilioService.releasePhoneNumber(numbers.projectId, numbers.sid),
             PaymentService.removeSubscription(stripeSubscriptionId),
         ]);
 
         return numbers;
-    }
-
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-        if (!query['deleted']) query['deleted'] = false;
-
-        const callRoutingQuery = CallRoutingModel.findOne(query)
-            .lean()
-            .sort(sort);
-        callRoutingQuery.select(select);
-        callRoutingQuery.populate(populate);
-
-        const callRouting = await callRoutingQuery;
-        return callRouting;
-    }
-
-    async updateOneBy(query: Query, data: $TSFixMe) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-
-        const updatedCallRouting = await CallRoutingModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
-        return updatedCallRouting;
-    }
-
-    async updateBy(query: Query, data: $TSFixMe) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        let updatedData = await CallRoutingModel.updateMany(query, {
-            $set: data,
-        });
-        const populate = [{ path: 'projectId', select: 'name slug _id' }];
-        const select =
-            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
-        updatedData = await this.findBy({ query, populate, select });
-        return updatedData;
     }
 
     async reserveNumber(data: $TSFixMe, projectId: string) {
@@ -723,27 +685,4 @@ export default class Service {
         }
         return logs;
     }
-
-    async hardDeleteBy(query: Query) {
-        await CallRoutingModel.deleteMany(query);
-        return 'Call routing Number(s) Removed Successfully!';
-    }
 }
-
-import CallRoutingModel from '../models/callRouting';
-import CallRoutingLogService from './CallRoutingLogService';
-import PaymentService from './PaymentService';
-import TwilioService from './TwilioService';
-import ScheduleService from './ScheduleService';
-import AlertService from './AlertService';
-import EscalationService from './EscalationService';
-import UserService from './UserService';
-import twilio from 'twilio';
-
-import { IS_SAAS_SERVICE } from '../config/server';
-import ProjectService from './ProjectService';
-import FileService from './FileService';
-
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';

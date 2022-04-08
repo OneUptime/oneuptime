@@ -2757,11 +2757,8 @@ export default class MailService {
                             if (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
-
                                     to: mailOptions.to,
-
                                     subject: mailOptions.subject,
-
                                     template: mailOptions.template,
                                     status: 'Email not enabled.',
                                     content: EmailBody,

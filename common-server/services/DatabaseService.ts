@@ -1,8 +1,8 @@
 import Slug from 'common/utils/Slug';
 import Populate from '../types/db/Populate';
 import Select from '../types/db/Select';
-import { Model } from '../utils/ORM';
-import { RequiredFields, UniqueFields, Document } from '../utils/ORM';
+import { Model } from '../infrastructure/ORM';
+import { RequiredFields, UniqueFields, Document } from '../infrastructure/ORM';
 import FindOneBy from '../types/db/FindOneBy';
 import UpdateOneBy from '../types/db/UpdateOneBy';
 import CountBy from '../types/db/CountBy';
@@ -129,14 +129,34 @@ class DatabaseService<ModelType> {
         }
     }
 
-    protected async onCreateSuccess() {
+    protected async onBeforeCreate({ data }: CreateBy): Promise<CreateBy> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve({ data } as CreateBy);
     }
 
-    protected async onCreateError() {
+    protected async onBeforeDelete(deleteBy: DeleteBy): Promise<DeleteBy> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(deleteBy);
+    }
+
+    protected async onBeforeUpdate(updateBy: UpdateBy): Promise<UpdateBy> {
+        // a place holder method used for overriding.
+        return Promise.resolve(updateBy);
+    }
+
+    protected async onBeforeFind(findBy: FindBy): Promise<FindBy> {
+        // a place holder method used for overriding.
+        return Promise.resolve(findBy);
+    }
+
+    protected async onCreateSuccess(createdItem: Document): Promise<Document> {
+        // a place holder method used for overriding.
+        return Promise.resolve(createdItem);
+    }
+
+    protected async onCreateError(error: Exception): Promise<Exception> {
+        // a place holder method used for overriding.
+        return Promise.resolve(error);
     }
 
     protected async onUpdateSuccess() {
@@ -144,9 +164,9 @@ class DatabaseService<ModelType> {
         return Promise.resolve();
     }
 
-    protected async onUpdateError() {
+    protected async onUpdateError(error: Exception): Promise<Exception> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(error);
     }
 
     protected async onDeleteSuccess() {
@@ -154,9 +174,9 @@ class DatabaseService<ModelType> {
         return Promise.resolve();
     }
 
-    protected async onDeleteError() {
+    protected async onDeleteError(error: Exception): Promise<Exception> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(error);
     }
 
     protected async onFindSuccess() {
@@ -164,26 +184,29 @@ class DatabaseService<ModelType> {
         return Promise.resolve();
     }
 
-    protected async onFindError() {
+    protected async onFindError(error: Exception): Promise<Exception> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(error);
     }
 
-    protected async onCountSuccess() {
+    protected async onCountSuccess(
+        count: PositiveNumber
+    ): Promise<PositiveNumber> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(count);
     }
 
-    protected async onCountError() {
+    protected async onCountError(error: Exception): Promise<Exception> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(error);
     }
 
     protected async getException(error: Exception) {
         throw error;
     }
 
-    public async create({ data }: CreateBy) {
+    public async create(createBy: CreateBy): Promise<Document> {
+        const { data } = await this.onBeforeCreate({ data: createBy.data });
         this.checkRequiredFields(data);
 
         if (!this.isValid(data)) {
@@ -227,23 +250,24 @@ class DatabaseService<ModelType> {
                 item.set('slug', Slug.getSlug(data.get(this.slugifyField)));
             }
 
-            await this.onCreateSuccess();
+            await this.onCreateSuccess(item);
 
             return await item.save();
         } catch (error) {
-            await this.onCreateError();
+            await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
     }
 
     public async countBy({ query = {} }: CountBy): Promise<PositiveNumber> {
         try {
-            query.deleted = false;
+            query['deleted'] = false;
             const count = await this.model.countDocuments(query);
-            await this.onCountSuccess();
-            return new PositiveNumber(count);
+            let countPositive = new PositiveNumber(count);
+            countPositive = await this.onCountSuccess(countPositive);
+            return countPositive;
         } catch (error) {
-            await this.onCountError();
+            await this.onCountError(error as Exception);
             throw this.getException(error as Exception);
         }
     }
@@ -278,22 +302,33 @@ class DatabaseService<ModelType> {
         deletedByUserId,
     }: InternalDeleteBy) {
         try {
-            query.deleted = false;
+            const beforeDeleteBy = await this.onBeforeDelete({
+                query,
+                deletedByUserId,
+            });
+
+            query['deleted'] = false;
 
             const item = new this.model();
             item.set('deleted', true);
-            item.set('deletedById', deletedByUserId);
+            item.set('deletedById', beforeDeleteBy.deletedByUserId);
             item.set('deletedAt', OneUptimeDate.getCurrentDate());
 
             if (multiple) {
-                await this.updateBy({ query, data: item });
+                await this.updateBy({
+                    query: beforeDeleteBy.query,
+                    data: item,
+                });
             } else {
-                await this.updateOneBy({ query, data: item });
+                await this.updateOneBy({
+                    query: beforeDeleteBy.query,
+                    data: item,
+                });
             }
 
             await this.onDeleteSuccess();
         } catch (error) {
-            await this.onDeleteError();
+            await this.onDeleteError(error as Exception);
             throw this.getException(error as Exception);
         }
     }
@@ -467,30 +502,39 @@ class DatabaseService<ModelType> {
         multiple = false,
     }: InternalFindBy): Promise<Array<Document>> {
         try {
-            query.deleted = false;
+            const onBeforeFind = await this.onBeforeFind({
+                query,
+                skip,
+                limit,
+                populate,
+                select,
+                sort,
+            });
+
+            query['deleted'] = false;
 
             let dbQuery = null;
 
             if (!multiple) {
-                dbQuery = this.model.findOne(query);
+                dbQuery = this.model.findOne(onBeforeFind.query);
             } else {
-                dbQuery = this.model.find(query);
+                dbQuery = this.model.find(onBeforeFind.query);
             }
 
             dbQuery
-                .sort(sort)
-                .limit(limit.toNumber())
-                .skip(skip.toNumber())
+                .sort(onBeforeFind.sort)
+                .limit(onBeforeFind.limit.toNumber())
+                .skip(onBeforeFind.skip.toNumber())
                 .lean();
 
-            dbQuery.select(select);
-            dbQuery.populate(populate);
+            dbQuery.select(onBeforeFind.select);
+            dbQuery.populate(onBeforeFind.populate);
 
             const items = await dbQuery;
             await this.onFindSuccess();
             return items as Array<Document>;
         } catch (error) {
-            await this.onFindError();
+            await this.onFindError(error as Exception);
             throw this.getException(error as Exception);
         }
     }
@@ -524,31 +568,33 @@ class DatabaseService<ModelType> {
         multiple = true,
     }: InternalUpdateBy) {
         try {
-            if (!query) {
-                query = {};
-            }
-
             if (!query['deleted']) query['deleted'] = false;
+
+            const beforeUpdateBy = await this.onBeforeUpdate({
+                query,
+                data,
+            });
 
             // check required fields.
             for (const requiredField of this.requiredFields) {
-                if (data.get(requiredField) === null) {
+                if (beforeUpdateBy.data.get(requiredField) === null) {
                     throw new BadDataException(`${requiredField} is required.`);
                 }
             }
 
             if (multiple) {
-                await this.model.updateMany(query, {
-                    $set: data,
+                await this.model.updateMany(beforeUpdateBy.query, {
+                    $set: beforeUpdateBy.data,
                 });
             } else {
-                await this.model.updateOne(query, {
-                    $set: data,
+                await this.model.updateOne(beforeUpdateBy.query, {
+                    $set: beforeUpdateBy.data,
                 });
             }
+
             await this.onUpdateSuccess();
         } catch (error) {
-            await this.onUpdateError();
+            await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);
         }
     }

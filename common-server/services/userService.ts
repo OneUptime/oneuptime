@@ -1,6 +1,91 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 import BadDataException from 'common/types/exception/BadDataException';
-export default class Service {
+
+import bcrypt from 'bcrypt';
+
+import constants from '../config/constants.json';
+import UserModel from '../models/user';
+import util from './utilService.js';
+import randToken from 'rand-token';
+import PaymentService from './PaymentService';
+import crypto from 'crypto';
+import ProjectService from './ProjectService';
+import ErrorService from '../utils/error';
+
+import jwt from 'jsonwebtoken';
+
+import geoip from 'geoip-lite';
+const jwtSecretKey = process.env['JWT_SECRET'];
+
+import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
+const { NODE_ENV } = process.env;
+import VerificationTokenModel from '../models/verificationToken';
+import MailService from './MailService';
+import AirtableService from './AirtableService';
+
+import speakeasy from 'speakeasy';
+import { hotp } from 'otplib';
+import LoginHistoryService from './LoginHistoryService';
+import Query from '../types/db/Query';
+
+import Model, { requiredFields, uniqueFields } from '../models/User';
+import DatabaseService from './DatabaseService';
+import CreateBy from '../types/db/CreateBy';
+
+export default class CallRoutingLogService extends DatabaseService<
+    typeof Model
+> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'User',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: '',
+        });
+    }
+
     // async addUserToDefaultProjects({ domain, userId }: $TSFixMe) {
 
     //     const populateDefaultRoleSso = [
@@ -35,238 +120,20 @@ export default class Service {
     //     }
     // }
 
-    async findBy({
-        query,
-        limit,
-        skip,
-        populate,
-        select,
-        sort = [
-            {
-                lastActive: SortOrder.Descending,
-            },
-        ],
-    }: FindBy) {
-        if (!query['deleted']) query['deleted'] = false;
-        const userQuery = UserModel.find(query)
-            .lean()
-            .limit(limit.toNumber())
-            .skip(skip.toNumber())
-            .sort(sort);
-
-        userQuery.select(select);
-        userQuery.populate(populate);
-
-        const users = await userQuery;
-        return users;
-    }
-
-    async create(data: $TSFixMe) {
-        if (!data.email) {
-            const error = new Error('Email address can not be empty');
-
-            error.code = 400;
-            throw error;
-        }
-        const userModel = new UserModel();
-
-        userModel.name = data.name || null;
-
-        userModel.email = data.email || null;
-
-        userModel.role = data.role || 'user';
-
-        userModel.companyName = data.companyName || null;
-
-        userModel.companyRole = data.companyRole || null;
-
-        userModel.companySize = data.companySize || null;
-
-        userModel.referral = data.referral || null;
-
-        userModel.companyPhoneNumber = data.companyPhoneNumber || null;
-
-        userModel.onCallAlert = data.onCallAlert || null;
-
-        userModel.profilePic = data.profilePic || null;
-
-        userModel.stripeCustomerId = data.stripeCustomerId || null;
-
-        userModel.resetPasswordToken = data.resetPasswordToken || null;
-
-        userModel.resetPasswordExpires = data.resetPasswordExpires || null;
-
-        userModel.createdAt = data.createdAt || Date.now();
-
-        userModel.timezone = data.timezone || null;
-
-        userModel.lastActive = data.lastActive || Date.now();
-
-        userModel.coupon = data.coupon || null;
-
-        userModel.adminNotes = data.adminNotes || null;
-
-        userModel.tempEmail = data.tempEmail || null;
-
-        userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
-
-        userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
-
-        userModel.otpauth_url = data.otpauth_url || null;
-
-        userModel.source = data.source || null;
-        if (data.password) {
-            const hash = await bcrypt.hash(data.password, constants.saltRounds);
-
-            userModel.password = hash;
-        }
-        // setting isVerified true for master admin
-
-        if (data.role == 'master-admin') userModel.isVerified = true;
-
-        userModel.jwtRefreshToken = randToken.uid(256);
-
-        if (data.sso) userModel.sso = data.sso;
-
-        const user = await userModel.save();
-        return user;
-    }
-
-    async countBy(query: Query) {
-        if (!query) {
-            query = {};
+    protected override async onBeforeCreate({
+        data,
+    }: CreateBy): Promise<CreateBy> {
+        if (data.get('password')) {
+            const hash = await bcrypt.hash(
+                data.get('password'),
+                constants.saltRounds
+            );
+            data.set('password', hash);
         }
 
-        if (!query['deleted']) query['deleted'] = false;
-        const count = await UserModel.countDocuments(query);
-        return count;
-    }
+        data.set('jwtRefreshToken', randToken.uid(256));
 
-    async deleteBy(query: Query, userId: string) {
-        if (!query) {
-            query = {};
-        }
-
-        query.deleted = false;
-        const user = await UserModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now(),
-                },
-            },
-            {
-                new: true,
-            }
-        );
-        return user;
-    }
-
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-        if (!query['deleted']) query['deleted'] = false;
-        const userQuery = UserModel.findOne(query).sort(sort).lean().sort(sort);
-
-        userQuery.select(select);
-        userQuery.populate(populate);
-
-        const user = await userQuery;
-
-        if ((user && !IS_SAAS_SERVICE) || user) {
-            // find user subprojects and parent projects
-
-            let userProjects = await ProjectService.findBy({
-                query: { 'users.userId': user._id },
-                select: 'parentProjectId',
-            });
-            let parentProjectIds = [];
-            let projectIds = [];
-            if (userProjects.length > 0) {
-                const subProjects = userProjects
-                    .map((project: $TSFixMe) =>
-                        project.parentProjectId ? project : null
-                    )
-                    .filter((subProject: $TSFixMe) => subProject !== null);
-                parentProjectIds = subProjects.map(
-                    (subProject: $TSFixMe) =>
-                        subProject.parentProjectId._id ||
-                        subProject.parentProjectId
-                );
-                const projects = userProjects
-                    .map((project: $TSFixMe) =>
-                        project.parentProjectId ? null : project
-                    )
-                    .filter((project: $TSFixMe) => project !== null);
-                projectIds = projects.map((project: $TSFixMe) => project._id);
-            }
-            const populateProject = [
-                { path: 'parentProjectId', select: 'name' },
-            ];
-            const selectProject =
-                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-
-            userProjects = await ProjectService.findBy({
-                query: {
-                    $or: [
-                        { _id: { $in: parentProjectIds } },
-                        { _id: { $in: projectIds } },
-                    ],
-                },
-                select: selectProject,
-                populate: populateProject,
-            });
-            return await Object.assign({}, user, {
-                projects: userProjects,
-            });
-        }
-        return user;
-    }
-
-    async updateOneBy(query: Query, data: $TSFixMe) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-
-        if (data.role) delete data.role;
-        if (data.airtableId) delete data.airtableId;
-        if (data.tutorial) delete data.tutorial;
-        if (data.paymentFailedDate) delete data.paymentFailedDate;
-        if (data.alertPhoneNumber) delete data.alertPhoneNumber;
-        if (typeof data.isBlocked !== 'boolean') {
-            delete data.isBlocked;
-        }
-
-        const updatedUser = await UserModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        ).select('-password');
-        return updatedUser;
-    }
-
-    async updateBy(query: Query, data: $TSFixMe) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        let updatedData = await UserModel.updateMany(query, {
-            $set: data,
-        });
-        const select =
-            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        updatedData = await this.findBy({ query, select });
-        return updatedData;
+        return Promise.resolve({ data } as CreateBy);
     }
 
     async updatePush({ userId, data }: $TSFixMe) {
@@ -351,6 +218,7 @@ export default class Service {
 
         return verificationToken.token;
     }
+
     //Description: signup function for new user.
     //Params:
     //Param 1: data: User details.
@@ -475,6 +343,7 @@ export default class Service {
             const token = hotp.generate(secretKey, counter);
             backupCodes.push({ code: token, counter });
         }
+
         return backupCodes;
     }
 
@@ -1119,11 +988,6 @@ export default class Service {
         return users;
     }
 
-    async hardDeleteBy(query: Query) {
-        await UserModel.deleteMany(query);
-        return 'User(s) Removed Successfully!';
-    }
-
     getAccessToken({ userId, expiresIn }: $TSFixMe) {
         return jwt.sign(
             {
@@ -1134,34 +998,3 @@ export default class Service {
         );
     }
 }
-
-import bcrypt from 'bcrypt';
-
-import constants from '../config/constants.json';
-import UserModel from '../models/user';
-import util from './utilService.js';
-import randToken from 'rand-token';
-import PaymentService from './PaymentService';
-import crypto from 'crypto';
-import ProjectService from './ProjectService';
-import ErrorService from '../utils/error';
-
-import jwt from 'jsonwebtoken';
-
-import geoip from 'geoip-lite';
-const jwtSecretKey = process.env['JWT_SECRET'];
-
-import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
-const { NODE_ENV } = process.env;
-import VerificationTokenModel from '../models/verificationToken';
-import MailService from './MailService';
-import AirtableService from './AirtableService';
-
-import speakeasy from 'speakeasy';
-import { hotp } from 'otplib';
-import LoginHistoryService from './LoginHistoryService';
-
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
-import SortOrder from '../types/db/SortOrder';

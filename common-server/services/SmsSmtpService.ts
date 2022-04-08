@@ -20,7 +20,6 @@ export default class Service {
         if (twilioSettings && twilioSettings.authToken && twilioSettings.iv) {
             twilioSettings.authToken = await EncryptDecrypt.decrypt(
                 twilioSettings.authToken,
-
                 twilioSettings.iv
             );
 

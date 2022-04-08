@@ -2,6 +2,7 @@ import mongoose, { RequiredFields, UniqueFields } from '../infrastructure/ORM';
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
+    projectId: { type: String, ref: 'Project', index: true },
     callRoutingId: { type: String, ref: 'CallRouting', index: true },
     createdAt: {
         type: Date,
