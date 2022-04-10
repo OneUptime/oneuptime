@@ -1,4 +1,4 @@
-import BackendAPI from '../utils/api';
+import BackendAPI from '../Utils/api';
 
 import ContainerSecurity from './containerSecurity';
 

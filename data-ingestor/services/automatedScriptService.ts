@@ -1,4 +1,4 @@
-import BackendAPI from '../utils/api';
+import BackendAPI from '../Utils/api';
 import Query from 'common-server/types/db/Query';
 import { scriptBaseUrl } from '../Config';
 

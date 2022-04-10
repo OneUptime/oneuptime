@@ -1,7 +1,7 @@
 import ErrorService from 'common-server/utils/error';
 import OnCallScheduleStatusService from '../Services/onCallScheduleStatusService';
 import AlertService from '../Services/alertService';
-import DateTime from '../utils/DateTime';
+import DateTime from '../Utils/DateTime';
 import IncidentService from '../Services/incidentService';
 import ScheduleService from '../Services/scheduleService';
 

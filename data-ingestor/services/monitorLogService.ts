@@ -8,7 +8,7 @@ import moment from 'moment';
 const monitorLogCollection = global.db.collection('monitorlogs');
 import { ObjectId } from 'mongodb';
 
-import { post } from '../utils/api';
+import { post } from '../Utils/api';
 
 import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';

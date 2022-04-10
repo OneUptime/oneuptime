@@ -11,7 +11,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 import { v4 as uuidv4 } from 'uuid';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 

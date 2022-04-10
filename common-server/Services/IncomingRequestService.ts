@@ -2,7 +2,7 @@ import IncomingRequestModel from '../Models/incomingRequest';
 import IncidentService from './IncidentService';
 import MonitorService from './MonitorService';
 import AlertService from './AlertService';
-import ErrorService from '../utils/error';
+import ErrorService from '../Utils/error';
 import ProjectService from './ProjectService';
 
 import createDOMPurify from 'dompurify';
@@ -14,7 +14,7 @@ import { isEmpty } from 'lodash';
 import IncidentMessageService from './IncidentMessageService';
 import IncidentPrioritiesService from './IncidentPrioritiesService';
 import IncidentSettingsService from './IncidentSettingsService';
-import joinNames from '../utils/joinNames';
+import joinNames from '../Utils/joinNames';
 import vm from 'vm';
 
 import FindOneBy from '../Types/DB/FindOneBy';

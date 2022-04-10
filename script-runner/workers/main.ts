@@ -1,5 +1,5 @@
 import scriptMonitors from './scriptMonitors';
-import ApiService from '../utils/apiService';
+import ApiService from '../Utils/apiService';
 
 export default {
     runScriptMonitorsJob: async () => {

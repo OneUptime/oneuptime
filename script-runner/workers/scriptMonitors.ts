@@ -1,6 +1,6 @@
-import ApiService from '../utils/apiService';
+import ApiService from '../Utils/apiService';
 
-import { run as runScript } from '../utils/scriptSandbox';
+import { run as runScript } from '../Utils/scriptSandbox';
 
 // it collects all monitors then ping them one by one to store their response
 export default {

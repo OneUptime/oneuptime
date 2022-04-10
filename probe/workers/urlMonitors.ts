@@ -1,7 +1,7 @@
-import ApiService from '../utils/apiService';
+import ApiService from '../Utils/apiService';
 
 import logger from 'common-server/Utils/Logger';
-import pingfetch from '../utils/pingFetch';
+import pingfetch from '../Utils/pingFetch';
 
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down

@@ -21,16 +21,16 @@ import {
     INCIDENT_ACKNOWLEDGED,
     INCIDENT_RESOLVED,
 } from '../constants/incidentEvents';
-import IncidentUtilitiy from '../utils/incident';
+import IncidentUtilitiy from '../Utils/incident';
 import IncidentCommunicationSlaService from './IncidentCommunicationSlaService';
 
 import { isEmpty } from 'lodash';
-import joinNames from '../utils/joinNames';
+import joinNames from '../Utils/joinNames';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {

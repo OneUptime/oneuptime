@@ -966,7 +966,7 @@ import MailService from './MailService';
 import PaymentService from './PaymentService';
 import NotificationService from './NotificationService';
 import RealTimeService from './realTimeService';
-import ErrorService from '../utils/error';
+import ErrorService from '../Utils/error';
 import domains from '../config/domains';
 import VerificationTokenModel from '../Models/verificationToken';
 import crypto from 'crypto';
@@ -974,4 +974,4 @@ import crypto from 'crypto';
 import { IS_SAAS_SERVICE } from '../config/server';
 
 import { emaildomains } from '../config/emaildomains';
-import flatten from '../utils/flattenArray';
+import flatten from '../Utils/flattenArray';

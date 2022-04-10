@@ -4,7 +4,7 @@ import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';
 import MonitorService from './monitorService';
 import Query from 'common-server/types/db/Query';
-import { post } from '../utils/api';
+import { post } from '../Utils/api';
 import moment from 'moment';
 
 import { realtimeUrl } from '../Config';

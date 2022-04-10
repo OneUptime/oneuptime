@@ -25,7 +25,7 @@ import ScheduledEventService from './ScheduledEventService';
 import MonitorSlaService from './MonitorSlaService';
 import IncomingRequestService from './IncomingRequestService';
 import componentService from './ComponentService';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import Query from '../Types/DB/Query';

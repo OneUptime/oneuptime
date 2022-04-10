@@ -1,11 +1,11 @@
 import ScheduledEventModel from '../Models/scheduledEvent';
 import UserModel from '../Models/user';
-import ErrorService from '../utils/error';
+import ErrorService from '../Utils/error';
 import RealTimeService from './realTimeService';
 import ScheduledEventNoteService from './ScheduledEventNoteService';
 import AlertService from './AlertService';
 import moment from 'moment';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 import MonitorService from './MonitorService';
 
 import FindOneBy from '../Types/DB/FindOneBy';

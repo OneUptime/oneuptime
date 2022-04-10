@@ -7,14 +7,14 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import NewApplicationLog from '../components/application/NewApplicationLog';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { fetchApplicationLogs } from '../actions/applicationLog';
 import { fetchComponent } from '../actions/component';
 import { bindActionCreators, Dispatch } from 'redux';
 import { loadPage } from '../actions/page';
 import { ApplicationLogList } from '../components/application/ApplicationLogList';
 import { LoadingState } from '../components/basic/Loader';
-import sortByName from '../utils/sortByName';
+import sortByName from '../Utils/sortByName';
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 

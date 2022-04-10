@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import PropTypes from 'prop-types';
 import APISettings from '../components/settings/APISettings';
 import TutorialBox from '../components/tutorial/TutorialBox';

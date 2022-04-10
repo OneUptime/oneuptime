@@ -10,7 +10,7 @@ import randToken from 'rand-token';
 import PaymentService from './PaymentService';
 import crypto from 'crypto';
 import ProjectService from './ProjectService';
-import ErrorService from '../utils/error';
+import ErrorService from '../Utils/error';
 
 import jwt from 'jsonwebtoken';
 

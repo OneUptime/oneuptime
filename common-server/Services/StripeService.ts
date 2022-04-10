@@ -5,7 +5,7 @@ import ProjectService from './ProjectService';
 import ProjectModel from '../Models/project';
 import MailService from './MailService';
 
-import { sendSlackAlert } from '../utils/stripeHandlers';
+import { sendSlackAlert } from '../Utils/stripeHandlers';
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
 });

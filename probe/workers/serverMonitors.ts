@@ -1,4 +1,4 @@
-import ApiService from '../utils/apiService';
+import ApiService from '../Utils/apiService';
 
 import fs from 'fs';
 import { NodeSSH } from 'node-ssh';

@@ -3,11 +3,11 @@ import express, {
     ExpressResponse,
 } from 'common-server/Utils/Express';
 
-import { sendErrorResponse, sendSuccessResponse } from '../utils/response';
+import { sendErrorResponse, sendSuccessResponse } from '../Utils/response';
 const router = express.getRouter();
-import jsScript from '../utils/scriptSandbox';
+import jsScript from '../Utils/scriptSandbox';
 
-import bashScript from '../utils/bash';
+import bashScript from '../Utils/bash';
 
 router.post('/js', async (req: ExpressRequest, res: ExpressResponse) => {
     try {

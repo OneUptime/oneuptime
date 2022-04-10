@@ -13,7 +13,7 @@ import ScheduleService from '../services/scheduleService';
 import ProbeService from '../services/probeService';
 import ComponentService from '../services/componentService';
 import ErrorService from 'common-server/utils/error';
-import Api from '../utils/api';
+import Api from '../Utils/api';
 
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;

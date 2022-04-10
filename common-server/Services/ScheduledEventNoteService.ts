@@ -1,5 +1,5 @@
 import ScheduledEventNoteModel from '../Models/scheduledEventNote';
-import ErrorService from '../utils/error';
+import ErrorService from '../Utils/error';
 import RealTimeService from './realTimeService';
 import AlertService from './AlertService';
 

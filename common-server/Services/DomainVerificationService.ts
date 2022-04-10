@@ -2,8 +2,8 @@ import dns from 'dns';
 
 import psl from 'psl';
 import DomainVerificationTokenModel from '../Models/domainVerificationToken';
-import flatten from '../utils/flattenArray';
-import randomChar from '../utils/randomChar';
+import flatten from '../Utils/flattenArray';
+import randomChar from '../Utils/randomChar';
 import StatusPageService from './StatusPageService';
 import ProjectService from './ProjectService';
 const dnsPromises = dns.promises;
@@ -11,7 +11,7 @@ const dnsPromises = dns.promises;
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
-import errorService from '../utils/error';
+import errorService from '../Utils/error';
 
 export default class Service {
     async create({ domain, projectId }: $TSFixMe) {

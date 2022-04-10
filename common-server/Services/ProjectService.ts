@@ -17,8 +17,8 @@ import { IS_SAAS_SERVICE } from '../config/server';
 import componentService from './ComponentService';
 import DomainVerificationService from './DomainVerificationService';
 import SsoDefaultRolesService from './SsoDefaultRolesService';
-import getSlug from '../utils/getSlug';
-import flattenArray from '../utils/flattenArray';
+import getSlug from '../Utils/getSlug';
+import flattenArray from '../Utils/flattenArray';
 import IncidentSettingsService from './IncidentSettingsService';
 
 import FindOneBy from '../Types/DB/FindOneBy';

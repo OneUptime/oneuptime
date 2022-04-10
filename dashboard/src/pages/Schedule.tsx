@@ -14,7 +14,7 @@ import { subProjectTeamLoading } from '../actions/team';
 import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import ScheduleCalender from '../components/schedule/ScheduleCalender';
 
 interface ScheduleProps {

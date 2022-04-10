@@ -11,7 +11,7 @@ import { User } from '../config';
 
 import { getTeamMember } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 const noDataStyle = {
     display: 'flex',

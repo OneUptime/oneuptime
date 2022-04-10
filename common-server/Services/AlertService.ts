@@ -12,14 +12,14 @@ import MailService from './MailService';
 import UserService from './UserService';
 import MonitorService from './MonitorService';
 import TwilioService from './TwilioService';
-import ErrorService from '../utils/error';
+import ErrorService from '../Utils/error';
 import StatusPageService from './StatusPageService';
 import AlertChargeService from './AlertChargeService';
 import countryCode from '../config/countryCode';
 
 import { getCountryType } from '../config/alertType';
 import SmsCountService from './SmsCountService';
-import DateTime from '../utils/DateTime';
+import DateTime from '../Utils/DateTime';
 import moment from 'moment-timezone';
 const TimeZoneNames = moment.tz.names();
 import OnCallScheduleStatusService from './OnCallScheduleStatusService';
@@ -28,9 +28,9 @@ import { IS_SAAS_SERVICE } from '../config/server';
 import ComponentService from './ComponentService';
 import GlobalConfigService from './GlobalConfigService';
 import WebHookService from './WebHookService';
-import IncidentUtility from '../utils/incident';
+import IncidentUtility from '../Utils/incident';
 import TeamService from './TeamService';
-import secondsToHms from '../utils/secondsToHms';
+import secondsToHms from '../Utils/secondsToHms';
 
 import { getPlanById, getPlanByExtraUserId } from '../config/plans';
 import {
@@ -44,11 +44,11 @@ import webpush from 'web-push';
 import {
     calculateHumanReadableDownTime,
     getIncidentLength,
-} from '../utils/incident';
+} from '../Utils/incident';
 //  import IncidentService from './incidentService' Declared but unused
 import IncidentMessageService from './IncidentMessageService';
 import IncidentTimelineService from './IncidentTimelineService';
-import Services from '../utils/services';
+import Services from '../Utils/services';
 import RealTimeService from './realTimeService';
 
 import FindBy from '../Types/DB/FindBy';

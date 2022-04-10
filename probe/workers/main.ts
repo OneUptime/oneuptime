@@ -1,5 +1,5 @@
 import logger from 'common-server/Utils/Logger';
-import ProbeAPI from '../utils/api';
+import ProbeAPI from '../Utils/api';
 import ApiMonitors from './apiMonitors';
 import UrlMonitors from './urlMonitors';
 import IPMonitors from './ipMonitors';

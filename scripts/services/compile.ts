@@ -1,4 +1,4 @@
-import Project from '../utils/projects';
+import Project from '../Utils/projects';
 import { $ } from 'zx';
 
 export default class Compile {

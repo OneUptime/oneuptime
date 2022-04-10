@@ -7,7 +7,7 @@ import { Fade } from 'react-awesome-reveal';
 
 import { User, PricingPlan } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import Sso from '../components/settings/Sso';
 import { history } from '../store';
 

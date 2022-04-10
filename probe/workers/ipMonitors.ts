@@ -1,4 +1,4 @@
-import ApiService from '../utils/apiService';
+import ApiService from '../Utils/apiService';
 
 import ping from 'ping';
 // it collects all monitors then ping them one by one to store their response

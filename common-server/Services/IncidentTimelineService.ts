@@ -235,8 +235,8 @@ export default class Service {
 import IncidentTimelineModel from '../Models/incidentTimeline';
 import IncidentService from './IncidentService';
 import RealTimeService from './realTimeService';
-import ErrorService from '../utils/error';
-import flattenArray from '../utils/flattenArray';
+import ErrorService from '../Utils/error';
+import flattenArray from '../Utils/flattenArray';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

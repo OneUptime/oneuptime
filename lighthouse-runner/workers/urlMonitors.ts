@@ -1,4 +1,4 @@
-import UrlService from '../utils/urlService';
+import UrlService from '../Utils/urlService';
 
 import { fork } from 'child_process';
 import moment from 'moment';

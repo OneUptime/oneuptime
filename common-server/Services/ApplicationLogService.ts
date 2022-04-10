@@ -5,7 +5,7 @@ import NotificationService from './NotificationService';
 import ResourceCategoryService from './ResourceCategoryService';
 
 import uuid from 'uuid';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

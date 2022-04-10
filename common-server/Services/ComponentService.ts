@@ -8,7 +8,7 @@ import PaymentService from './PaymentService';
 import MonitorService from './MonitorService';
 import TeamService from './TeamService';
 import { IS_SAAS_SERVICE } from '../config/server';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

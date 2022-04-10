@@ -4,11 +4,11 @@ import Path from 'path';
 import fetch from 'node-fetch-commonjs';
 
 import { v4 as uuidv4 } from 'uuid';
-import ApiService from '../utils/apiService';
+import ApiService from '../Utils/apiService';
 
 import { serverUrl } from '../Config';
 
-import { deleteFile } from '../utils/fsHandlers';
+import { deleteFile } from '../Utils/fsHandlers';
 
 export default {
     run: async function ({ monitor }) {

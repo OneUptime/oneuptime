@@ -1,4 +1,4 @@
-import StringUtil from '../utils/string';
+import StringUtil from '../Utils/string';
 
 export default {
     randomUser: () => {

@@ -14,7 +14,7 @@ const probeCollection = global.db.collection('probes');
 
 import { v1 as uuidv1 } from 'uuid';
 
-import BackendAPI from '../utils/api';
+import BackendAPI from '../Utils/api';
 
 import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;

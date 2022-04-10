@@ -6,12 +6,12 @@ import defaultEmailTemplates from '../config/emailTemplate';
 import GlobalConfigService from './GlobalConfigService';
 import EmailSmtpService from './EmailSmtpService';
 import EmailStatusService from './EmailStatusService';
-import DateTime from '../utils/DateTime';
+import DateTime from '../Utils/DateTime';
 import Path from 'path';
 import fsp from 'fs/promises';
 import moment from 'moment';
 import { isEmpty } from 'lodash';
-import UppercaseFirstLetter from '../utils/UppercaseFirstLetter';
+import UppercaseFirstLetter from '../Utils/UppercaseFirstLetter';
 import Email from 'common/Types/Email';
 import BadDataException from 'common/Types/Exception/BadDataException';
 

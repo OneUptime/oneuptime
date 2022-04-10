@@ -15,7 +15,7 @@ import {
     updateContainerSecurityScanTime,
     updateContainerSecurityToFailed,
 } from './containerSecurityUpdate';
-import flattenArray from '../utils/flattenArray';
+import flattenArray from '../Utils/flattenArray';
 
 export default {
     scan: async function (security) {

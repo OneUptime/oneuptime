@@ -1,4 +1,4 @@
-import ContainerService from '../utils/containerService';
+import ContainerService from '../Utils/containerService';
 
 export default {
     scan: async (security: $TSFixMe) => {

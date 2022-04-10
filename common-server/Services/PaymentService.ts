@@ -14,7 +14,7 @@ import {
 } from '../config/alertType';
 // import getMutex from '../constants/mutexProvider'
 
-import { formatBalance } from '../utils/number';
+import { formatBalance } from '../Utils/number';
 // import MUTEX_RESOURCES from '../constants/MUTEX_RESOURCES'
 
 export default class Service {

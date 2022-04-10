@@ -3,7 +3,7 @@ import IncidentService from './incidentService';
 const incidentTimelineCollection = global.db.collection('incidenttimelines');
 import { ObjectId } from 'mongodb';
 
-import { post } from '../utils/api';
+import { post } from '../Utils/api';
 import moment from 'moment';
 import Query from 'common-server/types/db/Query';
 import { realtimeUrl } from '../Config';

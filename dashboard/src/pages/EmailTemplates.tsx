@@ -9,7 +9,7 @@ import EmailSmtpBox from '../components/emailTemplates/EmailSmtpBox';
 import { getEmailTemplates, getSmtpConfig } from '../actions/emailTemplates';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
 
 interface EmailTemplatesProps {

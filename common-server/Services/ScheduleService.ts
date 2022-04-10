@@ -522,7 +522,7 @@ export default class Service {
 
 import ScheduleModel from '../Models/schedule';
 import EscalationService from './EscalationService';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

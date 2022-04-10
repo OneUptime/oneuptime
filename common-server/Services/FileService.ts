@@ -1,5 +1,5 @@
 import BadDataException from 'common/Types/Exception/BadDataException';
-import Database from '../utils/Database';
+import Database from '../Utils/Database';
 
 class FileService {
     async getFileById(fileId: string) {

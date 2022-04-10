@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { connect } from 'react-redux';
 import { Spinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';

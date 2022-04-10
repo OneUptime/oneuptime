@@ -1,6 +1,6 @@
 import EscalationModel from '../Models/escalation';
 import moment from 'moment';
-import DateTime from '../utils/DateTime';
+import DateTime from '../Utils/DateTime';
 import ScheduleService from './ScheduleService';
 
 import FindOneBy from '../Types/DB/FindOneBy';

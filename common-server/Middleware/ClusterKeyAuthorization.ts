@@ -5,7 +5,7 @@ import {
     NextFunction,
 } from '../Utils/Express';
 
-import { sendErrorResponse } from '../utils/Response';
+import { sendErrorResponse } from '../Utils/Response';
 import BadDataException from 'common/Types/Exception/BadDataException';
 
 export default class ClusterKeyAuthorization {

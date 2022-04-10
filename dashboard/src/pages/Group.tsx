@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import GroupList from '../components/settings/GroupList';
 import PropTypes from 'prop-types';
 
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { getGroups } from '../actions/group';
 import { User } from '../config.js';

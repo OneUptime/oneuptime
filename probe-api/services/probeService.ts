@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import Database from 'common-server/utils/database';
 const probeCollection = Database.getDatabase().collection('probes');
 import { v1 as uuidv1 } from 'uuid';
-import { post } from '../utils/api';
+import { post } from '../Utils/api';
 import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 

@@ -8,7 +8,7 @@ import { fetchMonitorIssue } from '../actions/monitor';
 import { fetchComponent } from '../actions/component';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import WebsiteIssuesList from '../components/monitor/WebsiteIssuesList';
 import ShouldRender from '../components/basic/ShouldRender';
 

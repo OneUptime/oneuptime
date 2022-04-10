@@ -14,7 +14,7 @@ import {
     createScheduledEventNoteSuccess,
     fetchScheduledEvent,
 } from '../actions/scheduledEvent';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';

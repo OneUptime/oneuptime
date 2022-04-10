@@ -247,7 +247,7 @@ import RealTimeService from './realTimeService';
 import NotificationService from './NotificationService';
 
 import uuid from 'uuid';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

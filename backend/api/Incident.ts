@@ -31,8 +31,8 @@ import {
 import Exception from 'common/Types/Exception/Exception';
 import subscriberAlertService from '../services/subscriberAlertService';
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
-import Services from '../utils/services';
-import joinNames from '../utils/joinNames';
+import Services from '../Utils/services';
+import joinNames from '../Utils/joinNames';
 import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 import ErrorService from 'common-server/utils/error';
 

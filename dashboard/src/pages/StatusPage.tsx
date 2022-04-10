@@ -31,7 +31,7 @@ import {
 import CustomStyles from '../components/status-page/CustomStyles';
 import EmbeddedBubble from '../components/status-page/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Themes from '../components/status-page/Themes';

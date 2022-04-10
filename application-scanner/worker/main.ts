@@ -1,4 +1,4 @@
-import BackendAPI from '../utils/api';
+import BackendAPI from '../Utils/api';
 
 import ApplicationSecurity from './applicationSecurity';
 

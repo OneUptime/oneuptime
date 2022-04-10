@@ -5,7 +5,7 @@ import { decrypt } from '../config/encryptDecrypt';
 import ApplicationSecurityLogService from './ApplicationSecurityLogService';
 import GitCredentialService from './GitCredentialService';
 import ResourceCategoryService from './ResourceCategoryService';
-import getSlug from '../utils/getSlug';
+import getSlug from '../Utils/getSlug';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

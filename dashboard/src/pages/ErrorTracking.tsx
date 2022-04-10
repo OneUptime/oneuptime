@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
@@ -11,7 +11,7 @@ import { fetchErrorTrackers } from '../actions/errorTracker';
 import { fetchComponent } from '../actions/component';
 import { bindActionCreators, Dispatch } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
-import sortByName from '../utils/sortByName';
+import sortByName from '../Utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
 
 import { history } from '../store';

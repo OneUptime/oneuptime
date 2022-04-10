@@ -11,7 +11,7 @@ import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/Types/JSON';
 import { File } from 'common/Types/File';
 import Exception from 'common/Types/Exception/Exception';
 import ListData from 'common/Types/ListData';
-import Database from '../infrastructure/Database';
+import Database from '../Infrastructure/Database';
 import PositiveNumber from 'common/Types/PositiveNumber';
 
 function logResponse(

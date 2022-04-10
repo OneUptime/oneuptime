@@ -21,7 +21,7 @@ import { fetchSubProjectOngoingScheduledEvents } from '../actions/scheduledEvent
 import { subProjectTeamLoading } from '../actions/team';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import OngoingScheduledEvent from '../components/scheduledEvent/OngoingScheduledEvent';
-import flattenArray from '../utils/flattenArray';
+import flattenArray from '../Utils/flattenArray';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 import {
     fetchBreachedMonitorSla,

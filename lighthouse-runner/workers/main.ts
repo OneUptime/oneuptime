@@ -1,4 +1,4 @@
-import BackendAPI from '../utils/api';
+import BackendAPI from '../Utils/api';
 import UrlMonitors from './urlMonitors';
 
 import Route from 'common/Types/api/route';
