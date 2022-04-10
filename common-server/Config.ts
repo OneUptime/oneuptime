@@ -1,4 +1,4 @@
-import Protocol from 'common/Types/api/Protocol';
+import Protocol from 'common/Types/API/Protocol';
 
 export const DatabaseUrl: string =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
