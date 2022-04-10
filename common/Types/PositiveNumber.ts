@@ -1,4 +1,4 @@
-import BadDataException from './exception/BadDataException';
+import BadDataException from './Exception/BadDataException';
 
 export default class PositiveNumber {
     private _positiveNumber: number = 0;

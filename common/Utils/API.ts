@@ -5,7 +5,7 @@ import Headers from '../Types/API/Headers';
 import HTTPResponse from '../Types/API/Response';
 import HTTPErrorResponse from '../Types/API/ErrorResponse';
 import HTTPMethod from '../Types/API/HTTPMethod';
-import APIException from '../Types/exception/ApiException';
+import APIException from '../Types/Exception/ApiException';
 import Protocol from '../Types/API/Protocol';
 import Hostname from '../Types/API/Hostname';
 import Route from '../Types/API/Route';

@@ -1,4 +1,4 @@
-import BadDataException from './exception/BadDataException';
+import BadDataException from './Exception/BadDataException';
 
 export default class Domain {
     private _domain: string = '';
