@@ -719,7 +719,9 @@ export default class CallRoutingLogService extends DatabaseService<
         } else {
             // ensure user is in admin mode
             if (!user.isAdminMode) {
-                throw new BadDataException('User is not currently in admin mode');
+                throw new BadDataException(
+                    'User is not currently in admin mode'
+                );
             }
 
             //update the user.

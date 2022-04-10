@@ -2,7 +2,7 @@ import IntegrationService from './IntegrationService';
 import axios from 'axios';
 import ProjectService from './ProjectService';
 import MonitorStatusService from './MonitorStatusService';
-
+import BadDataException from 'common/Types/Exception/BadDataException';
 import {
     PROJECT_WEBHOOK,
     EXTERNAL_SUBSCRIBER_WEBHOOK,

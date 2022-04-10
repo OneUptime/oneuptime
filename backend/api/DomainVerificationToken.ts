@@ -4,7 +4,7 @@ import express, {
 } from 'common-server/utils/Express';
 
 import psl from 'psl';
-
+import BadDataException from 'common/Types/Exception/BadDataException';
 import { getUser, isUserMasterAdmin } from '../middlewares/user';
 
 import { isAuthorized } from '../middlewares/authorization';

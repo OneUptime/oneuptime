@@ -4,7 +4,7 @@ import express, {
 } from 'common-server/utils/Express';
 
 import { isAuthorized } from '../middlewares/authorization';
-
+import BadDataException from 'common/Types/Exception/BadDataException';
 import { getUser } from '../middlewares/user';
 import {
     sendErrorResponse,

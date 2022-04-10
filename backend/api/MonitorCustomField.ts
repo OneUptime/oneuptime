@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/Express';
-
+import BadDataException from 'common/Types/Exception/BadDataException';
 import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';

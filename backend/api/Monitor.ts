@@ -14,7 +14,7 @@ import ProbeService from '../services/probeService';
 import ComponentService from '../services/componentService';
 import ErrorService from 'common-server/utils/error';
 import Api from '../Utils/api';
-
+import BadDataException from 'common/Types/Exception/BadDataException';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
@@ -1098,7 +1098,9 @@ router.post(
             ]);
 
             if (!monitor) {
-                throw new BadDataException('Monitor not found or does not exist');
+                throw new BadDataException(
+                    'Monitor not found or does not exist'
+                );
             }
 
             result.monitorId = monitor._id;
