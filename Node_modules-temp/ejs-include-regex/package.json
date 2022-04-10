@@ -1,0 +1,19 @@
+{
+  "name": "ejs-include-regex",
+  "version": "1.0.0",
+  "description": "Small lib that exports /^\\s*include\\s+(\\S+)/",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RyanZim/ejs-include-regex.git"
+  },
+  "author": "Matthew Eernisse <mde@fleegix.org> (http://fleegix.org)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/RyanZim/ejs-include-regex/issues"
+  },
+  "homepage": "https://github.com/RyanZim/ejs-include-regex#readme"
+}

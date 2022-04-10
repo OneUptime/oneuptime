@@ -1,0 +1,35 @@
+{
+  "name": "read-input",
+  "version": "0.3.1",
+  "description": "Easily read from stdin or files.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha",
+    "prepublish": "npm test",
+    "update-docs": "mdextract -u Readme.md"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rstacruz/read-input.git"
+  },
+  "keywords": [
+    "input",
+    "read",
+    "stdin"
+  ],
+  "author": "Rico Sta. Cruz <hi@ricostacruz.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rstacruz/read-input/issues"
+  },
+  "homepage": "https://github.com/rstacruz/read-input",
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "mdextract": "^1.0.0",
+    "mocha": "^2.2.5",
+    "mocha-repeat": "^0.1.0"
+  }
+}

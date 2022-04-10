@@ -1,0 +1,54 @@
+{
+  "name": "ejs-lint",
+  "version": "1.2.1",
+  "description": "Linter/Syntax Checker for EJS Templates",
+  "author": "Ryan Zimmerman <opensrc@ryanzim.com> (http://ryanzim.com/)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ryanzim/ejs-lint.git"
+  },
+  "homepage": "https://github.com/RyanZim/EJS-Lint",
+  "bugs": "https://github.com/RyanZim/EJS-Lint/issues",
+  "main": "index.js",
+  "bin": {
+    "ejslint": "cli.js"
+  },
+  "files": [],
+  "scripts": {
+    "format": "eslint . --fix && npm run prettier -- --write",
+    "lint": "npm run prettier -- --list-different && eslint .",
+    "prettier": "prettier **/*.{js,md}",
+    "test": "npm run unit && npm run lint",
+    "try": "./cli.js try.ejs",
+    "unit": "nyc --check-coverage mocha --ui tdd --check-leaks"
+  },
+  "dependencies": {
+    "chalk": "^4.0.0",
+    "ejs": "3.1.6",
+    "ejs-include-regex": "^1.0.0",
+    "globby": "^11.0.0",
+    "read-input": "^0.3.1",
+    "slash": "^3.0.0",
+    "syntax-error": "^1.1.6",
+    "yargs": "^16.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.9.0",
+    "eslint-config-problems": "^5.0.0",
+    "mocha": "^8.0.0",
+    "nyc": "^15.0.0",
+    "prettier": "^2.0.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
+  "renovate": {
+    "extends": [
+      "config:base",
+      ":preserveSemverRanges",
+      ":label(deps)"
+    ]
+  }
+}
