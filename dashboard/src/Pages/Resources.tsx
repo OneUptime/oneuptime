@@ -8,7 +8,7 @@ import { Fade } from 'react-awesome-reveal';
 import ResourceCategories from '../components/settings/ResourceCategories';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 interface ResourcesProps {
     location?: {

@@ -17,8 +17,8 @@ import { fetchComponent } from '../actions/component';
 import { LargeSpinner, ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
-import sortByName from '../utils/sortByName';
+import getParentRoute from '../Utils/getParentRoute';
+import sortByName from '../Utils/sortByName';
 import { history } from '../store';
 import { socket } from '../components/basic/Socket';
 

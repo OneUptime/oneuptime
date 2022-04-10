@@ -8,7 +8,7 @@ import ChangePlan from '../components/settings/ChangePlan';
 import AlertAdvanceOption from '../components/settings/AlertAdvanceOption';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 import { PropTypes } from 'prop-types';
 import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';

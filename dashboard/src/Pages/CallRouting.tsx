@@ -11,7 +11,7 @@ import CallRoutingLog from '../components/callrouting/CallRoutingLog';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import {
     getCallRoutingNumbers,
     getTeamAndSchedules,

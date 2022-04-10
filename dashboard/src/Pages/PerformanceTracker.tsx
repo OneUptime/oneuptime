@@ -5,7 +5,7 @@ import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { loadPage } from '../actions/page';

@@ -8,7 +8,7 @@ import { Fade } from 'react-awesome-reveal';
 import { getDockerCredentials } from '../actions/credential';
 import DockerCredentialList from '../components/credential/DockerCredentialList';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import TutorialBox from '../components/tutorial/TutorialBox';
 
 interface DockerCredentialProps {

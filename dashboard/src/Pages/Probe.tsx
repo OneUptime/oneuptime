@@ -7,7 +7,7 @@ import { Fade } from 'react-awesome-reveal';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 interface ProbeProps {
     getProbes?: Function;

@@ -25,7 +25,7 @@ import TutorialBox from '../components/tutorial/TutorialBox';
 import { LoadingState } from '../components/basic/Loader';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import {
     fetchIncidentTemplates,
     fetchDefaultTemplate,

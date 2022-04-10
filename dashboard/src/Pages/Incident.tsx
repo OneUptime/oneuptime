@@ -26,7 +26,7 @@ import MonitorViewLogsBox from '../components/monitor/MonitorViewLogsBox';
 import { getMonitorLogs } from '../actions/monitor';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import {
@@ -34,11 +34,11 @@ import {
     fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
-import secondsToHms from '../utils/secondsToHms';
+import secondsToHms from '../Utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
 import HideIncidentBox from '../components/incident/HideIncidentBox';
-import flat from '../utils/flattenArray';
-import joinNames from '../utils/joinNames';
+import flat from '../Utils/flattenArray';
+import joinNames from '../Utils/joinNames';
 import { fetchProjectSlug } from '../actions/project';
 import ShouldRender from '../components/basic/ShouldRender';
 

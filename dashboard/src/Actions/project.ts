@@ -40,7 +40,7 @@ import {
 } from './subProject';
 import { resetFetchComponentResources } from './component';
 
-import isMainProjectViewer from '../utils/isMainProjectViewer';
+import isMainProjectViewer from '../Utils/isMainProjectViewer';
 import { socket } from '../components/basic/Socket';
 
 export const changeDeleteModal = () => {

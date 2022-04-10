@@ -7,7 +7,7 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { IncidentPrioritiesList } from '../components/incident/IncidentPrioritiesList';
 import { openModal, closeModal } from '../actions/modal';
 import CreateIncidentPriorityForm from '../components/modals/CreateIncidentPriority';

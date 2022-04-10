@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';

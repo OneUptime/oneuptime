@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { Fade } from 'react-awesome-reveal';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import { openModal, closeModal } from '../actions/modal';
 import { fetchCustomFields } from '../actions/monitorCustomField';
 import Domains from '../components/domains/Domains';

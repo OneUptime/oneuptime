@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Fade } from 'react-awesome-reveal';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import ShouldRender from '../components/basic/ShouldRender';

@@ -9,7 +9,7 @@ import SmsSmtpBox from '../components/smsTemplates/SmsSmtpBox';
 import { getSmsTemplates, getSmtpConfig } from '../actions/smsTemplates';
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import getParentRoute from '../utils/getParentRoute';
+import getParentRoute from '../Utils/getParentRoute';
 import AdvancedIncidentNotification from '../components/settings/AdvancedIncidentNotification';
 
 interface SmsTemplatesProps {
