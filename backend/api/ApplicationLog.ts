@@ -9,7 +9,7 @@ import RealTimeService from '../services/realTimeService';
 import LogService from '../services/logService';
 import ErrorService from 'common-server/utils/error';
 import NotificationService from '../services/notificationService';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
@@ -21,7 +21,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;

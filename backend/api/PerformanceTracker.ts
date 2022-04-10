@@ -8,12 +8,12 @@ import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import RealTimeService from '../services/realTimeService';
 import { decode } from 'js-base64';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const getUser = require('../middlewares/user').getUser;

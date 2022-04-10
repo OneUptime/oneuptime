@@ -2,7 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/utils/Express';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 const router = express.getRouter();
 import UserService from '../services/userService';
@@ -10,7 +10,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 // Route
 // Description: reset refresh token and access token.

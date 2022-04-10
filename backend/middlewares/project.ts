@@ -1,5 +1,5 @@
 import ProjectService from '../Services/projectService';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import url from 'url';
 import { sendErrorResponse } from 'common-server/Utils/Response';
 import {

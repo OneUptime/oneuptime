@@ -4,14 +4,14 @@ import express, {
 } from 'common-server/utils/Express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 router.get(

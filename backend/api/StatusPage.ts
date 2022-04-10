@@ -10,7 +10,7 @@ import UtilService from '../services/utilService';
 import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 const router = express.getRouter();
 
@@ -35,7 +35,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import uuid from 'uuid';
 import defaultStatusPageColors from '../config/statusPageColors';

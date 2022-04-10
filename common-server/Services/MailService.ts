@@ -13,7 +13,7 @@ import moment from 'moment';
 import { isEmpty } from 'lodash';
 import UppercaseFirstLetter from '../utils/UppercaseFirstLetter';
 import Email from 'common/types/Email';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 const helpers = {
     year: DateTime.getCurrentYear,

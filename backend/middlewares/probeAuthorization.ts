@@ -5,7 +5,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'common-server/Utils/Express';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 
 // TODO: Make sure this is stored in redis.

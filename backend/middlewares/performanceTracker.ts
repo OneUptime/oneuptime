@@ -1,6 +1,6 @@
 import PerformanceTrackerService from '../Services/performanceTrackerService';
 import { sendErrorResponse } from 'common-server/Utils/Response';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,

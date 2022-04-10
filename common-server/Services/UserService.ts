@@ -1,5 +1,5 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 import bcrypt from 'bcrypt';
 

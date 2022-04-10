@@ -22,7 +22,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 import ErrorService from 'common-server/utils/error';
 

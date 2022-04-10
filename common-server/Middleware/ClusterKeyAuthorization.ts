@@ -6,7 +6,7 @@ import {
 } from '../Utils/Express';
 
 import { sendErrorResponse } from '../utils/Response';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 export default class ClusterKeyAuthorization {
     static async isAuthorizedService(

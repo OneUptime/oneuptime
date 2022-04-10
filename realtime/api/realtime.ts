@@ -7,7 +7,7 @@ import {
     sendErrorResponse,
     sendEmptyResponse,
 } from 'common-server/Utils/Response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 import ClusterKeyAuthorization from 'common-server/middlewares/ClusterKeyAuthorization';
 import RealtimeService from '../Services/RealtimeService';
 

@@ -14,9 +14,9 @@ import FindBy from '../Types/DB/FindBy';
 import UpdateBy from '../Types/DB/UpdateBy';
 import Query from '../Types/DB/Query';
 import CreateBy from '../Types/DB/CreateBy';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import OneUptimeDate from 'common/types/Date';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 
 export interface ListProps {

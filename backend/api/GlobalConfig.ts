@@ -10,7 +10,7 @@ import {
     sendListResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';

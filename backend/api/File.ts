@@ -6,7 +6,7 @@ import express, {
 const router = express.getRouter();
 import FileService from '../services/fileService';
 import { sendErrorResponse } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import { sendFileResponse } from 'common-server/utils/response';
 

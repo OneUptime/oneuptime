@@ -6,7 +6,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import CertificateStoreService from '../services/certificateStoreService';
 import StatusPageService from '../services/statusPageService';

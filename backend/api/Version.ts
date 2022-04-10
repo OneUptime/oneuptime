@@ -8,7 +8,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 router.get('/', (req: ExpressRequest, res: ExpressResponse) => {
     try {

@@ -5,7 +5,7 @@ import express, {
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 import jwt from 'jsonwebtoken';
 
@@ -20,7 +20,7 @@ import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import { sendListResponse } from 'common-server/utils/response';
 const router = express.getRouter();

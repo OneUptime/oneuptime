@@ -1,6 +1,6 @@
 import ProbeService from '../Services/ProbeService';
 import { sendErrorResponse } from 'common-server/Utils/Response';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 import {
     ExpressRequest,

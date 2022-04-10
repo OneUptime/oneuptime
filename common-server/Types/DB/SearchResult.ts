@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import { Document } from '../../Infrastructure/ORM';
 
 export default interface SearchResult {

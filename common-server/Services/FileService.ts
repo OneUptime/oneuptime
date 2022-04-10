@@ -1,4 +1,4 @@
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import Database from '../utils/Database';
 
 class FileService {

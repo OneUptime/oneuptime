@@ -8,7 +8,7 @@ import MonitorService from '../Services/monitorService';
 const router = express.getRouter();
 import ProbeAuthorization from 'common-server/middleware/ProbeAuthorization';
 import { sendErrorResponse } from 'common-server/Utils/Response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import { sendListResponse } from 'common-server/Utils/Response';
 import PositiveNumber from 'common/types/PositiveNumber';

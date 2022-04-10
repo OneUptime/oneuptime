@@ -11,7 +11,7 @@ import {
     sendItemResponse,
     sendListResponse,
 } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import CustomFieldService from '../services/customFieldService';
 

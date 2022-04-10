@@ -9,7 +9,7 @@ import {
 } from './Express';
 import { JSONObject, JSONArray, JSONObjectOrArray } from 'common/types/JSON';
 import { File } from 'common/types/File';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 import ListData from 'common/types/ListData';
 import Database from '../infrastructure/Database';
 import PositiveNumber from 'common/types/PositiveNumber';

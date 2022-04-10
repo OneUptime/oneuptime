@@ -1,5 +1,5 @@
 import OneUptimeDate from 'common/types/Date';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import Model, { requiredFields, uniqueFields } from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
 

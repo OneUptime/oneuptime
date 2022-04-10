@@ -7,7 +7,7 @@ import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
 import { sendListResponse } from 'common-server/utils/response';
 import { sendErrorResponse } from 'common-server/utils/response';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 import MonitorService from '../services/monitorService';
 import statusPageService from '../services/statusPageService';

@@ -4,7 +4,7 @@ import {
     NextFunction,
 } from 'common-server/Utils/Express';
 
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 import ApplicationLogService from '../Services/applicationLogService';
 import { sendErrorResponse } from 'common-server/Utils/Response';

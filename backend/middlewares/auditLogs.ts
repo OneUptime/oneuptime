@@ -4,7 +4,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'common-server/Utils/Express';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 

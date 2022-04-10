@@ -3,7 +3,7 @@ import User from '../user';
 import history from '../history';
 import Headers from 'common/types/api/headers';
 import API from 'common/utils/api';
-import APIException from 'common/types/exception/apiException';
+import APIException from 'common/Types/Exception/apiException';
 import HTTPErrorResponse from 'common/types/api/errorResponse';
 import Cookies from 'universal-cookie';
 

@@ -9,10 +9,10 @@ import {
     sendItemResponse,
 } from 'common-server/Utils/Response';
 import Email from 'common/types/email';
-import BadDataException from 'common/types/exception/BadDataException';
+import BadDataException from 'common/Types/Exception/BadDataException';
 
 import LicenseService from '../Services/licenseService';
-import Exception from 'common/types/exception/Exception';
+import Exception from 'common/Types/Exception/Exception';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
