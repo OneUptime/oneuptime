@@ -1,9 +1,9 @@
 import NotificationModel from '../Models/notification';
 import RealTimeService from './realTimeService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, skip, limit, populate, select, sort }: FindBy) {

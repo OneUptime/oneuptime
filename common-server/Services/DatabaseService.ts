@@ -1,23 +1,23 @@
 import Slug from 'common/utils/Slug';
-import Populate from '../types/db/Populate';
-import Select from '../types/db/Select';
+import Populate from '../Types/DB/Populate';
+import Select from '../Types/DB/Select';
 import { Model } from '../Infrastructure/ORM';
 import { RequiredFields, UniqueFields, Document } from '../Infrastructure/ORM';
-import FindOneBy from '../types/db/FindOneBy';
-import UpdateOneBy from '../types/db/UpdateOneBy';
-import CountBy from '../types/db/CountBy';
-import DeleteOneBy from '../types/db/DeleteOneBy';
-import SearchBy from '../types/db/SearchBy';
-import DeleteBy from '../types/db/DeleteBy';
+import FindOneBy from '../Types/DB/FindOneBy';
+import UpdateOneBy from '../Types/DB/UpdateOneBy';
+import CountBy from '../Types/DB/CountBy';
+import DeleteOneBy from '../Types/DB/DeleteOneBy';
+import SearchBy from '../Types/DB/SearchBy';
+import DeleteBy from '../Types/DB/DeleteBy';
 import PositiveNumber from 'common/types/PositiveNumber';
-import FindBy from '../types/db/FindBy';
-import UpdateBy from '../types/db/UpdateBy';
-import Query from '../types/db/Query';
-import CreateBy from '../types/db/CreateBy';
+import FindBy from '../Types/DB/FindBy';
+import UpdateBy from '../Types/DB/UpdateBy';
+import Query from '../Types/DB/Query';
+import CreateBy from '../Types/DB/CreateBy';
 import BadDataException from 'common/types/exception/BadDataException';
 import OneUptimeDate from 'common/types/Date';
 import Exception from 'common/types/exception/Exception';
-import SearchResult from '../types/db/SearchResult';
+import SearchResult from '../Types/DB/SearchResult';
 
 export interface ListProps {
     populate: Populate;

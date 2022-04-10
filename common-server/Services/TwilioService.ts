@@ -9,7 +9,7 @@ import UserService from './UserService';
 import SmsCountService from './SmsCountService';
 import CallLogsService from './CallLogsService';
 import AlertService from './AlertService';
-import FindOneBy from '../types/db/FindOneBy';
+import FindOneBy from '../Types/DB/FindOneBy';
 import { IS_TESTING } from '../config/server';
 
 export default class TwilioService {

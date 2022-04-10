@@ -5,9 +5,9 @@ import BackendAPI from '../utils/api';
 import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {

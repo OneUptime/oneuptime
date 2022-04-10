@@ -168,6 +168,6 @@ import EmailTemplateModel from '../Models/emailTemplate';
 import emailTemplateVariables from '../config/emailTemplateVariables';
 import defaultTemplate from '../config/emailTemplate';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';

@@ -150,4 +150,4 @@ export default class Service {
 
 import OnCallScheduleStatusModel from '../Models/onCallScheduleStatus';
 
-import FindBy from '../types/db/FindBy';
+import FindBy from '../Types/DB/FindBy';

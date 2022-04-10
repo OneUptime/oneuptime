@@ -71,5 +71,5 @@ export default class Service {
 
 import AuditLogsModel from '../Models/auditLogs';
 
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';

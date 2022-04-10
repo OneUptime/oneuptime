@@ -87,5 +87,5 @@ import ApplicationScannerModel from '../Models/applicationScanner';
 
 import { v1 as uuidv1 } from 'uuid';
 
-import FindOneBy from '../types/db/FindOneBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import Query from '../Types/DB/Query';

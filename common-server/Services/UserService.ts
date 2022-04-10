@@ -26,11 +26,11 @@ import AirtableService from './AirtableService';
 import speakeasy from 'speakeasy';
 import { hotp } from 'otplib';
 import LoginHistoryService from './LoginHistoryService';
-import Query from '../types/db/Query';
+import Query from '../Types/DB/Query';
 
 import Model, { requiredFields, uniqueFields } from '../Models/User';
 import DatabaseService from './DatabaseService';
-import CreateBy from '../types/db/CreateBy';
+import CreateBy from '../Types/DB/CreateBy';
 
 export default class CallRoutingLogService extends DatabaseService<
     typeof Model

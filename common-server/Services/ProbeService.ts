@@ -13,8 +13,8 @@ import { some, forEach } from 'p-iteration';
 import vm from 'vm';
 import AutomatedScriptService from './AutomatedScriptService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
 
 export default class Service {
     async create(data) {

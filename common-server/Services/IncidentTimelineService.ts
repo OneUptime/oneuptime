@@ -238,6 +238,6 @@ import RealTimeService from './realTimeService';
 import ErrorService from '../utils/error';
 import flattenArray from '../utils/flattenArray';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';

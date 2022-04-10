@@ -1,9 +1,9 @@
 import EmailStatusModel from '../Models/emailStatus';
 import GlobalConfigService from './GlobalConfigService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import Query from '../types/db/Query';
-import FindBy from '../types/db/FindBy';
+import FindOneBy from '../Types/DB/FindOneBy';
+import Query from '../Types/DB/Query';
+import FindBy from '../Types/DB/FindBy';
 
 export default class Service {
     async findBy({ query, limit, skip, sort, populate, select }: FindBy) {

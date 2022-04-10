@@ -10,8 +10,8 @@ import RealTimeService from './realTimeService';
 import IncidentMessageService from './IncidentMessageService';
 import IncidentMessageModel from '../Models/incidentMessage';
 
-import FindOneBy from '../types/db/FindOneBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, select, populate, sort }: FindOneBy) {

@@ -51,8 +51,8 @@ import IncidentTimelineService from './IncidentTimelineService';
 import Services from '../utils/services';
 import RealTimeService from './realTimeService';
 
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     /**

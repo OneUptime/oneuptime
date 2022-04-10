@@ -5,9 +5,9 @@ import MonitorLogByWeekService from './MonitorLogByWeekService';
 import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 import moment from 'moment';
 
 export default class Service {

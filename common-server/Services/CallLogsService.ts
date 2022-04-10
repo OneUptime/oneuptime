@@ -88,5 +88,5 @@ export default class Service {
 
 import CallLogsModel from '../Models/callLogs';
 
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';

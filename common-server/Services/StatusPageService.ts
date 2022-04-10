@@ -2173,6 +2173,6 @@ import ExternalStatusPageModel from '../Models/externalStatusPage';
 import getSlug from '../utils/getSlug';
 import AnnouncementLogModel from '../Models/announcementLogs';
 
-import Query from '../types/db/Query';
+import Query from '../Types/DB/Query';
 import axios from 'axios';
 const bearer = process.env.TWITTER_BEARER_TOKEN;

@@ -27,11 +27,11 @@ import IncomingRequestService from './IncomingRequestService';
 import componentService from './ComponentService';
 import getSlug from '../utils/getSlug';
 
-import FindOneBy from '../types/db/FindOneBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import Query from '../Types/DB/Query';
 
 import PositiveNumber from 'common/types/PositiveNumber';
-import FindBy from '../types/db/FindBy';
+import FindBy from '../Types/DB/FindBy';
 
 export default class Service {
     //Description: Upsert function for monitor.

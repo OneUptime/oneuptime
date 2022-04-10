@@ -1,4 +1,4 @@
-import Query from '../types/db/Query';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     //Description: Get all team members of Project or Subproject.

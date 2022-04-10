@@ -1,7 +1,7 @@
 import LeadsModel from '../Models/lead';
 import MailService from './MailService';
 import AirtableService from './AirtableService';
-import Query from '../types/db/Query';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     //Description: Create new project for user.

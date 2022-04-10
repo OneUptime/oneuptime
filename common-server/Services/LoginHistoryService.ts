@@ -3,7 +3,7 @@ import DeviceDetector from 'node-device-detector';
 import MailService from './MailService';
 import UserService from './UserService';
 
-import FindBy from '../types/db/FindBy';
+import FindBy from '../Types/DB/FindBy';
 
 export default class Service {
     async create(

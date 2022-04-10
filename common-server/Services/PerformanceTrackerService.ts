@@ -9,9 +9,9 @@ import NotificationService from './NotificationService';
 
 import uuid from 'uuid';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe) {

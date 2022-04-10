@@ -21,9 +21,9 @@ import getSlug from '../utils/getSlug';
 import flattenArray from '../utils/flattenArray';
 import IncidentSettingsService from './IncidentSettingsService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, limit, skip, select, populate, sort }: FindBy) {

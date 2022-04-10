@@ -2,8 +2,8 @@ import PerformanceTrackerMetricModel from '../Models/performanceTrackerMetric';
 import moment from 'moment';
 import RealTimeService from './realTimeService';
 
-import FindOneBy from '../types/db/FindOneBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe) {

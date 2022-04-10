@@ -8,9 +8,9 @@ import StatusPageService from './StatusPageService';
 import ProjectService from './ProjectService';
 const dnsPromises = dns.promises;
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 import errorService from '../utils/error';
 
 export default class Service {

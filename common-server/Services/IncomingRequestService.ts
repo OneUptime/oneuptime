@@ -17,9 +17,9 @@ import IncidentSettingsService from './IncidentSettingsService';
 import joinNames from '../utils/joinNames';
 import vm from 'vm';
 
-import FindOneBy from '../types/db/FindOneBy';
-import FindBy from '../types/db/FindBy';
-import Query from '../types/db/Query';
+import FindOneBy from '../Types/DB/FindOneBy';
+import FindBy from '../Types/DB/FindBy';
+import Query from '../Types/DB/Query';
 // import RealTimeService from './realTimeService'
 
 export default class Service {
