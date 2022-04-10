@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import ProjectService from '../services/projectService';
 
 const router = express.getRouter();
@@ -21,10 +21,10 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
-import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
-import ErrorService from 'common-server/utils/error';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
+import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
+import ErrorService from 'CommonServer/utils/error';
 
 // Route
 // Description: Creating new Porject by Admin.

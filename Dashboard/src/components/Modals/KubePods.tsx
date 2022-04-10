@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal, openModal } from 'common-ui/actions/modal';
+import { closeModal, openModal } from 'Common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import KubeIndicator from '../monitor/KubeIndicator';
 import KubePodData from './KubePodData';

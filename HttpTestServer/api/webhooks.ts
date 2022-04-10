@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'Common-server/Utils/Express';
 
 import WebHookHooks from '../types/WebhookHooks';
 

@@ -1,7 +1,7 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
-import ErrorPayload from 'common-ui/src/payload-types/error';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
 // create status page category
 export const createStatusPageCategoryRequest = () => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,

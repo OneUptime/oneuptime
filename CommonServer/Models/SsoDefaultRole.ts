@@ -1,5 +1,5 @@
 import mongoose, { RequiredFields, UniqueFields } from '../Infrastructure/ORM';
-import { RoleArray } from 'common/Types/Role';
+import { RoleArray } from 'Common/Types/Role';
 
 const Schema = mongoose.Schema;
 const schema = new Schema({

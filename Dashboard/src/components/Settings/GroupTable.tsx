@@ -6,7 +6,7 @@ import GroupForm from './GroupForm';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import removeGroup from '../modals/removeGroup';
 
 interface GroupTableProps {

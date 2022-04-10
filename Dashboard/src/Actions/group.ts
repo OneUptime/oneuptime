@@ -1,9 +1,9 @@
 import * as types from '../constants/group';
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import { User } from '../config.js';
-import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 // Add Group
 export const addGroupRequest = () => ({
     type: types.CREATE_GROUP_REQUEST,

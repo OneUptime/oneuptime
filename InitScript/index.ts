@@ -1,8 +1,8 @@
-import { ExpressRequest, ExpressResponse } from 'common-server/Utils/Express';
+import { ExpressRequest, ExpressResponse } from 'Common-server/Utils/Express';
 
-import app from 'common-server/utils/StartServer';
+import app from 'Common-server/utils/StartServer';
 
-import logger from 'common-server/Utils/Logger';
+import logger from 'Common-server/Utils/Logger';
 import fs from 'fs';
 import util from './util/db';
 import scripts from './scripts';

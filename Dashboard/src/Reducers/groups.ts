@@ -1,6 +1,6 @@
 import * as types from '../constants/group';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     createGroup: { requesting: false, success: false, error: null },

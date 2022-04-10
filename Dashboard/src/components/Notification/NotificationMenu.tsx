@@ -11,7 +11,7 @@ import { User, IS_SAAS_SERVICE } from '../../config';
 import moment from 'moment';
 
 import { StripeProvider, injectStripe, Elements } from '@stripe/react-stripe-js';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';

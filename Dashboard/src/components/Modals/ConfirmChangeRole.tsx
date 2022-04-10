@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { PropTypes } from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import { User } from '../../config';
 
 interface ConfirmChangeRoleProps {

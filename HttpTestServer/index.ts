@@ -2,14 +2,14 @@ import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-} from 'common-server/Utils/Express';
+} from 'Common-server/Utils/Express';
 
-import app from 'common-server/utils/StartServer';
+import app from 'Common-server/utils/StartServer';
 
 import path from 'path';
 
 import HTTPTestServerResponse from './types/HttpTestServerResponse';
-import ResponseType from 'common/Types/api/ResponseType';
+import ResponseType from 'Common/Types/api/ResponseType';
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

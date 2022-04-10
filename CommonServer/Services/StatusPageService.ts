@@ -1,6 +1,6 @@
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import ServiceBase from './DatabaseService';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageModel, { requiredFields } from '../Models/StatusPage';
 
 const publicListProps = {

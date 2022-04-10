@@ -1,11 +1,11 @@
 import ProbeService from '../Services/probeService';
-import { sendErrorResponse } from 'common-server/Utils/Response';
+import { sendErrorResponse } from 'CommonServer/Utils/Response';
 import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/Utils/Express';
-import BadDataException from 'common/Types/Exception/BadDataException';
+} from 'CommonServer/Utils/Express';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 
 // TODO: Make sure this is stored in redis.

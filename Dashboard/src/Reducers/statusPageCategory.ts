@@ -16,7 +16,7 @@ import {
     DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
 } from '../constants/statusPageCategory';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     fetchStatusPageCategories: {

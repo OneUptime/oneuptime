@@ -30,7 +30,7 @@ import getSlug from '../Utils/getSlug';
 import FindOneBy from '../Types/DB/FindOneBy';
 import Query from '../Types/DB/Query';
 
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import FindBy from '../Types/DB/FindBy';
 
 export default class Service {

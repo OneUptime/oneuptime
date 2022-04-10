@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import { deleteResourceCategory } from '../../actions/resourceCategories';
 import { bindActionCreators, Dispatch } from 'redux';
 

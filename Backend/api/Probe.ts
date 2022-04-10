@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
@@ -12,10 +12,10 @@ import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';

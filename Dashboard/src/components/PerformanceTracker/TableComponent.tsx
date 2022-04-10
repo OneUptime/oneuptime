@@ -18,7 +18,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
 import { numDecimal } from '../../utils/formatNumber';
 import DeletePerformanceMetric from './DeletePerformanceMetric';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import paginate from '../../utils/paginate';
 
 interface TableComponentProps {

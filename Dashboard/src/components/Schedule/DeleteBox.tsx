@@ -10,7 +10,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteSchedule, fetchUserSchedule } from '../../actions/schedule';
 import DeleteScheduleModal from './DeleteScheduleModal';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 
 export class DeleteScheduleBox extends Component<ComponentProps>{
     public static displayName = '';

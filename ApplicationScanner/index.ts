@@ -1,6 +1,6 @@
-import { ExpressRequest, ExpressResponse } from 'common-server/Utils/Express';
+import { ExpressRequest, ExpressResponse } from 'Common-server/Utils/Express';
 
-import app from 'common-server/utils/StartServer';
+import app from 'Common-server/utils/StartServer';
 
 import Main from './worker/main';
 

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import ZapierService from '../services/zapierService';
 import MonitorService from '../services/monitorService';
 import ProjectService from '../services/projectService';
@@ -10,10 +10,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendEmptyResponse } from 'common-server/utils/response';
+import { sendEmptyResponse } from 'CommonServer/utils/response';
 
 const router = express.getRouter();
 

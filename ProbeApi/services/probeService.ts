@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { ObjectId } from 'mongodb';
-import Database from 'common-server/utils/database';
+import Database from 'Common-server/utils/database';
 const probeCollection = Database.getDatabase().collection('probes');
 import { v1 as uuidv1 } from 'uuid';
 import { post } from '../Utils/api';

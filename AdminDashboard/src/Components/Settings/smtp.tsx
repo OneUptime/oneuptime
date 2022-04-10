@@ -10,7 +10,7 @@ import { Validate, IS_INTERNAL_SMTP_DEPLOYED } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import PropTypes from 'prop-types';
 import { fetchSettings, saveSettings, testSmtp } from '../../actions/settings';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import SmtpTestModal from './smtpTestModal';
 import MessageModal from './MessageModal';
 

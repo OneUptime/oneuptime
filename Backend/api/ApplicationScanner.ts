@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import ApplicationSecurityService from '../services/applicationSecurityService';
 import ApplicationSecurityLogService from '../services//applicationSecurityLogService';
 const router = express.getRouter();
@@ -10,8 +10,8 @@ const isAuthorizedApplicationScanner =
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import RealtimeService from '../services/realTimeService';
 import MailService from '../services/mailService';

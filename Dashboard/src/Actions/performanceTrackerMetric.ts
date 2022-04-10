@@ -1,9 +1,9 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTrackerMetric';
 import moment from 'moment';
 import { encode } from 'js-base64';
-import ErrorPayload from 'common-ui/src/payload-types/error';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
 // fetch performance tracker metrics - TIME
 export const fetchTimeMetricsRequest = () => ({
     type: types.FETCH_TIME_METRICS_REQUEST,

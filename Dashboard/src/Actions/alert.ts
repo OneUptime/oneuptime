@@ -1,8 +1,8 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/alert';
-import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 export const resetAlert = () => {
     return {
         type: types.ALERT_FETCH_RESET,

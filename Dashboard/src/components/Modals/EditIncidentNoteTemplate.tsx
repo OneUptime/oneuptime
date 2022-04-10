@@ -8,7 +8,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField, incidentNoteTemplateVariables } from '../../config';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';

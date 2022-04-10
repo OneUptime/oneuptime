@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import BadDataException from 'common/Types/Exception/BadDataException';
+} from 'CommonServer/utils/Express';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser } from '../middlewares/user';
@@ -10,8 +10,8 @@ import {
     sendErrorResponse,
     sendItemResponse,
     sendListResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import MonitorCustomFieldService from '../services/monitorCustomField';
 

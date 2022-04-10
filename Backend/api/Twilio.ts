@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import IncidentService from '../services/incidentService';
 import UserService from '../services/userService';
 import {
@@ -16,8 +16,8 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 const router = express.getRouter();
 import SmsCountService from '../services/smsCountService';

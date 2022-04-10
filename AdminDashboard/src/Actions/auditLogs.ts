@@ -1,8 +1,8 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/auditLogs';
-import Route from 'common/Types/api/route';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import Route from 'Common/Types/api/route';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 // Fetch All Audit Logs
 export const fetchAuditLogsRequest = () => {
     return {

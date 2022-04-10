@@ -13,7 +13,7 @@ import {
     createScheduledEvent,
     fetchscheduledEvents,
 } from '../../actions/scheduledEvent';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';

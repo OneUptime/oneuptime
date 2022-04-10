@@ -12,8 +12,8 @@ import fsp from 'fs/promises';
 import moment from 'moment';
 import { isEmpty } from 'lodash';
 import UppercaseFirstLetter from '../Utils/UppercaseFirstLetter';
-import Email from 'common/Types/Email';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import Email from 'Common/Types/Email';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const helpers = {
     year: DateTime.getCurrentYear,

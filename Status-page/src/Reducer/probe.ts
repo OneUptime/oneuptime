@@ -1,7 +1,7 @@
 import * as types from '../constants/probe';
 import { FETCH_ALL_RESOURCES_SUCCESS } from '../constants/status';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     requesting: false,

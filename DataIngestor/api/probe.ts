@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'Common-server/Utils/Express';
 import ProbeService from '../Services/probeService';
 import MonitorService from '../Services/monitorService';
 import LighthouseLogService from '../Services/lighthouseLogService';
@@ -10,10 +10,10 @@ import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'Common-server/Utils/Response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendEmptyResponse } from 'common-server/Utils/Response';
+import { sendEmptyResponse } from 'Common-server/Utils/Response';
 
 import { ObjectId } from 'mongodb';
 

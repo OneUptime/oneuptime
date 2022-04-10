@@ -1,11 +1,11 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
-import HelmAPI from 'common-ui/src/utils/api/helm';
-import APiDocsAPI from 'common-ui/src/utils/api/api-docs';
-import DashboardAPI from 'common-ui/src/utils/api/dashboard';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
+import HelmAPI from 'Common-ui/src/utils/api/helm';
+import APiDocsAPI from 'Common-ui/src/utils/api/api-docs';
+import DashboardAPI from 'Common-ui/src/utils/api/dashboard';
 
 import * as types from '../constants/version';
 import { Dispatch } from 'redux';
-import Route from 'common/Types/api/route';
+import Route from 'Common/Types/api/route';
 
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {

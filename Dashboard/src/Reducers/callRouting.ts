@@ -1,6 +1,6 @@
 import * as types from '../constants/callRouting';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     allNumbers: {

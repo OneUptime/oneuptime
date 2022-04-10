@@ -2,9 +2,9 @@ import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 
-import app from 'common-server/utils/StartServer';
+import app from 'CommonServer/utils/StartServer';
 
 import path from 'path';
 

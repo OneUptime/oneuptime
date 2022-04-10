@@ -1,5 +1,5 @@
 import { HELM_HOSTNAME, API_PROTOCOL } from '../config';
-import API from 'common/utils/api';
+import API from 'Common/utils/api';
 
 class HelmAPI extends API {
     constructor() {

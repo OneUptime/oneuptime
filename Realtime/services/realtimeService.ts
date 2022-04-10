@@ -1,5 +1,5 @@
-import { JSONObjectOrArray } from 'common/Types/JSON';
-import io, { Socket } from 'common-server/infrastructure/SocketIO';
+import { JSONObjectOrArray } from 'Common/Types/JSON';
+import io, { Socket } from 'CommonServer/infrastructure/SocketIO';
 
 io.sockets.on('connection', (socket: Socket) => {
     socket.on('project', (projectId: string) => {

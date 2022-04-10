@@ -4,7 +4,7 @@ import ApplicationLogService from './ApplicationLogService';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class Service {
     async create(data: $TSFixMe) {

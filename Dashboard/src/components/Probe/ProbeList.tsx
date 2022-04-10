@@ -7,7 +7,7 @@ import moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ProbeStatus from './ProbeStatus';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import ProbeDetail from '../modals/ProbeDetail';
 import DataPathHoC from '../DataPathHoC';
 import { API_URL } from '../../config';

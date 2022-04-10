@@ -1,16 +1,16 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import ReportService from '../services/reportService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-import { sendErrorResponse } from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+import { sendErrorResponse } from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 const router = express.getRouter();
 
 /**

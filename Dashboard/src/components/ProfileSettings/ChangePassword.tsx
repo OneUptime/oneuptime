@@ -14,7 +14,7 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import MessageBox from '../modals/MessageBox';
 
 import { v4 as uuidv4 } from 'uuid';

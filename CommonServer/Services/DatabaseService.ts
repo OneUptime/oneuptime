@@ -1,4 +1,4 @@
-import Slug from 'common/utils/Slug';
+import Slug from 'Common/utils/Slug';
 import Populate from '../Types/DB/Populate';
 import Select from '../Types/DB/Select';
 import { Model } from '../Infrastructure/ORM';
@@ -9,14 +9,14 @@ import CountBy from '../Types/DB/CountBy';
 import DeleteOneBy from '../Types/DB/DeleteOneBy';
 import SearchBy from '../Types/DB/SearchBy';
 import DeleteBy from '../Types/DB/DeleteBy';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import FindBy from '../Types/DB/FindBy';
 import UpdateBy from '../Types/DB/UpdateBy';
 import Query from '../Types/DB/Query';
 import CreateBy from '../Types/DB/CreateBy';
-import BadDataException from 'common/Types/Exception/BadDataException';
-import OneUptimeDate from 'common/Types/Date';
-import Exception from 'common/Types/Exception/Exception';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import OneUptimeDate from 'Common/Types/Date';
+import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 
 export interface ListProps {

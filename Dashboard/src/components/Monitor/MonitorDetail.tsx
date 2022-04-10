@@ -12,7 +12,7 @@ import {
     fetchMonitorStatuses,
     fetchMonitorsIncidents,
 } from '../../actions/monitor';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import { createNewIncident } from '../../actions/incident';
 import moment from 'moment';
 import { FormLoader } from '../basic/Loader';

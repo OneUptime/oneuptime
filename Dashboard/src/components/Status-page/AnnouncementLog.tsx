@@ -8,7 +8,7 @@ import moment from 'moment';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';

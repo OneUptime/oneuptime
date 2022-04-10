@@ -6,7 +6,7 @@ import {
     RESET_LOGIN,
 } from '../constants/login';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     loginRequired: false,

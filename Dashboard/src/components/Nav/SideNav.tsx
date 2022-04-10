@@ -4,7 +4,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
 import { allRoutes, groups } from '../../routes';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import { closeSideNav } from '../../actions/page';
 import ProjectSwitcher from '../project/ProjectSwitcher';
 

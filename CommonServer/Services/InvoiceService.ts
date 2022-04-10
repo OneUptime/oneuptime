@@ -1,4 +1,4 @@
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     //Description: Call this fuction to retrieve list of invoices for a customer.
     //Params:

@@ -1,8 +1,8 @@
 const generateWebToken = require('../utils/WebToken').generateWebToken;
-import AirtableService from 'common-server/utils/airtable';
-import Email from 'common/Types/email';
-import PositiveNumber from 'common/Types/PositiveNumber';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import AirtableService from 'CommonServer/utils/airtable';
+import Email from 'Common/Types/email';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default {
     confirm: async (license: string, email: Email, limit: PositiveNumber) => {

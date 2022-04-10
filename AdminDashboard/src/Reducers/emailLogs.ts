@@ -18,7 +18,7 @@ import {
     CHANGE_EMAILLOG_STATUS_SUCCESS,
 } from '../constants/emailLogs';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     emailLogs: {

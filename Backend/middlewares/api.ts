@@ -1,12 +1,12 @@
 import mongoose from '../config/db';
 import ProjectService from '../Services/projectService';
-import { sendErrorResponse } from 'common-server/Utils/Response';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import { sendErrorResponse } from 'CommonServer/Utils/Response';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 const ObjectID = mongoose.Types.ObjectId;
 import MonitorService from '../Services/monitorService';
 

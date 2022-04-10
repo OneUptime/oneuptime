@@ -36,7 +36,7 @@ import {
 import { RenderField } from '../basic/RenderField';
 import { makeCriteria, API_URL } from '../../config';
 import { FormLoader } from '../basic/Loader';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import {
     fetchMonitorCriteria,
     fetchMonitorsIncidents,

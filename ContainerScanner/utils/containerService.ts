@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';
 import fs from 'fs';
 import Path from 'path';
@@ -15,7 +15,7 @@ import {
     updateContainerSecurityScanTime,
     updateContainerSecurityToFailed,
 } from './containerSecurityUpdate';
-import flattenArray from '../Utils/flattenArray';
+import flattenArray from './flattenArray';
 
 export default {
     scan: async function (security) {

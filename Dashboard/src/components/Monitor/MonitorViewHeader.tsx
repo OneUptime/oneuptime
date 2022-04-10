@@ -21,7 +21,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import Badge from '../common/Badge';
 import ShouldRender from '../basic/ShouldRender';
 import { selectedProbe } from '../../actions/monitor';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import { history, RootState } from '../../store';
 import { getMonitorStatus, filterProbeData } from '../../config';
 import DataPathHoC from '../DataPathHoC';

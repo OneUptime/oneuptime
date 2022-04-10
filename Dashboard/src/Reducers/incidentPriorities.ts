@@ -17,7 +17,7 @@ import {
     DELETE_INCIDENT_PRIORITY_RESET,
 } from '../constants/incidentPriorities';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     incidentPrioritiesList: {

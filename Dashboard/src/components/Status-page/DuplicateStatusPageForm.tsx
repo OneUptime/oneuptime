@@ -9,7 +9,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { Validate } from '../../config';
 import { Spinner } from '../basic/Loader';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import { createDuplicateStatusPage } from '../../actions/statusPage';
 import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
 import { RenderSelect } from '../basic/RenderSelect';

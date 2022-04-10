@@ -9,7 +9,7 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { createNewIncident, createIncidentReset } from '../../actions/incident';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import { ValidateField } from '../../config';
 import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';

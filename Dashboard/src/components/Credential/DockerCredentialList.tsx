@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { deleteDockerCredential } from '../../actions/credential';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import { getDockerSecurities } from '../../actions/credential';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import RenderBasedOnRole from './RenderBasedOnRole';
-import BasicButton from 'common-ui/components/basic/Button';
+import BasicButton from 'Common-ui/components/basic/Button';
 
 interface ButtonProps {
     title: string;

@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 export default class Service {
     async create(data: $TSFixMe) {
         // prepare error event model

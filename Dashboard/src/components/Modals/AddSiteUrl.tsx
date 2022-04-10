@@ -9,7 +9,7 @@ import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import { Spinner } from '../basic/Loader';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import { addSiteUrl } from '../../actions/monitor';
 import { RenderField } from '../basic/RenderField';
 

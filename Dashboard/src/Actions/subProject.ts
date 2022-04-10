@@ -1,7 +1,7 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/subProject';
-import ErrorPayload from 'common-ui/src/payload-types/error';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
 import { User } from '../config';
 
 export const subProjectsRequest = (promise: $TSFixMe) => {

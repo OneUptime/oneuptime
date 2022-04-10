@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes, { string } from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 
 class MessageBox extends Component<ComponentProps> {
 

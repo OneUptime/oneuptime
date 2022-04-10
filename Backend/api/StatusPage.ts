@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import PositiveNumber from 'common/Types/PositiveNumber';
+} from 'CommonServer/utils/Express';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
 import ProbeService from '../services/probeService';
@@ -10,13 +10,13 @@ import UtilService from '../services/utilService';
 import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const router = express.getRouter();
 
 import validUrl from 'valid-url';
 import multer from 'multer';
-import ErrorService from 'common-server/utils/error';
+import ErrorService from 'CommonServer/utils/error';
 
 import { toXML } from 'jstoxml';
 import moment from 'moment';
@@ -34,8 +34,8 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import uuid from 'uuid';
 import defaultStatusPageColors from '../config/statusPageColors';

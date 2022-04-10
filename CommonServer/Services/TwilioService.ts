@@ -3,7 +3,7 @@ import twilio from 'twilio';
 import SmsSmtpService from './SmsSmtpService';
 import Handlebars from 'handlebars';
 import defaultSmsTemplates from '../config/smsTemplate';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import GlobalConfigService from './GlobalConfigService';
 import UserService from './UserService';
 import SmsCountService from './SmsCountService';

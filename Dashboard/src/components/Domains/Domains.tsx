@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 
 import { fetchProjectDomains } from '../../actions/project';
 import CreateDomain from './CreateDomain';

@@ -1,10 +1,10 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
-import Route from 'common/Types/api/route';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
+import Route from 'Common/Types/api/route';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
-import ErrorPayload from 'common-ui/src/payload-types/error';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
 import { fetchComponents } from './component';
 import {
     fetchMonitors,

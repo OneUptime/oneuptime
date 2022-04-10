@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import loginHistoryService from '../services/loginHistoryService';
 
 const router = express.getRouter();
@@ -11,8 +11,8 @@ const getUser = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 router.get(
     '/:userId',

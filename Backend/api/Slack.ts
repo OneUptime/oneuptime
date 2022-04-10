@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import BadDataException from 'common/Types/Exception/BadDataException';
+} from 'CommonServer/utils/Express';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import request from 'request';
 import IntegrationService from '../services/integrationService';
 const getUser = require('../middlewares/user').getUser;
@@ -17,8 +17,8 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 const router = express.getRouter();
 

@@ -13,7 +13,7 @@ import {
     updateIncidentTemplate,
     updateIncidentTemplateFailure,
 } from '../../actions/incidentBasicsSettings';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';

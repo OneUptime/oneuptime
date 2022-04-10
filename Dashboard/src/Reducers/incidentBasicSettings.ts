@@ -24,7 +24,7 @@ import {
     FETCH_DEFAULT_TEMPLATE_FAILURE,
 } from '../constants/incidentBasicSettings';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     incidentBasicSettingsVariables: {

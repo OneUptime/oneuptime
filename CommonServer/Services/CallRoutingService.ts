@@ -12,7 +12,7 @@ import Query from '../Types/DB/Query';
 import Model, { requiredFields, uniqueFields } from '../Models/CallRouting';
 import DatabaseService from './DatabaseService';
 import CallRoutingLogService from './CallRoutingLogService';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class CallRoutingService extends DatabaseService<typeof Model> {
     constructor() {
         super({

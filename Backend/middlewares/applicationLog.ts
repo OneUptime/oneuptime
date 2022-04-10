@@ -2,12 +2,12 @@ import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import ApplicationLogService from '../Services/applicationLogService';
-import { sendErrorResponse } from 'common-server/Utils/Response';
+import { sendErrorResponse } from 'CommonServer/Utils/Response';
 
 const _this = {
     isApplicationLogValid: async function (

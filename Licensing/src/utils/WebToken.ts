@@ -1,4 +1,4 @@
-import JWT from 'common-server/utils/JsonWebToken';
+import JWT from 'Common-server/utils/JsonWebToken';
 
 class WebToken {
     static generateWebToken(licenseKey: string, expiryTime: Date): string {

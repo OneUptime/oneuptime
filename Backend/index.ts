@@ -3,9 +3,9 @@ import {
     ExpressResponse,
     NextFunction,
     ExpressStatic,
-} from 'common-server/Utils/Express';
-import logger from 'common-server/Utils/Logger';
-import app from 'common-server/utils/StartServer';
+} from 'CommonServer/Utils/Express';
+import logger from 'CommonServer/Utils/Logger';
+import app from 'CommonServer/utils/StartServer';
 
 import expressRequestId from 'express-request-id';
 

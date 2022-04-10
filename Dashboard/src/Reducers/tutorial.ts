@@ -9,7 +9,7 @@ import {
     CLOSE_TUTORIAL_RESET,
 } from '../constants/tutorial';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     error: null,

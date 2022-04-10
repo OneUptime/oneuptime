@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 

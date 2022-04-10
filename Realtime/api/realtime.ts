@@ -1,14 +1,14 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 const router = express.getRouter();
 import {
     sendErrorResponse,
     sendEmptyResponse,
-} from 'common-server/Utils/Response';
-import Exception from 'common/Types/Exception/Exception';
-import ClusterKeyAuthorization from 'common-server/middlewares/ClusterKeyAuthorization';
+} from 'CommonServer/Utils/Response';
+import Exception from 'Common/Types/Exception/Exception';
+import ClusterKeyAuthorization from 'CommonServer/middlewares/ClusterKeyAuthorization';
 import RealtimeService from '../Services/RealtimeService';
 
 router.post(

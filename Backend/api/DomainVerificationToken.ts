@@ -1,22 +1,22 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 
 import psl from 'psl';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { getUser, isUserMasterAdmin } from '../middlewares/user';
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import DomainVerificationService from '../services/domainVerificationService';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';

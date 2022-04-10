@@ -1,17 +1,17 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 
 import { isAuthorized } from '../middlewares/authorization';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { getUser } from '../middlewares/user';
 import {
     sendErrorResponse,
     sendItemResponse,
     sendListResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import CustomFieldService from '../services/customFieldService';
 

@@ -1,4 +1,4 @@
-import logger from 'common-server/Utils/Logger';
+import logger from 'CommonServer/Utils/Logger';
 import fetch from 'node-fetch-commonjs';
 
 import sslCert from 'get-ssl-certificate';

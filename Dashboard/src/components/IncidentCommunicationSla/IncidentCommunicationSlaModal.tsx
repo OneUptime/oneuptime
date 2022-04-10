@@ -10,7 +10,7 @@ import {
     createCommunicationSla,
     fetchCommunicationSlas,
 } from '../../actions/incidentCommunicationSla';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';

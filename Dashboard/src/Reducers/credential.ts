@@ -1,6 +1,6 @@
 import * as types from '../constants/credential';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     addCredential: { requesting: false, success: false, error: null },

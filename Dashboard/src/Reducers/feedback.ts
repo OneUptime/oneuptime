@@ -7,7 +7,7 @@ import {
     CREATE_FEEDBACK_RESET,
 } from '../constants/feedback';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     feedback: {

@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { reduxForm, Field } from 'redux-form';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal, openModal } from 'common-ui/actions/modal';
+import { closeModal, openModal } from 'Common-ui/actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { changeMonitorComponent } from '../../actions/monitor';

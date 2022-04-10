@@ -1,6 +1,6 @@
 import ApiService from '../Utils/apiService';
 
-import logger from 'common-server/Utils/Logger';
+import logger from 'CommonServer/Utils/Logger';
 import pingfetch from '../Utils/pingFetch';
 
 // it collects all monitors then ping them one by one to store their response

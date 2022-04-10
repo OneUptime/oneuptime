@@ -12,7 +12,7 @@ import { FormLoader2 } from '../basic/Loader';
 import { deleteSubscriber } from '../../actions/subscriber';
 import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import DeleteSubscriber from '../modals/DeleteSubscriber';
 

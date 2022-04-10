@@ -1,10 +1,10 @@
-import { sendErrorResponse } from 'common-server/Utils/Response';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import { sendErrorResponse } from 'CommonServer/Utils/Response';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 import ErrorTrackerService from '../Services/errorTrackerService';
 
 const _this = {

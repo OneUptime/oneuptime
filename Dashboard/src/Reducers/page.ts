@@ -5,7 +5,7 @@ import {
     TOGGLE_PROJECT_SETTINGS_MORE,
 } from '../constants/page';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     requesting: false,

@@ -1,13 +1,13 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
-import { sendListResponse } from 'common-server/utils/response';
-import { sendErrorResponse } from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+import { sendListResponse } from 'CommonServer/utils/response';
+import { sendErrorResponse } from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import MonitorService from '../services/monitorService';
 import statusPageService from '../services/statusPageService';

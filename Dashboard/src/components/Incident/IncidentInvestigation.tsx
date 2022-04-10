@@ -8,7 +8,7 @@ import {
 } from '../../actions/incident';
 
 import IncidentMessageThread from './IncidentMessageThread';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 

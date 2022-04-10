@@ -1,7 +1,7 @@
 import LocalStorage from './localstorage';
-import Email from 'common/Types/Email';
-import URL from 'common/Types/api/URL';
-import { JSONObject } from 'common/Types/JSON';
+import Email from 'Common/Types/Email';
+import URL from 'Common/Types/api/URL';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default class User {
     public static getAccessToken() {

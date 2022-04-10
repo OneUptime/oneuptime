@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import ClickOutside from 'react-click-outside';
 import { connect } from 'react-redux';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';

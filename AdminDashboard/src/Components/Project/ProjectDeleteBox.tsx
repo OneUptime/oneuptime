@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteProject } from '../../actions/project';
 import ProjectDeleteModal from './ProjectDeleteModal';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 export class ProjectDeleteBox extends Component<ComponentProps>{
     public static displayName = '';

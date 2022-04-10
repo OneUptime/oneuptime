@@ -18,7 +18,7 @@ import PropTypes from 'prop-types';
 import projectTeamMemberNotification from './projectTeamMemberNotification.js';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 import { Validate } from '../../config';
 import DataPathHoC from '../DataPathHoC';

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import axios from 'axios';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
@@ -12,9 +12,9 @@ import RealTimeService from '../services/realTimeService';
 import ScheduleService from '../services/scheduleService';
 import ProbeService from '../services/probeService';
 import ComponentService from '../services/componentService';
-import ErrorService from 'common-server/utils/error';
+import ErrorService from 'CommonServer/utils/error';
 import Api from '../Utils/api';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
@@ -24,10 +24,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import https from 'https';

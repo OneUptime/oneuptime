@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import BadDataException from 'common/Types/Exception/BadDataException';
+} from 'CommonServer/utils/Express';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 const router = express.getRouter();
 import TeamService from '../services/teamService';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -15,8 +15,8 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 // Route
 // Description: Getting details of team members of the project.

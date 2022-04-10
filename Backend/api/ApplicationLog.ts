@@ -1,15 +1,15 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import ApplicationLogService from '../services/applicationLogService';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 import RealTimeService from '../services/realTimeService';
 import LogService from '../services/logService';
-import ErrorService from 'common-server/utils/error';
+import ErrorService from 'CommonServer/utils/error';
 import NotificationService from '../services/notificationService';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
@@ -20,10 +20,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import ResourceCategoryService from '../services/resourceCategoryService';
 

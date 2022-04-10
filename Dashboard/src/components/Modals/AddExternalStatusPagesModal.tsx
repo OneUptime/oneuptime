@@ -8,7 +8,7 @@ import { reduxForm, Field } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'common-ui/actions/modal';
+import { closeModal } from 'Common-ui/actions/modal';
 import { createExternalStatusPage } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { Validate, ValidateField } from '../../config';

@@ -1,4 +1,4 @@
-import ErrorService from 'common-server/utils/error';
+import ErrorService from 'CommonServer/utils/error';
 import OnCallScheduleStatusService from '../Services/onCallScheduleStatusService';
 import AlertService from '../Services/alertService';
 import DateTime from '../Utils/DateTime';

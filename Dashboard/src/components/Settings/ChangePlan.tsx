@@ -13,7 +13,7 @@ import { User } from '../../config';
 import ChangePlanField from './ChangePlanField';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
 import Unauthorised from '../modals/Unauthorised';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import moment from 'moment';
 
 function Validate(values: $TSFixMe) {

@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { unblockUser } from '../../actions/user';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 export class UserUnblockBox extends Component<ComponentProps>{
     public static displayName = '';

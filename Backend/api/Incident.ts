@@ -1,10 +1,10 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import IncidentService from '../services/incidentService';
 import IncidentTimelineService from '../services/incidentTimelineService';
 import MonitorStatusService from '../services/monitorStatusService';
@@ -17,7 +17,7 @@ import MonitorService from '../services/monitorService';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
-import errorService from 'common-server/utils/error';
+import errorService from 'CommonServer/utils/error';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const getUser = require('../middlewares/user').getUser;
 
@@ -27,14 +27,14 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 import subscriberAlertService from '../services/subscriberAlertService';
 import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
 import Services from '../Utils/services';
 import joinNames from '../Utils/joinNames';
-import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
-import ErrorService from 'common-server/utils/error';
+import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthorization';
+import ErrorService from 'CommonServer/utils/error';
 
 // data-ingestor will consume this api
 // create an incident and return the created incident

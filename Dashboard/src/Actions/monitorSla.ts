@@ -1,8 +1,8 @@
 import * as types from '../constants/monitorSla';
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export const createMonitorSlaRequest = () => ({
     type: types.CREATE_MONITOR_SLA_REQUEST,

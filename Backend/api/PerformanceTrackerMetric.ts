@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 const router = express.getRouter();
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import moment from 'moment';
@@ -10,8 +10,8 @@ import { decode } from 'js-base64';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import { isValidAPIKey } from '../middlewares/performanceTracker';
 

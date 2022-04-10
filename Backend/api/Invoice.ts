@@ -1,13 +1,13 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 const router = express.getRouter();
 import InvoiceService from '../services/invoiceService';
-import { sendErrorResponse } from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+import { sendErrorResponse } from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 
 // Description: Getting invoices paid.
 // Params:

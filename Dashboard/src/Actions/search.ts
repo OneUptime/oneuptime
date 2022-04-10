@@ -6,7 +6,7 @@ import {
     SHOW_SEARCH_BAR,
     CLOSE_SEARCH_BAR,
 } from '../constants/search';
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
 export const showSearchBar = function () {

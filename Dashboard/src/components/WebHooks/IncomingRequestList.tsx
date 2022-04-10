@@ -9,7 +9,7 @@ import {
     fetchAllIncomingRequest,
     setActiveIncomingRequest,
 } from '../../actions/incomingRequest';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import EditIncomingRequest from '../modals/EditIncomingRequest';
 import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';

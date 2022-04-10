@@ -16,7 +16,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import ErrorTrackerHeader from './ErrorTrackerHeader';
 import ErrorTrackerDetailView from './ErrorTrackerDetailView';
 import { history, RootState } from '../../store';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';

@@ -1,7 +1,7 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/license';
-import Route from 'common/Types/api/route';
+import Route from 'Common/Types/api/route';
 // fetch license
 
 export const fetchLicenseRequest = (promise: $TSFixMe) => {

@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { blockProject } from '../../actions/project';
 import ProjectBlockModal from './ProjectBlockModal';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 export class ProjectBlockBox extends Component<ComponentProps>{
     public static displayName = '';

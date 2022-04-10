@@ -1,8 +1,8 @@
-import MonitorLogByHourService from '../Services/monitorLogByHourService';
-import MonitorLogByDayService from '../Services/monitorLogByDayService';
-import MonitorLogByWeekService from '../Services/monitorLogByWeekService';
-import MonitorService from '../Services/monitorService';
-import Query from 'common-server/types/db/Query';
+import MonitorLogByHourService from './monitorLogByHourService';
+import MonitorLogByDayService from './monitorLogByDayService';
+import MonitorLogByWeekService from './monitorLogByWeekService';
+import MonitorService from './monitorService';
+import Query from 'Common-server/types/db/Query';
 import moment from 'moment';
 
 const monitorLogCollection = global.db.collection('monitorlogs');

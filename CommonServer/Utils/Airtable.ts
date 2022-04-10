@@ -1,6 +1,6 @@
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 import AirtableLib from 'airtable';
-import Dictionary from 'common/Types/Dictionary';
+import Dictionary from 'Common/Types/Dictionary';
 import { AirtableApiKey, AirtableBaseId } from '../Config';
 
 class Airtable {

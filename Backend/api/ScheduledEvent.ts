@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'CommonServer/utils/Express';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -13,14 +13,14 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import { getSubProjects } from '../middlewares/subProject';
 import ScheduledEventNoteService from '../services/scheduledEventNoteService';
 import moment from 'moment';
 import MonitorService from '../services/monitorService';
-import ErrorService from 'common-server/utils/error';
+import ErrorService from 'CommonServer/utils/error';
 
 router.post(
     '/:projectId',

@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { enableAdminMode } from '../../actions/user';
 import UserAdminModeEnableModal from './UserAdminModeEnableModal';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 export class UserAdminModeEnableBox extends Component<ComponentProps>{
     public static displayName = '';

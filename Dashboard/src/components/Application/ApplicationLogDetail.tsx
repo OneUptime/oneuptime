@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { history, RootState } from '../../store';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 
 import { v4 as uuidv4 } from 'uuid';
 

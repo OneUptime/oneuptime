@@ -2,7 +2,7 @@ import React from 'react';
 
 import { v4 as uuidv4 } from 'uuid';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';

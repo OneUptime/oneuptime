@@ -75,7 +75,7 @@ import {
     USER_SCHEDULE_RESET,
 } from '../constants/schedule';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     schedules: {

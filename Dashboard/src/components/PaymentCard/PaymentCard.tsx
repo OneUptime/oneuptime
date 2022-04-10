@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
 import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
-import { openModal } from 'common-ui/actions/modal';
+import { openModal } from 'Common-ui/actions/modal';
 import { fetchCards, setDefaultCard } from '../../actions/card';
 import DataPathHoC from '../DataPathHoC';
 import AddCard from '../modals/AddCard';

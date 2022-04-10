@@ -12,7 +12,7 @@ import { FormLoader2, ListLoader } from '../basic/Loader';
 import { v4 as uuidv4 } from 'uuid';
 import DeleteSubscriber from '../../components/modals/DeleteSubscriber';
 import DataPathHoC from '../DataPathHoC';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import { deleteSubscriber } from '../../actions/subscriber';
 import CreateSubscriber from '../modals/CreateSubscriber';
 import NoMonitorSubscriber from '../modals/NoMonitorSubscriber';

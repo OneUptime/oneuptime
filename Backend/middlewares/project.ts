@@ -1,12 +1,12 @@
 import ProjectService from '../Services/projectService';
-import BadDataException from 'common/Types/Exception/BadDataException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import url from 'url';
-import { sendErrorResponse } from 'common-server/Utils/Response';
+import { sendErrorResponse } from 'CommonServer/Utils/Response';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 import apiMiddleware from '../middlewares/api';
 
 export default {

@@ -1,11 +1,11 @@
-import BackendAPI from 'common-ui/src/utils/api/backend';
+import BackendAPI from 'Common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import { masterAdminExistsSuccess, loginSuccess } from './login';
 import * as types from '../constants/register';
-import Route from 'common/Types/api/route';
+import Route from 'Common/Types/api/route';
 import { IS_SAAS_SERVICE } from '../config';
 import Cookies from 'universal-cookie';
-import ErrorPayload from 'common-ui/src/payload-types/error';
+import ErrorPayload from 'Common-ui/src/payload-types/error';
 
 // There are three possible states for our login
 // process and we need actions for each of them

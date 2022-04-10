@@ -1,5 +1,5 @@
 import { createStore, applyMiddleware, compose } from 'redux';
-import history from 'common-ui/src/utils/history';
+import history from 'Common-ui/src/utils/history';
 import { createLogger } from 'redux-logger';
 import { routerMiddleware } from 'react-router-redux';
 import thunk from 'redux-thunk';

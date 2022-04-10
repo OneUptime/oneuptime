@@ -3,7 +3,7 @@ import {
     CLOSE_ONCALLSCHEDULE_MODAL,
 } from '../constants/OnCallSchedule';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const initialState = {
     onCallScheduleModalVisble: false,

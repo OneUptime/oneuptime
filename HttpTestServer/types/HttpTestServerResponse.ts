@@ -1,8 +1,8 @@
-import PositiveNumber from 'common/Types/PositiveNumber';
-import Headers from 'common/Types/api/Headers';
-import { JSONObject, JSONObjectOrArray } from 'common/Types/JSON';
-import HTML from 'common/Types/html';
-import ResponseType from 'common/Types/api/ResponseType';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import Headers from 'Common/Types/api/Headers';
+import { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
+import HTML from 'Common/Types/html';
+import ResponseType from 'Common/Types/api/ResponseType';
 
 class HTTPTestServerResponse {
     private _statusCode: PositiveNumber = new PositiveNumber(200);

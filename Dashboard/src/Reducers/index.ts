@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
 import component from './component';
 import monitor from './monitor';
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 import { routerReducer } from 'react-router-redux';
 import { RootState } from '../store';
 

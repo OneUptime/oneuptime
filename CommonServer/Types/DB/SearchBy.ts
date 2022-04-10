@@ -1,6 +1,6 @@
 import Select from './Select';
 import Populate from './Populate';
-import PositiveNumber from 'common/Types/PositiveNumber';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default interface SearchBy {
     text: string;

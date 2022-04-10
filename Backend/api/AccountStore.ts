@@ -1,14 +1,14 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'CommonServer/Utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/Utils/Response';
+import Exception from 'Common/Types/Exception/Exception';
 
-import AccountStoreService from 'common-server/services/accountStoreService';
+import AccountStoreService from 'CommonServer/services/accountStoreService';
 
 const router = express.getRouter();
 

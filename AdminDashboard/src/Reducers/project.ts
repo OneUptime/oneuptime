@@ -81,7 +81,7 @@ import {
     RESET_DELETE_PROJECT_DOMAIN,
 } from '../constants/project';
 
-import Action from 'common-ui/src/types/action';
+import Action from 'Common-ui/src/types/action';
 
 const INITIAL_STATE = {
     projects: {

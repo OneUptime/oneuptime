@@ -9,7 +9,7 @@ import { User, REALTIME_URL } from '../../config';
 
 import { v4 as uuidv4 } from 'uuid';
 import { RootState } from '../../store';
-import { openModal, closeModal } from 'common-ui/actions/modal';
+import { openModal, closeModal } from 'Common-ui/actions/modal';
 import {
     incidentresolvedbysocket,
     incidentacknowledgedbysocket,

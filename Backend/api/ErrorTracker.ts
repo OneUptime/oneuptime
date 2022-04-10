@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import BadDataException from 'common/Types/Exception/BadDataException';
+} from 'CommonServer/utils/Express';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 
@@ -12,8 +12,8 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
-import Exception from 'common/Types/Exception/Exception';
+} from 'CommonServer/utils/response';
+import Exception from 'Common/Types/Exception/Exception';
 
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
@@ -26,12 +26,12 @@ import uuid from 'uuid';
 const isErrorTrackerValid =
     require('../middlewares/errorTracker').isErrorTrackerValid;
 import ErrorEventService from '../services/errorEventService';
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'CommonServer/utils/response';
 import IssueService from '../services/issueService';
 import TeamService from '../services/teamService';
 import IssueMemberService from '../services/issueMemberService';
 import IssueTimelineService from '../services/issueTimelineService';
-import ErrorService from 'common-server/utils/error';
+import ErrorService from 'CommonServer/utils/error';
 // Route
 // Description: Adding a new error tracker to a component.
 // Params:
