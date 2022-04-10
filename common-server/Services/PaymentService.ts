@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
 import Plans from '../config/plans';
 import ProjectService from './ProjectService';
-import ProjectModel from '../models/project';
+import ProjectModel from '../Models/project';
 import StripeService from './StripeService';
 import NotificationService from './NotificationService';
 import {

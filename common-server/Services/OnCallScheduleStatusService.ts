@@ -148,6 +148,6 @@ export default class Service {
     }
 }
 
-import OnCallScheduleStatusModel from '../models/onCallScheduleStatus';
+import OnCallScheduleStatusModel from '../Models/onCallScheduleStatus';
 
 import FindBy from '../types/db/FindBy';

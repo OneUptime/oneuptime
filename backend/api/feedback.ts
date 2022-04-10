@@ -1,14 +1,14 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 const router = express.getRouter();
-import FeedbackService from '../services/feedbackService';
+import FeedbackService from '../Services/feedbackService';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 const getUser = require('../middlewares/user').getUser;

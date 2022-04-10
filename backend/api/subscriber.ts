@@ -1,11 +1,11 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
 
-import SubscriberService from '../services/subscriberService';
-import MonitorService from '../services/monitorService';
+import SubscriberService from '../Services/subscriberService';
+import MonitorService from '../Services/monitorService';
 
 const getUser = require('../middlewares/user').getUser;
 
@@ -13,7 +13,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 // Route Description: Adding / Updating subscriber to the project.

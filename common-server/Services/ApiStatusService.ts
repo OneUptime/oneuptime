@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/ApiStatus';
+import Model, { requiredFields, uniqueFields } from '../Models/ApiStatus';
 import DatabaseService from './DatabaseService';
 
 export default class SslService extends DatabaseService<typeof Model> {

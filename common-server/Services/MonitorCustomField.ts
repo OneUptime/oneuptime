@@ -1,4 +1,4 @@
-import MonitorCustomFieldModel from '../models/monitorCustomField';
+import MonitorCustomFieldModel from '../Models/monitorCustomField';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

@@ -1,4 +1,4 @@
-import MonitorSlaModel from '../models/monitorSla';
+import MonitorSlaModel from '../Models/monitorSla';
 import MonitorService from './MonitorService';
 
 import FindOneBy from '../types/db/FindOneBy';

@@ -1,5 +1,5 @@
-import StatusPageService from '../services/statusPageService';
-import CertificateStoreService from '../services/certificateStoreService';
+import StatusPageService from '../Services/statusPageService';
+import CertificateStoreService from '../Services/certificateStoreService';
 
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];

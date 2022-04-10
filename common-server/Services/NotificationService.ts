@@ -1,4 +1,4 @@
-import NotificationModel from '../models/notification';
+import NotificationModel from '../Models/notification';
 import RealTimeService from './realTimeService';
 
 import FindOneBy from '../types/db/FindOneBy';

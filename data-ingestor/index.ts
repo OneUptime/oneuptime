@@ -1,4 +1,4 @@
-import logger from 'common-server/utils/logger';
+import logger from 'common-server/Utils/Logger';
 import app from 'common-server/utils/StartServer';
 
 import http from 'http';

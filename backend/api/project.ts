@@ -1,14 +1,14 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import ProjectService from '../services/projectService';
+} from 'common-server/Utils/Express';
+import ProjectService from '../Services/projectService';
 
 const router = express.getRouter();
-import PaymentService from '../services/paymentService';
-import UserService from '../services/userService';
-import MailService from '../services/mailService';
-import AirtableService from '../services/airtableService';
+import PaymentService from '../Services/paymentService';
+import UserService from '../Services/userService';
+import MailService from '../Services/mailService';
+import AirtableService from '../Services/airtableService';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
@@ -21,7 +21,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 import ErrorService from 'common-server/utils/error';

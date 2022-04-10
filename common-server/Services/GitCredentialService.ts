@@ -1,5 +1,5 @@
 import Crypto from 'crypto';
-import GitCredentialModel from '../models/gitCredential';
+import GitCredentialModel from '../Models/gitCredential';
 
 import { encrypt } from '../config/encryptDecrypt';
 

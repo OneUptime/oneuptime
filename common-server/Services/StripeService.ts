@@ -2,7 +2,7 @@ import payment from '../config/payment';
 import UserService from './UserService';
 import PaymentService from './PaymentService';
 import ProjectService from './ProjectService';
-import ProjectModel from '../models/project';
+import ProjectModel from '../Models/project';
 import MailService from './MailService';
 
 import { sendSlackAlert } from '../utils/stripeHandlers';

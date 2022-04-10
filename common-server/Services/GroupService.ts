@@ -1,4 +1,4 @@
-import GroupModel from '../models/groups';
+import GroupModel from '../Models/groups';
 import Query from '../types/db/Query';
 import FindBy from '../types/db/FindBy';
 export default class Service {

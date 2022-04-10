@@ -1,4 +1,4 @@
-import LogModel from '../models/log';
+import LogModel from '../Models/log';
 import ApplicationLogService from './ApplicationLogService';
 
 import FindOneBy from '../types/db/FindOneBy';

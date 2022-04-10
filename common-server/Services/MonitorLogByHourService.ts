@@ -1,7 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
-} from '../models/MonitorLogByHour';
+} from '../Models/MonitorLogByHour';
 import DatabaseService from './DatabaseService';
 
 export default class MonitorLogByHour extends DatabaseService<typeof Model> {

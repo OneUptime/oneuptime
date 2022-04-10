@@ -181,12 +181,12 @@ export default class Service {
     }
 }
 
-import ResourceCategoryModel from '../models/resourceCategory';
-import MonitorModel from '../models/monitor';
-import ApplicationLogModel from '../models/applicationLog';
-import ErrorTrackerModel from '../models/errorTracker';
-import ApplicationSecurityModel from '../models/applicationSecurity';
-import ContainerSecurityModel from '../models/containerSecurity';
+import ResourceCategoryModel from '../Models/resourceCategory';
+import MonitorModel from '../Models/monitor';
+import ApplicationLogModel from '../Models/applicationLog';
+import ErrorTrackerModel from '../Models/errorTracker';
+import ApplicationSecurityModel from '../Models/applicationSecurity';
+import ContainerSecurityModel from '../Models/containerSecurity';
 
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';

@@ -1,14 +1,14 @@
 import mongoose from '../config/db';
-import ProjectService from '../services/projectService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import ProjectService from '../Services/projectService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const ObjectID = mongoose.Types.ObjectId;
-import MonitorService from '../services/monitorService';
+import MonitorService from '../Services/monitorService';
 
 export default {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.

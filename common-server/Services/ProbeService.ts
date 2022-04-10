@@ -1,4 +1,4 @@
-import ProbeModel from '../models/probe';
+import ProbeModel from '../Models/probe';
 import RealTimeService from './realTimeService';
 
 import { v1 as uuidv1 } from 'uuid';

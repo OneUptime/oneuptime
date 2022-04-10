@@ -1,13 +1,13 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import BadDataException from 'common/types/exception/BadDataException';
 const router = express.getRouter();
-import TeamService from '../services/teamService';
+import TeamService from '../Services/teamService';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-import RealTimeService from '../services/realTimeService';
-import NotificationService from '../services/notificationService';
+import RealTimeService from '../Services/realTimeService';
+import NotificationService from '../Services/notificationService';
 const getUser = require('../middlewares/user').getUser;
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
 
@@ -15,7 +15,7 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 // Route

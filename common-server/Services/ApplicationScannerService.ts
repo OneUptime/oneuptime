@@ -83,7 +83,7 @@ export default class Service {
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-import ApplicationScannerModel from '../models/applicationScanner';
+import ApplicationScannerModel from '../Models/applicationScanner';
 
 import { v1 as uuidv1 } from 'uuid';
 

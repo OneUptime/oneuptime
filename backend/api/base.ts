@@ -2,13 +2,13 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 import { getUser } from '../middlewares/user';

@@ -3,12 +3,12 @@ import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import jwt from 'jsonwebtoken';
 import url from 'url';
-import UserService from '../services/userService';
-import ProjectService from '../services/projectService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import UserService from '../Services/userService';
+import ProjectService from '../Services/projectService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 
 import apiMiddleware from '../middlewares/api';
 

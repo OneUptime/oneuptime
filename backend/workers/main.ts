@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import escalationPolicy from './escalationPolicy';
 import serverMonitorCron from './serverMonitor';
 import subscription from './subscription';
-import scheduledEventService from '../services/scheduledEventService';
+import scheduledEventService from '../Services/scheduledEventService';
 import certOrder from './certOrder';
 
 // Generate a random number between 1 and 50 and use that to run cron jobs.

@@ -1,11 +1,11 @@
-import ApplicationScannerService from '../services/applicationScannerService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import ApplicationScannerService from '../Services/applicationScannerService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 export default {
     isAuthorizedApplicationScanner: async function (

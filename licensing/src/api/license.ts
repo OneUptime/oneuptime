@@ -1,17 +1,17 @@
 import Express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import PositiveNumber from 'common/types/PositiveNumber';
 const router = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Email from 'common/types/email';
 import BadDataException from 'common/types/exception/BadDataException';
 
-import LicenseService from '../services/licenseService';
+import LicenseService from '../Services/licenseService';
 import Exception from 'common/types/exception/Exception';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {

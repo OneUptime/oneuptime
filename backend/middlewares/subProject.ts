@@ -1,11 +1,11 @@
-import ProjectService from '../services/projectService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import ProjectService from '../Services/projectService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import url from 'url';
 
 export default {

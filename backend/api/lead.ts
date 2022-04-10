@@ -1,13 +1,13 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
-import LeadService from '../services/leadService';
+import LeadService from '../Services/leadService';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 //Public API to capture leads. Type is Demo or Whitepaper.

@@ -1,6 +1,6 @@
 import OneUptimeDate from 'common/types/Date';
 import BadDataException from 'common/types/exception/BadDataException';
-import Model, { requiredFields, uniqueFields } from '../models/SmsCount';
+import Model, { requiredFields, uniqueFields } from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
 
 export default class SslService extends DatabaseService<typeof Model> {

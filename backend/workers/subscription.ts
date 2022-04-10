@@ -2,9 +2,9 @@ import moment from 'moment';
 import payment from '../config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);
-import ProjectService from '../services/projectService';
-import UserService from '../services/userService';
-import AlertService from '../services/alertService';
+import ProjectService from '../Services/projectService';
+import UserService from '../Services/userService';
+import AlertService from '../Services/alertService';
 
 import { IS_SAAS_SERVICE } from '../config/server';
 

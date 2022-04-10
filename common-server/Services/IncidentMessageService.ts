@@ -148,7 +148,7 @@ export default class Service {
     }
 }
 
-import IncidentMessageModel from '../models/incidentMessage';
+import IncidentMessageModel from '../Models/incidentMessage';
 import RealTimeService from './realTimeService';
 import IncidentService from './IncidentService';
 

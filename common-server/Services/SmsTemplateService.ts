@@ -165,7 +165,7 @@ export default class Service {
     }
 }
 
-import SmsTemplateModel from '../models/smsTemplate';
+import SmsTemplateModel from '../Models/smsTemplate';
 import smsTemplateVariables from '../config/smsTemplateVariables';
 import defaultSmsTemplate from '../config/smsTemplate';
 

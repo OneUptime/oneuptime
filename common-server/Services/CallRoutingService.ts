@@ -9,7 +9,7 @@ import { IS_SAAS_SERVICE } from '../config/server';
 import ProjectService from './ProjectService';
 import FileService from './FileService';
 import Query from '../types/db/Query';
-import Model, { requiredFields, uniqueFields } from '../models/CallRouting';
+import Model, { requiredFields, uniqueFields } from '../Models/CallRouting';
 import DatabaseService from './DatabaseService';
 import CallRoutingLogService from './CallRoutingLogService';
 

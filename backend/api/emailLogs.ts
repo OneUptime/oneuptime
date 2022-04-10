@@ -1,19 +1,19 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
 
-import EmailLogsService from '../services/emailStatusService';
+import EmailLogsService from '../Services/emailStatusService';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
-import { sendErrorResponse } from 'common-server/utils/response';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'common-server/Utils/Response';
 
-import { sendItemResponse } from 'common-server/utils/response';
+import { sendItemResponse } from 'common-server/Utils/Response';
 
 router.get(
     '/',

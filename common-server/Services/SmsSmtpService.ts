@@ -171,7 +171,7 @@ export default class Service {
 }
 
 import Crypto from 'crypto';
-import TwilioModel from '../models/twilio';
+import TwilioModel from '../Models/twilio';
 import EncryptDecrypt from '../config/encryptDecrypt';
 
 import FindOneBy from '../types/db/FindOneBy';

@@ -1,16 +1,16 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
-import MonitorService from '../services/monitorService';
-import ProbeService from '../services/probeService';
+import { sendListResponse } from 'common-server/Utils/Response';
+import MonitorService from '../Services/monitorService';
+import ProbeService from '../Services/probeService';
 import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';
 
 const router = express.getRouter();

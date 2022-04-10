@@ -1,4 +1,4 @@
-import CustomFieldModel from '../models/customField';
+import CustomFieldModel from '../Models/customField';
 import IncomingRequestService from './IncomingRequestService';
 
 import FindOneBy from '../types/db/FindOneBy';

@@ -1,4 +1,4 @@
-import MonitorLogModel from '../models/monitorLog';
+import MonitorLogModel from '../Models/monitorLog';
 import MonitorLogByHourService from './MonitorLogByHourService';
 import MonitorLogByDayService from './MonitorLogByDayService';
 import MonitorLogByWeekService from './MonitorLogByWeekService';

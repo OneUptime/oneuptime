@@ -1,7 +1,7 @@
 import moment from 'moment';
-const MonitorService = require('../services/monitorService'),
-    IncidentService = require('../services/incidentService'),
-    ZapierService = require('../services/zapierService');
+const MonitorService = require('../Services/monitorService'),
+    IncidentService = require('../Services/incidentService'),
+    ZapierService = require('../Services/zapierService');
 
 export default {
     checkAllDeviceMonitor: async () => {

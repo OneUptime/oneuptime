@@ -1,4 +1,4 @@
-import IssueModel from '../models/issue';
+import IssueModel from '../Models/issue';
 import sha256 from 'crypto-js/sha256';
 import ComponentService from './ComponentService';
 import RealTimeService from './realTimeService';

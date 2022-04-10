@@ -3,8 +3,8 @@ import express, {
     ExpressResponse,
     ExpressStatic,
     NextFunction,
-} from 'common-server/utils/Express';
-import logger from 'common-server/utils/logger';
+} from 'common-server/Utils/Express';
+import logger from 'common-server/Utils/Logger';
 import path from 'path';
 const app = express.getExpressApp();
 

@@ -1,21 +1,21 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
-import NotificationService from '../services/notificationService';
-import PerformanceTrackerService from '../services/performanceTrackerService';
-import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
-import RealTimeService from '../services/realTimeService';
+import NotificationService from '../Services/notificationService';
+import PerformanceTrackerService from '../Services/performanceTrackerService';
+import PerformanceTrackerMetricService from '../Services/performanceTrackerMetricService';
+import RealTimeService from '../Services/realTimeService';
 import { decode } from 'js-base64';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'common-server/Utils/Response';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';

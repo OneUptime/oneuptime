@@ -1,15 +1,15 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
 import {
     sendErrorResponse,
     sendEmptyResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 import ClusterKeyAuthorization from 'common-server/middlewares/ClusterKeyAuthorization';
-import RealtimeService from '../services/RealtimeService';
+import RealtimeService from '../Services/RealtimeService';
 
 router.post(
     ':project-id/:event-type',

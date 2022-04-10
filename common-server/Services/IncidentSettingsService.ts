@@ -204,7 +204,7 @@ export default class Service {
     }
 }
 
-import incidentSettingsModel from '../models/incidentSettings';
+import incidentSettingsModel from '../Models/incidentSettings';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

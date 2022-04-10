@@ -1,7 +1,7 @@
 import PositiveNumber from 'common/types/PositiveNumber';
 import ServiceBase from './DatabaseService';
 
-import StatusPageModel, { requiredFields } from '../models/StatusPage';
+import StatusPageModel, { requiredFields } from '../Models/StatusPage';
 
 const publicListProps = {
     populate: [],
@@ -2148,7 +2148,7 @@ const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     }
 };
 
-import IncidentModel from '../models/incident';
+import IncidentModel from '../Models/incident';
 
 import IncidentService from './IncidentService';
 import ScheduledEventsService from './ScheduledEventService';
@@ -2168,10 +2168,10 @@ import moment from 'moment';
 
 import uuid from 'uuid';
 import CertificateStoreService from './CertificateService';
-import AnnouncementModel from '../models/announcements';
-import ExternalStatusPageModel from '../models/externalStatusPage';
+import AnnouncementModel from '../Models/announcements';
+import ExternalStatusPageModel from '../Models/externalStatusPage';
 import getSlug from '../utils/getSlug';
-import AnnouncementLogModel from '../models/announcementLogs';
+import AnnouncementLogModel from '../Models/announcementLogs';
 
 import Query from '../types/db/Query';
 import axios from 'axios';

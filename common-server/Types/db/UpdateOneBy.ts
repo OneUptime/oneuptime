@@ -1,4 +1,4 @@
-import { Document } from '../../infrastructure/ORM';
+import { Document } from '../../Infrastructure/ORM';
 import Query from './Query';
 
 export default interface UpdateOneBy {

@@ -1,4 +1,4 @@
-import MonitorModel from '../models/monitor';
+import MonitorModel from '../Models/monitor';
 import ProbeService from './ProbeService';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorLogService from './MonitorLogService';

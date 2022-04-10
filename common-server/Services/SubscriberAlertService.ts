@@ -135,7 +135,7 @@ export default class Service {
     }
 }
 
-import SubscriberAlertModel from '../models/subscriberAlert';
+import SubscriberAlertModel from '../Models/subscriberAlert';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

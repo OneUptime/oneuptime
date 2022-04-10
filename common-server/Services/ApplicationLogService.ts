@@ -1,4 +1,4 @@
-import ApplicationLogModel from '../models/applicationLog';
+import ApplicationLogModel from '../Models/applicationLog';
 import ComponentService from './ComponentService';
 import RealTimeService from './realTimeService';
 import NotificationService from './NotificationService';

@@ -1,9 +1,9 @@
 import ErrorService from 'common-server/utils/error';
-import OnCallScheduleStatusService from '../services/onCallScheduleStatusService';
-import AlertService from '../services/alertService';
+import OnCallScheduleStatusService from '../Services/onCallScheduleStatusService';
+import AlertService from '../Services/alertService';
 import DateTime from '../utils/DateTime';
-import IncidentService from '../services/incidentService';
-import ScheduleService from '../services/scheduleService';
+import IncidentService from '../Services/incidentService';
+import ScheduleService from '../Services/scheduleService';
 
 export default {
     checkActiveEscalationPolicyAndSendAlerts: async () => {

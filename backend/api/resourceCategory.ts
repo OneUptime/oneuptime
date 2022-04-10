@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 const router = express.getRouter();
 
@@ -10,13 +10,13 @@ import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 
-import ResourceCategoryService from '../services/resourceCategoryService';
+import ResourceCategoryService from '../Services/resourceCategoryService';
 
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 // Route

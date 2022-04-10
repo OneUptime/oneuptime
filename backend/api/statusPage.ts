@@ -1,15 +1,15 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import PositiveNumber from 'common/types/PositiveNumber';
-import StatusPageService from '../services/statusPageService';
-import MonitorService from '../services/monitorService';
-import ProbeService from '../services/probeService';
-import UtilService from '../services/utilService';
-import RealTimeService from '../services/realTimeService';
-import DomainVerificationService from '../services/domainVerificationService';
-import IncidentService from '../services/incidentService';
+import StatusPageService from '../Services/statusPageService';
+import MonitorService from '../Services/monitorService';
+import ProbeService from '../Services/probeService';
+import UtilService from '../Services/utilService';
+import RealTimeService from '../Services/realTimeService';
+import DomainVerificationService from '../Services/domainVerificationService';
+import IncidentService from '../Services/incidentService';
 import BadDataException from 'common/types/exception/BadDataException';
 
 const router = express.getRouter();
@@ -27,20 +27,20 @@ import { isUserAdmin } from '../middlewares/project';
 import storage from '../middlewares/upload';
 
 import { isAuthorized } from '../middlewares/authorization';
-import IncidentTimelineService from '../services/incidentTimelineService';
+import IncidentTimelineService from '../Services/incidentTimelineService';
 
 import { ipWhitelist } from '../middlewares/ipHandler';
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 import uuid from 'uuid';
 import defaultStatusPageColors from '../config/statusPageColors';
-import SubscriberService from '../services/subscriberService';
-import ScheduledEventService from '../services/scheduledEventService';
+import SubscriberService from '../Services/subscriberService';
+import ScheduledEventService from '../Services/scheduledEventService';
 import axios from 'axios';
 import cheerio from 'cheerio';
 

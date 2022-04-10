@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/SSL';
+import Model, { requiredFields, uniqueFields } from '../Models/SSL';
 import DatabaseService from './DatabaseService';
 
 export default class SslService extends DatabaseService<typeof Model> {

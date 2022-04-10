@@ -1,4 +1,4 @@
-import CertificateModel from '../models/certificate';
+import CertificateModel from '../Models/certificate';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

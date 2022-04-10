@@ -4,7 +4,7 @@ import BadDataException from 'common/types/exception/BadDataException';
 import bcrypt from 'bcrypt';
 
 import constants from '../config/constants.json';
-import UserModel from '../models/user';
+import UserModel from '../Models/user';
 import util from './utilService.js';
 import randToken from 'rand-token';
 import PaymentService from './PaymentService';
@@ -19,7 +19,7 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
-import VerificationTokenModel from '../models/verificationToken';
+import VerificationTokenModel from '../Models/verificationToken';
 import MailService from './MailService';
 import AirtableService from './AirtableService';
 
@@ -28,7 +28,7 @@ import { hotp } from 'otplib';
 import LoginHistoryService from './LoginHistoryService';
 import Query from '../types/db/Query';
 
-import Model, { requiredFields, uniqueFields } from '../models/User';
+import Model, { requiredFields, uniqueFields } from '../Models/User';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../types/db/CreateBy';
 

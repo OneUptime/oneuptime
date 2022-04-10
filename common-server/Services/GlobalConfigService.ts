@@ -267,7 +267,7 @@ export default class Service {
 }
 
 import Crypto from 'crypto';
-import GlobalConfigModel from '../models/globalConfig';
+import GlobalConfigModel from '../Models/globalConfig';
 import EncryptDecrypt from '../config/encryptDecrypt';
 
 import FindOneBy from '../types/db/FindOneBy';

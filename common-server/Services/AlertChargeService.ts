@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/AlertCharge';
+import Model, { requiredFields, uniqueFields } from '../Models/AlertCharge';
 import DatabaseService from './DatabaseService';
 
 export default class AlertChargeService extends DatabaseService<typeof Model> {

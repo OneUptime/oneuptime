@@ -3,8 +3,8 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
-import { sendErrorResponse } from 'common-server/utils/response';
+} from 'common-server/Utils/Express';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 
 const doesUserBelongToProject = require('./project').doesUserBelongToProject;
 

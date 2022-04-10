@@ -1,11 +1,11 @@
-import ContainerScannerService from '../services/containerScannerService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import ContainerScannerService from '../Services/containerScannerService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 export default {
     isAuthorizedContainerScanner: async function (

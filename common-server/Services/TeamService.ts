@@ -968,7 +968,7 @@ import NotificationService from './NotificationService';
 import RealTimeService from './realTimeService';
 import ErrorService from '../utils/error';
 import domains from '../config/domains';
-import VerificationTokenModel from '../models/verificationToken';
+import VerificationTokenModel from '../Models/verificationToken';
 import crypto from 'crypto';
 
 import { IS_SAAS_SERVICE } from '../config/server';

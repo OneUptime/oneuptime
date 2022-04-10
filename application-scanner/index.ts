@@ -1,4 +1,4 @@
-import { ExpressRequest, ExpressResponse } from 'common-server/utils/Express';
+import { ExpressRequest, ExpressResponse } from 'common-server/Utils/Express';
 
 import app from 'common-server/utils/StartServer';
 

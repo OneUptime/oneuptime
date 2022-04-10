@@ -240,7 +240,7 @@ export default class Service {
     }
 }
 
-import ErrorTrackerModel from '../models/errorTracker';
+import ErrorTrackerModel from '../Models/errorTracker';
 import ComponentService from './ComponentService';
 import ResourceCategoryService from './ResourceCategoryService';
 import RealTimeService from './realTimeService';

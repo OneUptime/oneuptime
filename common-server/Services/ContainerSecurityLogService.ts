@@ -1,4 +1,4 @@
-import ContainerSecurityLogModel from '../models/containerSecurityLog';
+import ContainerSecurityLogModel from '../Models/containerSecurityLog';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

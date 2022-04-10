@@ -1,4 +1,4 @@
-import EmailStatusModel from '../models/emailStatus';
+import EmailStatusModel from '../Models/emailStatus';
 import GlobalConfigService from './GlobalConfigService';
 
 import FindOneBy from '../types/db/FindOneBy';

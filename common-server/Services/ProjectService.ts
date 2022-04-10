@@ -1,4 +1,4 @@
-import ProjectModel from '../models/project';
+import ProjectModel from '../Models/project';
 
 import { v1 as uuidv1 } from 'uuid';
 import MonitorService from './MonitorService';

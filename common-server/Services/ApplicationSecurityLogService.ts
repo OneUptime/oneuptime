@@ -1,4 +1,4 @@
-import ApplicationSecurityLogModel from '../models/applicationSecurityLog';
+import ApplicationSecurityLogModel from '../Models/applicationSecurityLog';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

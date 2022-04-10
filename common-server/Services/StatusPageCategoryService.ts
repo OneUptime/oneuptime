@@ -1,7 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
-} from '../models/StatusPageCategory';
+} from '../Models/StatusPageCategory';
 import DatabaseService from './DatabaseService';
 
 export default class StatusPageCategoryService extends DatabaseService<

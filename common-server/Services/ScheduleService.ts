@@ -520,7 +520,7 @@ export default class Service {
     }
 }
 
-import ScheduleModel from '../models/schedule';
+import ScheduleModel from '../Models/schedule';
 import EscalationService from './EscalationService';
 import getSlug from '../utils/getSlug';
 

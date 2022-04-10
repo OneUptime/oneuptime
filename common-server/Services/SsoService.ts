@@ -189,7 +189,7 @@ export default class Service {
     }
 }
 
-import SsoModel from '../models/SSO';
+import SsoModel from '../Models/SSO';
 import SsoDefaultRolesService from './SsoDefaultRolesService';
 
 import FindOneBy from '../types/db/FindOneBy';

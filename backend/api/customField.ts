@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 import { isAuthorized } from '../middlewares/authorization';
 
@@ -10,10 +10,10 @@ import {
     sendErrorResponse,
     sendItemResponse,
     sendListResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import CustomFieldService from '../services/customFieldService';
+import CustomFieldService from '../Services/customFieldService';
 
 const router = express.getRouter();
 

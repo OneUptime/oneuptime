@@ -1,5 +1,5 @@
-import ScheduledEventModel from '../models/scheduledEvent';
-import UserModel from '../models/user';
+import ScheduledEventModel from '../Models/scheduledEvent';
+import UserModel from '../Models/user';
 import ErrorService from '../utils/error';
 import RealTimeService from './realTimeService';
 import ScheduledEventNoteService from './ScheduledEventNoteService';

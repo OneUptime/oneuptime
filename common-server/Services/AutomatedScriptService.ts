@@ -1,5 +1,5 @@
-import ScriptModel from '../models/automatedScripts';
-import ScriptModelLog from '../models/automationScriptsLog';
+import ScriptModel from '../Models/automatedScripts';
+import ScriptModelLog from '../Models/automationScriptsLog';
 import PositiveNumber from 'common/types/PositiveNumber';
 import BackendAPI from '../utils/api';
 import getSlug from '../utils/getSlug';

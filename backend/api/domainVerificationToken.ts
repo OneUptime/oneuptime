@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 import psl from 'psl';
 
@@ -11,15 +11,15 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import DomainVerificationService from '../services/domainVerificationService';
+import DomainVerificationService from '../Services/domainVerificationService';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'common-server/Utils/Response';
 
-import StatusPageService from '../services/statusPageService';
-import ProjectService from '../services/projectService';
+import StatusPageService from '../Services/statusPageService';
+import ProjectService from '../Services/projectService';
 
 const router = express.getRouter();
 

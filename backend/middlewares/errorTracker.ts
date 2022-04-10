@@ -1,11 +1,11 @@
-import { sendErrorResponse } from 'common-server/utils/response';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
-import ErrorTrackerService from '../services/errorTrackerService';
+} from 'common-server/Utils/Express';
+import ErrorTrackerService from '../Services/errorTrackerService';
 
 const _this = {
     isErrorTrackerValid: async function (

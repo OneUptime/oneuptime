@@ -1,4 +1,4 @@
-import IncidentNoteTemplateModel from '../models/incidentNoteTemplate';
+import IncidentNoteTemplateModel from '../Models/incidentNoteTemplate';
 import FindBy from '../types/db/FindBy';
 import Query from '../types/db/Query';
 export default class Service {

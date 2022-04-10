@@ -3,12 +3,12 @@ import ProjectService from './ProjectService';
 import IncidentService from './IncidentService';
 import IncidentTimelineService from './IncidentTimelineService';
 import MonitorService from './MonitorService';
-import ZapierModel from '../models/zapier';
-import IncidentModel from '../models/incident';
+import ZapierModel from '../Models/zapier';
+import IncidentModel from '../Models/incident';
 import NotificationService from './NotificationService';
 import RealTimeService from './realTimeService';
 import IncidentMessageService from './IncidentMessageService';
-import IncidentMessageModel from '../models/incidentMessage';
+import IncidentMessageModel from '../Models/incidentMessage';
 
 import FindOneBy from '../types/db/FindOneBy';
 import Query from '../types/db/Query';

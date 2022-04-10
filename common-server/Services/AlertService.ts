@@ -1,4 +1,4 @@
-import AlertModel from '../models/alert';
+import AlertModel from '../Models/alert';
 import ProjectService from './ProjectService';
 import PaymentService from './PaymentService';
 import AlertType from '../config/alertType';

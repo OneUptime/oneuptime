@@ -1,10 +1,10 @@
-import { sendErrorResponse } from 'common-server/utils/response';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 export default {
     isAuthorizedLighthouse: async function (

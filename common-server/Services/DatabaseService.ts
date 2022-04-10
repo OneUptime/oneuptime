@@ -1,8 +1,8 @@
 import Slug from 'common/utils/Slug';
 import Populate from '../types/db/Populate';
 import Select from '../types/db/Select';
-import { Model } from '../infrastructure/ORM';
-import { RequiredFields, UniqueFields, Document } from '../infrastructure/ORM';
+import { Model } from '../Infrastructure/ORM';
+import { RequiredFields, UniqueFields, Document } from '../Infrastructure/ORM';
 import FindOneBy from '../types/db/FindOneBy';
 import UpdateOneBy from '../types/db/UpdateOneBy';
 import CountBy from '../types/db/CountBy';

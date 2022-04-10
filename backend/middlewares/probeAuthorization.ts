@@ -1,10 +1,10 @@
-import ProbeService from '../services/probeService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import ProbeService from '../Services/probeService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import BadDataException from 'common/types/exception/BadDataException';
 const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 

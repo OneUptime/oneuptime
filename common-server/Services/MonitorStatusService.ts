@@ -255,7 +255,7 @@ export default class Service {
     }
 }
 
-import MonitorStatusModel from '../models/monitorStatus';
+import MonitorStatusModel from '../Models/monitorStatus';
 import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
 

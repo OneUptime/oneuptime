@@ -1,5 +1,5 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-import ComponentModel from '../models/component';
+import ComponentModel from '../Models/component';
 import Plans from '../config/plans';
 import RealTimeService from './realTimeService';
 import NotificationService from './NotificationService';

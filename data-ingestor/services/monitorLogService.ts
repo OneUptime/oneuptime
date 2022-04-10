@@ -1,7 +1,7 @@
-import MonitorLogByHourService from '../services/monitorLogByHourService';
-import MonitorLogByDayService from '../services/monitorLogByDayService';
-import MonitorLogByWeekService from '../services/monitorLogByWeekService';
-import MonitorService from '../services/monitorService';
+import MonitorLogByHourService from '../Services/monitorLogByHourService';
+import MonitorLogByDayService from '../Services/monitorLogByDayService';
+import MonitorLogByWeekService from '../Services/monitorLogByWeekService';
+import MonitorService from '../Services/monitorService';
 import Query from 'common-server/types/db/Query';
 import moment from 'moment';
 

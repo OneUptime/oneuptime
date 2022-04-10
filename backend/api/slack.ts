@@ -1,10 +1,10 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import BadDataException from 'common/types/exception/BadDataException';
 import request from 'request';
-import IntegrationService from '../services/integrationService';
+import IntegrationService from '../Services/integrationService';
 const getUser = require('../middlewares/user').getUser;
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import {
@@ -17,7 +17,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 const router = express.getRouter();

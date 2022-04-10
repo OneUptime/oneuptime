@@ -422,6 +422,6 @@ export default class Service {
 }
 
 import moment from 'moment';
-import IncidentModel from '../models/incident';
+import IncidentModel from '../Models/incident';
 import UserService from './UserService';
 import MonitorService from './MonitorService';

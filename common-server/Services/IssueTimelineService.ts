@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/IssueTimeline';
+import Model, { requiredFields, uniqueFields } from '../Models/IssueTimeline';
 import DatabaseService from './DatabaseService';
 
 export default class IssueTimelineService extends DatabaseService<

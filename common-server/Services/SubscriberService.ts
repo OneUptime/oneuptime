@@ -1,4 +1,4 @@
-import SubscriberModel from '../models/subscriber';
+import SubscriberModel from '../Models/subscriber';
 import StatusPageService from './StatusPageService';
 
 import FindOneBy from '../types/db/FindOneBy';

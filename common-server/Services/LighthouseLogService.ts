@@ -227,7 +227,7 @@ export default class Service {
     }
 }
 
-import LighthouseLogModel from '../models/lighthouseLog';
+import LighthouseLogModel from '../Models/lighthouseLog';
 import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
 import probeService from './ProbeService';

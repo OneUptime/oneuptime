@@ -125,7 +125,7 @@ export default class Service {
 
 import IncidentSettingsService from './IncidentSettingsService';
 import IncidentService from './IncidentService';
-import incidentPriorityModel from '../models/incidentPriority';
+import incidentPriorityModel from '../Models/incidentPriority';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

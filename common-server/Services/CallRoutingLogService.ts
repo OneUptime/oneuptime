@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/CallRoutingLog';
+import Model, { requiredFields, uniqueFields } from '../Models/CallRoutingLog';
 import DatabaseService from './DatabaseService';
 
 export default class CallRoutingLogService extends DatabaseService<

@@ -1,5 +1,5 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-import IncidentModel from '../models/incident';
+import IncidentModel from '../Models/incident';
 import IncidentTimelineService from './IncidentTimelineService';
 import MonitorService from './MonitorService';
 import AlertService from './AlertService';

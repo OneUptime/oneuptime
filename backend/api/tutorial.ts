@@ -1,16 +1,16 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
 
-import UserService from '../services/userService';
+import UserService from '../Services/userService';
 
 const getUser = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {

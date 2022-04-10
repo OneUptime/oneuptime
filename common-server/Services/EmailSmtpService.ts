@@ -1,5 +1,5 @@
 import Crypto from 'crypto';
-import EmailSmtpModel from '../models/smtp';
+import EmailSmtpModel from '../Models/smtp';
 import EncryptDecrypt from '../config/encryptDecrypt';
 
 import FindOneBy from '../types/db/FindOneBy';

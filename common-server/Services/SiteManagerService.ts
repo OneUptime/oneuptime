@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/SiteManager';
+import Model, { requiredFields, uniqueFields } from '../Models/SiteManager';
 import DatabaseService from './DatabaseService';
 
 export default class SiteManagerService extends DatabaseService<typeof Model> {

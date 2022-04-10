@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/SsoDefaultRole';
+import Model, { requiredFields, uniqueFields } from '../Models/SsoDefaultRole';
 import DatabaseService from './DatabaseService';
 
 export default class SsoDefaultRoleService extends DatabaseService<

@@ -1,4 +1,4 @@
-import LoginHistoryModel from '../models/loginIPLog';
+import LoginHistoryModel from '../Models/loginIPLog';
 import DeviceDetector from 'node-device-detector';
 import MailService from './MailService';
 import UserService from './UserService';

@@ -1,7 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
-} from '../models/CertificateStore';
+} from '../Models/CertificateStore';
 import DatabaseService from './DatabaseService';
 
 export default class CertificateStoreService extends DatabaseService<

@@ -1,22 +1,22 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import ApplicationSecurityService from '../services/applicationSecurityService';
-import ApplicationSecurityLogService from '../services//applicationSecurityLogService';
+} from 'common-server/Utils/Express';
+import ApplicationSecurityService from '../Services/applicationSecurityService';
+import ApplicationSecurityLogService from '../Services//applicationSecurityLogService';
 const router = express.getRouter();
 const isAuthorizedApplicationScanner =
     require('../middlewares/applicationScannerAuthorization').isAuthorizedApplicationScanner;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import RealtimeService from '../services/realTimeService';
-import MailService from '../services/mailService';
-import UserService from '../services/userService';
-import ProjectService from '../services/projectService';
+import RealtimeService from '../Services/realTimeService';
+import MailService from '../Services/mailService';
+import UserService from '../Services/userService';
+import ProjectService from '../Services/projectService';
 // Route
 // Description: Updating profile setting.
 // Params:

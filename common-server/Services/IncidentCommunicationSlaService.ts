@@ -1,4 +1,4 @@
-import IncidentCommunicationSlaModel from '../models/incidentCommunicationSla';
+import IncidentCommunicationSlaModel from '../Models/incidentCommunicationSla';
 import MonitorService from './MonitorService';
 
 import FindOneBy from '../types/db/FindOneBy';

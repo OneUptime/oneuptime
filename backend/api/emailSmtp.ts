@@ -1,9 +1,9 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import EmailSmtpService from '../services/emailSmtpService';
-import MailService from '../services/mailService';
+} from 'common-server/Utils/Express';
+import EmailSmtpService from '../Services/emailSmtpService';
+import MailService from '../Services/mailService';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -13,10 +13,10 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import UserService from '../services/userService';
+import UserService from '../Services/userService';
 
 router.post(
     '/test',

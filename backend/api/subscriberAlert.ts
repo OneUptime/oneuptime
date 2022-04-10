@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import SubscriberAlertService from '../services/subscriberAlertService';
+} from 'common-server/Utils/Express';
+import SubscriberAlertService from '../Services/subscriberAlertService';
 import path from 'path';
 import fs from 'fs';
 
@@ -12,9 +12,9 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
-import IncidentService from '../services/incidentService';
+import IncidentService from '../Services/incidentService';
 
 router.post(
     '/:projectId/:subscriberId',

@@ -1,4 +1,4 @@
-import logger from 'common-server/utils/logger';
+import logger from 'common-server/Utils/Logger';
 import ProbeAPI from '../utils/api';
 import ApiMonitors from './apiMonitors';
 import UrlMonitors from './urlMonitors';

@@ -240,7 +240,7 @@ export default class Service {
         return 'Integration(s) Removed Successfully!';
     }
 }
-import IntegrationModel from '../models/integration';
+import IntegrationModel from '../Models/integration';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

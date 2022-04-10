@@ -1,4 +1,4 @@
-import ApplicationSecurityModel from '../models/applicationSecurity';
+import ApplicationSecurityModel from '../Models/applicationSecurity';
 import moment from 'moment';
 
 import { decrypt } from '../config/encryptDecrypt';

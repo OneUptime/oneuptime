@@ -1,4 +1,4 @@
-import DefaultManagerModel from '../models/defaultManager';
+import DefaultManagerModel from '../Models/defaultManager';
 
 import FindOneBy from '../types/db/FindOneBy';
 import FindBy from '../types/db/FindBy';

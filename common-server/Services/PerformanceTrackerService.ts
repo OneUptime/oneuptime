@@ -1,5 +1,5 @@
 import PositiveNumber from 'common/types/PositiveNumber';
-import PerformanceTrackerModel from '../models/performanceTracker';
+import PerformanceTrackerModel from '../Models/performanceTracker';
 import ComponentService from './ComponentService';
 
 import generate from 'nanoid/generate';

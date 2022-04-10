@@ -1,7 +1,7 @@
 import dns from 'dns';
 
 import psl from 'psl';
-import DomainVerificationTokenModel from '../models/domainVerificationToken';
+import DomainVerificationTokenModel from '../Models/domainVerificationToken';
 import flatten from '../utils/flattenArray';
 import randomChar from '../utils/randomChar';
 import StatusPageService from './StatusPageService';

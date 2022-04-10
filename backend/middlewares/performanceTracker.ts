@@ -1,11 +1,11 @@
-import PerformanceTrackerService from '../services/performanceTrackerService';
-import { sendErrorResponse } from 'common-server/utils/response';
+import PerformanceTrackerService from '../Services/performanceTrackerService';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';
 import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const _this = {
     isValidAPIKey: async function (
         req: ExpressRequest,

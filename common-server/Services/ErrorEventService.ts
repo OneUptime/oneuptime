@@ -390,7 +390,7 @@ export default class Service {
     }
 }
 
-import ErrorEventModel from '../models/errorEvent';
+import ErrorEventModel from '../Models/errorEvent';
 import IssueService from './IssueService';
 import IssueMemberService from './IssueMemberService';
 import IssueTimelineService from './IssueTimelineService';

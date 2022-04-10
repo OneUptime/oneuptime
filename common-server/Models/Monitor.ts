@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields, UniqueFields } from '../infrastructure/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../Infrastructure/ORM';
 const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded

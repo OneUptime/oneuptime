@@ -3,7 +3,7 @@ import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from '../utils/Express';
+} from '../Utils/Express';
 
 import { sendErrorResponse } from '../utils/Response';
 import BadDataException from 'common/types/exception/BadDataException';

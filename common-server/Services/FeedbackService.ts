@@ -1,4 +1,4 @@
-import FeedbackModel from '../models/feedback';
+import FeedbackModel from '../Models/feedback';
 import MailService from './MailService';
 import UserService from './UserService';
 import ProjectService from './ProjectService';

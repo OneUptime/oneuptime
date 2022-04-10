@@ -1,9 +1,9 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
-import UserService from '../services/userService';
-import ProjectService from '../services/projectService';
+} from 'common-server/Utils/Express';
+import UserService from '../Services/userService';
+import ProjectService from '../Services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
 import BadDataException from 'common/types/exception/BadDataException';
 
@@ -13,16 +13,16 @@ import bcrypt from 'bcrypt';
 
 import saml2 from 'saml2-js';
 import { decode } from 'js-base64';
-import MailService from '../services/mailService';
-import SsoService from '../services/ssoService';
+import MailService from '../Services/mailService';
+import SsoService from '../Services/ssoService';
 const getUser = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'common-server/Utils/Response';
 const router = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
@@ -36,7 +36,7 @@ import VerificationTokenModel from 'common-server/models/verificationToken';
 
 import { IS_SAAS_SERVICE } from '../config/server';
 import UserModel from 'common-server/models/user';
-import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
+import SsoDefaultRolesService from '../Services/ssoDefaultRolesService';
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
 

@@ -1,4 +1,4 @@
-import mongoose, { RequiredFields, UniqueFields } from '../infrastructure/ORM';
+import mongoose, { RequiredFields, UniqueFields } from '../Infrastructure/ORM';
 import { RoleArray } from 'common/types/Role';
 
 const Schema = mongoose.Schema;

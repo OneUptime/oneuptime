@@ -1,10 +1,10 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
 const router = express.getRouter();
-import NotificationService from '../services/notificationService';
+import NotificationService from '../Services/notificationService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
@@ -13,7 +13,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 router.get(

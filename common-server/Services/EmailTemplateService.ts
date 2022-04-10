@@ -164,7 +164,7 @@ export default class Service {
     }
 }
 
-import EmailTemplateModel from '../models/emailTemplate';
+import EmailTemplateModel from '../Models/emailTemplate';
 import emailTemplateVariables from '../config/emailTemplateVariables';
 import defaultTemplate from '../config/emailTemplate';
 

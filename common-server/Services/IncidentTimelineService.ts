@@ -232,7 +232,7 @@ export default class Service {
     }
 }
 
-import IncidentTimelineModel from '../models/incidentTimeline';
+import IncidentTimelineModel from '../Models/incidentTimeline';
 import IncidentService from './IncidentService';
 import RealTimeService from './realTimeService';
 import ErrorService from '../utils/error';

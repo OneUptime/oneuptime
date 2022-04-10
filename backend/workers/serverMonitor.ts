@@ -1,8 +1,8 @@
 import moment from 'moment';
-const MonitorService = require('../services/monitorService'),
-    MonitorLogService = require('../services/monitorLogService'),
-    MonitorStatusService = require('../services/monitorStatusService'),
-    ProbeService = require('../services/probeService');
+const MonitorService = require('../Services/monitorService'),
+    MonitorLogService = require('../Services/monitorLogService'),
+    MonitorStatusService = require('../Services/monitorStatusService'),
+    ProbeService = require('../Services/probeService');
 
 export default {
     checkAllServerMonitors: async () => {

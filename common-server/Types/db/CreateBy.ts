@@ -1,4 +1,4 @@
-import { Document } from '../../infrastructure/ORM';
+import { Document } from '../../Infrastructure/ORM';
 
 export default interface CreateBy {
     data: Document;

@@ -1,4 +1,4 @@
-import Model, { requiredFields, uniqueFields } from '../models/MonitorLogByDay';
+import Model, { requiredFields, uniqueFields } from '../Models/MonitorLogByDay';
 import DatabaseService from './DatabaseService';
 
 export default class MonitorLogByDayService extends DatabaseService<

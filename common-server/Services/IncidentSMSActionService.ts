@@ -1,7 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
-} from '../models/IncidentSMSAction';
+} from '../Models/IncidentSMSAction';
 import DatabaseService from './DatabaseService';
 
 export default class IncidentSMSActionService extends DatabaseService<

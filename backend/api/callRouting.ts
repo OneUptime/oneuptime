@@ -1,11 +1,11 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 
-import { fetchPhoneNumbers } from '../services/twilioService';
-import CallRoutingService from '../services/callRoutingService';
-import FileService from '../services/fileService';
+import { fetchPhoneNumbers } from '../Services/twilioService';
+import CallRoutingService from '../Services/callRoutingService';
+import FileService from '../Services/fileService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
@@ -13,7 +13,7 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/utils/response';
+} from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
 const router = express.getRouter();

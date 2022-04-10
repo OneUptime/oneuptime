@@ -1,4 +1,4 @@
-import LeadsModel from '../models/lead';
+import LeadsModel from '../Models/lead';
 import MailService from './MailService';
 import AirtableService from './AirtableService';
 import Query from '../types/db/Query';

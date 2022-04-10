@@ -3,16 +3,16 @@ import {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 import BadDataException from 'common/types/exception/BadDataException';
 import _ from 'lodash';
 const isValidMongoObjectId = require('../config/db').Types.ObjectId.isValid;
 
-import AuditLogsService from '../services/auditLogsService';
+import AuditLogsService from '../Services/auditLogsService';
 const sendErrorResponse = require('./response').sendErrorResponse;
 
 import { getProjectId } from './api';
-import GlobalConfigService from '../services/globalConfigService';
+import GlobalConfigService from '../Services/globalConfigService';
 
 // TODO: This should be stored in a shared cache like redis.
 let shouldStoreLogs: $TSFixMe = null;

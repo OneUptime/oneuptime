@@ -1,17 +1,17 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/utils/Express';
+} from 'common-server/Utils/Express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-import { sendListResponse } from 'common-server/utils/response';
-import { sendItemResponse } from 'common-server/utils/response';
+import { sendListResponse } from 'common-server/Utils/Response';
+import { sendItemResponse } from 'common-server/Utils/Response';
 
-import { sendErrorResponse } from 'common-server/utils/response';
+import { sendErrorResponse } from 'common-server/Utils/Response';
 import Exception from 'common/types/exception/Exception';
 
-import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
+import SsoDefaultRolesService from '../Services/ssoDefaultRolesService';
 
 router.get(
     '/',
