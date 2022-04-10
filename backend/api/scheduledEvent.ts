@@ -1,25 +1,25 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 
 import { getUser, checkUserBelongToProject } from '../middlewares/user';
-import ScheduledEventService from '../Services/scheduledEventService';
-import AlertService from '../Services/alertService';
+import ScheduledEventService from '../services/scheduledEventService';
+import AlertService from '../services/alertService';
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 import { getSubProjects } from '../middlewares/subProject';
-import ScheduledEventNoteService from '../Services/scheduledEventNoteService';
+import ScheduledEventNoteService from '../services/scheduledEventNoteService';
 import moment from 'moment';
-import MonitorService from '../Services/monitorService';
+import MonitorService from '../services/monitorService';
 import ErrorService from 'common-server/utils/error';
 
 router.post(

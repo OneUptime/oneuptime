@@ -1,16 +1,16 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import CertificateStoreService from '../Services/certificateStoreService';
-import StatusPageService from '../Services/statusPageService';
-import SiteManagerService from '../Services/siteManagerService';
+import CertificateStoreService from '../services/certificateStoreService';
+import StatusPageService from '../services/statusPageService';
+import SiteManagerService from '../services/siteManagerService';
 
 const router = express.getRouter();
 

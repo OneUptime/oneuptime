@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 import BadDataException from 'common/types/exception/BadDataException';
@@ -10,9 +10,9 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
-import IncidentPrioritiesService from '../Services/incidentPrioritiesService';
+import IncidentPrioritiesService from '../services/incidentPrioritiesService';
 
 router.get(
     '/:projectId',

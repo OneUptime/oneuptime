@@ -1,20 +1,20 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
-import ContainerSecurityService from '../Services/containerSecurityService';
-import RealTimeService from '../Services/realTimeService';
-import ResourceCategoryService from '../Services/resourceCategoryService';
+import { sendListResponse } from 'common-server/utils/response';
+import ContainerSecurityService from '../services/containerSecurityService';
+import RealTimeService from '../services/realTimeService';
+import ResourceCategoryService from '../services/resourceCategoryService';
 import ErrorService from 'common-server/utils/error';
 
 const router = express.getRouter();

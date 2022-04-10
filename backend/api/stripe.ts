@@ -1,24 +1,24 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import StripeService from '../Services/stripeService';
+} from 'common-server/utils/Express';
+import StripeService from '../services/stripeService';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendEmptyResponse } from 'common-server/Utils/Response';
+import { sendEmptyResponse } from 'common-server/utils/response';
 
-import { sendListResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
 
 const getUser = require('../middlewares/user').getUser;
 
 import { isUserOwner } from '../middlewares/project';
 
 import { isAuthorized } from '../middlewares/authorization';
-import ProjectService from '../Services/projectService';
+import ProjectService from '../services/projectService';
 
 const router = express.getRouter();
 

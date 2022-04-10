@@ -1,19 +1,19 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import ZapierService from '../Services/zapierService';
-import MonitorService from '../Services/monitorService';
-import ProjectService from '../Services/projectService';
+} from 'common-server/utils/Express';
+import ZapierService from '../services/zapierService';
+import MonitorService from '../services/monitorService';
+import ProjectService from '../services/projectService';
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendEmptyResponse } from 'common-server/Utils/Response';
+import { sendEmptyResponse } from 'common-server/utils/response';
 
 const router = express.getRouter();
 

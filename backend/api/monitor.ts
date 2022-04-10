@@ -1,17 +1,17 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 import axios from 'axios';
-import UserService from '../Services/userService';
-import MonitorService from '../Services/monitorService';
-import MonitorLogService from '../Services/monitorLogService';
-import LighthouseLogService from '../Services/lighthouseLogService';
-import NotificationService from '../Services/notificationService';
-import RealTimeService from '../Services/realTimeService';
-import ScheduleService from '../Services/scheduleService';
-import ProbeService from '../Services/probeService';
-import ComponentService from '../Services/componentService';
+import UserService from '../services/userService';
+import MonitorService from '../services/monitorService';
+import MonitorLogService from '../services/monitorLogService';
+import LighthouseLogService from '../services/lighthouseLogService';
+import NotificationService from '../services/notificationService';
+import RealTimeService from '../services/realTimeService';
+import ScheduleService from '../services/scheduleService';
+import ProbeService from '../services/probeService';
+import ComponentService from '../services/componentService';
 import ErrorService from 'common-server/utils/error';
 import Api from '../utils/api';
 
@@ -24,10 +24,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import https from 'https';

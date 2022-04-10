@@ -1,19 +1,19 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 import moment from 'moment';
 import Handlebars from 'handlebars';
 import BadDataException from 'common/types/exception/BadDataException';
-import IncidentService from '../Services/incidentService';
-import IncidentTimelineService from '../Services/incidentTimelineService';
-import MonitorStatusService from '../Services/monitorStatusService';
-import StatusPageService from '../Services/statusPageService';
-import RealTimeService from '../Services/realTimeService';
-import IncidentMessageService from '../Services/incidentMessageService';
-import AlertService from '../Services/alertService';
-import UserService from '../Services/userService';
-import MonitorService from '../Services/monitorService';
+import IncidentService from '../services/incidentService';
+import IncidentTimelineService from '../services/incidentTimelineService';
+import MonitorStatusService from '../services/monitorStatusService';
+import StatusPageService from '../services/statusPageService';
+import RealTimeService from '../services/realTimeService';
+import IncidentMessageService from '../services/incidentMessageService';
+import AlertService from '../services/alertService';
+import UserService from '../services/userService';
+import MonitorService from '../services/monitorService';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -27,10 +27,10 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
-import subscriberAlertService from '../Services/subscriberAlertService';
-import onCallScheduleStatusService from '../Services/onCallScheduleStatusService';
+import subscriberAlertService from '../services/subscriberAlertService';
+import onCallScheduleStatusService from '../services/onCallScheduleStatusService';
 import Services from '../utils/services';
 import joinNames from '../utils/joinNames';
 import ClusterKeyAuthorization from 'common-server/middleware/ClusterKeyAuthorization';

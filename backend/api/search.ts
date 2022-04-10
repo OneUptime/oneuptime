@@ -1,23 +1,23 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import UserService from '../Services/userService';
-import ComponentService from '../Services/componentService';
+} from 'common-server/utils/Express';
+import UserService from '../services/userService';
+import ComponentService from '../services/componentService';
 const getUser = require('../middlewares/user').getUser;
-import { sendListResponse } from 'common-server/Utils/Response';
-import { sendErrorResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
+import { sendErrorResponse } from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import MonitorService from '../Services/monitorService';
-import statusPageService from '../Services/statusPageService';
-import ScheduleService from '../Services/scheduleService';
-import ProjectService from '../Services/projectService';
-import ScheduleEventService from '../Services/scheduledEventService';
-import IncidentService from '../Services/incidentService';
-import ErrorTrackerService from '../Services/errorTrackerService';
-import LogContainerService from '../Services/applicationLogService';
-import PerformanceTracker from '../Services/performanceTrackerService';
+import MonitorService from '../services/monitorService';
+import statusPageService from '../services/statusPageService';
+import ScheduleService from '../services/scheduleService';
+import ProjectService from '../services/projectService';
+import ScheduleEventService from '../services/scheduledEventService';
+import IncidentService from '../services/incidentService';
+import ErrorTrackerService from '../services/errorTrackerService';
+import LogContainerService from '../services/applicationLogService';
+import PerformanceTracker from '../services/performanceTrackerService';
 
 import { getSubProjects } from '../middlewares/subProject';
 

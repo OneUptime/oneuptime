@@ -1,19 +1,19 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 
 const router = express.getRouter();
-import GlobalConfigService from '../Services/globalConfigService';
+import GlobalConfigService from '../services/globalConfigService';
 import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
-import twilioService from '../Services/twilioService';
+import twilioService from '../services/twilioService';
 
 // Route Description: Creating global config(s).
 // Body: [{name, value}] | {name, value}

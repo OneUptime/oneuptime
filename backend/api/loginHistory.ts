@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import loginHistoryService from '../Services/loginHistoryService';
+} from 'common-server/utils/Express';
+import loginHistoryService from '../services/loginHistoryService';
 
 const router = express.getRouter();
 
@@ -11,7 +11,7 @@ const getUser = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 router.get(

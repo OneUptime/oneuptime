@@ -1,10 +1,10 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import alertService from '../Services/alertService';
-import IncidentService from '../Services/incidentService';
-import alertChargeService from '../Services/alertChargeService';
+} from 'common-server/utils/Express';
+import alertService from '../services/alertService';
+import IncidentService from '../services/incidentService';
+import alertChargeService from '../services/alertChargeService';
 import path from 'path';
 import fs from 'fs';
 
@@ -19,7 +19,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 router.post(

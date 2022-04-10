@@ -1,14 +1,14 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import ApplicationLogService from '../Services/applicationLogService';
-import UserService from '../Services/userService';
-import ComponentService from '../Services/componentService';
-import RealTimeService from '../Services/realTimeService';
-import LogService from '../Services/logService';
+} from 'common-server/utils/Express';
+import ApplicationLogService from '../services/applicationLogService';
+import UserService from '../services/userService';
+import ComponentService from '../services/componentService';
+import RealTimeService from '../services/realTimeService';
+import LogService from '../services/logService';
 import ErrorService from 'common-server/utils/error';
-import NotificationService from '../Services/notificationService';
+import NotificationService from '../services/notificationService';
 import BadDataException from 'common/types/exception/BadDataException';
 
 const router = express.getRouter();
@@ -20,12 +20,12 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
-import ResourceCategoryService from '../Services/resourceCategoryService';
+import ResourceCategoryService from '../services/resourceCategoryService';
 
 import uuid from 'uuid';
 

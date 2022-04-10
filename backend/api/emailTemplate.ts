@@ -1,8 +1,8 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import EmailTemplateService from '../Services/emailTemplateService';
+} from 'common-server/utils/Express';
+import EmailTemplateService from '../services/emailTemplateService';
 
 const router = express.getRouter();
 
@@ -18,7 +18,7 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 router.post(

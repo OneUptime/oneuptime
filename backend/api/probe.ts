@@ -1,10 +1,10 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import ProbeService from '../Services/probeService';
-import MonitorService from '../Services/monitorService';
-import LighthouseLogService from '../Services/lighthouseLogService';
+} from 'common-server/utils/Express';
+import ProbeService from '../services/probeService';
+import MonitorService from '../services/monitorService';
+import LighthouseLogService from '../services/lighthouseLogService';
 const router = express.getRouter();
 const isAuthorizedAdmin =
     require('../middlewares/clusterAuthorization').isAuthorizedAdmin;
@@ -12,10 +12,10 @@ import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';

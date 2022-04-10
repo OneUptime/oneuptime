@@ -1,22 +1,22 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
-import ContainerSecurityService from '../Services/containerSecurityService';
-import ContainerSecurityLogService from '../Services//containerSecurityLogService';
+import ContainerSecurityService from '../services/containerSecurityService';
+import ContainerSecurityLogService from '../services//containerSecurityLogService';
 const isAuthorizedContainerScanner =
     require('../middlewares/containerScannerAuthorization').isAuthorizedContainerScanner;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import RealTimeService from '../Services/realTimeService';
-import MailService from '../Services/mailService';
-import UserService from '../Services/userService';
-import ProjectService from '../Services/projectService';
+import RealTimeService from '../services/realTimeService';
+import MailService from '../services/mailService';
+import UserService from '../services/userService';
+import ProjectService from '../services/projectService';
 
 router.get(
     '/containerSecurities',

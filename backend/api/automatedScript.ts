@@ -1,16 +1,16 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 const router = express.getRouter();
 
-import AutomatedScriptService from '../Services/automatedScriptService';
-import { sendErrorResponse } from 'common-server/Utils/Response';
+import AutomatedScriptService from '../services/automatedScriptService';
+import { sendErrorResponse } from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
 
-import { sendItemResponse } from 'common-server/Utils/Response';
+import { sendItemResponse } from 'common-server/utils/response';
 
 import { isAuthorized } from '../middlewares/authorization';
 

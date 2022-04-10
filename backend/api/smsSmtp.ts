@@ -1,9 +1,9 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import SmsSmtpService from '../Services/smsSmtpService';
-import TwilioService from '../Services/twilioService';
+} from 'common-server/utils/Express';
+import SmsSmtpService from '../services/smsSmtpService';
+import TwilioService from '../services/twilioService';
 const router = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
@@ -12,7 +12,7 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 router.post(

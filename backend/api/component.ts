@@ -1,22 +1,22 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import UserService from '../Services/userService';
-import ComponentService from '../Services/componentService';
-import NotificationService from '../Services/notificationService';
-import RealTimeService from '../Services/realTimeService';
-import ApplicationLogService from '../Services/applicationLogService';
-import MonitorService from '../Services/monitorService';
-import ApplicationSecurityService from '../Services/applicationSecurityService';
-import ContainerSecurityService from '../Services/containerSecurityService';
-import LogService from '../Services/logService';
-import ApplicationSecurityLogService from '../Services/applicationSecurityLogService';
-import ContainerSecurityLogService from '../Services/containerSecurityLogService';
-import ErrorTrackerService from '../Services/errorTrackerService';
-import IssueService from '../Services/issueService';
-import PerformanceTrackerService from '../Services/performanceTrackerService';
-import PerformanceTrackerMetricService from '../Services/performanceTrackerMetricService';
+} from 'common-server/utils/Express';
+import UserService from '../services/userService';
+import ComponentService from '../services/componentService';
+import NotificationService from '../services/notificationService';
+import RealTimeService from '../services/realTimeService';
+import ApplicationLogService from '../services/applicationLogService';
+import MonitorService from '../services/monitorService';
+import ApplicationSecurityService from '../services/applicationSecurityService';
+import ContainerSecurityService from '../services/containerSecurityService';
+import LogService from '../services/logService';
+import ApplicationSecurityLogService from '../services/applicationSecurityLogService';
+import ContainerSecurityLogService from '../services/containerSecurityLogService';
+import ErrorTrackerService from '../services/errorTrackerService';
+import IssueService from '../services/issueService';
+import PerformanceTrackerService from '../services/performanceTrackerService';
+import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
 import ErrorService from 'common-server/utils/error';
 
 const router = express.getRouter();
@@ -28,10 +28,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
+import { sendListResponse } from 'common-server/utils/response';
 import moment from 'moment';
 
 // Route

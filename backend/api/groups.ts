@@ -1,20 +1,20 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
+} from 'common-server/utils/Express';
 const getUser = require('../middlewares/user').getUser;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
-import { sendListResponse } from 'common-server/Utils/Response';
-import GroupService from '../Services/groupService';
+import { sendListResponse } from 'common-server/utils/response';
+import GroupService from '../services/groupService';
 const getSubProjects = require('../middlewares/subProject').getSubProjects;
-import EscalationService from '../Services/escalationService';
+import EscalationService from '../services/escalationService';
 
 const router = express.getRouter();
 

@@ -1,14 +1,14 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'common-server/Utils/Express';
-import IncidentService from '../Services/incidentService';
-import UserService from '../Services/userService';
+} from 'common-server/utils/Express';
+import IncidentService from '../services/incidentService';
+import UserService from '../services/userService';
 import {
     sendIncidentCreatedCall,
     sendVerificationSMS,
     test,
-} from '../Services/twilioService';
+} from '../services/twilioService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser = require('../middlewares/user').getUser;
@@ -16,11 +16,11 @@ const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'common-server/Utils/Response';
+} from 'common-server/utils/response';
 import Exception from 'common/types/exception/Exception';
 
 const router = express.getRouter();
-import SmsCountService from '../Services/smsCountService';
+import SmsCountService from '../services/smsCountService';
 
 /**
  * @param { accessToken, projectId, incidentId }: Come in the query string, passed in twilio service.
