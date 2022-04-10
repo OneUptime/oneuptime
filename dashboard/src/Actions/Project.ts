@@ -1,5 +1,5 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 import { Dispatch } from 'redux';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';

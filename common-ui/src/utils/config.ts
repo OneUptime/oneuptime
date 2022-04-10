@@ -1,5 +1,5 @@
-import Hostname from 'common/types/api/hostname';
-import Protocol from 'common/types/api/protocol';
+import Hostname from 'common/Types/api/hostname';
+import Protocol from 'common/Types/api/protocol';
 
 export const env = (key: string): string => {
     return process.env[`REACT_APP_${key}`] || '';

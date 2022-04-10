@@ -1,7 +1,7 @@
 import utils from './test-utils';
 import chai from 'chai';
 import chaihttp from 'chai-http';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 chai.use(chaihttp);
 
 const request = chai.request(utils.BACKEND_URL);

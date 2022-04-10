@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import PerformanceTrackerModel from '../Models/performanceTracker';
 import ComponentService from './ComponentService';
 

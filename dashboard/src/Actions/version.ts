@@ -1,7 +1,7 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/version';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 import ErrorPayload from 'common-ui/src/payload-types/error';
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {

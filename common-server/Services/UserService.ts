@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import BadDataException from 'common/Types/Exception/BadDataException';
 
 import bcrypt from 'bcrypt';

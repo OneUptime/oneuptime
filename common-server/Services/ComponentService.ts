@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import ComponentModel from '../Models/component';
 import Plans from '../config/plans';
 import RealTimeService from './realTimeService';

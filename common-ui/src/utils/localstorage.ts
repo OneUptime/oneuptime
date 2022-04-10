@@ -1,6 +1,6 @@
-import URL from 'common/types/api/url';
-import Email from 'common/types/email';
-import { JSONValue } from 'common/types/JSON';
+import URL from 'common/Types/api/url';
+import Email from 'common/Types/email';
+import { JSONValue } from 'common/Types/JSON';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL) {

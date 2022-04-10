@@ -1,4 +1,4 @@
-import { JSONObject } from 'common/types/JSON';
+import { JSONObject } from 'common/Types/JSON';
 
 export default (product: string) => {
     const products: JSONObject = {

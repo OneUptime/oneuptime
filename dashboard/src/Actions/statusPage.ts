@@ -3,7 +3,7 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 // handle whether to show domain input field
 export const addMoreDomain = () => {
     return {

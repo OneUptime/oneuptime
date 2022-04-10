@@ -1,6 +1,6 @@
 import express from 'express';
 import logger from './Logger';
-import { JSONObjectOrArray } from 'common/types/JSON';
+import { JSONObjectOrArray } from 'common/Types/JSON';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;

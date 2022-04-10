@@ -1,7 +1,7 @@
 import BackendAPI from '../utils/api';
 import UrlMonitors from './urlMonitors';
 
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 
 export default {
     runJob: async function () {

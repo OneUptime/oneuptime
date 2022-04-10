@@ -1,4 +1,4 @@
-import { JSONObjectOrArray } from 'common/types/JSON';
+import { JSONObjectOrArray } from 'common/Types/JSON';
 import io, { Socket } from 'common-server/infrastructure/SocketIO';
 
 io.sockets.on('connection', (socket: Socket) => {

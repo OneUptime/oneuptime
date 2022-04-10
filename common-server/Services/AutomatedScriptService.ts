@@ -1,6 +1,6 @@
 import ScriptModel from '../Models/automatedScripts';
 import ScriptModelLog from '../Models/automationScriptsLog';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import BackendAPI from '../utils/api';
 import getSlug from '../utils/getSlug';
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];

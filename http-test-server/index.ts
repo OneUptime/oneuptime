@@ -9,7 +9,7 @@ import app from 'common-server/utils/StartServer';
 import path from 'path';
 
 import HTTPTestServerResponse from './types/HttpTestServerResponse';
-import ResponseType from 'common/types/api/ResponseType';
+import ResponseType from 'common/Types/api/ResponseType';
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');

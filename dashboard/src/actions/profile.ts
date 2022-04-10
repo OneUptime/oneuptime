@@ -1,6 +1,6 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
 import ErrorPayload from 'common-ui/src/payload-types/error';

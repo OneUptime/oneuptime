@@ -1,7 +1,7 @@
 import moment from 'moment';
 import Database from 'common-server/utils/database';
-import PositiveNumber from 'common/types/PositiveNumber';
-import OneUptimeDate from 'common/types/Date';
+import PositiveNumber from 'common/Types/PositiveNumber';
+import OneUptimeDate from 'common/Types/Date';
 
 const monitorCollection = Database.getDatabase().collection('monitors');
 

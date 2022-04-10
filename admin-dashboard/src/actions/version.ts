@@ -5,7 +5,7 @@ import DashboardAPI from 'common-ui/src/utils/api/dashboard';
 
 import * as types from '../constants/version';
 import { Dispatch } from 'redux';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 
 export const getVersionRequest = (promise: $TSFixMe) => {
     return {

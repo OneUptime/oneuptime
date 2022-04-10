@@ -2,13 +2,13 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
 } from 'common-server/Utils/Express';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 const router = Express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
 } from 'common-server/Utils/Response';
-import Email from 'common/types/email';
+import Email from 'common/Types/email';
 import BadDataException from 'common/Types/Exception/BadDataException';
 
 import LicenseService from '../Services/licenseService';

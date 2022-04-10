@@ -2,7 +2,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/webHook';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 export const deleteWebHookRequest = () => {
     return {
         type: types.DELETE_WEB_HOOK_REQUEST,

@@ -1,7 +1,7 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/probe';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 //Array of Incidents
 
 export const probeRequest = (promise: $TSFixMe) => {

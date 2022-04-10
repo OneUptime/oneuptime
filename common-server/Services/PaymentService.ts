@@ -1,4 +1,4 @@
-import Email from 'common/types/email';
+import Email from 'common/Types/email';
 import payment from '../config/payment';
 import Stripe from 'stripe';
 const stripe = Stripe(payment.paymentPrivateKey);

@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import ServiceBase from './DatabaseService';
 
 import StatusPageModel, { requiredFields } from '../Models/StatusPage';

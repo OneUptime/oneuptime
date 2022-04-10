@@ -1,5 +1,5 @@
 import BackendAPI from './api';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 export default {
     ping: async function (monitorId: $TSFixMe, data: $TSFixMe) {
         return await BackendAPI.post(`script-runner/ping/${monitorId}`, data);

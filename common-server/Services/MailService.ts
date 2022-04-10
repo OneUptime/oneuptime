@@ -12,7 +12,7 @@ import fsp from 'fs/promises';
 import moment from 'moment';
 import { isEmpty } from 'lodash';
 import UppercaseFirstLetter from '../utils/UppercaseFirstLetter';
-import Email from 'common/types/Email';
+import Email from 'common/Types/Email';
 import BadDataException from 'common/Types/Exception/BadDataException';
 
 const helpers = {

@@ -3,7 +3,7 @@ import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/errorTracker';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 //Create new error tracker
 //props -> {name: '', type, data -> { data.url}}
 export function createErrorTracker(

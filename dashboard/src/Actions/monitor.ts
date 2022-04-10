@@ -1,10 +1,10 @@
 import BackendAPI from 'common-ui/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/monitor';
-import Route from 'common/types/api/route';
+import Route from 'common/Types/api/route';
 import { change, autofill } from 'redux-form';
 import ErrorPayload from 'common-ui/src/payload-types/error';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 
 //import { PricingPlan } from '../config';
 //import { User } from '../config';

@@ -1,4 +1,4 @@
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 export default class Service {
     async create(data: $TSFixMe) {
         // check if component exist

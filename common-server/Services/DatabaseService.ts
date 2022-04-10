@@ -9,13 +9,13 @@ import CountBy from '../Types/DB/CountBy';
 import DeleteOneBy from '../Types/DB/DeleteOneBy';
 import SearchBy from '../Types/DB/SearchBy';
 import DeleteBy from '../Types/DB/DeleteBy';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 import FindBy from '../Types/DB/FindBy';
 import UpdateBy from '../Types/DB/UpdateBy';
 import Query from '../Types/DB/Query';
 import CreateBy from '../Types/DB/CreateBy';
 import BadDataException from 'common/Types/Exception/BadDataException';
-import OneUptimeDate from 'common/types/Date';
+import OneUptimeDate from 'common/Types/Date';
 import Exception from 'common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
 

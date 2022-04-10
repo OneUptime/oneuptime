@@ -11,7 +11,7 @@ import { sendErrorResponse } from 'common-server/Utils/Response';
 import Exception from 'common/Types/Exception/Exception';
 
 import { sendListResponse } from 'common-server/Utils/Response';
-import PositiveNumber from 'common/types/PositiveNumber';
+import PositiveNumber from 'common/Types/PositiveNumber';
 
 router.get(
     '/monitors',
