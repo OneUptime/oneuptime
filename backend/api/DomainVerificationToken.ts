@@ -153,10 +153,7 @@ router.post(
             const { domain } = req.body;
 
             if (!domain || !domain.trim()) {
-                const error = new Error('Please specify a domain');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Please specify a domain');
             }
 
             // check if domain is not a sub-domain
@@ -229,10 +226,7 @@ router.put(
             const { domain } = req.body;
 
             if (!domain || !domain.trim()) {
-                const error = new Error('Please specify a domain');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Please specify a domain');
             }
 
             // check if domain is not a sub-domain

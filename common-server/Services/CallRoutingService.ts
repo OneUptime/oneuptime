@@ -124,10 +124,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
             ) {
                 data.stripeSubscriptionId = stripeSubscription.id;
             } else {
-                const error = new Error('Error Creating Subscription.');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Error Creating Subscription.');
             }
             if (
                 data &&

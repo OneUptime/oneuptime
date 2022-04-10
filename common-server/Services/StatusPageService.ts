@@ -195,10 +195,7 @@ export default class Service {
                 domain.domain === subDomain ? true : false
             );
             if (domain) {
-                const error = new Error('Domain already exists');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Domain already exists');
             }
             if (enableHttps && autoProvisioning) {
                 // trigger addition of this particular domain
@@ -1430,15 +1427,9 @@ export default class Service {
             statusPage.monitorsData = _.flatten(filteredMonitorData);
         } else {
             if (statusPages.length > 0) {
-                const error = new Error('Domain not verified');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Domain not verified');
             } else {
-                const error = new Error('Page Not Found');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Page Not Found');
             }
         }
         return statusPage;

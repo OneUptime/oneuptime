@@ -235,10 +235,7 @@ export default class CallRoutingLogService extends DatabaseService<
             });
 
             if (user) {
-                const error = new Error('User already exists.');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('User already exists.');
             } else {
                 let customerId, subscription;
                 if (IS_SAAS_SERVICE && paymentIntent !== null) {
@@ -459,10 +456,7 @@ export default class CallRoutingLogService extends DatabaseService<
             });
 
             if (!user) {
-                const error = new Error('User does not exist.');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('User does not exist.');
             } else if (user.sso) {
                 const error = new Error(
                     'This domain is configured as SSO. Please use SSO to log in to your account'
@@ -582,10 +576,7 @@ export default class CallRoutingLogService extends DatabaseService<
             });
 
             if (!user) {
-                const error = new Error('User does not exist.');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('User does not exist.');
             } else {
                 // ensure user is not in admin mode
                 if (user.isAdminMode && user.cachedPassword) {
@@ -728,10 +719,7 @@ export default class CallRoutingLogService extends DatabaseService<
         } else {
             // ensure user is in admin mode
             if (!user.isAdminMode) {
-                const error = new Error('User is not currently in admin mode');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('User is not currently in admin mode');
             }
 
             //update the user.

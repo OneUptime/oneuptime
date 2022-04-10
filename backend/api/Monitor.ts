@@ -1098,10 +1098,7 @@ router.post(
             ]);
 
             if (!monitor) {
-                const error = new Error('Monitor not found or does not exist');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Monitor not found or does not exist');
             }
 
             result.monitorId = monitor._id;

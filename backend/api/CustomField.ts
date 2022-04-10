@@ -27,17 +27,11 @@ router.post(
             const { fieldName, fieldType, uniqueField } = req.body;
 
             if (!fieldName || !fieldName.trim()) {
-                const error = new Error('Field name is required');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Field name is required');
             }
 
             if (!fieldType || !fieldType.trim()) {
-                const error = new Error('Field type is required');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Field type is required');
             }
 
             const populateCustomField = [{ path: 'projectId', select: 'name' }];
@@ -113,17 +107,11 @@ router.put(
             const { fieldName, fieldType, uniqueField } = req.body;
 
             if (!fieldName || !fieldName.trim()) {
-                const error = new Error('Field name is required');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Field name is required');
             }
 
             if (!fieldType || !fieldType.trim()) {
-                const error = new Error('Field type is required');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Field type is required');
             }
 
             const populateCustomField = [{ path: 'projectId', select: 'name' }];

@@ -339,10 +339,7 @@ export default class Service {
             webHookURL = webhookAgent.data.endpoint;
             httpMethod = webhookAgent.data.endpointType;
             if (httpMethod === undefined) {
-                const error = new Error('Webhook endpoint type missing');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Webhook endpoint type missing');
             }
         } else if (webHookType === EXTERNAL_SUBSCRIBER_WEBHOOK) {
             webHookURL = webhookAgent.contactWebhook;

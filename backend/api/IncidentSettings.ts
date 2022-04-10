@@ -35,10 +35,7 @@ router.get(
         try {
             const { projectId } = req.params;
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
             const select =
                 'projectId title description incidentPriority isDefault name createdAt';
@@ -67,10 +64,7 @@ router.get(
             const { skip, limit } = req.query;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
 
             const query = { projectId };
@@ -213,10 +207,7 @@ router.delete(
             const { projectId, templateId } = req.params;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
             if (!templateId) {
                 const error = new Error(
@@ -255,28 +246,16 @@ router.post(
             } = req.body;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
             if (!name) {
-                const error = new Error('Name must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Name must be present');
             }
             if (!title) {
-                const error = new Error('Title must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Title must be present');
             }
             if (!incidentPriority) {
-                const error = new Error('Incident priority must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Incident priority must be present');
             }
 
             const priority = await IncidentPrioritiesService.findOne({

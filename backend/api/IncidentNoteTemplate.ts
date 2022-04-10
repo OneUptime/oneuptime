@@ -25,28 +25,16 @@ router.post(
             const { incidentState, incidentNote, name } = req.body;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
             if (!name) {
-                const error = new Error('Name must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Name must be present');
             }
             if (!incidentState) {
-                const error = new Error('Incident state must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Incident state must be present');
             }
             if (!incidentNote) {
-                const error = new Error('Incident note must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Incident note must be present');
             }
 
             const data = {
@@ -75,10 +63,7 @@ router.get(
             const { skip, limit } = req.query;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
 
             const query = { projectId };
@@ -108,10 +93,7 @@ router.put(
             const { name, incidentNote, incidentState } = req.body;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
             if (!templateId) {
                 const error = new Error(
@@ -122,22 +104,13 @@ router.put(
                 throw error;
             }
             if (!name) {
-                const error = new Error('Name must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Name must be present');
             }
             if (!incidentState) {
-                const error = new Error('Incident state must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Incident state must be present');
             }
             if (!incidentNote) {
-                const error = new Error('Incident note must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Incident note must be present');
             }
 
             const query = { projectId, _id: templateId };
@@ -161,10 +134,7 @@ router.delete(
             const { projectId, templateId } = req.params;
 
             if (!projectId) {
-                const error = new Error('Project Id must be present');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Project Id must be present');
             }
             if (!templateId) {
                 const error = new Error(

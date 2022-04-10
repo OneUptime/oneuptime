@@ -25,10 +25,7 @@ export default class Service {
                 ending_before: endingBefore,
             });
             if (!invoices || !invoices.data) {
-                const error = new Error('Your invoice cannot be retrieved.');
-
-                error.code = 400;
-                throw error;
+                throw new BadDataException('Your invoice cannot be retrieved.');
             }
             return invoices;
         }
