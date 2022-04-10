@@ -1,9 +1,9 @@
 import API from 'common/utils/API';
 import { RealtimeHostname, HttpProtocol, ClusterKey } from '../Config';
 import { JSONObjectOrArray } from 'common/Types/JSON';
-import Hostname from 'common/Types/api/Hostname';
-import Route from 'common/Types/api/Route';
-import Headers from 'common/Types/api/Headers';
+import Hostname from 'common/Types/API/Hostname';
+import Route from 'common/Types/API/Route';
+import Headers from 'common/Types/API/Headers';
 
 export default class Service {
     private api: API;
