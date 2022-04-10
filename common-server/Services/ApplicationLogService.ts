@@ -174,7 +174,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const applicationLog = await ApplicationLogModel.findOneAndUpdate(
             query,
             {

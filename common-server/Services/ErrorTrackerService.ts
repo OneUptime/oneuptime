@@ -167,7 +167,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const errorTracker = await ErrorTrackerModel.findOneAndUpdate(
             query,
             {

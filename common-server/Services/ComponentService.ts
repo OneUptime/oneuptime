@@ -161,7 +161,7 @@ export default class Service {
                 }
             );
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const populateComponent = [
             { path: 'projectId', select: 'name' },
@@ -271,7 +271,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const component = await ComponentModel.findOneAndUpdate(
             query,
             {

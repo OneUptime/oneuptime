@@ -68,7 +68,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await IntegrationModel.countDocuments(query);
         return count;
     }
@@ -91,7 +91,7 @@ export default class Service {
     async findOneBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) query = {};
 
-        if (query.deleted) query.deleted = false;
+        if (query.deleted) query['deleted'] = false;
         const integrationQuery = IntegrationModel.findOne(query)
             .lean()
             .sort(sort);
@@ -116,7 +116,7 @@ export default class Service {
             );
             return integration;
         } else {
-            query.deleted = false;
+            query['deleted'] = false;
 
             let updatedIntegration = await IntegrationModel.findOneAndUpdate(
                 query,
@@ -189,7 +189,7 @@ export default class Service {
             query = { monitorId: monitorId };
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const integrations = await IntegrationModel.updateMany(query, {
             $set: {
                 deleted: true,

@@ -17,7 +17,7 @@ export default class TwilioService {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const twilioSettings = await SmsSmtpService.findOneBy({
             query,

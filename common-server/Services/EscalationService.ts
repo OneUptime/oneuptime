@@ -85,7 +85,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await EscalationModel.countDocuments(query);
         return count;
     }

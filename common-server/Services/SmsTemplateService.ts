@@ -74,7 +74,7 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        query.deleted = false;
+        query['deleted'] = false;
 
         const smsTemplateQuery = SmsTemplateModel.find(query)
             .lean()
@@ -94,7 +94,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
 
         const smsTemplateQuery = SmsTemplateModel.findOne(query)
             .lean()
@@ -112,7 +112,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await SmsTemplateModel.countDocuments(query);
         return count;
     }

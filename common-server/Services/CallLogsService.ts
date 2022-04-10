@@ -55,7 +55,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const items = await CallLogsModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,

@@ -79,7 +79,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const items = await EmailStatusModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
@@ -103,7 +103,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const itemQuery = EmailStatusModel.findOne(query).sort(sort).lean();
 
         itemQuery.select(select);

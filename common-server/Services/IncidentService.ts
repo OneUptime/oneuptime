@@ -392,7 +392,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const incident = await IncidentModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
@@ -457,7 +457,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
 
         const incidentQuery = IncidentModel.findOne(query).sort(sort).lean();
 

@@ -38,7 +38,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const applicationScanner =
             await ApplicationScannerModel.findOneAndUpdate(
                 query,
@@ -55,7 +55,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const applicationScannerQuery = ApplicationScannerModel.findOne(query)
             .sort(sort)
             .lean();

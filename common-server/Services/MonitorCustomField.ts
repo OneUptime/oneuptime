@@ -10,7 +10,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const customFieldQuery = MonitorCustomFieldModel.findOne(query)
             .sort(sort)
             .lean();
@@ -92,7 +92,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const customFieldsQuery = MonitorCustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -111,7 +111,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await MonitorCustomFieldModel.countDocuments(query);
         return count;
     }

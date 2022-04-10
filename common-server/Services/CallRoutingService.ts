@@ -70,7 +70,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const numbers = await Model.findOneAndUpdate(
             query,
             {

@@ -114,7 +114,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
 
         const subscriberQuery = SubscriberModel.find(query)
             .lean()
@@ -171,7 +171,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const subscribers = await SubscriberModel.find(query)
             .lean()
             .populate('projectId')
@@ -324,7 +324,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const subscriberQuery = SubscriberModel.findOne(query)
             .sort(sort)
@@ -343,7 +343,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await SubscriberModel.countDocuments(query);
         return count;
     }

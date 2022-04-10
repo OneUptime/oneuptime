@@ -74,7 +74,7 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        query.deleted = false;
+        query['deleted'] = false;
         const emailTemplates = EmailTemplateModel.find(query)
             .lean()
             .sort(sort)
@@ -92,7 +92,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const emailTemplate = EmailTemplateModel.findOne(query)
             .sort(sort)
             .lean()
@@ -109,7 +109,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await EmailTemplateModel.countDocuments(query);
         return count;
     }

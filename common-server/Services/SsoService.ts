@@ -23,7 +23,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const sso = await SsoModel.findOneAndUpdate(
             query,
             { $set: { deleted: true, deletedAt: Date.now() } },
@@ -112,7 +112,7 @@ export default class Service {
         }
 
         if (!query.deleted) {
-            query.deleted = false;
+            query['deleted'] = false;
         }
         const ssoQuery = SsoModel.findOne(query).sort(sort).lean();
 
@@ -131,7 +131,7 @@ export default class Service {
         if (query.createdAt !== undefined) {
             delete query.createdAt;
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         let domainExists = null;
         if (data.domain) {

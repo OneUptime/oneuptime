@@ -11,7 +11,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const customFieldQuery = CustomFieldModel.findOne(query)
             .sort(sort)
             .lean();
@@ -128,7 +128,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const customFieldsQuery = CustomFieldModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -147,7 +147,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await CustomFieldModel.countDocuments(query);
         return count;
     }

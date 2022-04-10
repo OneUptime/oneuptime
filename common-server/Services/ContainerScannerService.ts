@@ -35,7 +35,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const containerScanner = await ContainerScannerModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -51,7 +51,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const containerScanner = await ContainerScannerModel.findOne(
             query
         ).lean();

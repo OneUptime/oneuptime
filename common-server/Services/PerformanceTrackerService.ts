@@ -171,7 +171,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const performanceTracker =
             await PerformanceTrackerModel.findOneAndUpdate(

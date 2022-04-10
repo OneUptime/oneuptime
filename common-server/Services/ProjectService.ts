@@ -157,7 +157,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         let project = await ProjectModel.findOne(query);
         if (project) {
             if (project.stripeSubscriptionId && cancelSub) {

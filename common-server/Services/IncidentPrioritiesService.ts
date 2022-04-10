@@ -25,7 +25,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const incidentPrioritiesQuery = incidentPriorityModel
             .findOne(query)
             .sort(sort)
@@ -84,7 +84,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const incidentPriority = await incidentPriorityModel.findOneAndUpdate(
             query,
             {

@@ -18,7 +18,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const zapierQuery = ZapierModel.find(query).sort(sort).lean();
 
         zapierQuery.select(select);

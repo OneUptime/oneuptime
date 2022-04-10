@@ -531,7 +531,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const statusPage = await StatusPageModel.findOneAndUpdate(
             query,
             {
@@ -867,7 +867,7 @@ export default class Service {
         if (typeof limit === 'string') limit = Number(limit);
 
         if (!query) query = {};
-        query.deleted = false;
+        query['deleted'] = false;
 
         const populateIncidentMessage = [
             {
@@ -949,7 +949,7 @@ export default class Service {
         if (typeof limit === 'string') limit = parseInt(limit);
 
         if (!query) query = {};
-        query.deleted = false;
+        query['deleted'] = false;
 
         const statuspages = await this.findBy({
             query,
@@ -1051,7 +1051,7 @@ export default class Service {
         if (typeof limit === 'string') limit = parseInt(limit);
 
         if (!query) query = {};
-        query.deleted = false;
+        query['deleted'] = false;
 
         const statuspages = await this.findBy({
             query,
@@ -1155,7 +1155,7 @@ export default class Service {
         if (typeof limit === 'string') limit = parseInt(limit);
 
         if (!query) query = {};
-        query.deleted = false;
+        query['deleted'] = false;
 
         const statuspages = await this.findBy({
             query,
@@ -1281,7 +1281,7 @@ export default class Service {
         if (typeof limit === 'string') limit = Number(limit);
 
         if (!query) query = {};
-        query.deleted = false;
+        query['deleted'] = false;
 
         const populate = [
             { path: 'createdById', select: 'name' },
@@ -1352,7 +1352,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
 
         const statusPagesQuery = StatusPageModel.find(query).lean();
 
@@ -1740,7 +1740,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const externalStatusPages = await ExternalStatusPageModel.find(query);
         return externalStatusPages;
     }
@@ -1840,7 +1840,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const allAnnouncements = await AnnouncementModel.find(query)
             .lean()
             .limit(limit.toNumber())
@@ -1854,7 +1854,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await AnnouncementModel.countDocuments(query);
         return count;
     }
@@ -1863,7 +1863,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await AnnouncementModel.findOne(query);
         return response;
     }
@@ -1872,7 +1872,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         if (!data.hideAnnouncement) {
             await this.updateManyAnnouncement({
                 statusPageId: query.statusPageId,
@@ -1913,7 +1913,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await AnnouncementModel.updateMany(
             query,
             {
@@ -1930,7 +1930,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await AnnouncementModel.findOneAndUpdate(
             query,
             {
@@ -1969,7 +1969,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await AnnouncementLogModel.findOneAndUpdate(
             query,
             {
@@ -2003,7 +2003,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const announcementLogs = await AnnouncementLogModel.find(query)
             .lean()
             .limit(limit.toNumber())
@@ -2020,7 +2020,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await AnnouncementLogModel.findOneAndUpdate(
             query,
             {
@@ -2041,7 +2041,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await AnnouncementLogModel.countDocuments(query);
         return count;
     }

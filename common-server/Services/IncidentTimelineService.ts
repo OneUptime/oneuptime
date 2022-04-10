@@ -66,7 +66,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         let incidentTimeline = await IncidentTimelineModel.findOneAndUpdate(
             query,
@@ -98,7 +98,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         let incidentTimelines = await IncidentTimelineModel.updateMany(query, {
             $set: data,
@@ -132,7 +132,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const incidentTimelinesQuery = IncidentTimelineModel.find(query)
             .lean()
@@ -152,7 +152,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const incidentTimelineQuery = IncidentTimelineModel.findOne(query)
             .sort(sort)
@@ -169,7 +169,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const count = await IncidentTimelineModel.countDocuments(query);
 
@@ -212,7 +212,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const incidentTimelineModel =
             await IncidentTimelineModel.findOneAndUpdate(

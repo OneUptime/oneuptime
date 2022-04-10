@@ -21,7 +21,7 @@ export default class Service {
 
         if (!query) query = {};
 
-        query.deleted = false;
+        query['deleted'] = false;
 
         const sortDataListQuery = ScriptModel.find(query)
             .sort(sort)
@@ -39,7 +39,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await ScriptModel.countDocuments(query);
         return count;
     }
@@ -48,7 +48,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await ScriptModelLog.countDocuments(query);
         return count;
     }
@@ -101,7 +101,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = ScriptModel.findOneAndUpdate(
             query,
             {
@@ -129,7 +129,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await ScriptModelLog.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -145,7 +145,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const responseQuery = ScriptModel.findOne(query).sort(sort).lean();
 
         responseQuery.select(select);
@@ -336,7 +336,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const response = await ScriptModel.findOneAndUpdate(
             query,
             {

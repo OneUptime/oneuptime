@@ -159,7 +159,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const issue = await IssueModel.findOneAndUpdate(
             query,
             {

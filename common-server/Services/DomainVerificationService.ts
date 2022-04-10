@@ -49,7 +49,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         if (query.domain) {
             const parsed = psl.parse(query.domain);
@@ -83,7 +83,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         if (query.domain) {
             const parsed = psl.parse(query.domain);

@@ -84,7 +84,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await GroupModel.countDocuments(query);
         return count;
     }

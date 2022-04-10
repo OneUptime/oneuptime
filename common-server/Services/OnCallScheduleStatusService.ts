@@ -126,7 +126,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const items = await OnCallScheduleStatusModel.findOneAndUpdate(
             query,
             {

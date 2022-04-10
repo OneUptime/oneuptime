@@ -160,7 +160,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const performanceTrackerMetric =
             await PerformanceTrackerMetricModel.findOneAndUpdate(

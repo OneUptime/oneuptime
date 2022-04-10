@@ -127,7 +127,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const updatedMonitorStatus = await MonitorStatusModel.findOneAndUpdate(
             query,
@@ -144,7 +144,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         let updatedData = await MonitorStatusModel.updateMany(query, {
             $set: data,
@@ -220,7 +220,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const monitorStatus = await MonitorStatusModel.findOneAndUpdate(
             query,
             {

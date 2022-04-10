@@ -470,7 +470,7 @@ export default class Service {
                 }
             );
         }
-        query.deleted = false;
+        query['deleted'] = false;
 
         const select =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
@@ -595,7 +595,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const monitor = await MonitorModel.findOneAndUpdate(
             query,
             {

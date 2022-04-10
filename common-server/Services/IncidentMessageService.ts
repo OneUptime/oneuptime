@@ -128,7 +128,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const incidentMessage = await IncidentMessageModel.findOneAndUpdate(
             query,
             {

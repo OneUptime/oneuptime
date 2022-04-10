@@ -99,7 +99,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const resourceCategoriesQuery = ResourceCategoryModel.find(query)
             .lean()
             .limit(limit.toNumber())
@@ -170,7 +170,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await ResourceCategoryModel.countDocuments(query);
         return count;
     }

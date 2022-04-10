@@ -52,7 +52,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const probe = await ProbeModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -97,7 +97,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const probeQuery = ProbeModel.find(query)
             .lean()
             .sort(sort)
@@ -117,7 +117,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const probeQuery = ProbeModel.findOne(query).sort(sort).lean();
 
         probeQuery.select(select);
@@ -132,7 +132,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await ProbeModel.countDocuments(query);
         return count;
     }
@@ -141,7 +141,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const probe = await ProbeModel.findOneAndUpdate(
             query,
             { $set: { deleted: true, deletedAt: Date.now() } },

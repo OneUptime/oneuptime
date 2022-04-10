@@ -112,7 +112,7 @@ router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
             });
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const sites = await SiteManagerService.findBy({
             query,
             select: 'subject altnames renewAt expiresAt issuedAt deleted deletedAt',

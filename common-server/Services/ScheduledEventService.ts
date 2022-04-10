@@ -325,7 +325,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const scheduledEventQuery = ScheduledEventModel.find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())
@@ -345,7 +345,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const scheduledEventQuery = ScheduledEventModel.findOne(query)
             .sort(sort)
             .lean();
@@ -455,7 +455,7 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await ScheduledEventModel.countDocuments(query);
         return count;
     }

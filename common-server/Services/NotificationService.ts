@@ -7,7 +7,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
-        query.deleted = false;
+        query['deleted'] = false;
         const notificationsQuery = NotificationModel.find(query)
             .lean()
             .limit(limit.toNumber())
@@ -26,7 +26,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await NotificationModel.countDocuments(query);
         return count;
     }
@@ -159,7 +159,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const notificationQuery = NotificationModel.findOne(query)
             .sort(sort)
             .lean();

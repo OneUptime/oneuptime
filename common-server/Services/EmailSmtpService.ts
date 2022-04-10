@@ -127,7 +127,7 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        query.deleted = false;
+        query['deleted'] = false;
         const emailSmtpQuery = EmailSmtpModel.find(query)
             .sort(sort)
             .limit(limit.toNumber())
@@ -157,7 +157,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const emailSmtpQuery = EmailSmtpModel.findOne(query).sort(sort).lean();
         emailSmtpQuery.select(select);
         emailSmtpQuery.populate(populate);
@@ -181,7 +181,7 @@ export default class Service {
             query = {};
         }
 
-        query.deleted = false;
+        query['deleted'] = false;
         const count = await EmailSmtpModel.countDocuments(query);
         return count;
     }
