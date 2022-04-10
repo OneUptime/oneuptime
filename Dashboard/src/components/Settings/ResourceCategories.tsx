@@ -8,7 +8,7 @@ import { fetchResourceCategories } from '../../actions/resourceCategories';
 import AddResourceCategoryForm from '../modals/AddResourceCategory';
 import RemoveResourceCategory from '../modals/RemoveResourceCategory';
 import EditResourceCategory from '../modals/EditResourceCategory';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 import { v4 as uuidv4 } from 'uuid';

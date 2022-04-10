@@ -1,8 +1,8 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/resetPassword';
 import Route from 'Common/Types/api/route';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
 
 // There are three possible states for our resetPassword
 // process and we need actions for each of them

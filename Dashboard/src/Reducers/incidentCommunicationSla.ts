@@ -1,6 +1,6 @@
 import * as types from '../constants/incidentCommunicationSla';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     incidentCommunicationSla: {

@@ -8,7 +8,7 @@ import { RenderIfAdmin } from '../basic/RenderIfAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import TooltipMini from '../basic/TooltipMini';
 import { API_URL } from '../../config';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import { resetPerformanceTrackerKey } from '../../actions/performanceTracker';
 import { bindActionCreators, Dispatch } from 'redux';
 

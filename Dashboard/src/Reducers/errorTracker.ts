@@ -50,7 +50,7 @@ import {
     DELETE_ERROR_TRACKER_ISSUE_SUCCESS,
 } from '../constants/errorTracker';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     newErrorTracker: {

@@ -56,7 +56,7 @@ import {
 } from '../constants/scheduledEvent';
 import moment from 'moment';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     scheduledEventList: {

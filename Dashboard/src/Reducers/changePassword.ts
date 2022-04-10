@@ -4,7 +4,7 @@ import * as types from '../constants/changePassword';
 // based on a token being in local storage. In a real app,
 // we would also want a util to check if the token is expired.
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     requesting: false,

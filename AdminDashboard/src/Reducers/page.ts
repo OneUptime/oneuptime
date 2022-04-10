@@ -4,7 +4,7 @@ import {
     PAGE_LOAD_RESET,
 } from '../constants/page';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     requesting: false,

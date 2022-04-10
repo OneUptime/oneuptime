@@ -12,7 +12,7 @@ import { ValidateField } from '../../config';
 import { history, RootState } from '../../store';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import { editContainerSecurity } from '../../actions/security';
 
 interface EditContainerSecurityProps {

@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import SubscriberList from '../subscriber/subscriberList';
 import { fetchMonitorsSubscribers } from '../../actions/monitor';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import CreateSubscriber from '../../components/modals/CreateSubscriber';
 import DataPathHoC from '../DataPathHoC';
 import ShouldRender from '../basic/ShouldRender';

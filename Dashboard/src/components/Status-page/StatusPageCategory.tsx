@@ -8,7 +8,7 @@ import { fetchStatusPageCategories } from '../../actions/statusPageCategory';
 import CreateStatusPageCategory from '../modals/CreateStatusPageCategory';
 import RemoveStatusPageCategory from '../modals/RemoveStatusPageCategory';
 import EditStatusPageCategory from '../modals/EditStatusPageCategory';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 interface StatusPageCategoryProps {

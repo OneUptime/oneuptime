@@ -3,7 +3,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import { ListLoader } from '../basic/Loader';
 import CreateIncidentTemplate from '../modals/CreateIncidentTemplate';

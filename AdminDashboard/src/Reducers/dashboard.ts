@@ -5,7 +5,7 @@ import {
     DASHBOARD_LOAD_FAILED,
 } from '../constants/dashboard';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     requesting: false,

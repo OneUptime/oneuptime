@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import moment from 'moment';
 
 interface KubePodDataProps {

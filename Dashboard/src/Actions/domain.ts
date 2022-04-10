@@ -1,7 +1,7 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import * as types from '../constants/domain';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const resetDomain = () => {
     return {
         type: types.RESET_VERIFY_DOMAIN,

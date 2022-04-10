@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 
 import AlertDetails from '../modals/AlertDetails';
 

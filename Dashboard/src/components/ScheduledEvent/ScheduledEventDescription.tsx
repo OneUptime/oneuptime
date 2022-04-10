@@ -6,7 +6,7 @@ import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import Markdown from 'markdown-to-jsx';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import { capitalize } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import EditSchedule from '../modals/EditSchedule';

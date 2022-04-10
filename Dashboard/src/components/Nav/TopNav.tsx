@@ -23,7 +23,7 @@ import OnCallScheduleModal from '../OnCallScheduleModal';
 import IncidentHeaderModal from '../modals/IncidentHeaderModal';
 import ScheduleHeaderModal from '../modals/ScheduleHeaderModal';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 
 import _ from 'lodash';
 import moment from 'moment-timezone';

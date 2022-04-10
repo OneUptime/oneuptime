@@ -23,7 +23,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
 
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 //import EditIncident from '../modals/EditIncident';
 import { history, RootState } from '../../store';
 import MessageBox from '../modals/MessageBox';

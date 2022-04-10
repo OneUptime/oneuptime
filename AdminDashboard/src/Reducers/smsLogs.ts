@@ -18,7 +18,7 @@ import {
     CHANGE_SMSLOG_STATUS_SUCCESS,
 } from '../constants/smsLogs';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     smsLogs: {

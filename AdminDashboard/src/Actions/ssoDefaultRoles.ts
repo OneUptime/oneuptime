@@ -1,6 +1,6 @@
 import * as types from '../constants/ssoDefaultRoles';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
 export const fetchSsoDefaultRolesRequest = () => {

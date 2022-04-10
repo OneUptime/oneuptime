@@ -1,5 +1,5 @@
 import * as types from '../constants/invoice';
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 const getInitialState = () => ({
     requesting: false,
     error: null,

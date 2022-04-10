@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';

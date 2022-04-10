@@ -19,7 +19,7 @@ import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { API_URL } from '../../config';
 import ResetStatusBubbleIdModal from '../modals/ResetStatusBubbleIdModal';
 import ResetCssModal from '../modals/ResetCssModal';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 
 const selector = formValueSelector('EmbeddedBubble');
 

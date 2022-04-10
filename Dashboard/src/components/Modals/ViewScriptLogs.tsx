@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import ConsoleLogView from '../monitor/ConsoleLogView';
 
 interface ViewScriptLogsProps {

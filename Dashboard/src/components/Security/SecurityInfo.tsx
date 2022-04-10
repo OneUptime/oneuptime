@@ -9,7 +9,7 @@ import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import IssueIndicator from './IssueIndicator';
 import Badge from '../common/Badge';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import threatLevel from '../../utils/threatLevel';

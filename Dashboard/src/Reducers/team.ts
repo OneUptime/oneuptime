@@ -23,7 +23,7 @@ import {
     TEAM_DELETE_RESET,
 } from '../constants/team';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     teamLoading: {

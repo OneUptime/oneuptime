@@ -1,6 +1,6 @@
 import { OPEN_MODAL, CLOSE_MODAL } from '../constants/modal';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     modals: [],

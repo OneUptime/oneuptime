@@ -39,7 +39,7 @@ import {
     FETCH_PAGINATED_COMPONENTS_SUCCESS,
 } from '../constants/component';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     componentList: {

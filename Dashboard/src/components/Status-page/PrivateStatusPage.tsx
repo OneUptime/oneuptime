@@ -15,7 +15,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import {
     removeNumbers,
     getCallRoutingNumbers,

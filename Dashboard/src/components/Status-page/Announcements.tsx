@@ -5,7 +5,7 @@ import DataPathHoC from '../DataPathHoC';
 import CreateAnnouncement from '../modals/CreateAnnouncement';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import { fetchAnnouncements } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';

@@ -5,7 +5,7 @@ import {
     RESENDTOKEN_RESET,
 } from '../constants/resendToken';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     requesting: false,

@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import { resetBrandingColors } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 

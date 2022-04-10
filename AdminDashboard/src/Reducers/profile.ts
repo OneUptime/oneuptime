@@ -1,6 +1,6 @@
 import { SHOW_PROFILE_MENU, HIDE_PROFILE_MENU } from '../constants/profile';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     menuVisible: false,

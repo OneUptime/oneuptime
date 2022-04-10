@@ -1,7 +1,7 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
-import HelmAPI from 'Common-ui/src/utils/api/helm';
-import APiDocsAPI from 'Common-ui/src/utils/api/api-docs';
-import DashboardAPI from 'Common-ui/src/utils/api/dashboard';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
+import HelmAPI from 'CommonUI/src/utils/api/helm';
+import APiDocsAPI from 'CommonUI/src/utils/api/api-docs';
+import DashboardAPI from 'CommonUI/src/utils/api/dashboard';
 
 import * as types from '../constants/version';
 import { Dispatch } from 'redux';

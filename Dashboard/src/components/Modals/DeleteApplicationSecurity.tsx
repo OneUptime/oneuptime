@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import { history, RootState } from '../../store';
 import { deleteApplicationSecurity } from '../../actions/security';
 

@@ -1,4 +1,4 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/smsLogs';
 import Route from 'Common/Types/api/route';

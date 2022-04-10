@@ -15,7 +15,7 @@ import {
     RUN_AUTOMATED_SCRIPT_SUCCESS,
 } from '../constants/automatedScript';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     addScripts: {

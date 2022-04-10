@@ -1,7 +1,7 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/card';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const addCardRequest = (promise: $TSFixMe) => {
     return {
         type: types.ADD_CARD_REQUEST,

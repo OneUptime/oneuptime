@@ -1,11 +1,11 @@
 import { combineReducers } from 'redux';
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 import { routerReducer } from 'react-router-redux';
 import login from './login';
 import register from './register';
 import { RootState } from '../store';
 import { reducer as formReducer } from 'redux-form';
-import modal from 'Common-ui/src/reducers/modal';
+import modal from 'CommonUI/src/reducers/modal';
 import resetPassword from './resetPassword';
 import changePassword from './changePassword';
 import resendToken from './resendToken';

@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
 import { RootState } from '../store';
 import { routerReducer } from 'react-router-redux';
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 import { reducer as formReducer } from 'redux-form';
 import modal from './modal';
 import profileSettings from './profile';

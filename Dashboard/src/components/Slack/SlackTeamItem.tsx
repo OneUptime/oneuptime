@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { deleteSlackLink } from '../../actions/slack';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import DeleteSlackTeam from '../modals/deleteSlackTeam';
 import DataPathHoC from '../DataPathHoC';
 

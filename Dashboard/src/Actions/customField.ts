@@ -1,7 +1,7 @@
 import * as types from '../constants/customField';
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const createCustomFieldRequest = () => ({
     type: types.CREATE_CUSTOM_FIELD_REQUEST,
 });

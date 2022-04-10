@@ -17,7 +17,7 @@ import { User } from '../../config';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import { history, RootState } from '../../store';
 
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';

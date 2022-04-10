@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { blockUser } from '../../actions/user';
 import UserBlockModal from './UserBlockModal';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 
 export class UserBlockBox extends Component<ComponentProps>{
     public static displayName = '';

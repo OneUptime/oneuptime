@@ -6,7 +6,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import PropTypes from 'prop-types';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import { fetchCustomFields } from '../../actions/monitorCustomField';
 import DeleteMonitorCustomField from '../modals/DeleteMonitorCustomField';
 import CreateMonitorCustomField from '../modals/CreateMonitorCustomField';

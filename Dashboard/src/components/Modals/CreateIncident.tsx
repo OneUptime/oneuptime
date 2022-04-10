@@ -19,7 +19,7 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
 import { getIncidents, getComponentIncidents } from '../../actions/incident';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 interface CreateIncidentProps {

@@ -10,7 +10,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { formatDecimal, formatBytes } from '../../config';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { Spinner } from '../basic/Loader';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import { bindActionCreators, Dispatch } from 'redux';
 import KubePods from '../modals/KubePods';
 import KubeJobs from '../modals/KubeJobs';

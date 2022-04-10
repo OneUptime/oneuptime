@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import { deleteApplicationLog } from '../../actions/applicationLog';
 import { history, RootState } from '../../store';
 import DataPathHoC from '../DataPathHoC';

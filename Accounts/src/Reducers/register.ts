@@ -21,7 +21,7 @@ import {
 } from '../constants/register.js';
 
 // The register state reducer.
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     addCard: {

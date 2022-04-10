@@ -18,7 +18,7 @@ import {
     PREV_PAGE,
 } from '../constants/ssoDefaultRoles';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     ssoDefaultRoles: {

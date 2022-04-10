@@ -1,6 +1,6 @@
 import { ANIMATE_SIDEBAR } from '../constants/animateSidebar';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     animateSidebar: false,

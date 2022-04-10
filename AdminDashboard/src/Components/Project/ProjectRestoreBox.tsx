@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { restoreProject } from '../../actions/project';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 
 export class ProjectRestoreBox extends Component<ComponentProps>{
     public static displayName = '';

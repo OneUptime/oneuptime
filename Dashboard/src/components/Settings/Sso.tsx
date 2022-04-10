@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import moment from 'moment';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import SsoDeleteModal from './SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './SsoModal';
 import ShouldRender from '../basic/ShouldRender';

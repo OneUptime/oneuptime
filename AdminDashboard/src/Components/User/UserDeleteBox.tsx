@@ -8,7 +8,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteUser } from '../../actions/user';
 import UserDeleteModal from './UserDeleteModal';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 
 export class UserDeleteBox extends Component<ComponentProps>{
     public static displayName = '';

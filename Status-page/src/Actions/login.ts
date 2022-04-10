@@ -1,9 +1,9 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/login';
 import { User } from '../config';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const loginRequired = () => {
     return {
         type: types.LOGIN_REQUIRED,

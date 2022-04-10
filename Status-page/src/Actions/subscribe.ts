@@ -1,6 +1,6 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
 export const SELECTED_MENU = 'SELECTED_MENU';
 export const USER_DATA = 'USER_DATA';

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import { deleteWebHook, updateWebHook } from '../../actions/webHook';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import DeleteWebhook from '../modals/DeleteWebhook';
 import EditWebhook from '../modals/EditWebhook';
 import RenderIfAdmin from '../basic/RenderIfAdmin';

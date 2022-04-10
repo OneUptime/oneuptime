@@ -18,7 +18,7 @@ import {
     CHANGE_CALLLOG_STATUS_SUCCESS,
 } from '../constants/callLogs';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     callLogs: {

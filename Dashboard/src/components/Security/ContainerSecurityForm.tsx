@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addContainerSecurity } from '../../actions/security';
 import { getDockerCredentials } from '../../actions/credential';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import DockerCredentialModal from '../credential/DockerCredentialModal';
 
 interface ContainerSecurityFormProps {

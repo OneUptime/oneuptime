@@ -31,7 +31,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
 import ConfirmResetBrandColors from '../modals/ConfirmResetBrandColors';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 
 //Client side validation

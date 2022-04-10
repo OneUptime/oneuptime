@@ -20,7 +20,7 @@ import {
     PAGINATE_RESET,
 } from '../constants/msteams';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     msTeams: {

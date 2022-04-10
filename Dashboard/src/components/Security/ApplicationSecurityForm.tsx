@@ -11,7 +11,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { addApplicationSecurity } from '../../actions/security';
 import { getGitCredentials } from '../../actions/credential';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import GitCredentialModal from '../credential/GitCredentialModal';
 import GitSshModal from '../credential/GitSshModal';
 

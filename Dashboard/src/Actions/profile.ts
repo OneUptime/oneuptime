@@ -1,10 +1,10 @@
-import BackendAPI from 'Common-ui/src/utils/api/backend';
+import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
-import ErrorPayload from 'Common-ui/src/payload-types/error';
-import Action from 'Common-ui/src/types/action';
+import ErrorPayload from 'CommonUI/src/payload-types/error';
+import Action from 'CommonUI/src/types/action';
 //Update profile setting
 
 export const updateProfileSettingRequest = () => {

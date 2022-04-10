@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import ShouldRender from '../basic/ShouldRender';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import CreateSchedule from '../modals/CreateSchedule';
 import DataPathHoC from '../DataPathHoC';
 import { history, RootState } from '../../store';

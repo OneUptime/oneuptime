@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import RenderIfAdmin from '../../components/basic/RenderIfAdmin';
 import ResetAPIKey from '../modals/ResetAPIKey';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 
 import { API_URL } from '../../config';
 import TooltipMini from '../basic/TooltipMini';

@@ -7,7 +7,7 @@ import {
     CLOSE_SEARCH_BAR,
 } from '../constants/search';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     requesting: false,

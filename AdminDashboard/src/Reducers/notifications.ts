@@ -8,7 +8,7 @@ import {
     NOTIFICATION_READ_SUCCESS,
 } from '../constants/notification';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     notifications: {

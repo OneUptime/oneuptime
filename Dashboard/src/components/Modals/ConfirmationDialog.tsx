@@ -5,7 +5,7 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { PropTypes } from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import DataPathHoC from '../DataPathHoC';
 import SubProjectApiKey from './SubProjectApiKey';
 

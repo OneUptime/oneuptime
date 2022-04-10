@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
 import { bindActionCreators, Dispatch } from 'redux';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import { incomingRequestToggle } from '../../actions/incomingRequest';
 
 interface IncomingRequestEnabledToggleProps {

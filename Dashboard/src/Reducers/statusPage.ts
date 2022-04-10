@@ -148,7 +148,7 @@ import {
     UPDATE_DOMAIN_FAILURE,
 } from '../constants/domain';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const INITIAL_STATE = {
     addMoreDomain: false,

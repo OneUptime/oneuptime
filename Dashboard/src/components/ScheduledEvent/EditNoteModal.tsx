@@ -8,7 +8,7 @@ import { Field, reduxForm, change } from 'redux-form';
 import { connect } from 'react-redux';
 
 import ClickOutside from 'react-click-outside';
-import { closeModal } from 'Common-ui/actions/modal';
+import { closeModal } from 'CommonUI/actions/modal';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import { RenderField } from '../basic/RenderField';

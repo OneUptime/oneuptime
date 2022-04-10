@@ -19,7 +19,7 @@ import ErrorTrackerIssueTimeline from './ErrorTrackerIssueTimeline';
 
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import { openModal } from 'Common-ui/actions/modal';
+import { openModal } from 'CommonUI/actions/modal';
 import DeleteErrorTrackerIssue from '../modals/DeleteErrorTrackerIssue';
 import { history, RootState } from '../../store';
 

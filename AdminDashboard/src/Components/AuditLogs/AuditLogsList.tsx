@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 
 import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import ShouldRender from '../basic/ShouldRender';

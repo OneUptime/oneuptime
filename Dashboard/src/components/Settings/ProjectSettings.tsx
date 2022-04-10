@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import { history, RootState } from '../../store';
 import { User } from '../../config';
 import isOwnerOrAdmin from '../../utils/isOwnerOrAdmin';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 import Unauthorised from '../modals/Unauthorised';
 
 function validate(value: $TSFixMe) {

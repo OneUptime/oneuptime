@@ -10,7 +10,7 @@ import DeleteSiteUrl from '../modals/DeleteSiteUrl';
 import moment from 'moment';
 
 import { v4 as uuidv4 } from 'uuid';
-import { openModal, closeModal } from 'Common-ui/actions/modal';
+import { openModal, closeModal } from 'CommonUI/actions/modal';
 
 interface MonitorLighthouseLogsListProps {
     monitor?: object;

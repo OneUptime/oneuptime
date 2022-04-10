@@ -9,7 +9,7 @@ import {
     DELETE_SLACK_LINK_SUCCESS,
 } from '../constants/slack';
 
-import Action from 'Common-ui/src/types/action';
+import Action from 'CommonUI/src/types/action';
 
 const initialState = {
     teams: {
