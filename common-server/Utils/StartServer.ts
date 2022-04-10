@@ -12,7 +12,7 @@ import Express, {
 } from './Express';
 
 // connect common api's.
-import '../api/Index';
+import '../Api/Index';
 
 const app = Express.getExpressApp();
 
