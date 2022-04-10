@@ -4,7 +4,7 @@ import {
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
-import app from 'CommonServer/utils/StartServer';
+import app from 'CommonServer/Utils/StartServer';
 
 import path from 'path';
 

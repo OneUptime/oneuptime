@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 const router = express.getRouter();
 const getUser = require('../middlewares/user').getUser;
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -9,10 +9,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 import IncidentNoteTemplateService from '../services/incidentNoteTemplateService';
 
 router.post(

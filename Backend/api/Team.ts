@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 const router = express.getRouter();
 import TeamService from '../services/teamService';
@@ -15,7 +15,7 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 // Route

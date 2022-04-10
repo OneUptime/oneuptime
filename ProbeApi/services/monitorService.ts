@@ -1,5 +1,5 @@
 import moment from 'moment';
-import Database from 'CommonServer/utils/database';
+import Database from 'CommonServer/Utils/database';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import OneUptimeDate from 'Common/Types/Date';
 

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import SubscriberAlertService from '../services/subscriberAlertService';
 import path from 'path';
 import fs from 'fs';
@@ -12,7 +12,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 import IncidentService from '../services/incidentService';
 

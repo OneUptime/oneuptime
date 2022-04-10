@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 const router = express.getRouter();
 import ContainerSecurityService from '../services/containerSecurityService';
 import ContainerSecurityLogService from '../services//containerSecurityLogService';
@@ -10,7 +10,7 @@ const isAuthorizedContainerScanner =
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import RealTimeService from '../services/realTimeService';

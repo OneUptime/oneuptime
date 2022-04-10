@@ -1,5 +1,5 @@
 const generateWebToken = require('../utils/WebToken').generateWebToken;
-import AirtableService from 'CommonServer/utils/airtable';
+import AirtableService from 'CommonServer/Utils/airtable';
 import Email from 'Common/Types/email';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';

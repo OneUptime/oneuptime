@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 
 import { fetchPhoneNumbers } from '../services/twilioService';
 import CallRoutingService from '../services/callRoutingService';
@@ -13,7 +13,7 @@ const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 const router = express.getRouter();

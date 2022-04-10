@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 
 import psl from 'psl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -11,12 +11,12 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import DomainVerificationService from '../services/domainVerificationService';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 
 import StatusPageService from '../services/statusPageService';
 import ProjectService from '../services/projectService';

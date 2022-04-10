@@ -1,11 +1,11 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 const router = express.getRouter();
 
 import { IS_SAAS_SERVICE } from '../config/server';
-import { sendItemResponse } from 'CommonServer/utils/response';
+import { sendItemResponse } from 'CommonServer/Utils/response';
 
 //This API is used to get the backend response if it's a consumer service deployed on OneUptime Cloud or an Enterprise Service deployed on Enterprise customer's cloud.
 router.get('/is-saas-service', (req: ExpressRequest, res: ExpressResponse) => {

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import ScheduleService from '../services/scheduleService';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -13,7 +13,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 router.post(

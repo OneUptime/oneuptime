@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import SmsSmtpService from '../services/smsSmtpService';
 import TwilioService from '../services/twilioService';
 const router = express.getRouter();
@@ -12,7 +12,7 @@ const isUserOwner = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 router.post(

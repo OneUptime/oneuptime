@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import ProbeService from '../services/probeService';
 import MonitorService from '../services/monitorService';
 import LighthouseLogService from '../services/lighthouseLogService';
@@ -9,17 +9,17 @@ const router = express.getRouter();
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 const {
     isAuthorizedLighthouse,
 } = require('../middlewares/lighthouseAuthorization');
 import MailService from '../services/mailService';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
-import ErrorService from 'CommonServer/utils/error';
+import ErrorService from 'CommonServer/Utils/error';
 
 // Route
 // Description: Updating profile setting.

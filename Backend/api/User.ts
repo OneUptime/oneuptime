@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import UserService from '../services/userService';
 import ProjectService from '../services/projectService';
 const jwtSecretKey = process.env['JWT_SECRET'];
@@ -19,10 +19,10 @@ const getUser = require('../middlewares/user').getUser;
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 const router = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';

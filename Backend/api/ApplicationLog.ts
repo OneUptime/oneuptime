@@ -1,13 +1,13 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import ApplicationLogService from '../services/applicationLogService';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 import RealTimeService from '../services/realTimeService';
 import LogService from '../services/logService';
-import ErrorService from 'CommonServer/utils/error';
+import ErrorService from 'CommonServer/Utils/error';
 import NotificationService from '../services/notificationService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
@@ -20,10 +20,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
 import ResourceCategoryService from '../services/resourceCategoryService';
 

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import UserService from '../services/userService';
 import ComponentService from '../services/componentService';
 import NotificationService from '../services/notificationService';
@@ -17,7 +17,7 @@ import ErrorTrackerService from '../services/errorTrackerService';
 import IssueService from '../services/issueService';
 import PerformanceTrackerService from '../services/performanceTrackerService';
 import PerformanceTrackerMetricService from '../services/performanceTrackerMetricService';
-import ErrorService from 'CommonServer/utils/error';
+import ErrorService from 'CommonServer/Utils/error';
 
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -28,10 +28,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 import moment from 'moment';
 
 // Route

@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 const router = express.getRouter();
 
 const getUser = require('../middlewares/user').getUser;
@@ -11,7 +11,7 @@ import MonitorCriteriaService from '../services/monitorCriteriaService';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 router.get('/', getUser, (req: ExpressRequest, res: ExpressResponse) => {

@@ -1,19 +1,19 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 const router = express.getRouter();
 
 import AuditLogsService from '../services/auditLogsService';
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 
-import { sendErrorResponse } from 'CommonServer/utils/response';
+import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 
-import { sendItemResponse } from 'CommonServer/utils/response';
+import { sendItemResponse } from 'CommonServer/Utils/response';
 
 router.get(
     '/',

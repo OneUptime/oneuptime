@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import axios from 'axios';
 import UserService from '../services/userService';
 import MonitorService from '../services/monitorService';
@@ -12,7 +12,7 @@ import RealTimeService from '../services/realTimeService';
 import ScheduleService from '../services/scheduleService';
 import ProbeService from '../services/probeService';
 import ComponentService from '../services/componentService';
-import ErrorService from 'CommonServer/utils/error';
+import ErrorService from 'CommonServer/Utils/error';
 import Api from '../Utils/api';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 const router = express.getRouter();
@@ -24,10 +24,10 @@ import { isAuthorized } from '../middlewares/authorization';
 import {
     sendErrorResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'CommonServer/utils/response';
+import { sendListResponse } from 'CommonServer/Utils/response';
 import multer from 'multer';
 import storage from '../middlewares/upload';
 import https from 'https';

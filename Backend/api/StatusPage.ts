@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'CommonServer/utils/Express';
+} from 'CommonServer/Utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPageService from '../services/statusPageService';
 import MonitorService from '../services/monitorService';
@@ -16,7 +16,7 @@ const router = express.getRouter();
 
 import validUrl from 'valid-url';
 import multer from 'multer';
-import ErrorService from 'CommonServer/utils/error';
+import ErrorService from 'CommonServer/Utils/error';
 
 import { toXML } from 'jstoxml';
 import moment from 'moment';
@@ -34,7 +34,7 @@ import {
     sendErrorResponse,
     sendListResponse,
     sendItemResponse,
-} from 'CommonServer/utils/response';
+} from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
 import uuid from 'uuid';
