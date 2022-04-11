@@ -13,10 +13,7 @@ export default class Service {
             storedContainerScanner &&
             storedContainerScanner.containerScannerName
         ) {
-            const error = new Error('containerScanner name already exists.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('containerScanner name already exists.');
         } else {
             const containerScanner = new ContainerScannerModel();
 
@@ -75,5 +72,5 @@ export default class Service {
  */
 
 import ContainerScannerModel from '../Models/containerScanner';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';

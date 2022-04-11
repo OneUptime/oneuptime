@@ -3,6 +3,7 @@ import express, {
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
 import StripeService from '../services/stripeService';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -79,10 +80,7 @@ router.get(
                 const charges = await StripeService.charges(userId);
                 return sendListResponse(req, res, charges);
             }
-            const error = new Error('User is required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('User is required');
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -104,10 +102,7 @@ router.post(
                 );
                 return sendItemResponse(req, res, item);
             }
-            const error = new Error('Both user and token are required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Both user and token are required');
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -129,10 +124,7 @@ router.put(
                 );
                 return sendItemResponse(req, res, card);
             }
-            const error = new Error('Both user and card are required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Both user and card are required');
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -154,10 +146,7 @@ router.delete(
                 );
                 return sendItemResponse(req, res, card);
             }
-            const error = new Error('Both user and card are required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Both user and card are required');
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -174,10 +163,7 @@ router.get(
                 const cards = await StripeService.creditCard.get(userId);
                 return sendItemResponse(req, res, cards);
             }
-            const error = new Error('User is required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('User is required');
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -196,10 +182,7 @@ router.get(
                 const card = await StripeService.creditCard.get(userId, cardId);
                 return sendItemResponse(req, res, card);
             }
-            const error = new Error('Both user and card are required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Both user and card are required');
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

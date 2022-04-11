@@ -1,189 +1,93 @@
-import Crypto from 'crypto';
-import DockerCredentialModel from '../Models/dockerCredential';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/DockerCredential';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import DatabaseService from './DatabaseService';
+import API from 'Common/Utils/API';
+import URL from 'Common/Types/API/URL';
+import Protocol from 'Common/Types/API/Protocol';
+import Hostname from 'Common/Types/API/Hostname';
+import Route from 'Common/Types/API/Route';
 
-import { encrypt, decrypt } from '../config/encryptDecrypt';
-import axios from 'axios';
-
-import FindOneBy from '../Types/DB/FindOneBy';
-import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
-
-export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') skip = Number(skip);
-
-        if (typeof limit === 'string') limit = Number(limit);
-
-        if (!query) query = {};
-
-        if (!query['deleted']) query['deleted'] = false;
-
-        const dockerCredentialQuery = DockerCredentialModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-        dockerCredentialQuery.select(select);
-        dockerCredentialQuery.populate(populate);
-
-        const dockerCredentials = await dockerCredentialQuery;
-        return dockerCredentials;
-    }
-
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) query = {};
-        if (!query['deleted']) query['deleted'] = false;
-
-        const dockerCredentialQuery = DockerCredentialModel.findOne(query)
-            .sort(sort)
-            .lean();
-        dockerCredentialQuery.select(select);
-        dockerCredentialQuery.populate(populate);
-
-        const dockerCredential = await dockerCredentialQuery;
-        return dockerCredential;
-    }
-
-    async create(data: $TSFixMe) {
-        // no more than one docker credential with the same details in a project
-        const dockerCredential = await this.findOneBy({
-            query: {
-                dockerRegistryUrl: data.dockerRegistryUrl,
-                projectId: data.projectId,
-                dockerUsername: data.dockerUsername,
+export default class DockerCredentialService extends DatabaseService<
+    typeof Model
+> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Docker Credential',
+            publicListProps: {
+                populate: [],
+                select: [],
             },
-            select: '_id',
-        });
-
-        if (dockerCredential) {
-            const error = new Error(
-                'Docker Credential already exist in this project'
-            );
-
-            error.code = 400;
-            throw error;
-        }
-
-        const iv = Crypto.randomBytes(16);
-        data.dockerPassword = await encrypt(data.dockerPassword, iv);
-        data.iv = iv;
-
-        const response = await DockerCredentialModel.create(data);
-        return response;
-    }
-
-    async updateOneBy(query: Query, data: $TSFixMe) {
-        if (!query) query = {};
-
-        if (!query['deleted']) query['deleted'] = false;
-
-        let dockerCredential = await this.findOneBy({
-            query,
-            select: 'dockerPassword iv',
-        });
-
-        if (!data.deleted && !data.deletedAt) {
-            // validate docker username and password before update
-            if (data.dockerPassword) {
-                await this.validateDockerCredential({
-                    username: data.dockerUsername,
-                    password: data.dockerPassword,
-                });
-                const iv = Crypto.randomBytes(16);
-                data.dockerPassword = await encrypt(data.dockerPassword, iv);
-                data.iv = iv;
-            } else {
-                const password = await decrypt(
-                    dockerCredential.dockerPassword,
-
-                    dockerCredential.iv.buffer
-                );
-                await this.validateDockerCredential({
-                    username: data.dockerUsername,
-                    password,
-                });
-            }
-        }
-
-        dockerCredential = await DockerCredentialModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
+            adminListProps: {
+                populate: [],
+                select: [],
             },
-            { new: true }
-        );
-        const populate = [{ path: 'projectId', select: 'name slug _id' }];
-        const select =
-            'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
-        dockerCredential = await this.findOneBy({
-            query: {
-                _id: dockerCredential._id,
-
-                deleted: dockerCredential.deleted,
+            ownerListProps: {
+                populate: [],
+                select: [],
             },
-            select,
-            populate,
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
         });
-
-        if (!dockerCredential) {
-            const error = new Error(
-                'Docker Credential not found or does not exist'
-            );
-
-            error.code = 400;
-            throw error;
-        }
-
-        return dockerCredential;
     }
 
-    async deleteBy(query: Query) {
-        let dockerCredential = await this.findOneBy({
-            query,
-            select: '_id',
-        });
-
-        if (!dockerCredential) {
-            const error = new Error(
-                'Docker Credential not found or does not exist'
-            );
-
-            error.code = 400;
-            throw error;
-        }
-
-        dockerCredential = await this.updateOneBy(query, {
-            deleted: true,
-            deletedAt: Date.now(),
-        });
-
-        return dockerCredential;
-    }
-
-    async hardDeleteBy(query: Query) {
-        await DockerCredentialModel.deleteMany(query);
-        return 'Docker credential(s) successfully deleted';
-    }
-
-    async validateDockerCredential({ username, password }: $TSFixMe) {
+    async validateDockerCredential({
+        username,
+        password,
+    }: {
+        username: string;
+        password: string;
+    }) {
         try {
-            // user docker api to check if username and password is valid
-            const response = await axios.post(
-                'https://hub.docker.com/v2/users/login',
+            const response = await API.post(
+                new URL(
+                    Protocol.HTTPS,
+                    new Hostname('hub.docker.com'),
+                    new Route('/v2/users/login')
+                ),
                 { username, password }
             );
             // response.data should contain a token
             return response.data;
         } catch (err) {
             // username or password was incorrect
-            const error = new Error('Invalid docker credential');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Invalid docker credential');
         }
     }
 }

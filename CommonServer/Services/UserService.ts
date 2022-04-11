@@ -313,10 +313,7 @@ export default class CallRoutingLogService extends DatabaseService<
                 return user;
             }
         } else {
-            const error = new Error('Email is not in valid format.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Email is not in valid format.');
         }
     }
 
@@ -563,10 +560,7 @@ export default class CallRoutingLogService extends DatabaseService<
                 }
             }
         } else {
-            const error = new Error('Email is not in valid format.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Email is not in valid format.');
         }
     }
 
@@ -608,10 +602,7 @@ export default class CallRoutingLogService extends DatabaseService<
                 return user;
             }
         } else {
-            const error = new Error('Email is not in valid format.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Email is not in valid format.');
         }
     }
 
@@ -679,10 +670,7 @@ export default class CallRoutingLogService extends DatabaseService<
         });
 
         if (!user) {
-            const error = new Error('User not found');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('User not found');
         } else {
             const hash = await bcrypt.hash(
                 temporaryPassword,
@@ -718,10 +706,7 @@ export default class CallRoutingLogService extends DatabaseService<
         });
 
         if (!user) {
-            const error = new Error('User not found');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('User not found');
         } else {
             // ensure user is in admin mode
             if (!user.isAdminMode) {
@@ -758,10 +743,7 @@ export default class CallRoutingLogService extends DatabaseService<
         });
 
         if (!user) {
-            const error = new Error('Invalid Refresh Token');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Invalid Refresh Token');
         } else {
             const userObj = { id: user._id };
 
@@ -812,10 +794,7 @@ export default class CallRoutingLogService extends DatabaseService<
 
             return user;
         } else {
-            const error = new Error('Current Password is incorrect.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Current Password is incorrect.');
         }
     }
 

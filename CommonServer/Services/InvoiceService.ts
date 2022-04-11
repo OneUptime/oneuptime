@@ -14,10 +14,7 @@ export default class Service {
             select: 'stripeCustomerId',
         });
         if (!user) {
-            const error = new Error('User not found.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('User not found.');
         } else {
             const invoices = await stripe.invoices.list({
                 customer: user.stripeCustomerId,

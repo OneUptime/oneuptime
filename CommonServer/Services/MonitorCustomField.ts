@@ -1,5 +1,5 @@
 import MonitorCustomFieldModel from '../Models/monitorCustomField';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
@@ -66,10 +66,9 @@ export default class Service {
         });
 
         if (!customField) {
-            const error = new Error('Custom field not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Custom field not found or does not exist'
+            );
         }
 
         return customField;
@@ -129,10 +128,9 @@ export default class Service {
         );
 
         if (!customField) {
-            const error = new Error('Custom field not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Custom field not found or does not exist'
+            );
         }
 
         return customField;

@@ -1,5 +1,5 @@
 import ApplicationSecurityLogModel from '../Models/applicationSecurityLog';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
@@ -7,24 +7,15 @@ import Query from '../Types/DB/Query';
 export default class Service {
     async create({ securityId, componentId, data }: $TSFixMe) {
         if (!securityId) {
-            const error = new Error('Security ID is required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Security ID is required');
         }
 
         if (!componentId) {
-            const error = new Error('Component ID is required');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Component ID is required');
         }
 
         if (!data) {
-            const error = new Error('Please provide a scan log');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Please provide a scan log');
         }
 
         let securityLog = await this.findOneBy({

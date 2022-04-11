@@ -1,7 +1,7 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import PerformanceTrackerModel from '../Models/performanceTracker';
 import ComponentService from './ComponentService';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import generate from 'nanoid/generate';
 import slugify from 'slugify';
 // import RealTimeService from './realTimeService'
@@ -139,10 +139,7 @@ export default class Service {
         });
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Component does not exist.');
         }
 
         if (typeof limit === 'string') limit = parseInt(limit);

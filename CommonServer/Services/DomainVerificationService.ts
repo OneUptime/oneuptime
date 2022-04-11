@@ -1,5 +1,5 @@
 import dns from 'dns';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import psl from 'psl';
 import DomainVerificationTokenModel from '../Models/domainVerificationToken';
 import flatten from '../Utils/flattenArray';
@@ -25,10 +25,7 @@ export default class Service {
             select: 'parentProjectId',
         });
         if (!project) {
-            const error = new Error('Project not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Project not found or does not exist');
         }
         if (project.parentProjectId) {
             projectId = project.parentProjectId._id || project.parentProjectId;
@@ -268,10 +265,7 @@ export default class Service {
         const domainCount = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
-            const error = new Error('Domain not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Domain not found or does not exist');
         }
 
         const domain = await this.updateOneBy(query, {

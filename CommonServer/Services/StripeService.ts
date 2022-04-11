@@ -4,7 +4,7 @@ import PaymentService from './PaymentService';
 import ProjectService from './ProjectService';
 import ProjectModel from '../Models/project';
 import MailService from './MailService';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { sendSlackAlert } from '../Utils/stripeHandlers';
 const stripe = require('stripe')(payment.paymentPrivateKey, {
     maxNetworkRetries: 3, // Retry a request three times before giving up
@@ -192,10 +192,7 @@ export default class StripeService {
             );
             return paymentIntent;
         } else {
-            const error = new Error('Cannot add duplicate card');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Cannot add duplicate card');
         }
     }
 

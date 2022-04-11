@@ -1,4 +1,5 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     async create(data: $TSFixMe) {
         // check if component exist
@@ -7,10 +8,7 @@ export default class Service {
         });
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Component does not exist.');
         }
         // try to find in the application log if the name already exist for that component
         const select =
@@ -133,10 +131,7 @@ export default class Service {
         });
         // send an error if the component doesnt exist
         if (!componentCount || componentCount === 0) {
-            const error = new Error('Component does not exist.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Component does not exist.');
         }
 
         if (typeof limit === 'string') limit = parseInt(limit);

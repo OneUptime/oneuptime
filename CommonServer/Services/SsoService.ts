@@ -1,24 +1,6 @@
+import BadDataException from 'Common/Types/Exception/BadDataException';
+
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        if (!query['deleted']) query['deleted'] = false;
-
-        const ssosQuery = SsoModel.find(query, {
-            _id: 1,
-            domain: 1,
-            createdAt: 1,
-        })
-            .lean()
-            .sort(sort)
-            .skip(skip.toNumber())
-            .limit(limit.toNumber());
-
-        ssosQuery.select(select);
-        ssosQuery.populate(populate);
-
-        const ssos = await ssosQuery;
-        return ssos;
-    }
-
     async deleteBy(query: Query) {
         if (!query) {
             query = {};
@@ -53,38 +35,26 @@ export default class Service {
         }
 
         if (!data.domain) {
-            const error = new Error('Domain must be defined.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Domain must be defined.');
         }
         const domainExists = await this.findOneBy({
             query: { domain: data.domain },
             select: 'domain',
         });
         if (domainExists) {
-            const error = new Error('Domain already exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Domain already exist');
         }
 
         sso.domain = data.domain;
 
         if (!data.entityId) {
-            const error = new Error('Application ID must be defined');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Application ID must be defined');
         }
 
         sso.entityId = data.entityId;
 
         if (!data.remoteLoginUrl) {
-            const error = new Error('Remote Login Url must be defined.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Remote Login Url must be defined.');
         }
 
         sso.remoteLoginUrl = data.remoteLoginUrl;
@@ -92,10 +62,7 @@ export default class Service {
         sso.certificateFingerprint = data.certificateFingerprint;
 
         if (!data.remoteLogoutUrl) {
-            const error = new Error('Remote Logout URL must be defined.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Remote Logout URL must be defined.');
         }
 
         sso.remoteLogoutUrl = data.remoteLogoutUrl;
@@ -142,10 +109,7 @@ export default class Service {
         }
 
         if (domainExists) {
-            const error = new Error('Domain already exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Domain already exist');
         }
 
         delete data.projectId;
@@ -193,5 +157,4 @@ import SsoModel from '../Models/SSO';
 import SsoDefaultRolesService from './SsoDefaultRolesService';
 
 import FindOneBy from '../Types/DB/FindOneBy';
-import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';

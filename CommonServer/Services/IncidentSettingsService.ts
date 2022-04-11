@@ -1,3 +1,4 @@
+import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     async create(data: $TSFixMe) {
         const {
@@ -177,10 +178,7 @@ export default class Service {
             select: 'projectId title description incidentPriority isDefault name createdAt',
         });
         if (incidentSetting.isDefault) {
-            const error = new Error('Default template cannot be deleted');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Default template cannot be deleted');
         }
 
         const deletedIncidentSetting =

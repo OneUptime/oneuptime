@@ -1,6 +1,6 @@
 import ProbeModel from '../Models/probe';
 import RealTimeService from './realTimeService';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';
 import MonitorService from './MonitorService';
 import MonitorStatusService from './MonitorStatusService';
@@ -30,10 +30,7 @@ export default class Service {
             select: 'probeName',
         });
         if (storedProbe && storedProbe.probeName) {
-            const error = new Error('Probe name already exists.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Probe name already exists.');
         } else {
             const probe = new ProbeModel();
 

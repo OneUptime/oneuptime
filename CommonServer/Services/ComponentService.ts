@@ -9,7 +9,7 @@ import MonitorService from './MonitorService';
 import TeamService from './TeamService';
 import { IS_SAAS_SERVICE } from '../config/server';
 import getSlug from '../Utils/getSlug';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
@@ -26,10 +26,9 @@ export default class Service {
         });
 
         if (existingComponentCount && existingComponentCount > 0) {
-            const error = new Error('Component with that name already exists.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Component with that name already exists.'
+            );
         }
 
         let project = await ProjectService.findOneBy({
@@ -78,10 +77,7 @@ export default class Service {
             projectSeats = parseInt(projectSeats);
         }
         if (!plan && IS_SAAS_SERVICE) {
-            const error = new Error('Invalid project plan.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Invalid project plan.');
         } else {
             const unlimitedComponent = ['Scale', 'Enterprise'];
             const componentCount =

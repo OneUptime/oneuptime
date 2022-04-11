@@ -1,6 +1,5 @@
 import incidentSMSActionModel from '../Models/incidentSMSAction';
 import twilio from 'twilio';
-import SmsSmtpService from './SmsProviderService';
 import Handlebars from 'handlebars';
 import defaultSmsTemplates from '../config/smsTemplate';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -9,26 +8,9 @@ import UserService from './UserService';
 import SmsCountService from './SmsCountService';
 import CallLogsService from './CallLogsService';
 import AlertService from './AlertService';
-import FindOneBy from '../Types/DB/FindOneBy';
 import { IS_TESTING } from '../config/server';
 
 export default class TwilioService {
-    async findByOne({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-        query['deleted'] = false;
-
-        const twilioSettings = await SmsSmtpService.findOneBy({
-            query,
-            select,
-            populate,
-            sort,
-        });
-
-        return twilioSettings;
-    }
-
     getClient(accountSid: $TSFixMe, authToken: $TSFixMe) {
         if (!accountSid || !authToken) {
             const error = new Error('Twilio credentials not found.');

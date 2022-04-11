@@ -1,6 +1,7 @@
 import Email from 'Common/Types/email';
 import payment from '../config/payment';
 import Stripe from 'stripe';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 const stripe = Stripe(payment.paymentPrivateKey);
 import Plans from '../config/plans';
 import ProjectService from './ProjectService';
@@ -296,10 +297,9 @@ export default class Service {
             !subscription.items.data ||
             !subscription.items.data.length > 0
         ) {
-            const error = new Error('Your subscription cannot be retrieved.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Your subscription cannot be retrieved.'
+            );
         } else {
             let trial_end_date;
             if (

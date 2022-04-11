@@ -1,6 +1,7 @@
 import GroupModel from '../Models/groups';
 import Query from '../Types/DB/Query';
 import FindBy from '../Types/DB/FindBy';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     async findBy({ query, limit, skip, sort }: FindBy) {
         if (!skip) skip = 0;
@@ -63,10 +64,7 @@ export default class Service {
         });
 
         if (groupExist) {
-            const error = new Error('Group already exist in this project');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Group already exist in this project');
         }
         const createGroup = new GroupModel({
             name: data.name,
@@ -119,10 +117,7 @@ export default class Service {
         });
 
         if (groupExist && String(groupExist._id) !== String(query._id)) {
-            const error = new Error('Group already exist in this project');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Group already exist in this project');
         }
         let group = await GroupModel.findOneAndUpdate(
             query,

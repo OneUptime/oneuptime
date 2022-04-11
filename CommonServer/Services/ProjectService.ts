@@ -1,5 +1,5 @@
 import ProjectModel from '../Models/project';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import { v1 as uuidv1 } from 'uuid';
 import MonitorService from './MonitorService';
 import PaymentService from './PaymentService';
@@ -869,10 +869,7 @@ export default class Service {
         });
 
         if (!project) {
-            const error = new Error('Project not found or no longer exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Project not found or no longer exist');
         }
 
         const projectId = project._id;

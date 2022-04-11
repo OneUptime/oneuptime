@@ -240,10 +240,9 @@ export default class Service {
                 }
             );
         } else {
-            const error = new Error('Status page not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Status page not found or does not exist'
+            );
         }
     }
 
@@ -334,10 +333,9 @@ export default class Service {
         });
 
         if (!statusPage) {
-            const error = new Error('Status page not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Status page not found or does not exist'
+            );
         }
 
         let doesDomainExist = false;
@@ -424,10 +422,9 @@ export default class Service {
         });
 
         if (!statusPage) {
-            const error = new Error('Status page not found or does not exist');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Status page not found or does not exist'
+            );
         }
 
         let deletedDomain: $TSFixMe = null;
@@ -811,10 +808,7 @@ export default class Service {
 
             return { notes, count };
         } else {
-            const error = new Error('No monitors on this status page');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('No monitors on this status page');
         }
     }
 
@@ -1027,10 +1021,7 @@ export default class Service {
 
             return { events, count };
         } else {
-            const error = new Error('No monitors on this status page');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('No monitors on this status page');
         }
     }
 
@@ -1131,10 +1122,7 @@ export default class Service {
             const count = events.length;
             return { events, count };
         } else {
-            const error = new Error('No monitors on this status page');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('No monitors on this status page');
         }
     }
 
@@ -1232,10 +1220,7 @@ export default class Service {
             const count = events.length;
             return { events: limitEvents(events, limit, skip), count };
         } else {
-            const error = new Error('No monitors on this status page');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('No monitors on this status page');
         }
     }
 
@@ -1491,10 +1476,7 @@ export default class Service {
             ]);
             return { incidents, count };
         } else {
-            const error = new Error('No monitors on this status page');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('No monitors on this status page');
         }
     }
 

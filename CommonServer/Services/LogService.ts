@@ -1,6 +1,6 @@
 import LogModel from '../Models/log';
 import ApplicationLogService from './ApplicationLogService';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
@@ -107,10 +107,7 @@ export default class Service {
         });
         // send an error if the component doesnt exist
         if (applicationLogCount === 0) {
-            const error = new Error('Application Log does not exist.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Application Log does not exist.');
         }
 
         if (typeof limit === 'string') limit = parseInt(limit);

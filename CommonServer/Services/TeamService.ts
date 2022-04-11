@@ -1,5 +1,5 @@
 import Query from '../Types/DB/Query';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     //Description: Get all team members of Project or Subproject.
     //Params:
@@ -104,10 +104,7 @@ export default class Service {
         }
         // Checks if team member is present in the project or not.
         if (index === -1) {
-            const error = new Error('Member does not exist in project.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Member does not exist in project.');
         } else {
             const select =
                 'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
@@ -172,10 +169,9 @@ export default class Service {
         });
 
         if (duplicateEmail) {
-            const error = new Error('Duplicate email present. Please check.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Duplicate email present. Please check.'
+            );
         } else {
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -585,10 +581,7 @@ export default class Service {
         let subProject = null;
 
         if (userId === teamMemberUserId) {
-            const error = new Error('Admin User cannot delete himself');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Admin User cannot delete himself');
         } else {
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },

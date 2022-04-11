@@ -19,6 +19,7 @@ import ScheduleService from './ScheduleService';
 import IntegrationService from './IntegrationService';
 import TeamService from './TeamService';
 import moment from 'moment';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 import _ from 'lodash';
 import { IS_SAAS_SERVICE } from '../config/server';
 import ScheduledEventService from './ScheduledEventService';
@@ -53,10 +54,9 @@ export default class Service {
         });
 
         if (existingMonitor && existingMonitor.length > 0) {
-            const error = new Error('Monitor with that name already exists.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException(
+                'Monitor with that name already exists.'
+            );
         }
 
         let project = await ProjectService.findOneBy({
@@ -110,10 +110,7 @@ export default class Service {
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
         if (!plan && IS_SAAS_SERVICE) {
-            const error = new Error('Invalid project plan.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Invalid project plan.');
         } else {
             const unlimitedMonitor = ['Scale', 'Enterprise'];
             const monitorCount =
@@ -1424,10 +1421,7 @@ export default class Service {
             monitor.siteUrls.length > 0 &&
             monitor.siteUrls.includes(data.siteUrl)
         ) {
-            const error = new Error('Site URL already exists.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Site URL already exists.');
         }
 
         const siteUrls = [data.siteUrl, ...monitor.siteUrls];
@@ -1445,10 +1439,7 @@ export default class Service {
                 : -1;
 
         if (siteUrlIndex === -1) {
-            const error = new Error('Site URL does not exist.');
-
-            error.code = 400;
-            throw error;
+            throw new BadDataException('Site URL does not exist.');
         }
 
         if (monitor.siteUrls && monitor.siteUrls.length > 0) {
