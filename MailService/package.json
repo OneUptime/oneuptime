@@ -12,9 +12,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/nodemailer": "^6.4.4",
+    "@types/nodemailer-express-handlebars": "^4.0.2",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
-    "nodemailer": "^6.7.3"
+    "handlebars": "^4.7.7",
+    "nodemailer": "^6.7.3",
+    "nodemailer-express-handlebars": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.23"
