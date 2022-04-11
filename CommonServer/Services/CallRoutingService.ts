@@ -9,7 +9,11 @@ import { IS_SAAS_SERVICE } from '../config/server';
 import ProjectService from './ProjectService';
 import FileService from './FileService';
 import Query from '../Types/DB/Query';
-import Model, { requiredFields, uniqueFields } from '../Models/CallRouting';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/CallRouting';
 import DatabaseService from './DatabaseService';
 import CallRoutingLogService from './CallRoutingLogService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -61,7 +65,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
                 select: [],
             },
             isResourceByProject: true,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 

@@ -1,4 +1,8 @@
-import Model, { requiredFields, uniqueFields } from '../Models/MonitorLogByDay';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/MonitorLogByDay';
 import DatabaseService from './DatabaseService';
 
 export default class MonitorLogByDayService extends DatabaseService<
@@ -51,7 +55,7 @@ export default class MonitorLogByDayService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: true,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

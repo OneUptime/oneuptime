@@ -1,4 +1,8 @@
-import mongoose, { RequiredFields, UniqueFields } from '../Infrastructure/ORM';
+import mongoose, {
+    RequiredFields,
+    UniqueFields,
+    EncryptedFields,
+} from '../Infrastructure/ORM';
 
 const Schema = mongoose.Schema;
 
@@ -49,7 +53,8 @@ schema.index({ projectId: 1, teamId: -1 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];
+export const encryptedFields: EncryptedFields = [];
 
-export const sligifyField: string = '';
+export const slugifyField: string = '';
 
 export default mongoose.model('Integrations', schema);

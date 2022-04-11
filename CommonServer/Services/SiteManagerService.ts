@@ -1,4 +1,8 @@
-import Model, { requiredFields, uniqueFields } from '../Models/SiteManager';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/SiteManager';
 import DatabaseService from './DatabaseService';
 
 export default class SiteManagerService extends DatabaseService<typeof Model> {
@@ -49,7 +53,7 @@ export default class SiteManagerService extends DatabaseService<typeof Model> {
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

@@ -1,5 +1,7 @@
 import Protocol from 'Common/Types/API/Protocol';
 
+// Export starts here.
+
 export const DatabaseUrl: string =
     process.env['MONGO_URL'] || 'mongodb://localhost:27017/oneuptimedb';
 
@@ -7,7 +9,7 @@ export const DatabaseName: string = process.env['DB_NAME'] || 'oneuptimedb';
 
 export const IsMongoReplicaSet: boolean = !!process.env['IS_MONGO_REPLICA_SET'];
 
-export const TokenSecret: string = process.env['TOKEN_SECRET'] || '';
+export const EncryptionSecret: string = process.env['ENCRYPTIOJN_SECRET'] || '';
 
 export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
 

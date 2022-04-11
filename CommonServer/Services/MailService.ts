@@ -61,6 +61,7 @@ export default class MailService {
             select,
             populate: [{ path: 'projectId', select: 'name' }],
         });
+
         if (
             smtpDb &&
             smtpDb.user &&

@@ -28,7 +28,11 @@ import { hotp } from 'otplib';
 import LoginHistoryService from './LoginHistoryService';
 import Query from '../Types/DB/Query';
 
-import Model, { requiredFields, uniqueFields } from '../Models/User';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/User';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/DB/CreateBy';
 
@@ -82,7 +86,7 @@ export default class CallRoutingLogService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 

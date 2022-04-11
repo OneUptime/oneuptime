@@ -1,4 +1,8 @@
-import Model, { requiredFields, uniqueFields } from '../Models/CallRoutingLog';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/CallRoutingLog';
 import DatabaseService from './DatabaseService';
 
 export default class CallRoutingLogService extends DatabaseService<
@@ -51,7 +55,7 @@ export default class CallRoutingLogService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: true,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

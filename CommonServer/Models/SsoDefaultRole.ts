@@ -1,4 +1,9 @@
-import mongoose, { RequiredFields, UniqueFields } from '../Infrastructure/ORM';
+import mongoose, {
+    RequiredFields,
+    UniqueFields,
+    EncryptedFields,
+} from '../Infrastructure/ORM';
+
 import { RoleArray } from 'Common/Types/Role';
 
 const Schema = mongoose.Schema;
@@ -37,7 +42,8 @@ const schema = new Schema({
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];
+export const encryptedFields: EncryptedFields = [];
 
-export const sligifyField: string = '';
+export const slugifyField: string = '';
 
 export default mongoose.model('SsoDefaultRole', schema);

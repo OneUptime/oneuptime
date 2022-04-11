@@ -1,6 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
+    slugifyField,
 } from '../Models/MonitorLogByWeek';
 import DatabaseService from './DatabaseService';
 
@@ -52,7 +53,7 @@ export default class MonitorLogByHour extends DatabaseService<typeof Model> {
                 select: [],
             },
             isResourceByProject: true,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

@@ -1,7 +1,7 @@
 import Slug from 'Common/utils/Slug';
 import Populate from '../Types/DB/Populate';
 import Select from '../Types/DB/Select';
-import { Model } from '../Infrastructure/ORM';
+import { EncryptedFields, Model } from '../Infrastructure/ORM';
 import { RequiredFields, UniqueFields, Document } from '../Infrastructure/ORM';
 import FindOneBy from '../Types/DB/FindOneBy';
 import UpdateOneBy from '../Types/DB/UpdateOneBy';
@@ -18,6 +18,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
 import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/DB/SearchResult';
+import Encryption from '../Utils/Encryption';
 
 export interface ListProps {
     populate: Populate;
@@ -54,6 +55,7 @@ class DatabaseService<ModelType> {
     public publicListProps: ListProps;
     public requiredFields: RequiredFields;
     public uniqueFields: UniqueFields;
+    public encryptedFields: EncryptedFields;
     public viewerItemProps: ItemProps;
     public viewerListProps: ListProps;
     public isResourceByProject: boolean;
@@ -76,6 +78,7 @@ class DatabaseService<ModelType> {
         viewerItemProps,
         isResourceByProject = true,
         slugifyField = '',
+        encryptedFields,
     }: {
         uniqueFields: UniqueFields;
         adminItemProps: ItemProps;
@@ -93,6 +96,7 @@ class DatabaseService<ModelType> {
         ownerListProps: ListProps;
         isResourceByProject: boolean;
         slugifyField: string;
+        encryptedFields: EncryptedFields;
     }) {
         this.model = model;
         this.friendlyName = friendlyName;
@@ -110,6 +114,7 @@ class DatabaseService<ModelType> {
         this.slugifyField = slugifyField;
         this.ownerItemProps = ownerItemProps;
         this.ownerListProps = ownerListProps;
+        this.encryptedFields = encryptedFields;
     }
 
     protected isValid(data: Document): boolean {
@@ -132,6 +137,27 @@ class DatabaseService<ModelType> {
     protected async onBeforeCreate({ data }: CreateBy): Promise<CreateBy> {
         // a place holder method used for overriding.
         return Promise.resolve({ data } as CreateBy);
+    }
+
+    protected encrypt(data: Document): Document {
+        const iv: Buffer = Encryption.getIV();
+        data.set('iv', iv);
+
+        for (const key of this.encryptedFields) {
+            data.set(key, Encryption.encrypt(data.get(key), iv));
+        }
+
+        return data;
+    }
+
+    protected decrypt(data: Document): Document {
+        const iv: Buffer = data.get('iv');
+
+        for (const key of this.encryptedFields) {
+            data.set(key, Encryption.decrypt(data.get(key), iv));
+        }
+
+        return data;
     }
 
     protected async onBeforeDelete(deleteBy: DeleteBy): Promise<DeleteBy> {
@@ -179,9 +205,11 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async onFindSuccess() {
+    protected async onFindSuccess(
+        items: Array<Document>
+    ): Promise<Array<Document>> {
         // a place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(items);
     }
 
     protected async onFindError(error: Exception): Promise<Exception> {
@@ -206,12 +234,18 @@ class DatabaseService<ModelType> {
     }
 
     public async create(createBy: CreateBy): Promise<Document> {
-        const { data } = await this.onBeforeCreate({ data: createBy.data });
+        const _createdBy = await this.onBeforeCreate({ data: createBy.data });
+
+        let data = _createdBy.data;
+
         this.checkRequiredFields(data);
 
         if (!this.isValid(data)) {
             throw new BadDataException('Data is not valid');
         }
+
+        // Encrypt data
+        data = this.encrypt(data);
 
         try {
             const item = new this.model();
@@ -530,9 +564,17 @@ class DatabaseService<ModelType> {
             dbQuery.select(onBeforeFind.select);
             dbQuery.populate(onBeforeFind.populate);
 
-            const items = await dbQuery;
-            await this.onFindSuccess();
-            return items as Array<Document>;
+            const items = (await dbQuery) as Array<Document>;
+
+            const decryptedItems = [];
+
+            for (const item of items) {
+                decryptedItems.push(this.decrypt(item));
+            }
+
+            await this.onFindSuccess(decryptedItems);
+
+            return decryptedItems;
         } catch (error) {
             await this.onFindError(error as Exception);
             throw this.getException(error as Exception);

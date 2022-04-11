@@ -1,4 +1,8 @@
-import Model, { requiredFields, uniqueFields } from '../Models/SsoDefaultRole';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/SsoDefaultRole';
 import DatabaseService from './DatabaseService';
 
 export default class SsoDefaultRoleService extends DatabaseService<
@@ -51,7 +55,7 @@ export default class SsoDefaultRoleService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: true,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

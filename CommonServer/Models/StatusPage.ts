@@ -1,4 +1,8 @@
-import mongoose, { RequiredFields, UniqueFields } from '../Infrastructure/ORM';
+import mongoose, {
+    RequiredFields,
+    UniqueFields,
+    EncryptedFields,
+} from '../Infrastructure/ORM';
 
 const Schema = mongoose.Schema;
 
@@ -147,5 +151,6 @@ export default new Schema({
 });
 
 export const uniqueFields: UniqueFields = [];
+export const encryptedFields: EncryptedFields = [];
 
 export const requiredFields: RequiredFields = ['name', 'projectId'];

@@ -1,4 +1,8 @@
-import Model, { requiredFields, uniqueFields } from '../Models/IssueTimeline';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/IssueTimeline';
 import DatabaseService from './DatabaseService';
 
 export default class IssueTimelineService extends DatabaseService<
@@ -51,7 +55,7 @@ export default class IssueTimelineService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

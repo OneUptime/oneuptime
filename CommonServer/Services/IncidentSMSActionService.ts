@@ -1,6 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
+    slugifyField,
 } from '../Models/IncidentSMSAction';
 import DatabaseService from './DatabaseService';
 
@@ -54,7 +55,7 @@ export default class IncidentSMSActionService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

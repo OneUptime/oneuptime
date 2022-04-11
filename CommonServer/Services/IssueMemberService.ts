@@ -1,4 +1,8 @@
-import Model, { requiredFields, uniqueFields } from '../Models/IssueMember';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/IssueMember';
 import DatabaseService from './DatabaseService';
 
 export default class IssueMemberService extends DatabaseService<typeof Model> {
@@ -49,7 +53,7 @@ export default class IssueMemberService extends DatabaseService<typeof Model> {
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

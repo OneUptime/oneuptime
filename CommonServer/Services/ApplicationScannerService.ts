@@ -1,91 +1,85 @@
-export default class Service {
-    async create(data) {
-        let applicationScannerKey;
-        if (data.applicationScannerKey) {
-            applicationScannerKey = data.applicationScannerKey;
-        } else {
-            applicationScannerKey = uuidv1();
-        }
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/ApplicationScanner';
+import DatabaseService from './DatabaseService';
+import UUID from 'Common/Utils/UUID';
+import CreateBy from '../Types/DB/CreateBy';
+import Document from '../Infrastructure/ORM';
+import OneUptimeDate from 'Common/Types/Date';
 
-        const storedApplicationScanner = await this.findOneBy({
-            query: { applicationScannerName: data.applicationScannerName },
-            select: 'applicationScannerName',
+export default class SslService extends DatabaseService<typeof Model> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Application Scanner',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: true,
+            slugifyField: slugifyField,
         });
-        if (
-            storedApplicationScanner &&
-            storedApplicationScanner.applicationScannerName
-        ) {
-            const error = new Error('applicationScanner name already exists.');
+    }
 
-            error.code = 400;
-            throw error;
+    protected override async onBeforeCreate({
+        data,
+    }: CreateBy): Promise<CreateBy> {
+        let applicationScannerKey;
+        if (data.get('applicationScannerKey')) {
+            applicationScannerKey = data.get('applicationScannerKey');
         } else {
-            const applicationScanner = new ApplicationScannerModel();
-
-            applicationScanner.applicationScannerKey = applicationScannerKey;
-
-            applicationScanner.applicationScannerName =
-                data.applicationScannerName;
-
-            applicationScanner.version = data.applicationScannerVersion;
-            const savedApplicationScanner = await applicationScanner.save();
-            return savedApplicationScanner;
-        }
-    }
-
-    async updateOneBy(query: Query, data) {
-        if (!query) {
-            query = {};
+            applicationScannerKey = UUID.generate();
         }
 
-        query['deleted'] = false;
-        const applicationScanner =
-            await ApplicationScannerModel.findOneAndUpdate(
-                query,
-                { $set: data },
-                {
-                    new: true,
-                }
-            );
-        return applicationScanner;
+        data.set('applicationScannerKey', applicationScannerKey);
+
+        return Promise.resolve({ data } as CreateBy);
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
+    async updateStatus(applicationScannerId: string) {
+        const data = new Document<typeof Model>();
+        data.set('lastAlive', OneUptimeDate.getCurrentDate());
 
-        query['deleted'] = false;
-        const applicationScannerQuery = ApplicationScannerModel.findOne(query)
-            .sort(sort)
-            .lean();
-
-        applicationScannerQuery.select(select);
-        applicationScannerQuery.populate(populate);
-        const applicationScanner = await applicationScannerQuery;
-        return applicationScanner;
-    }
-
-    async updateApplicationScannerStatus(applicationScannerId: string) {
-        const applicationScanner =
-            await ApplicationScannerModel.findOneAndUpdate(
-                { _id: applicationScannerId },
-                { $set: { lastAlive: Date.now() } },
-                { new: true }
-            );
-        return applicationScanner;
+        await this.updateOneBy({ query: { _id: applicationScannerId }, data });
     }
 }
-
-/**
- * verifies if a specific script condition satisfies
- * @param {'and' | 'or'} conditionLogic
- * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
- */
-
-import ApplicationScannerModel from '../Models/applicationScanner';
-
-import { v1 as uuidv1 } from 'uuid';
-
-import FindOneBy from '../Types/DB/FindOneBy';
-import Query from '../Types/DB/Query';

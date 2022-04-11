@@ -1,6 +1,10 @@
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Model, { requiredFields, uniqueFields } from '../Models/SmsCount';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+} from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
 
 export default class SslService extends DatabaseService<typeof Model> {
@@ -51,7 +55,7 @@ export default class SslService extends DatabaseService<typeof Model> {
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 

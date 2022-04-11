@@ -1,6 +1,7 @@
 import Model, {
     requiredFields,
     uniqueFields,
+    slugifyField,
 } from '../Models/CertificateStore';
 import DatabaseService from './DatabaseService';
 
@@ -54,7 +55,7 @@ export default class CertificateStoreService extends DatabaseService<
                 select: [],
             },
             isResourceByProject: false,
-            slugifyField: '',
+            slugifyField: slugifyField,
         });
     }
 }

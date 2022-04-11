@@ -14,10 +14,12 @@
   },
   "dependencies": {
     "@types/nanoid-dictionary": "^4.2.0",
+    "@types/uuid": "^8.3.4",
     "axios": "^0.26.1",
     "moment": "^2.29.2",
     "nanoid": "^3.3.2",
     "nanoid-dictionary": "^4.3.0",
-    "slugify": "^1.6.5"
+    "slugify": "^1.6.5",
+    "uuid": "^8.3.2"
   }
 }
