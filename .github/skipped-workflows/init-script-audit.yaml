@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd init-script
+          cd InitScript
           npm install
           npm run audit
 

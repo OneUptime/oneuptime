@@ -164,7 +164,7 @@ export class EmbeddedBubble extends Component<EmbeddedBubbleProps>{
     };
     changecss = (event: $TSFixMe, css: $TSFixMe) => {
 
-        const url = `${API_URL}/status-page/statusBubble?statusPageId=${this.props.statusPageId}&statusBubbleId=${this.props.statusBubbleId}`;
+        const url = `${API_URL}/StatusPage/statusBubble?statusPageId=${this.props.statusPageId}&statusBubbleId=${this.props.statusBubbleId}`;
         const value = createScript(url, css);
 
         this.props.change('embeddedcode', value);
@@ -639,7 +639,7 @@ const mapStateToProps = (state: RootState) => {
         colors,
         embeddedCss,
     } = state.statusPage.status;
-    const url = `${API_URL}/status-page/statusBubble?statusPageId=${_id}&statusBubbleId=${statusBubbleId}`;
+    const url = `${API_URL}/StatusPage/statusBubble?statusPageId=${_id}&statusBubbleId=${statusBubbleId}`;
     const customCss =
         embeddedCss && embeddedCss.length ? embeddedCss : css(colors);
     const script = createScript(url, customCss);

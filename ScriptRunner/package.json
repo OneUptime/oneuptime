@@ -1,5 +1,5 @@
 {
-    "name": "script-runner",
+    "name": "ScriptRunner",
     "version": "1.0.0",
     "description": "automation script runner",
     "main": "index.ts",

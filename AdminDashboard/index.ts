@@ -2,9 +2,9 @@ import {
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-} from 'Common-server/Utils/Express';
+} from 'CommonServer/utils/Express';
 import path from 'path';
-import app from 'Common-server/utils/StartServer';
+import app from 'CommonServer/utils/StartServer';
 
 app.get(
     ['/env.js', '/admin/env.js'],
@@ -32,7 +32,7 @@ app.get(
             JSON.stringify({
                 status: 200,
                 message: 'Service Status - OK',
-                serviceType: 'oneuptime-admin-dashboard',
+                serviceType: 'oneuptime-AdminDashboard',
             })
         );
     }

@@ -1,5 +1,5 @@
-# DEPLOYMENT STAGE - status-page
-staging_status-page:
+# DEPLOYMENT STAGE - StatusPage
+staging_StatusPage:
     stage: Deploy
     allow_failure: true
     script:
@@ -10,12 +10,12 @@ staging_status-page:
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
-        # Build and deploy status-page.
+        # Build and deploy StatusPage.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:4.0.$CI_PIPELINE_ID --push ./status-page
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:staging --push ./status-page
-        - kubectl set image deployment/fi-status fi-status=oneuptime/status-page:4.0.$CI_PIPELINE_ID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:4.0.$CI_PIPELINE_ID --push ./StatusPage
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:staging --push ./StatusPage
+        - kubectl set image deployment/fi-status fi-status=oneuptime/StatusPage:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -28,7 +28,7 @@ staging_status-page:
     environment:
         name: staging
 
-production_status-page:
+production_StatusPage:
     stage: Deploy
     allow_failure: true
     script:
@@ -41,9 +41,9 @@ production_status-page:
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:4.0.$CI_PIPELINE_ID --push ./status-page
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/status-page:latest --push ./status-page
-        - kubectl set image deployment/fi-status fi-status=oneuptime/status-page:4.0.$CI_PIPELINE_ID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:4.0.$CI_PIPELINE_ID --push ./StatusPage
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:latest --push ./StatusPage
+        - kubectl set image deployment/fi-status fi-status=oneuptime/StatusPage:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

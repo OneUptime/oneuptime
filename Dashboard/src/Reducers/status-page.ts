@@ -1,4 +1,4 @@
-import StatusPageAction from '../actions/status-page';
+import StatusPageAction from '../actions/StatusPage';
 import getReducer from './base/index';
 
 export default getReducer({

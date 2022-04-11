@@ -1,6 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import HelmAPI from 'CommonUI/src/utils/api/helm';
-import APiDocsAPI from 'CommonUI/src/utils/api/api-docs';
+import APiDocsAPI from 'CommonUI/src/utils/api/ApiDocs';
 import DashboardAPI from 'CommonUI/src/utils/api/dashboard';
 
 import * as types from '../constants/version';

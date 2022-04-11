@@ -158,7 +158,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
         const isLinkActive =
             location.pathname === path ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
+                /project\/([A-Za-z0-9-]+)\/StatusPage\/([0-9]|[a-z]+)/
             ) &&
                 route.title === 'Status Pages') ||
             (location.pathname.match(
@@ -289,7 +289,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
         const isSubLinkActive = route.subRoutes.some((link: $TSFixMe) => link.title === 'Status Page' &&
             location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/status-page\/([0-9]|[a-z]+)/
+                /project\/([A-Za-z0-9-]+)\/sub-project\/([A-Za-z0-9-]+)\/StatusPage\/([0-9]|[a-z]+)/
             )
             ? true
             : false

@@ -1,7 +1,7 @@
 import { find } from '../util/db';
 import payment from '../util/payment';
 import Stripe from 'stripe';
-import logger from 'Common-server/Utils/Logger';
+import logger from 'CommonServer/utils/Logger';
 
 const stripe = Stripe(payment.paymentPrivateKey);
 

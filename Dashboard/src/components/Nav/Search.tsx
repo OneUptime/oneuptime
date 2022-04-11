@@ -326,14 +326,14 @@ class Search extends Component<ComponentProps> {
                 this.props.addCurrentComponent(component);
                 break;
             case 'Status Pages':
-                path = `/dashboard/project/${currentProject.slug}/status-page/${searchObj.statusPageSlug}`;
+                path = `/dashboard/project/${currentProject.slug}/StatusPage/${searchObj.statusPageSlug}`;
                 userId = User.getUserId();
                 if (IS_LOCALHOST) {
                     publicStatusPageUrl = `http://${searchObj.statusPageSlug}.localhost:3006`;
                 } else {
                     publicStatusPageUrl =
                         window.location.origin +
-                        '/status-page/' +
+                        '/StatusPage/' +
                         searchObj.statusPageSlug;
                 }
 

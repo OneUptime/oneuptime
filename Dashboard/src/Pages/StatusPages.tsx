@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 
 import { Fade } from 'react-awesome-reveal';
 
-import StatusPagesTable from '../components/status-page/StatusPagesTable';
+import StatusPagesTable from '../components/StatusPage/StatusPagesTable';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
@@ -50,7 +50,7 @@ class StatusPages extends Component<ComponentProps> {
 
                 <ShouldRender if={this.props.tutorialStat.statusPage.show}>
                     <TutorialBox
-                        type="status-page"
+                        type="StatusPage"
                         currentProjectId={projectId}
                     />
                 </ShouldRender>

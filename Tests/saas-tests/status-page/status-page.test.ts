@@ -17,7 +17,7 @@ const componentName = utils.generateRandomString();
 const projectName = utils.generateRandomString();
 const statusPageName = utils.generateRandomString();
 
-describe('Check status-page up', () => {
+describe('Check StatusPage up', () => {
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
 
@@ -56,12 +56,12 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should create a status-page',
+        'should create a StatusPage',
         async (done: $TSFixMe) => {
             await init.registerUser(user, page);
             await init.renameProject(projectName, page);
 
-            // Create a Status-Page with a Manual Monitor and Display the Monitor in Status-Page Url
+            // Create a StatusPage with a Manual Monitor and Display the Monitor in StatusPage Url
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -112,7 +112,7 @@ describe('Check status-page up', () => {
                 timeout: init.timeout,
             });
 
-            // To confirm the status-page name.
+            // To confirm the StatusPage name.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#header-${statusPageName}`,
@@ -162,7 +162,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should add monitor to status-page',
+        'should add monitor to StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -210,7 +210,7 @@ describe('Check status-page up', () => {
             // CLick status Page Url
             await init.clickStatusPageUrl(page);
 
-            // To confirm the monitor is present in the status-page
+            // To confirm the monitor is present in the StatusPage
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-${monitorName}`,
@@ -226,7 +226,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'Should confirm status-page monitor values does not change on theme change',
+        'Should confirm StatusPage monitor values does not change on theme change',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -280,7 +280,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should add more monitors and see if they are present on the status-page',
+        'should add more monitors and see if they are present on the StatusPage',
         async (done: $TSFixMe) => {
             // This creates 2 additonal monitors
             let additionalMonitor = 0;
@@ -305,7 +305,7 @@ describe('Check status-page up', () => {
                     page
                 );
             }
-            // To confirm the monitors on status-page
+            // To confirm the monitors on StatusPage
             await init.clickStatusPageUrl(page);
 
             await init.pageWaitForSelector(page, '.monitor-list', {
@@ -323,7 +323,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should create an offline incident and view it on status-page',
+        'should create an offline incident and view it on StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -385,7 +385,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should resolve offline incident and view status-page',
+        'should resolve offline incident and view StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -424,7 +424,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should create an degraded incident and view it on status-page',
+        'should create an degraded incident and view it on StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -488,7 +488,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should resolve degraded incident and view status-page',
+        'should resolve degraded incident and view StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -527,7 +527,7 @@ describe('Check status-page up', () => {
     );
 
     test(
-        'should create an offline incident and confirm the description note on status-page',
+        'should create an offline incident and confirm the description note on StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',

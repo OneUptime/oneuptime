@@ -290,7 +290,7 @@ class SideNav extends Component<ComponentProps> {
                             switchToProjectViewerNav
                         ) {
                             route.path =
-                                '/dashboard/project/:slug/status-pages';
+                                '/dashboard/project/:slug/StatusPages';
                         }
                         if (
                             route.title === 'Back to Dashboard' &&

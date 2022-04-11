@@ -42,7 +42,7 @@ export class DeleteStatusPageBox extends Component<ComponentProps>{
                     () => {
                         history.push(
 
-                            `/dashboard/project/${this.props.slug}/status-pages`
+                            `/dashboard/project/${this.props.slug}/StatusPages`
                         );
                     }
                 );

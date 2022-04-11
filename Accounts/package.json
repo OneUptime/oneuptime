@@ -20,7 +20,7 @@
         "cli-table": "^0.3.11",
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
-        "common-ui": "file:../common-ui",
+        "CommonUI": "file:../CommonUI",
         "compression": "^1.7.4",
         "express": "^4.17.3",
         "faker": "^6.6.6",

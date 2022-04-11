@@ -19,7 +19,7 @@ spec:
               app: {{ printf "%s-%s" $.Release.Name "cont-scan" }}
       spec:
           containers:
-              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "container-scanner" .Values.image.tag }}
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ContainerScanner" .Values.image.tag }}
                 name: {{ printf "%s-%s" $.Release.Name "cont-scan" }}
                 imagePullPolicy: {{ $.Values.image.pullPolicy }}
                 resources:

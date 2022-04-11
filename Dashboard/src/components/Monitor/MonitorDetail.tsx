@@ -517,7 +517,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
                                             You need to install an agent on your
                                             server, please{' '}
                                             <a
-                                                href="https://github.com/OneUptime/js-sdk/blob/master/docs/server-monitor/README.md"
+                                                href="https://github.com/OneUptime/JavaScriptSDK/blob/master/docs/server-monitor/README.md"
                                                 rel="noopener noreferrer"
                                                 target="_blank"
                                                 style={{

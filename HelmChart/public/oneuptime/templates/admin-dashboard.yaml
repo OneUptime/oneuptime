@@ -1,4 +1,4 @@
-############-ADMIN-DASHBOARD-#########
+############-AdminDashboard-#########
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +19,7 @@ spec:
                 app: {{ printf "%s-%s" $.Release.Name "admin"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "admin-dashboard" .Values.image.tag }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "AdminDashboard" .Values.image.tag }}
                   name: {{ printf "%s-%s" $.Release.Name "admin"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:

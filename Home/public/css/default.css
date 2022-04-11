@@ -2351,12 +2351,12 @@ a.globalFooterCard.card-sigma,div.globalFooterCard.card-sigma{
         flex-direction: column;
         align-items: center;
     }
-    #status-page {
+    #StatusPage {
         display: none;
     }
 }
 @media (max-width:1020px){
-    #status-page {
+    #StatusPage {
         display: none;
     }
 }

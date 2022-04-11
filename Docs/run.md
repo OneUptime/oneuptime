@@ -9,4 +9,4 @@
 
 ## Running on: on-prem, staging, or production.
 
--   We run this by using helm charts, please check `README.md` in the `helm-chart` folder.
+-   We run this by using helm charts, please check `README.md` in the `HelmChart` folder.

@@ -1,4 +1,4 @@
-import app from 'Common-server/utils/StartServer';
+import app from 'CommonServer/utils/StartServer';
 
 app.use('/realtime', require('./api/realtime'));
 

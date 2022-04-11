@@ -1,5 +1,5 @@
 {
-    "name": "oneuptime-init-script",
+    "name": "oneuptime-InitScript",
     "private": true,
     "version": "3.0.0",
     "main": "server.js",

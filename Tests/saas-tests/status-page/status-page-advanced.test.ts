@@ -19,7 +19,7 @@ const monitorName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
 const customDomainWebsite = `www.${utils.generateRandomString()}.com`;
 
-describe('Status-Page Advanced Options', () => {
+describe('StatusPage Advanced Options', () => {
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
 
@@ -35,13 +35,13 @@ describe('Status-Page Advanced Options', () => {
     });
 
     test(
-        'should create a status-page',
+        'should create a StatusPage',
         async (done: $TSFixMe) => {
             await init.registerUser(user, page);
             await init.renameProject(projectName, page);
-            await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscribers in status-page
+            await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscribers in StatusPage
 
-            // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
+            // Create a StatusPage and Scheduled Maintenance to display in the StatusPage Url
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -78,7 +78,7 @@ describe('Status-Page Advanced Options', () => {
 
             await init.pageWaitForSelector(page, `#header-${statusPageName}`);
 
-            // To confirm the status-page name.
+            // To confirm the StatusPage name.
 
             let spanElement = await init.pageWaitForSelector(
                 page,
@@ -159,7 +159,7 @@ describe('Status-Page Advanced Options', () => {
     );
 
     test(
-        'should add monitor to status-page',
+        'should add monitor to StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -208,7 +208,7 @@ describe('Status-Page Advanced Options', () => {
             link = await link.jsonValue();
             await page.goto(link);
 
-            // To confirm the monitor is present in the status-page.
+            // To confirm the monitor is present in the StatusPage.
 
             let spanElement = await init.pageWaitForSelector(
                 page,
@@ -273,7 +273,7 @@ describe('Status-Page Advanced Options', () => {
     );
 
     test(
-        'should view created subscriber on status-page',
+        'should view created subscriber on StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -309,7 +309,7 @@ describe('Status-Page Advanced Options', () => {
     );
 
     test(
-        'should create custom domain in status-page',
+        'should create custom domain in StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -324,7 +324,7 @@ describe('Status-Page Advanced Options', () => {
             await init.pageWaitForSelector(page, '#viewStatusPage');
 
             await init.pageClick(page, '#viewStatusPage');
-            // Navigate to custom domain tab in status-page.
+            // Navigate to custom domain tab in StatusPage.
             await init.pageWaitForSelector(page, '.custom-domains-tab', {
                 visible: true,
                 timeout: init.timeout,
@@ -360,7 +360,7 @@ describe('Status-Page Advanced Options', () => {
     );
 
     test(
-        'should enable add subscriber from advanced options and view on status-page',
+        'should enable add subscriber from advanced options and view on StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -375,7 +375,7 @@ describe('Status-Page Advanced Options', () => {
             await init.pageWaitForSelector(page, '#viewStatusPage');
 
             await init.pageClick(page, '#viewStatusPage');
-            // Navigate to advanced tab in status-page
+            // Navigate to advanced tab in StatusPage
             await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
                 timeout: init.timeout,
@@ -400,7 +400,7 @@ describe('Status-Page Advanced Options', () => {
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
-            // To confirm subscribe button is present in status-page
+            // To confirm subscribe button is present in StatusPage
 
             const subscriberButton = await init.pageWaitForSelector(
                 page,
@@ -414,7 +414,7 @@ describe('Status-Page Advanced Options', () => {
     );
 
     test(
-        'should navigate to status-page and add subscriber',
+        'should navigate to StatusPage and add subscriber',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -452,7 +452,7 @@ describe('Status-Page Advanced Options', () => {
     );
 
     test(
-        'should delete status-page',
+        'should delete StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -467,7 +467,7 @@ describe('Status-Page Advanced Options', () => {
             await init.pageWaitForSelector(page, '#viewStatusPage');
 
             await init.pageClick(page, '#viewStatusPage');
-            // Navigate to advanced tab in status-page
+            // Navigate to advanced tab in StatusPage
             await init.pageWaitForSelector(page, '.advanced-options-tab', {
                 visible: true,
                 timeout: init.timeout,
@@ -486,7 +486,7 @@ describe('Status-Page Advanced Options', () => {
 
             await init.pageClick(page, '#confirmDelete');
 
-            // To confirm status-page has been deleted.
+            // To confirm StatusPage has been deleted.
 
             const deletedStatusPage = await init.pageWaitForSelector(
                 page,

@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd common-server
+          cd CommonServer
           npm install
           npm run audit
 

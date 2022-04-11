@@ -6,7 +6,7 @@ import Page, {
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import Table from '../../components/table/Table';
-import StatusPageActions from '../../actions/status-page';
+import StatusPageActions from '../../actions/StatusPage';
 
 const listActions = new StatusPageActions().getListActions();
 
@@ -17,7 +17,7 @@ class StatusPages extends Page<StatusPagesProps> {
         super({
             pageName: 'StatusPages',
             friendlyPageName: 'Status Pages',
-            pagePath: '/status-pages',
+            pagePath: '/StatusPages',
             showTutorial: true,
             ...props,
         });
@@ -30,7 +30,7 @@ class StatusPages extends Page<StatusPagesProps> {
             <>
                 <Table
 
-                    id="status-page-table"
+                    id="StatusPage-table"
                     title="Status Page"
                     description="Status Pages helps your team and your customers to view real-time status and health of your monitors. Status Page helps improve transparency and trust in your organization and with your customers."
                     columns={[]}
@@ -39,7 +39,7 @@ class StatusPages extends Page<StatusPagesProps> {
                     noItemsMessage="No status pages in this project."
                     headerButtons={[
                         {
-                            id: 'create-status-page-btn',
+                            id: 'create-StatusPage-btn',
                             title: 'Create Status Page',
                             shortcutKey: 'N',
                             onClick: () => {
@@ -60,10 +60,10 @@ class StatusPages extends Page<StatusPagesProps> {
                     noOfItemsInPage={10}
                     actionButtons={[
                         {
-                            id: 'edit-status-page-btn',
+                            id: 'edit-StatusPage-btn',
                             title: 'Edit',
                             onClick: (id: $TSFixMe) => {
-                                this.goToPageInProject(`/status-page/${id}`);
+                                this.goToPageInProject(`/StatusPage/${id}`);
                             },
                             visibleForOwner: true,
                             visibleForAdmin: true,
@@ -72,10 +72,10 @@ class StatusPages extends Page<StatusPagesProps> {
                             visibleForAll: false,
                         },
                         {
-                            id: 'view-status-page-btn',
+                            id: 'view-StatusPage-btn',
                             title: 'View Status Page',
                             onClick: (id: $TSFixMe) => {
-                                this.goToPageInProject(`/status-page/${id}`);
+                                this.goToPageInProject(`/StatusPage/${id}`);
                             },
                             visibleForOwner: true,
                             visibleForAdmin: true,
@@ -84,7 +84,7 @@ class StatusPages extends Page<StatusPagesProps> {
                             visibleForAll: true,
                         },
                     ]}
-                    onClickTableRow={(id: $TSFixMe) => this.goToPageInProject(`/status-page/${id}`)
+                    onClickTableRow={(id: $TSFixMe) => this.goToPageInProject(`/StatusPage/${id}`)
                     }
                 />
             </>

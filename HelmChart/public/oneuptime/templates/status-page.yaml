@@ -19,7 +19,7 @@ spec:
                 app: {{ printf "%s-%s" $.Release.Name "status"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "status-page" .Values.image.tag }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "StatusPage" .Values.image.tag }}
                   name: {{ printf "%s-%s" $.Release.Name "status"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:

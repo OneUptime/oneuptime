@@ -3,7 +3,7 @@ import probeService from './probeService';
 import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';
 import MonitorService from './monitorService';
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 import { post } from '../Utils/api';
 import moment from 'moment';
 

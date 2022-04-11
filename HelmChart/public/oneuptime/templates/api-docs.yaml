@@ -4,31 +4,31 @@
 ####################################
 
 {{- if .Values.saas.isSaasService }}
-###########-----API-DOCS------##############
+###########-----ApiDocs------##############
 
 # OneUptime API docs Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+    name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
     namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+        app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+            app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
     replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+                app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "api-docs" .Values.image.tag }}
-                  name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ApiDocs" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
@@ -63,7 +63,7 @@ spec:
                   ports:
                       - containerPort: {{ $.Values.host.apiDocsPort }}
                         hostPort: {{ $.Values.host.apiDocsPort }}
-                        name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+                        name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
             restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
@@ -72,10 +72,10 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+        app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+    name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
     namespace: {{ $.Release.Namespace }}
 spec:
     ports:
@@ -83,7 +83,7 @@ spec:
           protocol: TCP
           targetPort: {{ $.Values.host.apiDocsPort }}
     selector:
-        app: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+        app: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
     type: ClusterIP
 ---
 ###########################################
@@ -93,14 +93,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+  name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
 spec:
   maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
   minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
+    name: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
   targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

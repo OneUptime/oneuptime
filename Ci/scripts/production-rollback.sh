@@ -25,12 +25,12 @@ function check {
         rollback accounts 
         rollback backend
         rollback home
-        rollback status-page 
-        rollback api-docs
+        rollback StatusPage 
+        rollback ApiDocs
         rollback probe
-        rollback admin-dashboard
+        rollback AdminDashboard
         rollback licensing
-        rollback helm-chart
+        rollback HelmChart
         rollback slack
         exit 1
     else
@@ -42,12 +42,12 @@ check dashboard
 check accounts 
 check backend
 check home 
-check status-page 
-check api-docs
+check StatusPage 
+check ApiDocs
 check probe-1
 check probe-2
-check admin-dashboard
+check AdminDashboard
 check licensing
-check init-script
+check InitScript
 check slack
-check helm-chart
+check HelmChart

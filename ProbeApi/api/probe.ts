@@ -3,14 +3,14 @@ import express, {
     ExpressResponse,
     OneUptimeRequest,
     ProbeRequest,
-} from 'Common-server/Utils/Express';
+} from 'CommonServer/utils/Express';
 import MonitorService from '../Services/monitorService';
 const router = express.getRouter();
-import ProbeAuthorization from 'Common-server/middleware/ProbeAuthorization';
-import { sendErrorResponse } from 'Common-server/Utils/Response';
+import ProbeAuthorization from 'CommonServer/middleware/ProbeAuthorization';
+import { sendErrorResponse } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 
-import { sendListResponse } from 'Common-server/Utils/Response';
+import { sendListResponse } from 'CommonServer/utils/Response';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 router.get(

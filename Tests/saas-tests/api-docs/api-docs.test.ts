@@ -4,7 +4,7 @@ import puppeteer from 'puppeteer';
 import init from '../../test-init';
 let page: $TSFixMe, browser: $TSFixMe;
 
-describe('Check api-docs up', () => {
+describe('Check ApiDocs up', () => {
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
 

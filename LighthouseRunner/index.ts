@@ -1,6 +1,6 @@
-import { ExpressRequest, ExpressResponse } from 'Common-server/Utils/Express';
+import { ExpressRequest, ExpressResponse } from 'CommonServer/utils/Express';
 
-import app from 'Common-server/utils/StartServer';
+import app from 'CommonServer/utils/StartServer';
 
 import http from 'http';
 http.createServer(app);

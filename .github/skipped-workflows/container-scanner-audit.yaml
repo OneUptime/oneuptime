@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd container-scanner
+          cd ContainerScanner
           npm install
           npm run audit
 

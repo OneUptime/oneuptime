@@ -1,6 +1,6 @@
 const MongoClient = require('mongodb').MongoClient;
 const url = process.env['MONGO_URL'] || 'mongodb://localhost/oneuptimedb';
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 global.client = global.client || MongoClient;
 
 async function connectToDb() {

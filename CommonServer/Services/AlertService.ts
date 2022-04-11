@@ -3002,7 +3002,7 @@ export default class Service {
 
         let statusPageUrl: URL;
         if (statusPage) {
-            statusPageUrl = `${global.statusHost}/status-page/${statusPage._id}`;
+            statusPageUrl = `${global.statusHost}/StatusPage/${statusPage._id}`;
             if (statusPage.domains && statusPage.domains.length > 0) {
                 const domains = statusPage.domains.filter(
                     (domainData: $TSFixMe) => {
@@ -3014,14 +3014,14 @@ export default class Service {
                 );
 
                 if (domains.length > 0) {
-                    statusPageUrl = `${domains[0].domain}/status-page/${statusPage._id}`;
+                    statusPageUrl = `${domains[0].domain}/StatusPage/${statusPage._id}`;
                 }
             }
         }
 
         let statusUrl: URL;
         if (statusPageSlug) {
-            statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.slug}`;
+            statusUrl = `${global.statusHost}/StatusPage/${statusPageSlug}/incident/${incident.slug}`;
         }
 
         const monitorCustomFields = {},

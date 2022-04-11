@@ -14,25 +14,25 @@ kubectl config use-context NAME
 ### Lint chart
 
 ```
-helm lint ./helm-chart/public/oneuptime
+helm lint ./HelmChart/public/oneuptime
 ```
 
 ### Install as an Enterprise Cluster with default values
 
 ```
-helm install fi ./helm-chart/public/oneuptime --namespace default
+helm install fi ./HelmChart/public/oneuptime --namespace default
 ```
 
 ### Install on staging
 
 ```
-helm install -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime --namespace default
+helm install -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./HelmChart/public/oneuptime --namespace default
 ```
 
 ### Install on production
 
 ```
-helm install -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/oneuptime --namespace default
+helm install -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime --namespace default
 ```
 
 ### Update Cluster
@@ -41,7 +41,7 @@ Staging:
 
 ```
 kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/oneuptime-staging
-helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime
+helm upgrade -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./HelmChart/public/oneuptime
 ```
 
 Use default values first and then use staging values.
@@ -50,7 +50,7 @@ Production:
 
 ```
 kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/oneuptime-production
-helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/oneuptime
+helm upgrade -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime
 ```
 
 Use default values first and then use production values.
@@ -58,7 +58,7 @@ Use default values first and then use production values.
 If you introduce values, you can set
 
 ```
-helm upgrade --reuse-values --set key=value fi ./helm-chart/public/oneuptime
+helm upgrade --reuse-values --set key=value fi ./HelmChart/public/oneuptime
 ```
 
 ### Uninstall
@@ -86,7 +86,7 @@ sudo ./ci/scripts/docker-build-and-push.sh $repo $tag
 ### Package and deploy helm chart
 
 ```
-cd ./helm-chart/public
+cd ./HelmChart/public
 helm repo index ./oneuptime
 helm package ./oneuptime
 helm repo index .
@@ -97,8 +97,8 @@ cd ..
 ### Update a chart dependency
 
 ```
-cd ./helm-chart/public
-#IMPORTANT: change the version of the dependent chart at `/helm-chart/public/oneuptime/Chart.yaml`. This should be the version field (and NOT appVersion) in Chart.yaml of the dependency.
+cd ./HelmChart/public
+#IMPORTANT: change the version of the dependent chart at `/HelmChart/public/oneuptime/Chart.yaml`. This should be the version field (and NOT appVersion) in Chart.yaml of the dependency.
 
 # Run this command.
 helm dependency update oneuptime

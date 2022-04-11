@@ -48,7 +48,7 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/probe-api",
+            "localRoot": "${workspaceFolder}/ProbeAPI",
             "name": "Probe API: Debug with Docker",
             "port": 9251,
             "remoteRoot": "/usr/src/app",
@@ -72,7 +72,7 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/http-test-server",
+            "localRoot": "${workspaceFolder}/HttpTestServer",
             "name": "HTTP Test Server: Debug with Docker",
             "port": 9234,
             "remoteRoot": "/usr/src/app",
@@ -108,7 +108,7 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/init-script",
+            "localRoot": "${workspaceFolder}/InitScript",
             "name": "Init Script: Debug with Docker",
             "port": 9237,
             "remoteRoot": "/usr/src/app",

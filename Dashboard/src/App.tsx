@@ -88,7 +88,7 @@ const App = (props: AppProps) => {
         const isViewer = isSubProjectViewer(user, props.activeProject);
         if (isViewer && props.currentProject) {
             history.replace(
-                `/dashboard/project/${props.currentProject.slug}/status-pages`
+                `/dashboard/project/${props.currentProject.slug}/StatusPages`
             );
         }
     }, [

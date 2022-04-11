@@ -51,5 +51,5 @@ LICENSE
 marketing/*/*
 licenses/*
 certifications/*
-api-docs/public/assets/*
-js-sdk/src/cli/server-monitor/out/scripts/prettify/*
+ApiDocs/public/assets/*
+JavaScriptSDK/src/cli/server-monitor/out/scripts/prettify/*

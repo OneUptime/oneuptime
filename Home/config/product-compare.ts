@@ -14,7 +14,7 @@ export default (product: string) => {
             faq: [
                 {
                     question: 'How does OneUptime compare with PagerDuty?',
-                    answer: 'PagerDuty is an incident management and on call tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that PagerDuty offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                    answer: 'PagerDuty is an incident management and on call tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that PagerDuty offers, but a lot more like monitoring, StatusPage, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:
@@ -334,7 +334,7 @@ export default (product: string) => {
             faq: [
                 {
                     question: 'How does OneUptime compare with Pingdom?',
-                    answer: 'Pingdom is an monitoring tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that Pingdom offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                    answer: 'Pingdom is an monitoring tool whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that Pingdom offers, but a lot more like monitoring, StatusPage, security, performance-monitoring and more. Please check detailed comparision above for more info.',
                 },
                 {
                     question:

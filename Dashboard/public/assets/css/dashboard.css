@@ -34734,7 +34734,7 @@ span.CodeMirror-selectedtext {
 }
 
 @media only screen and (max-width: 768px) {
-  .status-page-btn-action-col {
+  .StatusPage-btn-action-col {
     float: none!important;
     margin-right: 0!important;
   }

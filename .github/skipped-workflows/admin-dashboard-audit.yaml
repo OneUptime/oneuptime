@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd admin-dashboard
+          cd AdminDashboard
           npm install
           npm run audit
 

@@ -153,7 +153,7 @@ app.use(['/schedule', '/api/schedule'], ScheduleAPI);
 
 app.use(['/monitor', '/api/monitor'], MonitorAPI);
 
-app.use(['/status-page', '/api/status-page'], StatusPageAPI);
+app.use(['/StatusPage', '/api/StatusPage'], StatusPageAPI);
 
 app.use(['/file', '/api/file'], FileAPI);
 
@@ -264,7 +264,7 @@ app.use(['/monitorSla', '/api/monitorSla'], MonitorSlaAPI);
 
 app.use(['/incoming-request', '/api/incoming-request'], IncomingRequestAPI);
 
-app.use(['/script-runner', '/api/script-runner'], ScriptRunnerAPI);
+app.use(['/ScriptRunner', '/api/ScriptRunner'], ScriptRunnerAPI);
 
 app.use(['/customField', '/api/customField'], CustomFieldAPI);
 

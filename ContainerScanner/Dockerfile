@@ -1,5 +1,5 @@
 #
-# container-scanner Dockerfile
+# ContainerScanner Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -21,12 +21,12 @@ RUN npm install
 COPY ./common /usr/src/common
 RUN npm compile
 
-# Install common-server
-RUN mkdir /usr/src/common-server
-WORKDIR /usr/src/common-server
-COPY ./common-server/package*.json /usr/src/common-server/
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
-COPY ./common-server /usr/src/common-server
+COPY ./CommonServer /usr/src/CommonServer
 RUN npm compile
 
 #SET ENV Variables
@@ -37,12 +37,12 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./container-scanner/package*.json /usr/src/app/
+COPY ./ContainerScanner/package*.json /usr/src/app/
 RUN npm install
 RUN npm install -g ts-node
 
 # Bundle app source
-COPY ./container-scanner /usr/src/app
+COPY ./ContainerScanner /usr/src/app
 
 # Expose ports.
 #   - 3055: Container Scanner

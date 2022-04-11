@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd api-docs
+          cd ApiDocs
           npm install
           npm run audit
 

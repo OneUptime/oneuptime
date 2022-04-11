@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - GO SDK
-deploy_staging_go-sdk:
+deploy_staging_GoSDK:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -12,9 +12,9 @@ deploy_staging_go-sdk:
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local || true # just continue is go already exist in the location
         - export GOROOT=/usr/local/go
-        - export GOPATH=$HOME/go-sdk/oneuptime
+        - export GOPATH=$HOME/GoSDK/oneuptime
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-        - cd go-sdk
+        - cd GoSDK
         - go get -d ./...
         - go mod tidy
         - git init
@@ -23,8 +23,8 @@ deploy_staging_go-sdk:
         - git tag v4.0.$CI_PIPELINE_ID-qa
         # - go build
         # - git checkout staging || git checkout -b staging
-        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git staging --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git v4.0.$CI_PIPELINE_ID-qa --force
+        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git v4.0.$CI_PIPELINE_ID-qa --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -32,11 +32,11 @@ deploy_staging_go-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-go-sdk
+            - feature-GoSDK
     environment:
         name: staging
 
-production_go-sdk:
+production_GoSDK:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -49,9 +49,9 @@ production_go-sdk:
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local || true # just continue is go already exist in the location
         - export GOROOT=/usr/local/go
-        - export GOPATH=$HOME/go-sdk/oneuptime
+        - export GOPATH=$HOME/GoSDK/oneuptime
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-        - cd go-sdk
+        - cd GoSDK
         - git init
         - git add .
         - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made"
@@ -64,9 +64,9 @@ production_go-sdk:
         - git tag v0.4.0.$CI_PIPELINE_ID
         # - go build
         # - git checkout staging || git checkout -b staging
-        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git staging --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git v4.0.$CI_PIPELINE_ID --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/go-sdk.git master --force
+        # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git v4.0.$CI_PIPELINE_ID --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -74,6 +74,6 @@ production_go-sdk:
         refs:
             - release
             - hotfix-master
-            - feature-go-sdk
+            - feature-GoSDK
     environment:
         name: prroduction

@@ -16,7 +16,7 @@ OneUptime has four separated projects for the UI:
 
 It's responsible for the registration operations, and the login process in the frontend side.
 
-#### admin-dashboard
+#### AdminDashboard
 
 It's the UI used by the administrators.
 
@@ -24,7 +24,7 @@ It's the UI used by the administrators.
 
 It's the UI used by the users.
 
-#### status-page
+#### StatusPage
 
 It's a public page that renders the reports about the situation of the monitored resources.
 

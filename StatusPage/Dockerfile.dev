@@ -1,0 +1,66 @@
+#
+# OneUptime Status Page Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:alpine
+
+# Install bash. 
+RUN apk update && apk add bash && apk add curl
+
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
+RUN mkdir /usr/src
+
+# Install common
+RUN mkdir /usr/src/common
+WORKDIR /usr/src/common
+COPY ./common/package*.json /usr/src/common/
+RUN npm install
+COPY ./common /usr/src/common
+RUN npm compile
+
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
+RUN npm install
+COPY ./CommonServer /usr/src/CommonServer
+RUN npm compile
+
+#SET ENV Variables
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Because of this error during build
+# Error message "error:0308010C:digital envelope routines::unsupported"
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+
+
+
+WORKDIR /usr/src/app
+
+# Copy package.json files
+COPY ./StatusPage/package.json /usr/src/app/package.json
+COPY ./StatusPage/package-lock.json /usr/src/app/package-lock.json
+
+
+# Install app dependencies
+RUN npm install 
+
+# Create .cache folder with necessary permissions for React-based apps
+# https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat
+RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
+
+# Expose ports.
+#   - 3006: HTTP OneUptime Status Page
+EXPOSE 3006
+
+# Expose ports.
+#   - 3007: HTTPS OneUptime Status Page
+EXPOSE 3007
+
+#Run the app
+CMD [ "npm", "run", "dev" ]

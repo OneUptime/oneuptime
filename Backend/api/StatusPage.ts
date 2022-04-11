@@ -71,7 +71,7 @@ ApiBase({
     isResourceInProject: true,
     service: StatusPageService,
     friendlyResourceName: 'Status Page',
-    resourceName: 'status-page',
+    resourceName: 'StatusPage',
 });
 
 //fetch tweets from user twitter handle
@@ -837,7 +837,7 @@ router.get(
 );
 
 router.get(
-    '/:projectId/status-pages',
+    '/:projectId/StatusPages',
     getUser,
     isAuthorized,
     async function (req, res) {
@@ -1058,7 +1058,7 @@ router.get(
                         item: {
                             title: incident.title,
 
-                            guid: `${global.apiHost}/status-page/${statusPageId}/rss/${incident._id}`,
+                            guid: `${global.apiHost}/StatusPage/${statusPageId}/rss/${incident._id}`,
                             pubDate: new Date(incident.createdAt).toUTCString(),
                             description: `<![CDATA[Description: ${
                                 incident.description
@@ -1097,7 +1097,7 @@ router.get(
                                     'RSS feed for all incidents related to monitors attached to status page',
                             },
                             {
-                                link: `${global.apiHost}/status-page/${statusPageId}/rss`,
+                                link: `${global.apiHost}/StatusPage/${statusPageId}/rss`,
                             },
                             {
                                 lastBuildDate: () => new Date().toUTCString(),
@@ -1737,7 +1737,7 @@ router.get(
 );
 
 router.post(
-    '/:projectId/createExternalstatus-page/:statusPageId',
+    '/:projectId/createExternalStatusPage/:statusPageId',
     checkUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
@@ -1850,7 +1850,7 @@ router.post(
 );
 
 router.post(
-    '/:projectId/updateExternalstatus-page/:externalStatusPageId',
+    '/:projectId/updateExternalStatusPage/:externalStatusPageId',
     checkUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
@@ -1978,7 +1978,7 @@ router.get(
 );
 
 router.post(
-    '/:projectId/deleteExternalstatus-page/:externalStatusPageId',
+    '/:projectId/deleteExternalStatusPage/:externalStatusPageId',
     checkUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {

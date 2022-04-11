@@ -74,12 +74,12 @@ services:
         environment:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
-            - script-runner
+            - ScriptRunner
             - backend
             - realtime
         volumes:
@@ -107,23 +107,23 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules
 
-    probe-api:
+    ProbeAPI:
         ports:
             - '3400:3400'
             - '9251:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./probe-api/Dockerfile.dev
+            dockerfile: ./ProbeAPI/Dockerfile.dev
         env_file:
-            - ./probe-api/.env
+            - ./ProbeAPI/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         volumes:
-            - ./probe-api:/usr/src/app
+            - ./ProbeAPI:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -147,7 +147,7 @@ services:
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
-            - PROBE_API_URL=http://probe-api:3400
+            - PROBE_API_URL=http://ProbeAPI:3400
         volumes:
             - ./probe:/usr/src/app
             # Use node modules of the container and not host system.
@@ -155,33 +155,33 @@ services:
             - /usr/src/app/node_modules/
             - /usr/src/app/greenlock.d/
 
-    api-docs:
+    ApiDocs:
         ports:
             - '1445:1445'
         build:
             network: host
             context: .
-            dockerfile: ./api-docs/Dockerfile.dev
+            dockerfile: ./ApiDocs/Dockerfile.dev
         env_file:
-            - ./api-docs/.env
+            - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         volumes:
-            - ./api-docs:/usr/src/app
+            - ./ApiDocs:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    init-script:
+    InitScript:
         build:
             network: host
             context: .
-            dockerfile: ./init-script/Dockerfile.dev
+            dockerfile: ./InitScript/Dockerfile.dev
         ports:
             - '1447:1447'
             - '9237:9229' # Debugging port.
         env_file:
-            - ./init-script/.env
+            - ./InitScript/.env
         environment:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
@@ -192,27 +192,27 @@ services:
             - mongo
             - redis
         volumes:
-            - ./init-script:/usr/src/app
+            - ./InitScript:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    script-runner:
+    ScriptRunner:
         ports:
             - '3009:3009'
             - '9236:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./script-runner/Dockerfile.dev
+            dockerfile: ./ScriptRunner/Dockerfile.dev
         env_file:
-            - ./script-runner/.env
+            - ./ScriptRunner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
         volumes:
-            - ./script-runner:/usr/src/app
+            - ./ScriptRunner:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -232,7 +232,7 @@ services:
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
@@ -282,54 +282,54 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    status-page:
+    StatusPage:
         ports:
             - '3006:3006'
         build:
             network: host
             context: .
-            dockerfile: ./status-page/Dockerfile.dev
+            dockerfile: ./StatusPage/Dockerfile.dev
         env_file:
-            - ./status-page/.env
+            - ./StatusPage/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         volumes:
-            - ./status-page:/usr/src/app
+            - ./StatusPage:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    admin-dashboard:
+    AdminDashboard:
         ports:
             - '3100:3100'
         build:
             network: host
             context: .
-            dockerfile: ./admin-dashboard/Dockerfile.dev
+            dockerfile: ./AdminDashboard/Dockerfile.dev
         env_file:
-            - ./admin-dashboard/.env
+            - ./AdminDashboard/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         volumes:
-            - ./admin-dashboard:/usr/src/app
+            - ./AdminDashboard:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    http-test-server:
+    HttpTestServer:
         ports:
             - '3010:3010'
             - '9234:9229' # Debugging port.
         env_file:
-            - ./http-test-server/.env
+            - ./HttpTestServer/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             network: host
             context: .
-            dockerfile: ./http-test-server/Dockerfile.dev
+            dockerfile: ./HttpTestServer/Dockerfile.dev
         volumes:
-            - ./http-test-server:/usr/src/app
+            - ./HttpTestServer:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -351,16 +351,16 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-    application-scanner:
+    ApplicationScanner:
         ports:
             - '3005:3005'
             - '9240:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./application-scanner/Dockerfile.dev
+            dockerfile: ./ApplicationScanner/Dockerfile.dev
         env_file:
-            - ./application-scanner/.env
+            - ./ApplicationScanner/.env
         environment:
             - PORT=3005
             - SERVER_URL=http://backend:3002
@@ -369,20 +369,20 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         volumes:
-            - ./application-scanner:/usr/src/app
+            - ./ApplicationScanner:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-    container-scanner:
+    ContainerScanner:
         ports:
             - '3055:3055'
             - '9242:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./container-scanner/Dockerfile.dev
+            dockerfile: ./ContainerScanner/Dockerfile.dev
         env_file:
-            - ./container-scanner/.env
+            - ./ContainerScanner/.env
         environment:
             - PORT=3055
             - SERVER_URL=http://backend:3002
@@ -391,27 +391,27 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         volumes:
-            - ./container-scanner:/usr/src/app
+            - ./ContainerScanner:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-    lighthouse-runner:
+    LighthouseRunner:
         ports:
             - '3015:3015'
             - '9241:9229' # Debugging port.
         build:
             network: host
             context: .
-            dockerfile: ./lighthouse-runner/Dockerfile.dev
+            dockerfile: ./LighthouseRunner/Dockerfile.dev
         env_file:
-            - ./lighthouse-runner/.env
+            - ./LighthouseRunner/.env
         environment:
             - PORT=3015
             - SERVER_URL=http://backend:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
         volumes:
-            - ./lighthouse-runner:/usr/src/app
+            - ./LighthouseRunner:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -422,7 +422,7 @@ services:
             - home
             - dashboard
             - accounts
-            - admin-dashboard
+            - AdminDashboard
         restart: always
         build:
             dockerfile: Dockerfile

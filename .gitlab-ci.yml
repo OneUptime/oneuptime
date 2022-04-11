@@ -24,14 +24,14 @@ include:
   - '/ci/spec/accounts/lighthouse.yaml'
 
   # ADMIN DASHBOARD
-  - '/ci/spec/admin-dashboard/audit.yaml'
-  - '/ci/spec/admin-dashboard/deploy.yaml'
-  - '/ci/spec/admin-dashboard/rollback.yaml'
+  - '/ci/spec/AdminDashboard/audit.yaml'
+  - '/ci/spec/AdminDashboard/deploy.yaml'
+  - '/ci/spec/AdminDashboard/rollback.yaml'
 
-  # API-DOCS DASHBOARD
-  - '/ci/spec/api-docs/audit.yaml'
-  - '/ci/spec/api-docs/deploy.yaml'
-  - '/ci/spec/api-docs/rollback.yaml'
+  # ApiDocs DASHBOARD
+  - '/ci/spec/ApiDocs/audit.yaml'
+  - '/ci/spec/ApiDocs/deploy.yaml'
+  - '/ci/spec/ApiDocs/rollback.yaml'
 
   # BACKEND
   - '/ci/spec/backend/audit.yaml'
@@ -44,11 +44,11 @@ include:
   - '/ci/spec/dashboard/deploy.yaml'
   - '/ci/spec/dashboard/rollback.yaml'
 
-  # HELM-CHART
-  - '/ci/spec/helm-chart/audit.yaml'
-  - '/ci/spec/helm-chart/build-n-test.yaml'
-  - '/ci/spec/helm-chart/deploy.yaml'
-  - '/ci/spec/helm-chart/rollback.yaml'
+  # HelmChart
+  - '/ci/spec/HelmChart/audit.yaml'
+  - '/ci/spec/HelmChart/build-n-test.yaml'
+  - '/ci/spec/HelmChart/deploy.yaml'
+  - '/ci/spec/HelmChart/rollback.yaml'
 
   # HOME
   - '/ci/spec/home/audit.yaml'
@@ -56,18 +56,18 @@ include:
   - '/ci/spec/home/rollback.yaml'
   - '/ci/spec/home/lighthouse.yaml'
 
-  # HTTP-TEST-SERVER
-  - '/ci/spec/http-test-server/audit.yaml'
-  - '/ci/spec/http-test-server/deploy.yaml'
-  - '/ci/spec/http-test-server/rollback.yaml'
+  # HttpTestServer
+  - '/ci/spec/HttpTestServer/audit.yaml'
+  - '/ci/spec/HttpTestServer/deploy.yaml'
+  - '/ci/spec/HttpTestServer/rollback.yaml'
 
-  # INIT-SCRIPT
-  - '/ci/spec/init-script/audit.yaml'
-  - '/ci/spec/init-script/deploy.yaml'
+  # InitScript
+  - '/ci/spec/InitScript/audit.yaml'
+  - '/ci/spec/InitScript/deploy.yaml'
 
   # LIGHTHOUSE RUNNER
-  - '/ci/spec/lighthouse-runner/audit.yaml'
-  - '/ci/spec/lighthouse-runner/deploy.yaml'
+  - '/ci/spec/LighthouseRunner/audit.yaml'
+  - '/ci/spec/LighthouseRunner/deploy.yaml'
 
   # LICENSING
   - '/ci/spec/licensing/audit.yaml'
@@ -80,10 +80,10 @@ include:
   - '/ci/spec/probe/deploy.yaml'
   - '/ci/spec/probe/rollback.yaml'
 
-  # STATUS-PAGE
-  - '/ci/spec/status-page/audit.yaml'
-  - '/ci/spec/status-page/deploy.yaml'
-  - '/ci/spec/status-page/rollback.yaml'
+  # StatusPage
+  - '/ci/spec/StatusPage/audit.yaml'
+  - '/ci/spec/StatusPage/deploy.yaml'
+  - '/ci/spec/StatusPage/rollback.yaml'
 
   # ZAPIER
   - '/ci/spec/zapier/audit.yaml'
@@ -99,25 +99,25 @@ include:
   - '/ci/spec/tests/staging.yaml'
   - '/ci/spec/tests/production.yaml'
 
-  # JS-SDK
-  - '/ci/spec/js-sdk/audit.yaml'
-  - '/ci/spec/js-sdk/build-n-test.yaml'
-  - '/ci/spec/js-sdk/deploy.yaml'
+  # JavaScriptSDK
+  - '/ci/spec/JavaScriptSDK/audit.yaml'
+  - '/ci/spec/JavaScriptSDK/build-n-test.yaml'
+  - '/ci/spec/JavaScriptSDK/deploy.yaml'
 
-  # PHP-SDK
-  - '/ci/spec/php-sdk/audit.yaml'
-  - '/ci/spec/php-sdk/build-n-test.yaml'
-  - '/ci/spec/php-sdk/deploy.yaml'
+  # PhpSDK
+  - '/ci/spec/PhpSDK/audit.yaml'
+  - '/ci/spec/PhpSDK/build-n-test.yaml'
+  - '/ci/spec/PhpSDK/deploy.yaml'
 
-  # JAVA-SDK
-  - '/ci/spec/java-sdk/audit.yaml'
-  - '/ci/spec/java-sdk/build-n-test.yaml'
-  - '/ci/spec/java-sdk/deploy.yaml'
+  # JavaSDK
+  - '/ci/spec/JavaSDK/audit.yaml'
+  - '/ci/spec/JavaSDK/build-n-test.yaml'
+  - '/ci/spec/JavaSDK/deploy.yaml'
 
-  # PYTHON-SDK
-  - '/ci/spec/python-sdk/audit.yaml'
-  - '/ci/spec/python-sdk/build-n-test.yaml'
-  - '/ci/spec/python-sdk/deploy.yaml'
+  # PythonSDK
+  - '/ci/spec/PythonSDK/audit.yaml'
+  - '/ci/spec/PythonSDK/build-n-test.yaml'
+  - '/ci/spec/PythonSDK/deploy.yaml'
 
   # RUBY-SDK
   - '/ci/spec/ruby-sdk/audit.yaml'
@@ -137,14 +137,14 @@ include:
   - '/ci/spec/oneuptime-gl-manager/deploy.yaml'
 
   # Application Scanner
-  - '/ci/spec/application-scanner/deploy.yaml'
+  - '/ci/spec/ApplicationScanner/deploy.yaml'
 
   #  Script Runner
-  - '/ci/spec/script-runner/audit.yaml'
-  - '/ci/spec/script-runner/deploy.yaml'
+  - '/ci/spec/ScriptRunner/audit.yaml'
+  - '/ci/spec/ScriptRunner/deploy.yaml'
 
   #  Container Scanner
-  - '/ci/spec/container-scanner/deploy.yaml'
+  - '/ci/spec/ContainerScanner/deploy.yaml'
 
   # realtime
   - '/ci/spec/realtime/audit.yaml'
@@ -156,12 +156,12 @@ include:
   - '/ci/spec/data-ingestor/deploy.yaml'
   - '/ci/spec/data-ingestor/rollback.yaml'
 
-  # probe-api
-  - '/ci/spec/probe-api/audit.yaml'
-  - '/ci/spec/probe-api/deploy.yaml'
-  - '/ci/spec/probe-api/rollback.yaml'
+  # ProbeAPI
+  - '/ci/spec/ProbeAPI/audit.yaml'
+  - '/ci/spec/ProbeAPI/deploy.yaml'
+  - '/ci/spec/ProbeAPI/rollback.yaml'
 
-  # # GO-SDK
-  # - '/ci/spec/go-sdk/audit.yaml'
-  # - '/ci/spec/go-sdk/build-n-test.yaml'
-  # - '/ci/spec/go-sdk/deploy.yaml'
+  # # GoSDK
+  # - '/ci/spec/GoSDK/audit.yaml'
+  # - '/ci/spec/GoSDK/build-n-test.yaml'
+  # - '/ci/spec/GoSDK/deploy.yaml'

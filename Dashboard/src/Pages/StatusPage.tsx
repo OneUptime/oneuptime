@@ -4,18 +4,18 @@ import { connect } from 'react-redux';
 
 import { Fade } from 'react-awesome-reveal';
 import ShouldRender from '../components/basic/ShouldRender';
-import Setting from '../components/status-page/Setting';
-import Basic from '../components/status-page/Basic';
-import Header from '../components/status-page/Header';
-import Monitors from '../components/status-page/Monitors';
-import Branding from '../components/status-page/Branding';
-import StatusPageLayout from '../components/status-page/StatusPageLayout';
-import Links from '../components/status-page/Links';
-import DeleteBox from '../components/status-page/DeleteBox';
-import DuplicateStatusBox from '../components/status-page/DuplicateStatusPage';
-import ExternalStatusPages from '../components/status-page/ExternalStatusPages';
-import PrivateStatusPage from '../components/status-page/PrivateStatusPage';
-import StatusPageLanguage from '../components/status-page/StatusPageLanguage';
+import Setting from '../components/StatusPage/Setting';
+import Basic from '../components/StatusPage/Basic';
+import Header from '../components/StatusPage/Header';
+import Monitors from '../components/StatusPage/Monitors';
+import Branding from '../components/StatusPage/Branding';
+import StatusPageLayout from '../components/StatusPage/StatusPageLayout';
+import Links from '../components/StatusPage/Links';
+import DeleteBox from '../components/StatusPage/DeleteBox';
+import DuplicateStatusBox from '../components/StatusPage/DuplicateStatusPage';
+import ExternalStatusPages from '../components/StatusPage/ExternalStatusPages';
+import PrivateStatusPage from '../components/StatusPage/PrivateStatusPage';
+import StatusPageLanguage from '../components/StatusPage/StatusPageLanguage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { FormLoader, LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
@@ -28,20 +28,20 @@ import {
     fetchProjectStatusPage,
     updateStatusPageMonitors,
 } from '../actions/statusPage';
-import CustomStyles from '../components/status-page/CustomStyles';
-import EmbeddedBubble from '../components/status-page/EmbeddedBubble';
+import CustomStyles from '../components/StatusPage/CustomStyles';
+import EmbeddedBubble from '../components/StatusPage/EmbeddedBubble';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../Utils/getParentRoute';
 
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import Themes from '../components/status-page/Themes';
-import StatusPageSubscriber from '../components/status-page/StatusPageSubscriber';
-import Announcements from '../components/status-page/Announcements';
+import Themes from '../components/StatusPage/Themes';
+import StatusPageSubscriber from '../components/StatusPage/StatusPageSubscriber';
+import Announcements from '../components/StatusPage/Announcements';
 
-import StatusPageCategory from '../components/status-page/StatusPageCategory';
+import StatusPageCategory from '../components/StatusPage/StatusPageCategory';
 import { fetchAllStatusPageCategories } from '../actions/statusPageCategory';
-import MonitorsWithCategory from '../components/status-page/MonitorsWithCategory';
-import EmptyCategory from '../components/status-page/EmptyCategory';
+import MonitorsWithCategory from '../components/StatusPage/MonitorsWithCategory';
+import EmptyCategory from '../components/StatusPage/EmptyCategory';
 import { fetchComponents } from '../actions/component';
 import { fetchMonitors } from '../actions/monitor';
 
@@ -92,7 +92,7 @@ class StatusPage extends Component<ComponentProps> {
 
         const projectId = this.props.projectId && this.props.projectId;
         const statusPageSlug = history.location.pathname
-            .split('status-page/')[1]
+            .split('StatusPage/')[1]
             .split('/')[0];
         if (projectId) {
 
@@ -164,7 +164,7 @@ class StatusPage extends Component<ComponentProps> {
 
                 const projectId = this.props.projectId && this.props.projectId;
                 const statusPageSlug = history.location.pathname
-                    .split('status-page/')[1]
+                    .split('StatusPage/')[1]
                     .split('/')[0];
                 if (projectId) {
 
@@ -204,7 +204,7 @@ class StatusPage extends Component<ComponentProps> {
 
             this.props.history.push(
 
-                `/dashboard/project/${this.props.currentProject.slug}/status-pages`
+                `/dashboard/project/${this.props.currentProject.slug}/StatusPages`
             );
         }
     }

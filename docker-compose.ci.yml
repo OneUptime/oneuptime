@@ -35,14 +35,14 @@ services:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - CLUSTER_KEY=test
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
             - redis
             - haraka
-            - script-runner
+            - ScriptRunner
     accounts:
         ports:
             - '3003:3003'
@@ -78,43 +78,43 @@ services:
         build:
             context: .
             dockerfile: ./home/Dockerfile
-    status-page:
+    StatusPage:
         ports:
             - '3006:3006'
         build:
             context: .
-            dockerfile: ./status-page/Dockerfile
+            dockerfile: ./StatusPage/Dockerfile
         env_file:
-            - ./status-page/.env
+            - ./StatusPage/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
             - accounts
             - dashboard
-    admin-dashboard:
+    AdminDashboard:
         ports:
             - '3100:3100'
         build:
             context: .
-            dockerfile: ./admin-dashboard/Dockerfile
+            dockerfile: ./AdminDashboard/Dockerfile
         env_file:
-            - ./admin-dashboard/.env
+            - ./AdminDashboard/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
             - accounts
-    http-test-server:
+    HttpTestServer:
         ports:
             - '3010:3010'
         env_file:
-            - ./http-test-server/.env
+            - ./HttpTestServer/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build:
             context: .
-            dockerfile: ./http-test-server/Dockerfile
+            dockerfile: ./HttpTestServer/Dockerfile
     licensing:
         ports:
             - '3004:3004'
@@ -136,12 +136,12 @@ services:
         environment:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
-            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - SCRIPT_RUNNER_URL=http://ScriptRunner:3009
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
-            - script-runner
+            - ScriptRunner
             - backend
             - realtime
     realtime:
@@ -155,14 +155,14 @@ services:
         environment:
             - CLUSTER_KEY=test
             - PORT=3300
-    probe-api:
+    ProbeAPI:
         ports:
             - '3400:3400'
         build:
             context: .
-            dockerfile: ./probe-api/Dockerfile
+            dockerfile: ./ProbeAPI/Dockerfile
         env_file:
-            - ./probe-api/.env
+            - ./ProbeAPI/.env
         environment:
             - CLUSTER_KEY=test
             - PORT=3400
@@ -182,7 +182,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
             - DATA_INGESTOR_URL=http://data-ingestor:3200
-            - PROBE_API_URL=http://probe-api:3400
+            - PROBE_API_URL=http://ProbeAPI:3400
         depends_on:
             - backend
             - data-ingestor
@@ -203,24 +203,24 @@ services:
         depends_on:
             - backend
             - data-ingestor
-    api-docs:
+    ApiDocs:
         ports:
             - '1445:1445'
         build:
             context: .
-            dockerfile: ./api-docs/Dockerfile
+            dockerfile: ./ApiDocs/Dockerfile
         env_file:
-            - ./api-docs/.env
+            - ./ApiDocs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-    init-script:
+    InitScript:
         build:
             context: .
-            dockerfile: ./init-script/Dockerfile
+            dockerfile: ./InitScript/Dockerfile
         ports:
             - '1447:1447'
         env_file:
-            - ./init-script/.env
+            - ./InitScript/.env
         environment:
             - MONGO_URL=mongodb://mongo:27017/oneuptimedb
             - REDIS_HOST=redis
@@ -246,26 +246,26 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
-    script-runner:
+    ScriptRunner:
         ports:
             - '3009:3009'
         build:
             context: .
-            dockerfile: ./script-runner/Dockerfile
+            dockerfile: ./ScriptRunner/Dockerfile
         env_file:
-            - ./script-runner/.env
+            - ./ScriptRunner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
-    application-scanner:
+    ApplicationScanner:
         ports:
             - '3005:3005'
         build:
             context: .
-            dockerfile: ./application-scanner/Dockerfile
+            dockerfile: ./ApplicationScanner/Dockerfile
         env_file:
-            - ./application-scanner/.env
+            - ./ApplicationScanner/.env
         environment:
             - PORT=3005
             - SERVER_URL=http://backend:3002
@@ -273,14 +273,14 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - backend
-    container-scanner:
+    ContainerScanner:
         ports:
             - '3055:3055'
         build:
             context: .
-            dockerfile: ./container-scanner/Dockerfile
+            dockerfile: ./ContainerScanner/Dockerfile
         env_file:
-            - ./container-scanner/.env
+            - ./ContainerScanner/.env
         environment:
             - PORT=3055
             - SERVER_URL=http://backend:3002
@@ -288,14 +288,14 @@ services:
             - CLUSTER_KEY=test
         depends_on:
             - backend
-    lighthouse-runner:
+    LighthouseRunner:
         ports:
             - '3015:3015'
         build:
             context: .
-            dockerfile: ./lighthouse-runner/Dockerfile
+            dockerfile: ./LighthouseRunner/Dockerfile
         env_file:
-            - ./lighthouse-runner/.env
+            - ./LighthouseRunner/.env
         environment:
             - PORT=3015
             - SERVER_URL=http://backend:3002
@@ -310,7 +310,7 @@ services:
             - home
             - dashboard
             - accounts
-            - admin-dashboard
+            - AdminDashboard
         restart: always
         build:
             dockerfile: Dockerfile

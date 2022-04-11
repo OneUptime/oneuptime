@@ -35,12 +35,12 @@ describe('Check scheduled maintenace', () => {
     });
 
     test(
-        'should create a status-page',
+        'should create a StatusPage',
         async (done: $TSFixMe) => {
             await init.registerUser(user, page);
             await init.renameProject(projectName, page);
 
-            // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
+            // Create a StatusPage and Scheduled Maintenance to display in the StatusPage Url
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -89,7 +89,7 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
 
-            // To confirm the status-page name.
+            // To confirm the StatusPage name.
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#header-${statusPageName}`,
@@ -177,7 +177,7 @@ describe('Check scheduled maintenace', () => {
     );
 
     test(
-        'should add monitor to status-page',
+        'should add monitor to StatusPage',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -236,7 +236,7 @@ describe('Check scheduled maintenace', () => {
             link = await link.jsonValue();
             await page.goto(link);
 
-            // To confirm the monitor is present in the status-page
+            // To confirm the monitor is present in the StatusPage
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-${monitorName}`,
@@ -356,7 +356,7 @@ describe('Check scheduled maintenace', () => {
     );
 
     test(
-        'should view scheduled maintenance details in status-page',
+        'should view scheduled maintenance details in StatusPage',
         async (done: $TSFixMe) => {
             await init.pageWaitForSelector(page, '#statusPages', {
                 visible: true,

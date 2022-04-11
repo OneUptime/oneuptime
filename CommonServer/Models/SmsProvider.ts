@@ -43,7 +43,10 @@ const schema = new Schema({
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = ['providerCredentials.twilio.accountSid', 'providerCredentials.twilio.authToken'];
+export const encryptedFields: EncryptedFields = [
+    'providerCredentials.twilio.accountSid',
+    'providerCredentials.twilio.authToken',
+];
 
 export const slugifyField: string = '';
 

@@ -1,5 +1,5 @@
-import 'common-server/utils/env';
-import 'common-server/utils/process';
+import 'CommonServer/utils/env';
+import 'CommonServer/utils/process';
 
 import asyncSleep from 'await-sleep';
 

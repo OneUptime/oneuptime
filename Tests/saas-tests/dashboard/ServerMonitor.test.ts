@@ -8,7 +8,7 @@ axios.defaults.adapter = require('axios/lib/adapters/http');
 let serverMonitor: $TSFixMe;
 try {
     // try to use local package (with recent changes)
-    serverMonitor = require('../../../../js-sdk/src/cli/server-monitor/lib/api');
+    serverMonitor = require('../../../../JavaScriptSDK/src/cli/server-monitor/lib/api');
 } catch (error) {
     import oneuptime from 'oneuptime';
     serverMonitor = oneuptime.ServerMonitor;

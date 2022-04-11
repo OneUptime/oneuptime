@@ -1,6 +1,6 @@
 User-agent: *
 Disallow: /api/*
-Disallow: /status-page/*
+Disallow: /StatusPage/*
 Disallow: /admin/*
 Disallow: /haraka/*
 Disallow: /dashboard/*

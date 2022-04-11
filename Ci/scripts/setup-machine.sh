@@ -10,10 +10,10 @@ echo "RUNNING COMMAND:  ./ci/cleanup.sh"
 ./ci/scripts/cleanup.sh
 
 # Setup Machine.
-echo "RUNNING COMMAND:  chmod +x ./helm-chart/public/install.sh"
-chmod +x ./helm-chart/public/install.sh
-echo "RUNNING COMMAND:  ./helm-chart/public/install.sh"
-./helm-chart/public/install.sh ci-install $1
+echo "RUNNING COMMAND:  chmod +x ./HelmChart/public/install.sh"
+chmod +x ./HelmChart/public/install.sh
+echo "RUNNING COMMAND:  ./HelmChart/public/install.sh"
+./HelmChart/public/install.sh ci-install $1
 
 # For dpkg interruption 
 sudo dpkg --configure -a

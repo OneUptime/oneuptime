@@ -20,7 +20,7 @@ spec:
                 app: {{ printf "%s-%s" $.Release.Name "test"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "http-test-server" .Values.image.tag }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "HttpTestServer" .Values.image.tag }}
                   name: {{ printf "%s-%s" $.Release.Name "test"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:

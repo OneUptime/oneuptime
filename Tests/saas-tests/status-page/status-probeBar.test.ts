@@ -35,9 +35,9 @@ describe('Probe bar test', () => {
         async (done: $TSFixMe) => {
             await init.registerUser(user, page);
             await init.renameProject(projectName, page);
-            await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscribers in status-page
+            await init.growthPlanUpgrade(page); // Only Monthly growth plan can enable subscribers in StatusPage
 
-            // Create a Status-Page and Scheduled Maintenance to display in the Status-Page Url
+            // Create a StatusPage and Scheduled Maintenance to display in the StatusPage Url
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });

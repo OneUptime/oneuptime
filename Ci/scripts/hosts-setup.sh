@@ -2,7 +2,7 @@ sudo sed -i '/accounts/c\' /etc/hosts
 ACCOUNTS_IP=`sudo k describe svc oneuptime-accounts | grep Endpoints | cut -d ":" -f 2`
 echo $ACCOUNTS_IP'      accounts.app.local' | sudo tee -a /etc/hosts
 
-sudo sed -i '/admin-dashboard/c\' /etc/hosts
+sudo sed -i '/AdminDashboard/c\' /etc/hosts
 ADMIN_DASHBOARD_IP=`sudo k describe svc oneuptime-admin | grep Endpoints | cut -d ":" -f 2`
 echo $ADMIN_DASHBOARD_IP'      admin.app.local' | sudo tee -a /etc/hosts
 
@@ -18,13 +18,13 @@ sudo sed -i '/home/c\' /etc/hosts
 HOME_IP=`sudo k describe svc oneuptime-home | grep Endpoints | cut -d ":" -f 2`
 echo $HOME_IP'      home.app.local' | sudo tee -a /etc/hosts
 
-sudo sed -i '/status-page/c\' /etc/hosts
+sudo sed -i '/StatusPage/c\' /etc/hosts
 STATUSPAGE_IP=`sudo k describe svc oneuptime-status | grep Endpoints | cut -d ":" -f 2`
 echo $STATUSPAGE_IP'      status.app.local' | sudo tee -a /etc/hosts
 
-sudo sed -i '/api-docs/c\' /etc/hosts
-APIDOCS_IP=`sudo k describe svc oneuptime-api-docs | grep Endpoints | cut -d ":" -f 2`
-echo $APIDOCS_IP'      api-docs.app.local' | sudo tee -a /etc/hosts
+sudo sed -i '/ApiDocs/c\' /etc/hosts
+APIDOCS_IP=`sudo k describe svc oneuptime-ApiDocs | grep Endpoints | cut -d ":" -f 2`
+echo $APIDOCS_IP'      ApiDocs.app.local' | sudo tee -a /etc/hosts
 
 sudo sed -i '/licensing/c\' /etc/hosts
 LICENSING_IP=`sudo k describe svc oneuptime-licensing | grep Endpoints | cut -d ":" -f 2`

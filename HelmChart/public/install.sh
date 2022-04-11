@@ -170,7 +170,7 @@ sudo helm repo update
 
 
 function updateinstallation {
-    sudo k delete job oneuptime-init-script || echo "init-script already deleted"
+    sudo k delete job oneuptime-InitScript || echo "InitScript already deleted"
     sudo helm upgrade --reuse-values fi oneuptime/OneUptime \
         --set image.tag=$AVAILABLE_VERSION
 }
@@ -215,21 +215,21 @@ then
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
-            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./helm-chart/public/oneuptime \
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./HelmChart/public/oneuptime \
             --set haraka.domain=$DOMAIN \
             --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         else
-            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./helm-chart/public/oneuptime \
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./HelmChart/public/oneuptime \
             --set haraka.domain=$DOMAIN \
             --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
             --set haraka.tlsCert=$TLS_CERT \
             --set haraka.tlsKey=$TLS_KEY
         fi
     else
-        sudo k delete job oneuptime-init-script || echo "init-script already deleted"
-        sudo helm upgrade --reuse-values fi ./helm-chart/public/oneuptime
+        sudo k delete job oneuptime-InitScript || echo "InitScript already deleted"
+        sudo helm upgrade --reuse-values fi ./HelmChart/public/oneuptime
     fi
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]

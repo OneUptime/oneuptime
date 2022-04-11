@@ -1673,60 +1673,60 @@ div#about div#additional div.col.secondary {
   margin-left: 60px;
 }
 
-body.api-docs {
+body.ApiDocs {
   -webkit-font-smoothing: antialiased;
   background: #fff;
 }
 
-body.api-docs .clearfix {
+body.ApiDocs .clearfix {
   clear: both;
   display: block;
   height: 0;
   visibility: hidden;
 }
 
-body.api-docs .lang-curl,body.api-docs .lang-java,body.api-docs .lang-php,body.api-docs .lang-python,body.api-docs .lang-ruby,body.api-docs .lang-go,body.api-docs .lang-node {
+body.ApiDocs .lang-curl,body.ApiDocs .lang-java,body.ApiDocs .lang-php,body.ApiDocs .lang-python,body.ApiDocs .lang-ruby,body.ApiDocs .lang-go,body.ApiDocs .lang-node {
   display: none;
 }
 
-body.api-docs.curl .lang-curl,body.api-docs.java .lang-java,body.api-docs.php .lang-php,body.api-docs.python .lang-python,body.api-docs.ruby .lang-ruby,body.api-docs.go .lang-go,body.api-docs.node .lang-node {
+body.ApiDocs.curl .lang-curl,body.ApiDocs.java .lang-java,body.ApiDocs.php .lang-php,body.ApiDocs.python .lang-python,body.ApiDocs.ruby .lang-ruby,body.ApiDocs.go .lang-go,body.ApiDocs.node .lang-node {
   display: inline;
 }
 
-body.api-docs .prompt:after {
+body.ApiDocs .prompt:after {
   content: '$ ';
   color: #777;
 }
 
-body.api-docs.curl .prompt:after {
+body.ApiDocs.curl .prompt:after {
   content: '$ ';
 }
 
-body.api-docs.ruby .prompt:after {
+body.ApiDocs.ruby .prompt:after {
   content: '>> ';
 }
 
-body.api-docs.python .prompt:after {
+body.ApiDocs.python .prompt:after {
   content: '>>> ';
 }
 
-body.api-docs.php .prompt:after {
+body.ApiDocs.php .prompt:after {
   content: 'php > ';
 }
 
-body.api-docs.java .prompt:after {
+body.ApiDocs.java .prompt:after {
   content: '';
 }
 
-body.api-docs.node .prompt:after {
+body.ApiDocs.node .prompt:after {
   content: '';
 }
 
-body.api-docs.go .prompt:after {
+body.ApiDocs.go .prompt:after {
   content: '';
 }
 
-body.api-docs div#guide {
+body.ApiDocs div#guide {
   background: white;
   border-right: 1px solid #dadfe5;
   bottom: 0;
@@ -1741,40 +1741,40 @@ body.api-docs div#guide {
   -webkit-perspective: 1000;
 }
 
-body.api-docs div#guide:before {
+body.ApiDocs div#guide:before {
   content: "";
   display: block;
   height: 24px;
 }
 
-body.api-docs div#guide:after {
+body.ApiDocs div#guide:after {
   content: "";
   display: block;
   height: 24px;
 }
 
-body.api-docs div#guide.stick {
+body.ApiDocs div#guide.stick {
   left: 0;
   position: fixed;
   top: 0;
 }
 
-body.api-docs div#guide p.ref-title {
+body.ApiDocs div#guide p.ref-title {
   color: #7a8e99;
   font-size: 11px;
   font-weight: bold;
   padding: 24px 20px 6px;
 }
 
-body.api-docs div#guide p.ref-title:first-child {
+body.ApiDocs div#guide p.ref-title:first-child {
   padding-top: 0;
 }
 
-body.api-docs div#guide ul.ref-list {
+body.ApiDocs div#guide ul.ref-list {
   padding: 0;
 }
 
-body.api-docs div#guide ul.ref-list li.section a {
+body.ApiDocs div#guide ul.ref-list li.section a {
   border: 1px solid transparent;
   border-left: 0;
   display: block;
@@ -1788,7 +1788,7 @@ body.api-docs div#guide ul.ref-list li.section a {
   white-space: nowrap;
 }
 
-body.api-docs div#guide ul.ref-list li.section a.viewing {
+body.ApiDocs div#guide ul.ref-list li.section a.viewing {
   background: -webkit-linear-gradient(#4f9fef,#3577d0);
   background: -moz-linear-gradient(#4f9fef,#3577d0);
   background: -ms-linear-gradient(#4f9fef,#3577d0);
@@ -1805,23 +1805,23 @@ body.api-docs div#guide ul.ref-list li.section a.viewing {
   text-shadow: 0 -1px 0 rgba(0,0,0,0.45);
 }
 
-body.api-docs div#guide ul.ref-list li.section .children {
+body.ApiDocs div#guide ul.ref-list li.section .children {
   display: none;
   padding-bottom: 6px;
 }
 
-body.api-docs div#guide ul.ref-list li.section .children a {
+body.ApiDocs div#guide ul.ref-list li.section .children a {
   font-weight: normal;
   height: 20px;
   line-height: 20px;
   padding-left: 30px;
 }
 
-body.api-docs div#guide ul.ref-list li.section.active .children {
+body.ApiDocs div#guide ul.ref-list li.section.active .children {
   display: block;
 }
 
-body.api-docs div#header {
+body.ApiDocs div#header {
   background: -webkit-linear-gradient(rgba(255,255,255,0),#f0f2f6 95%,#e5e8ee);
   background: -moz-linear-gradient(rgba(255,255,255,0),#f0f2f6 95%,#e5e8ee);
   background: -ms-linear-gradient(rgba(255,255,255,0),#f0f2f6 95%,#e5e8ee);
@@ -1839,7 +1839,7 @@ body.api-docs div#header {
   width: auto;
 }
 
-body.api-docs div#header:after {
+body.ApiDocs div#header:after {
   background: -webkit-linear-gradient(#98a4b8,rgba(171,182,201,0.48),rgba(139,154,179,0.02));
   background: -moz-linear-gradient(#98a4b8,rgba(171,182,201,0.48),rgba(139,154,179,0.02));
   background: -ms-linear-gradient(#98a4b8,rgba(171,182,201,0.48),rgba(139,154,179,0.02));
@@ -1855,7 +1855,7 @@ body.api-docs div#header:after {
   z-index: 50;
 }
 
-body.api-docs div#header div.burger-button {
+body.ApiDocs div#header div.burger-button {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   -ms-border-radius: 4px;
@@ -1881,13 +1881,13 @@ body.api-docs div#header div.burger-button {
   width: 28px;
 }
 
-body.api-docs div#header div.burger-button div.lines {
+body.ApiDocs div#header div.burger-button div.lines {
   height: 14px;
   margin: 7px auto 0;
   width: 14px;
 }
 
-body.api-docs div#header div.burger-button div.lines span {
+body.ApiDocs div#header div.burger-button div.lines span {
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   -ms-border-radius: 3px;
@@ -1905,18 +1905,18 @@ body.api-docs div#header div.burger-button div.lines span {
   width: 14px;
 }
 
-body.api-docs div#header div.burger-button:hover {
+body.ApiDocs div#header div.burger-button:hover {
   background: -webkit-linear-gradient(bottom,#d0d6db,#dfe5eb 30%,#f0f3f7);
   background: -moz-linear-gradient(bottom,#d0d6db,#dfe5eb 30%,#f0f3f7);
   background: -o-linear-gradient(bottom,#d0d6db,#dfe5eb 30%,#f0f3f7);
   background: linear-gradient(top,#d0d6db,#dfe5eb 30%,#f0f3f7);
 }
 
-body.api-docs div#header div.burger-button:hover div.lines span {
+body.ApiDocs div#header div.burger-button:hover div.lines span {
   background-color: #7e848c;
 }
 
-body.api-docs div#header div.burger-button:active {
+body.ApiDocs div#header div.burger-button:active {
   -webkit-box-shadow: rgba(0,0,0,0.05) 0 1px 1px inset,white 0 1px 0;
   -moz-box-shadow: rgba(0,0,0,0.05) 0 1px 1px inset,white 0 1px 0;
   -ms-box-shadow: rgba(0,0,0,0.05) 0 1px 1px inset,white 0 1px 0;
@@ -1928,43 +1928,43 @@ body.api-docs div#header div.burger-button:active {
   background: linear-gradient(top,#dfe5eb,#d8dee3);
 }
 
-body.api-docs div#header div.burger-button:active div.lines span {
+body.ApiDocs div#header div.burger-button:active div.lines span {
   background-color: #7e848c;
 }
 
-body.api-docs div#header h1 {
+body.ApiDocs div#header h1 {
   margin: 11px 0 0 20px;
 }
 
-body.api-docs div#header div.navigation {
+body.ApiDocs div#header div.navigation {
   padding: 14px 10px 0 0;
 }
 
-body.api-docs div#header div.navigation div.account-dropdown-view {
+body.ApiDocs div#header div.navigation div.account-dropdown-view {
   margin-right: 0;
   width: 125px;
 }
 
-body.api-docs div#header div.navigation div.signin {
+body.ApiDocs div#header div.navigation div.signin {
   margin-right: 10px;
 }
 
-body.api-docs div#api-docs {
+body.ApiDocs div#ApiDocs {
   background: white;
   margin-left: 200px;
   min-width: 750px;
 }
 
-body.api-docs div#api-docs a.section-anchor {
+body.ApiDocs div#ApiDocs a.section-anchor {
   display: block;
   height: 0;
 }
 
-body.api-docs div#api-docs.view-guide div#guide {
+body.ApiDocs div#ApiDocs.view-guide div#guide {
   margin-left: 0;
 }
 
-body.api-docs div#api-docs .border {
+body.ApiDocs div#ApiDocs .border {
   -webkit-box-shadow: rgba(0,0,0,0.3) 0 1px 1px;
   -moz-box-shadow: rgba(0,0,0,0.3) 0 1px 1px;
   -ms-box-shadow: rgba(0,0,0,0.3) 0 1px 1px;
@@ -1979,7 +1979,7 @@ body.api-docs div#api-docs .border {
   z-index: 100;
 }
 
-body.api-docs div#api-docs div#methods {
+body.ApiDocs div#ApiDocs div#methods {
   -webkit-box-shadow: #0f131a -1px 0 0,rgba(0,0,0,0.05) 1px 0 2px inset;
   -moz-box-shadow: #0f131a -1px 0 0,rgba(0,0,0,0.05) 1px 0 2px inset;
   -ms-box-shadow: #0f131a -1px 0 0,rgba(0,0,0,0.05) 1px 0 2px inset;
@@ -1991,12 +1991,12 @@ body.api-docs div#api-docs div#methods {
 }
 
 @media all and (min-width:1700px) {
-  body.api-docs div#api-docs div#methods {
+  body.ApiDocs div#ApiDocs div#methods {
     margin-left: 750px;
   }
 }
 
-body.api-docs div#api-docs div#methods #language {
+body.ApiDocs div#ApiDocs div#methods #language {
   background: -webkit-linear-gradient(#3e4145,#292e33);
   background: -moz-linear-gradient(#3e4145,#292e33);
   background: -ms-linear-gradient(#3e4145,#292e33);
@@ -2020,7 +2020,7 @@ body.api-docs div#api-docs div#methods #language {
   -webkit-perspective: 1000;
 }
 
-body.api-docs div#api-docs div#methods #language a {
+body.ApiDocs div#ApiDocs div#methods #language a {
   -webkit-border-radius: 18px;
   -moz-border-radius: 18px;
   -ms-border-radius: 18px;
@@ -2038,7 +2038,7 @@ body.api-docs div#api-docs div#methods #language a {
   text-transform: uppercase;
 }
 
-body.api-docs div#api-docs div#methods #language a.selected {
+body.ApiDocs div#ApiDocs div#methods #language a.selected {
   background: -webkit-linear-gradient(#14171a,#2a2f34);
   background: -moz-linear-gradient(#14171a,#2a2f34);
   background: -ms-linear-gradient(#14171a,#2a2f34);
@@ -2054,35 +2054,35 @@ body.api-docs div#api-docs div#methods #language a.selected {
   text-decoration: none;
 }
 
-body.api-docs div#api-docs div#methods #language.stick {
+body.ApiDocs div#ApiDocs div#methods #language.stick {
   position: fixed;
   top: 0;
 }
 
 @media all and (min-width:1700px) {
-  body.api-docs div#api-docs div#methods #language.stick {
+  body.ApiDocs div#ApiDocs div#methods #language.stick {
     left: 951px;
   }
 }
 
-body.api-docs div#api-docs div#methods .method {
+body.ApiDocs div#ApiDocs div#methods .method {
   padding-top: 45px;
   position: relative;
 }
 
-body.api-docs div#api-docs div#methods .method:nth-child(3) {
+body.ApiDocs div#ApiDocs div#methods .method:nth-child(3) {
   padding-top: 0;
 }
 
-body.api-docs div#api-docs div#methods .method:nth-child(3) .method-section .method-description:before,body.api-docs div#api-docs div#methods .method:nth-child(3) .method-section .method-example:before,body.api-docs div#api-docs div#methods .method:nth-child(3) .method-section .method-example:after {
+body.ApiDocs div#ApiDocs div#methods .method:nth-child(3) .method-section .method-description:before,body.ApiDocs div#ApiDocs div#methods .method:nth-child(3) .method-section .method-example:before,body.ApiDocs div#ApiDocs div#methods .method:nth-child(3) .method-section .method-example:after {
   display: none;
 }
 
-body.api-docs div#api-docs div#methods .method:last-child .method-section .method-example {
+body.ApiDocs div#ApiDocs div#methods .method:last-child .method-section .method-example {
   padding-bottom: 45px;
 }
 
-body.api-docs div#api-docs div#methods .method-section {
+body.ApiDocs div#ApiDocs div#methods .method-section {
   clear: left;
   font-size: 13px;
   line-height: 1.9em;
@@ -2091,7 +2091,7 @@ body.api-docs div#api-docs div#methods .method-section {
   position: relative;
 }
 
-body.api-docs div#api-docs div#methods .method-section:after {
+body.ApiDocs div#ApiDocs div#methods .method-section:after {
   clear: both;
   content: "";
   display: block;
@@ -2101,16 +2101,16 @@ body.api-docs div#api-docs div#methods .method-section:after {
 }
 
 @media all and (min-width:1700px) {
-  body.api-docs div#api-docs div#methods .method-section {
+  body.ApiDocs div#ApiDocs div#methods .method-section {
     margin-left: -750px;
   }
 }
 
-body.api-docs div#api-docs div#methods .method-section:nth-child(2) .method-description:before,body.api-docs div#api-docs div#methods .method-section:nth-child(2) .method-description:after,body.api-docs div#api-docs div#methods .method-section:nth-child(2) .method-example:before,body.api-docs div#api-docs div#methods .method-section:nth-child(2) .method-example:after {
+body.ApiDocs div#ApiDocs div#methods .method-section:nth-child(2) .method-description:before,body.ApiDocs div#ApiDocs div#methods .method-section:nth-child(2) .method-description:after,body.ApiDocs div#ApiDocs div#methods .method-section:nth-child(2) .method-example:before,body.ApiDocs div#ApiDocs div#methods .method-section:nth-child(2) .method-example:after {
   display: block;
 }
 
-body.api-docs div#api-docs div#methods .method-section h1,body.api-docs div#api-docs div#methods .method-section h2,body.api-docs div#api-docs div#methods .method-section h3,body.api-docs div#api-docs div#methods .method-section h4,body.api-docs div#api-docs div#methods .method-section h5,body.api-docs div#api-docs div#methods .method-section h6 {
+body.ApiDocs div#ApiDocs div#methods .method-section h1,body.ApiDocs div#ApiDocs div#methods .method-section h2,body.ApiDocs div#ApiDocs div#methods .method-section h3,body.ApiDocs div#ApiDocs div#methods .method-section h4,body.ApiDocs div#ApiDocs div#methods .method-section h5,body.ApiDocs div#ApiDocs div#methods .method-section h6 {
   font-family: "proxima-nova","Helvetica Neue",Helvetica,Arial,sans-serif;
   color: #111;
   display: block;
@@ -2119,34 +2119,34 @@ body.api-docs div#api-docs div#methods .method-section h1,body.api-docs div#api-
   line-height: 1.5em;
 }
 
-body.api-docs div#api-docs div#methods .method-section h2 {
+body.ApiDocs div#ApiDocs div#methods .method-section h2 {
   font-size: 20px;
 }
 
-body.api-docs div#api-docs div#methods .method-section h3 {
+body.ApiDocs div#ApiDocs div#methods .method-section h3 {
   font-size: 18px;
 }
 
-body.api-docs div#api-docs div#methods .method-section h4 {
+body.ApiDocs div#ApiDocs div#methods .method-section h4 {
   font-size: 16px;
 }
 
-body.api-docs div#api-docs div#methods .method-section h5 {
+body.ApiDocs div#ApiDocs div#methods .method-section h5 {
   font-size: 14px;
 }
 
-body.api-docs div#api-docs div#methods .method-section h6 {
+body.ApiDocs div#ApiDocs div#methods .method-section h6 {
   font-size: 13px;
 }
 
-body.api-docs div#api-docs div#methods .method-section p {
+body.ApiDocs div#ApiDocs div#methods .method-section p {
   color: #444;
   font-size: 13px;
   line-height: 1.9em;
   padding: 10px 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description {
   box-sizing: border-box;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -2158,7 +2158,7 @@ body.api-docs div#api-docs div#methods .method-section .method-description {
   z-index: 15;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description:before {
   background-color: #e4e8eb;
   content: "";
   display: none;
@@ -2170,12 +2170,12 @@ body.api-docs div#api-docs div#methods .method-section .method-description:befor
 }
 
 @media all and (min-width:1700px) {
-  body.api-docs div#api-docs div#methods .method-section .method-description {
+  body.ApiDocs div#ApiDocs div#methods .method-section .method-description {
     width: 750px;
   }
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description code,body.api-docs div#api-docs div#methods .method-section .method-description tt {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description code,body.ApiDocs div#ApiDocs div#methods .method-section .method-description tt {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   -ms-border-radius: 4px;
@@ -2187,18 +2187,18 @@ body.api-docs div#api-docs div#methods .method-section .method-description code,
   padding: 0 3px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list {
   border-bottom: 1px solid #eee;
   margin-bottom: 45px;
   padding: 45px 0 16px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list h6 {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list h6 {
   border-bottom: 1px solid #eee;
   padding-bottom: 8px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl:after {
   clear: both;
   content: "";
   display: block;
@@ -2207,7 +2207,7 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   visibility: hidden;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dt {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dt {
   float: left;
   font-weight: bold;
   margin-right: -165px;
@@ -2220,15 +2220,15 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   z-index: 50;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dt span {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dt span {
   font-weight: bold !important;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dt:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dt:after {
   content: ":";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd {
   box-sizing: border-box;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -2240,7 +2240,7 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   z-index: 25;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd:before {
   clear: both;
   content: "";
   display: block;
@@ -2249,7 +2249,7 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   visibility: hidden;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd.expandable:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd.expandable:after {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   -ms-border-radius: 4px;
@@ -2264,28 +2264,28 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   padding: 0 5px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd p,body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd span,body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd em {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd p,body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd span,body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd em {
   font-weight: normal;
   padding: 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd span:not(.lang) {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd span:not(.lang) {
   display: block;
   padding-top: 2px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd em {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd em {
   font-style: italic;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list {
   border-bottom: 0;
   margin-bottom: 0;
   font-size: 12px;
   padding: 10px 0 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   -ms-border-radius: 4px;
@@ -2297,7 +2297,7 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   position: relative;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl:before {
   display: block;
   height: 0;
   width: 0;
@@ -2311,7 +2311,7 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   top: -6px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl .show-parameters {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl .show-parameters {
   color: #444;
   display: none;
   font-size: 12px;
@@ -2319,74 +2319,74 @@ body.api-docs div#api-docs div#methods .method-section .method-description div.m
   padding-left: 175px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl:hover .show-parameters {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl:hover .show-parameters {
   color: #111;
   text-decoration: underline;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl dt {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl dt {
   margin-right: -133px;
   width: 133px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl dd {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl dd {
   padding-left: 143px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl .method-list dl {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl .method-list dl {
   margin-left: -143px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list dl .method-list dl:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list dl .method-list dl:before {
   left: 143px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed {
   cursor: pointer;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl {
   padding: 6px 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl .show-parameters {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl .show-parameters {
   display: block;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl dt,body.api-docs div#api-docs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl dd {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl dt,body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list dl dd .method-list.collapsed dl dd {
   display: none;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list.event-types dl dt {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list.event-types dl dt {
   margin-right: -230px;
   width: 230px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list.event-types dl dd {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list.event-types dl dd {
   padding-left: 240px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list.failure-codes dl dt {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list.failure-codes dl dt {
   margin-right: -230px;
   width: 230px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list.failure-codes dl dd {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list.failure-codes dl dd {
   padding-left: 240px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list.list-empty dl dt {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list.list-empty dl dt {
   font-style: italic;
   margin-right: 0;
   text-align: center;
   width: 100%;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-description div.method-list.list-empty dl dt:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-description div.method-list.list-empty dl dt:after {
   display: none;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example {
   box-sizing: border-box;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -2397,7 +2397,7 @@ body.api-docs div#api-docs div#methods .method-section .method-example {
   width: 50%;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example:before,body.api-docs div#api-docs div#methods .method-section .method-example:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example:before,body.ApiDocs div#ApiDocs div#methods .method-section .method-example:after {
   background: -webkit-linear-gradient(left,#0f131a,rgba(15,19,26,0));
   background: -moz-linear-gradient(left,#0f131a,rgba(15,19,26,0));
   background: -o-linear-gradient(left,#0f131a,rgba(15,19,26,0));
@@ -2411,7 +2411,7 @@ body.api-docs div#api-docs div#methods .method-section .method-example:before,bo
   top: -45px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example:after {
   background: -webkit-linear-gradient(left,#45494c,rgba(69,73,76,0));
   background: -moz-linear-gradient(left,#45494c,rgba(69,73,76,0));
   background: -o-linear-gradient(left,#45494c,rgba(69,73,76,0));
@@ -2420,53 +2420,53 @@ body.api-docs div#api-docs div#methods .method-section .method-example:after {
 }
 
 @media all and (min-width:1700px) {
-  body.api-docs div#api-docs div#methods .method-section .method-example {
+  body.ApiDocs div#ApiDocs div#methods .method-section .method-example {
     margin-left: 751px;
     width: auto;
   }
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .hide {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .hide {
   display: none;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .part+.part {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .part+.part {
   padding-top: 45px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example h1,body.api-docs div#api-docs div#methods .method-section .method-example h2,body.api-docs div#api-docs div#methods .method-section .method-example h3,body.api-docs div#api-docs div#methods .method-section .method-example h4,body.api-docs div#api-docs div#methods .method-section .method-example h5,body.api-docs div#api-docs div#methods .method-section .method-example h6 {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example h1,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h2,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h3,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h4,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h5,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h6 {
   color: white;
   padding-top: 38px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example h1 code,body.api-docs div#api-docs div#methods .method-section .method-example h2 code,body.api-docs div#api-docs div#methods .method-section .method-example h3 code,body.api-docs div#api-docs div#methods .method-section .method-example h4 code,body.api-docs div#api-docs div#methods .method-section .method-example h5 code,body.api-docs div#api-docs div#methods .method-section .method-example h6 code {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example h1 code,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h2 code,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h3 code,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h4 code,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h5 code,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h6 code {
   display: inline-block;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example h1:first-child,body.api-docs div#api-docs div#methods .method-section .method-example h2:first-child,body.api-docs div#api-docs div#methods .method-section .method-example h3:first-child,body.api-docs div#api-docs div#methods .method-section .method-example h4:first-child,body.api-docs div#api-docs div#methods .method-section .method-example h5:first-child,body.api-docs div#api-docs div#methods .method-section .method-example h6:first-child {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example h1:first-child,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h2:first-child,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h3:first-child,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h4:first-child,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h5:first-child,body.ApiDocs div#ApiDocs div#methods .method-section .method-example h6:first-child {
   padding-top: 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example h6 {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example h6 {
   padding-top: 26px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example a {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example a {
   color: #80b2ff;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example a:hover {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example a:hover {
   color: #ccd8e8;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example div.switcher {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example div.switcher {
   text-align: center;
   position: relative;
   height: 22px;
   margin: -1px 0 20px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example div.switcher a {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example div.switcher a {
   position: relative;
   z-index: 3;
   display: inline-block;
@@ -2481,19 +2481,19 @@ body.api-docs div#api-docs div#methods .method-section .method-example div.switc
   background: rgba(151,166,174,0);
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example div.switcher a:hover {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example div.switcher a:hover {
   text-decoration: none;
   color: #dae4f2;
   background: rgba(151,166,174,0.07);
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example div.switcher a.selected {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example div.switcher a.selected {
   color: #dae4f2;
   pointer-events: none;
   background: rgba(151,166,174,0.14);
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example div.switcher:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example div.switcher:after {
   content: '';
   display: block;
   position: absolute;
@@ -2505,7 +2505,7 @@ body.api-docs div#api-docs div#methods .method-section .method-example div.switc
   z-index: 1;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example div.switcher:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example div.switcher:before {
   content: '';
   display: block;
   position: absolute;
@@ -2519,7 +2519,7 @@ body.api-docs div#api-docs div#methods .method-section .method-example div.switc
   z-index: 2;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code {
   color: #dae4f2;
   display: block;
   font-family: Monaco,Consolas,"Lucida Console",monospace;
@@ -2532,104 +2532,104 @@ body.api-docs div#api-docs div#methods .method-section .method-example code {
   word-break: break-word;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code strong {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code strong {
   font-weight: bold;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code .no,body.api-docs div#api-docs div#methods .method-section .method-example code .line-numbers {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code .no,body.ApiDocs div#ApiDocs div#methods .method-section .method-example code .line-numbers {
   display: none;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code:before {
   content: "";
   color: #acb9bf;
   display: block;
   padding-bottom: 4px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code.method-error:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code.method-error:before {
   content: "EXAMPLE ERROR";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code.method-declaration:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code.method-declaration:before {
   content: "DEFINITION";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code.method-request:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code.method-request:before {
   content: "SAMPLE CODE";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code.method-response:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code.method-response:before {
   content: "EXAMPLE RESPONSE";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code.method-object:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code.method-object:before {
   content: "EXAMPLE OBJECT";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code.expected-result:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code.expected-result:before {
   content: "RESULT";
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code+code {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code+code {
   margin-top: 26px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example code .prompt:after {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example code .prompt:after {
   color: #ccd8e8;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example p {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example p {
   color: #dae4f2;
   font-style: italic;
   max-width: 700px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .constant,body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .title,body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .keyword {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .constant,body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .title,body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .keyword {
   color: #f92672;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .symbol,body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .literal {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .symbol,body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .literal {
   color: #f92672;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .string,body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .attribute,body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js.xml .value {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .string,body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .attribute,body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js.xml .value {
   color: #e5da78;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js .comment {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js .comment {
   color: #adbfd9;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example span.highlight_js.xml .attribute {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example span.highlight_js.xml .attribute {
   color: #f92672;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example ul {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example ul {
   padding: 4px 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example ul li {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example ul li {
   color: #dae4f2;
   font-family: Monaco,Consolas,"Lucida Console",monospace;
   font-size: 12px;
   padding: 4px 0;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .table {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .table {
   padding-top: 32px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .table h6 {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .table h6 {
   padding-bottom: 4px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .table table {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .table table {
   color: #dae4f2;
   font-size: 12px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .table table td {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .table table td {
   font-family: Monaco,Consolas,"Lucida Console",monospace;
   font-size: 12px;
   line-height: 1.5em;
@@ -2637,43 +2637,43 @@ body.api-docs div#api-docs div#methods .method-section .method-example .table ta
   vertical-align: top;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .table table td:last-child {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .table table td:last-child {
   padding-left: 16px;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .table table thead td {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .table table thead td {
   font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
   font-size: 12px;
   font-weight: bold;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .method-name {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .method-name {
   font-family: Monaco,Consolas,"Lucida Console",monospace;
   font-weight: bold;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .notification-request:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .notification-request:before {
   content: "EXAMPLE NOTIFICATION";
   color: #9b9bb9;
   display: block;
 }
 
-body.api-docs div#api-docs div#methods .method-section .method-example .notification-event:before {
+body.ApiDocs div#ApiDocs div#methods .method-section .method-example .notification-event:before {
   content: "EVENT";
   color: #9b9bb9;
   display: block;
 }
 
-body.api-docs div#api-docs div#methods a#dispute_evidence_object+.method-section .method-description div.method-list dl dt {
+body.ApiDocs div#ApiDocs div#methods a#dispute_evidence_object+.method-section .method-description div.method-list dl dt {
   width: 215px;
   margin-right: -215px;
 }
 
-body.api-docs div#api-docs div#methods a#dispute_evidence_object+.method-section .method-description div.method-list dl dd {
+body.ApiDocs div#ApiDocs div#methods a#dispute_evidence_object+.method-section .method-description div.method-list dl dd {
   padding-left: 225px;
 }
 
-body.api-docs .footer {
+body.ApiDocs .footer {
   display: none;
 }
 

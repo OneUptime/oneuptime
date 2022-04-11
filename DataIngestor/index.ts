@@ -1,5 +1,5 @@
-import logger from 'Common-server/Utils/Logger';
-import app from 'Common-server/utils/StartServer';
+import logger from 'CommonServer/utils/Logger';
+import app from 'CommonServer/utils/StartServer';
 
 import http from 'http';
 http.createServer(app);

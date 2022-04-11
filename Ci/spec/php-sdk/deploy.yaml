@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE -  PHP SDK
-staging_php-sdk:
+staging_PhpSDK:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -12,7 +12,7 @@ staging_php-sdk:
         - sudo apt install -y software-properties-common
         - sudo add-apt-repository -y ppa:ondrej/php
         - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
-        - cd php-sdk
+        - cd PhpSDK
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - git init
@@ -26,7 +26,7 @@ staging_php-sdk:
         - git add .
         - git commit -m "staging commit version 4.0.$CI_PIPELINE_ID"
         - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/php-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/PhpSDK.git staging --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -37,7 +37,7 @@ staging_php-sdk:
     environment:
         name: staging
 
-production_php-sdk:
+production_PhpSDK:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -50,7 +50,7 @@ production_php-sdk:
         - sudo apt install -y software-properties-common
         - sudo add-apt-repository -y ppa:ondrej/php
         - sudo apt install -y php7.3 php7.3-common php7.3-opcache php7.3-cli php7.3-gd php7.3-curl php7.3-mysql php7.3-xml php7.3-mbstring
-        - cd php-sdk
+        - cd PhpSDK
         - sudo apt-get install -y composer
         - sudo npm install -g json composer-version
         - git init
@@ -63,7 +63,7 @@ production_php-sdk:
         - json -I -f composer.json -e 'this.name="oneuptime/sdk"'
         - git add .
         - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/php-sdk.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/PhpSDK.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh

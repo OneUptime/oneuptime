@@ -24,7 +24,7 @@ describe('Users', () => {
         jest.setTimeout(init.timeout);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig); // User-Dashboard
-        browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig); // Admin-Dashboard
+        browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig); // AdminDashboard
         page = await browser.newPage();
         browserPage = await browser2.newPage();
         await page.setUserAgent(

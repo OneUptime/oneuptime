@@ -1,6 +1,6 @@
 const incidentCollection = global.db.collection('incidents');
 import { ObjectId } from 'mongodb';
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 import { post } from '../Utils/api';
 
 import { realtimeUrl } from '../Config';

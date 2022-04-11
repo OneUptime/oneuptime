@@ -1,8 +1,8 @@
-test_php-sdk:
+test_PhpSDK:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh test_php-sdk php-sdk backend`
+        - export next_stage=`./ci/scripts/checkhash.sh test_PhpSDK PhpSDK backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -18,12 +18,12 @@ test_php-sdk:
         - sudo docker build -t oneuptime/backend:4.0.$CI_PIPELINE_ID ./backend
         - sudo docker run --env-file ./backend/.env  -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d oneuptime/backend:4.0.$CI_PIPELINE_ID
         - sudo docker ps
-        - cd php-sdk
+        - cd PhpSDK
         - composer install
         - composer test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh test_php-sdk php-sdk backend
+        - ./ci/scripts/storehash.sh test_PhpSDK PhpSDK backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

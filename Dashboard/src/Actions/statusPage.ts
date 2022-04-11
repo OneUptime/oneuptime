@@ -51,7 +51,7 @@ export const uploadCertFile = (projectId: string, file: $TSFixMe) => {
             data.append('cert', file);
 
             const promise = BackendAPI.post(
-                `status-page/${projectId}/certFile`,
+                `StatusPage/${projectId}/certFile`,
                 data
             );
             dispatch(uploadCertFileRequest());
@@ -115,7 +115,7 @@ export const uploadPrivateKey = (projectId: string, file: $TSFixMe) => {
             data.append('privateKey', file);
 
             const promise = BackendAPI.post(
-                `status-page/${projectId}/privateKeyFile`,
+                `StatusPage/${projectId}/privateKeyFile`,
                 data
             );
             dispatch(uploadPrivateKeyRequest());
@@ -170,7 +170,7 @@ export const updateStatusPageSettingError = (error: ErrorPayload) => {
 // Calls the API to update setting.
 export const updateStatusPageSetting = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageSettingRequest());
         promise.then(
             function (response) {
@@ -213,7 +213,7 @@ export const updateStatusPageMonitorsError = (error: ErrorPayload) => {
 // Calls the API to update monitors.
 export function updateStatusPageMonitors(projectId: string, values: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateStatusPageMonitorsRequest());
 
         promise.then(
@@ -257,7 +257,7 @@ export const updatePrivateStatusPage = (
     values: $TSFixMe
 ) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updatePrivateStatusPageRequest());
 
         promise.then(
@@ -297,7 +297,7 @@ export const updateSubscriberOptionError = (error: ErrorPayload) => {
 // update status page multi language
 export function updateStatusPageLanguage(projectId: string, values: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateStatusPageLanguageRequest());
 
         promise.then(
@@ -337,7 +337,7 @@ export const updateStatusPageLanguageError = (error: ErrorPayload) => {
 // Calls the API to update private statuspages.
 export const updateSubscriberOption = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateSubscriberOptionRequest());
 
         promise.then(
@@ -448,7 +448,7 @@ export function updateStatusPageBranding(projectId: string, values: $TSFixMe) {
 
         if (values._id) data.append('_id', values._id);
 
-        const promise = BackendAPI.put(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageBrandingRequest());
 
         promise.then(
@@ -467,7 +467,7 @@ export function updateStatusPageBranding(projectId: string, values: $TSFixMe) {
 // Calls the API to update the theme
 export const updateTheme = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}/theme`, data);
+        const promise = BackendAPI.put(`StatusPage/${projectId}/theme`, data);
         dispatch(updateStatusPageThemeRequest());
 
         promise.then(
@@ -487,7 +487,7 @@ export const updateTheme = (projectId: string, data: $TSFixMe) => {
 // Calls the API to update status page name.
 export const updateStatusPageName = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateStatusPageNameRequest());
 
         promise.then(
@@ -528,7 +528,7 @@ export const updateStatusPageLinksError = (error: ErrorPayload) => {
 // Calls the API to update links.
 export const updateStatusPageLinks = (projectId: string, values: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateStatusPageLinksRequest());
 
         promise.then(
@@ -572,7 +572,7 @@ export function updateStatusPageCustomHTML(
     values: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, values);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateStatusPageCustomHTMLRequest());
 
         promise.then(
@@ -625,7 +625,7 @@ export function fetchProjectStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `status-page/${projectId}/statuspage?skip=${skip}&limit=${limit}`
+            `StatusPage/${projectId}/statuspage?skip=${skip}&limit=${limit}`
         );
         if (!refresh) dispatch(fetchProjectStatusPageRequest());
 
@@ -677,7 +677,7 @@ export function fetchSubProjectStatusPages(
     refresh: $TSFixMe
 ) {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.get(`status-page/${projectId}/status-pages`);
+        const promise = BackendAPI.get(`StatusPage/${projectId}/StatusPages`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
 
         promise.then(
@@ -771,7 +771,7 @@ export const resetStatusBubbleIdError = (error: ErrorPayload) => {
 export function resetStatusBubbleId(projectId: string, statusPageId: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
-            `status-page/${projectId}/${statusPageId}/resetBubbleId`,
+            `StatusPage/${projectId}/${statusPageId}/resetBubbleId`,
             {}
         );
         dispatch(resetStatusBubbleIdRequest());
@@ -818,7 +818,7 @@ export const deleteStatusPageError = (error: ErrorPayload) => {
 // Calls the API to get status page.
 export function deleteStatusPage(projectId: string, statusPageSlug: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = delete (`status-page/${projectId}/${statusPageSlug}`,
+        const promise = delete (`StatusPage/${projectId}/${statusPageSlug}`,
         null);
         dispatch(deleteStatusPageRequest());
         promise.then(
@@ -857,7 +857,7 @@ export const duplicateStatusPageError = (error: ErrorPayload) => {
 
 export const readStatusPage = (statusPageSlug: $TSFixMe, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.get(`status-page/${statusPageSlug}`, data);
+        const promise = BackendAPI.get(`StatusPage/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
             function (response) {
@@ -883,8 +883,8 @@ export function createDuplicateStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const url = subProjectId
-            ? `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
-            : `status-page/${projectId}/${statusPageSlug}/duplicateStatusPage`;
+            ? `StatusPage/${projectId}/${statusPageSlug}/duplicateStatusPage?subProjectId=${subProjectId}`
+            : `StatusPage/${projectId}/${statusPageSlug}/duplicateStatusPage`;
         const promise = BackendAPI.post(url, data);
         promise.then(
             function (response) {
@@ -900,7 +900,7 @@ export function createDuplicateStatusPage(
 
 export const fetchStatusPage = (statusPageSlug: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.get(`status-page/${statusPageSlug}`);
+        const promise = BackendAPI.get(`StatusPage/${statusPageSlug}`);
         promise.then(
             function (response) {
                 const statusPageData = response.data;
@@ -948,7 +948,7 @@ export const updateStatusPageEmbeddedCssError = (error: ErrorPayload) => {
 // Calls the API to update setting.
 export function updateStatusPageEmbeddedCss(projectId: string, data: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
             function (response) {
@@ -992,7 +992,7 @@ export const resetBrandingColorsError = (error: ErrorPayload) => {
 export function resetBrandingColors(projectId: string, statusPageId: $TSFixMe) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
-            `status-page/${projectId}/${statusPageId}/resetColors`
+            `StatusPage/${projectId}/${statusPageId}/resetColors`
         );
         dispatch(resetBrandingColorsRequest());
         promise.then(
@@ -1034,7 +1034,7 @@ export const resetStatusPageEmbeddedCssError = (error: ErrorPayload) => {
 // Calls the API to update setting.
 export function resetStatusPageEmbeddedCss(projectId: string, data: $TSFixMe) {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
             function (response) {
@@ -1074,7 +1074,7 @@ export const updateStatusPageLayoutError = (error: ErrorPayload) => {
 
 export const updateStatusPageLayout = (projectId: string, data: $TSFixMe) => {
     return function (dispatch: Dispatch) {
-        const promise = BackendAPI.put(`status-page/${projectId}`, data);
+        const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
             function (response) {
@@ -1121,7 +1121,7 @@ export function fetchStatusPageSubscribers(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `status-page/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
+            `StatusPage/${projectId}/monitor/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchSubscriberRequest());
         promise.then(
@@ -1163,7 +1163,7 @@ export function createExternalStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
-            `status-page/${projectId}/createExternalstatus-page/${statusPageId}`,
+            `StatusPage/${projectId}/createExternalStatusPage/${statusPageId}`,
             data
         );
         dispatch(createExternalStatusPageRequest());
@@ -1210,7 +1210,7 @@ export function updateExternalStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
-            `status-page/${projectId}/updateExternalstatus-page/${externalStatusPageId}`,
+            `StatusPage/${projectId}/updateExternalStatusPage/${externalStatusPageId}`,
             data
         );
         dispatch(updateExternalStatusPageRequest());
@@ -1256,7 +1256,7 @@ export function fetchExternalStatusPages(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `status-page/${projectId}/fetchExternalStatusPages/${statusPageId}`
+            `StatusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
@@ -1301,7 +1301,7 @@ export function deleteExternalStatusPage(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
-            `status-page/${projectId}/deleteExternalstatus-page/${externalStatusPageId}`
+            `StatusPage/${projectId}/deleteExternalStatusPage/${externalStatusPageId}`
         );
         dispatch(deleteExternalStatusPageRequest());
         promise.then(
@@ -1347,7 +1347,7 @@ export function createAnnouncement(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
-            `status-page/${projectId}/announcement/${statusPageId}`,
+            `StatusPage/${projectId}/announcement/${statusPageId}`,
             data
         );
         dispatch(createAnnouncementRequest());
@@ -1375,7 +1375,7 @@ export function updateAnnouncement(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
-            `status-page/${projectId}/announcement/${statusPageId}/${announcementId}`,
+            `StatusPage/${projectId}/announcement/${statusPageId}/${announcementId}`,
             data
         );
         dispatch(createAnnouncementRequest());
@@ -1423,7 +1423,7 @@ export function fetchAnnouncements(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `status-page/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
+            `StatusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAnnouncementRequest());
         promise.then(
@@ -1466,7 +1466,7 @@ export function fetchAnnouncementLogs(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `status-page/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
+            `StatusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
@@ -1502,7 +1502,7 @@ export function fetchSingleAnnouncement(
 ) {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(
-            `status-page/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
+            `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         promise.then(
             function (response) {
@@ -1568,7 +1568,7 @@ export function deleteAnnouncement(
 ) {
     return function (dispatch: Dispatch) {
         const promise =
-            delete `status-page/${projectId}/announcement/${announcementId}/delete`;
+            delete `StatusPage/${projectId}/announcement/${announcementId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
             function (response) {
@@ -1588,7 +1588,7 @@ export function deleteAnnouncementLog(
 ) {
     return function (dispatch: Dispatch) {
         const promise =
-            delete `status-page/${projectId}/announcementLog/${announcementLogId}/delete`;
+            delete `StatusPage/${projectId}/announcementLog/${announcementLogId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
             function (response) {

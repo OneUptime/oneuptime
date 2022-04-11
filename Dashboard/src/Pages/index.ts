@@ -9,7 +9,7 @@ const IncidentSettings = lazy(() => import('./IncidentSettings'));
 const MonitorSettings = lazy(() => import('./MonitorSettings'));
 
 const StatusPage = lazy(() => import('./StatusPage'));
-const StatusPagesList = lazy(() => import('./status-page/list'));
+const StatusPagesList = lazy(() => import('./StatusPage/list'));
 
 const OnCall = lazy(() => import('./OnCall'));
 const AlertLog = lazy(() => import('./AlertLog'));

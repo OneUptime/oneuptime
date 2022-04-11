@@ -40,7 +40,7 @@ class DuplicateStatusPageConfirmation extends Component<ComponentProps> {
 
         this.props.fetchStatusPage(statusPageSlug);
         history.push(
-            `/dashboard/project/${slug}/status-page/${statusPageSlug}`
+            `/dashboard/project/${slug}/StatusPage/${statusPageSlug}`
         );
     };
 

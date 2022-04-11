@@ -1,7 +1,7 @@
 import express, {
     ExpressRequest,
     ExpressResponse,
-} from 'Common-server/Utils/Express';
+} from 'CommonServer/utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 import HTTPTestServerResponse from '../types/HttpTestServerResponse';

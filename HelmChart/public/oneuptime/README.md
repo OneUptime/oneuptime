@@ -325,7 +325,7 @@ To update cluster with new version of OneUptime. Please run:
 
 ```
 VERSION=$(curl https://oneuptime.com/api/version | jq '.server' | tr -d '"')
-kubectl delete job oneuptime-init-script || echo "init-script already deleted"
+kubectl delete job oneuptime-InitScript || echo "InitScript already deleted"
 helm upgrade --reuse-values oneuptime oneuptime/OneUptime \
         --set image.tag=$VERSION
 ```

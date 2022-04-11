@@ -118,7 +118,7 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    test('Should change status-page theme to Classic theme', async (done: $TSFixMe) => {
+    test('Should change StatusPage theme to Classic theme', async (done: $TSFixMe) => {
         await gotoTheFirstStatusPage(page);
         await init.themeNavigationAndConfirmation(page, 'Classic');
 

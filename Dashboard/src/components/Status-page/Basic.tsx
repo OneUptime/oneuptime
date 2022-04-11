@@ -101,7 +101,7 @@ export class Branding extends Component<BrandingProps>{
             (data: $TSFixMe) => {
                 history.replace(
 
-                    `/dashboard/project/${this.props.currentProject.slug}/status-page/${data.data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/StatusPage/${data.data.slug}`
                 );
 
                 this.props.fetchProjectStatusPage(projectId, true, 0, 10);

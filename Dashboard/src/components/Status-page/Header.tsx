@@ -24,7 +24,7 @@ export class StatusHeader extends Component<StatusHeaderProps>{
             publicStatusPageUrl = `http://${statusPageSlug}.localhost:3006`;
         } else {
             publicStatusPageUrl =
-                window.location.origin + '/status-page/' + statusPageSlug;
+                window.location.origin + '/StatusPage/' + statusPageSlug;
         }
 
         return (

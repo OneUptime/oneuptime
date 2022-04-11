@@ -7,17 +7,17 @@
 #UPDATE: Any update to this file should also be accompanied with ../test.yaml
 #########
 
-########-INIT-SCRIPT-##########
+########-InitScript-##########
 apiVersion: batch/v1
 kind: Job
 metadata:
-    name: init-script
+    name: InitScript
 spec:
     template:
         spec:
             containers:
-                - name: init-script
-                  image: localhost:32000/init-script:staging
+                - name: InitScript
+                  image: localhost:32000/InitScript:staging
                   imagePullPolicy: Always
                   env:
                       - name: MONGO_URL

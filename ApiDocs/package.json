@@ -1,18 +1,18 @@
 {
-    "name": "oneuptime-api-docs",
+    "name": "oneuptime-ApiDocs",
     "version": "3.0.0",
     "description": "oneuptime api refernce",
     "main": "Gruntfile.js",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/OneUptime/api-docs.git"
+        "url": "git+https://github.com/OneUptime/ApiDocs.git"
     },
     "author": "HackerBay, Inc.",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/oneuptime/api-docs/issues"
+        "url": "https://github.com/oneuptime/ApiDocs/issues"
     },
-    "homepage": "https://github.com/oneuptime/api-docs#readme",
+    "homepage": "https://github.com/oneuptime/ApiDocs#readme",
     "type": "module",
     "dependencies": {
         "chai": "^4.3.6",

@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.hackerbay.oneuptime</groupId>
-    <artifactId>java-sdk</artifactId>
+    <artifactId>JavaSDK</artifactId>
     <version>3.0.0</version>
     <properties>
-        <name>java-sdk</name>
+        <name>JavaSDK</name>
         <sdk.version>3.0.0</sdk.version>
     </properties>
     <build>
@@ -150,9 +150,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/OneUptime/java-sdk.git</connection>
-        <developerConnection>scm:git:ssh://github.com:OneUptime/java-sdk.git</developerConnection>
-        <url>http://github.com/OneUptime/java-sdk</url>
+        <connection>scm:git:git://github.com/OneUptime/JavaSDK.git</connection>
+        <developerConnection>scm:git:ssh://github.com:OneUptime/JavaSDK.git</developerConnection>
+        <url>http://github.com/OneUptime/JavaSDK</url>
     </scm>
     <distributionManagement>
         <snapshotRepository>

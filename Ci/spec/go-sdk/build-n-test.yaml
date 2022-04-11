@@ -1,8 +1,8 @@
-test_go-sdk:
+test_GoSDK:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh test_go-sdk go-sdk backend`
+        - export next_stage=`./ci/scripts/checkhash.sh test_GoSDK GoSDK backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
@@ -21,17 +21,17 @@ test_go-sdk:
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local || true # just continue is go already exist in the location
         - export GOROOT=/usr/local/go
-        - export GOPATH=$HOME/go-sdk/oneuptime
+        - export GOPATH=$HOME/GoSDK/oneuptime
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
-        - cd go-sdk
+        - cd GoSDK
         - go get -d ./...
         - go test -v
         # - go test -coverprofile=cover.txt
         # - go tool cover -html=cover.txt -o cover.html
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh test_go-sdk go-sdk backend
+        - ./ci/scripts/storehash.sh test_GoSDK GoSDK backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

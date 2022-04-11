@@ -41,7 +41,7 @@ describe('OneUptime Page Reload', () => {
     });
 
     test(
-        'Should reload the status-page and confirm there are no errors',
+        'Should reload the StatusPage and confirm there are no errors',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],

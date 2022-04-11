@@ -52,8 +52,8 @@
         "docker-saas-test": "npm install && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up -d && cd tests && npm run-script saas-test",
         "ci-docker-enterprise": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up -d",
         "ci-docker-saas": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up -d",
-        "ci-docker-saas-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up -d init-script",
-        "ci-docker-enterprise-init-script": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up -d init-script",
+        "ci-docker-saas-InitScript": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build InitScript && docker compose --env-file=./docker-compose-saas-ci.env up -d InitScript",
+        "ci-docker-enterprise-InitScript": "export NODE_ENV=ci && npm run remove-all-containers && docker-compose build InitScript && docker compose --env-file=./docker-compose-enterprise-ci.env up -d InitScript",
         "prepare": "husky install"
     },
     "repository": {

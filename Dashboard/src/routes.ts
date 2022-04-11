@@ -305,7 +305,7 @@ export const groups = [
         routes: [
             {
                 title: 'Status Pages',
-                path: '/dashboard/project/:slug/status-pages',
+                path: '/dashboard/project/:slug/StatusPages',
                 icon: 'radar',
                 visible: true,
                 shortcut: 'm+s',
@@ -365,14 +365,14 @@ export const groups = [
             },
             {
                 title: 'Status Pages',
-                path: '/dashboard/project/:slug/status-pages',
+                path: '/dashboard/project/:slug/StatusPages',
                 icon: 'radar',
                 visible: true,
                 shortcut: 'm+s',
                 subRoutes: [
                     {
                         title: 'Status Page',
-                        path: '/dashboard/project/:slug/status-page/:statusPageSlug',
+                        path: '/dashboard/project/:slug/StatusPage/:statusPageSlug',
                         icon: 'radar',
                         visible: true,
                         exact: true,

@@ -4,7 +4,7 @@ export default class Service {
         // prepare error event model
         const errorEvent = new ErrorEventModel();
 
-        // used this to sort java-sdk having a different stack trace structure
+        // used this to sort JavaSDK having a different stack trace structure
         data.exception.stackTraceFrame
             ? (data.exception.stacktrace = {
                   ...data.exception.stacktrace,

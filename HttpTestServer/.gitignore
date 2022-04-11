@@ -1,7 +1,7 @@
 # See https://help.github.com/ignore-files/ for more about ignoring files.
 
 # dependencies
-#/http-test-server/node_modules
+#/HttpTestServer/node_modules
 /kubernetes
 /node_modules
 .idea

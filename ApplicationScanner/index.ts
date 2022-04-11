@@ -1,6 +1,6 @@
-import { ExpressRequest, ExpressResponse } from 'Common-server/Utils/Express';
+import { ExpressRequest, ExpressResponse } from 'CommonServer/utils/Express';
 
-import app from 'Common-server/utils/StartServer';
+import app from 'CommonServer/utils/StartServer';
 
 import Main from './worker/main';
 
@@ -16,7 +16,7 @@ app.get(
             JSON.stringify({
                 status: 200,
                 message: 'Service Status - OK',
-                serviceType: 'oneuptime-application-scanner',
+                serviceType: 'oneuptime-ApplicationScanner',
             })
         );
     }

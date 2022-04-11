@@ -1,12 +1,12 @@
 {
-    "name": "oneuptime-admin-dashboard",
+    "name": "oneuptime-AdminDashboard",
     "version": "3.0.0",
     "private": true,
     "type": "module",
     "dependencies": {
         "CommonServer": "file:../CommonServer",
 "Common": "file:../Common",
-        "common-ui": "file:../common-ui",
+        "CommonUI": "file:../CommonUI",
         "axios": "^0.26.1",
         "card-validator": "^8.1.1",
         "clipboard": "^2.0.10",

@@ -15,7 +15,7 @@ import ClusterKeyAuthorization from 'CommonServer/middleware/ClusterKeyAuthoriza
 
 const router = express.getRouter();
 
-// get all script monitors for script-runner
+// get all script monitors for ScriptRunner
 router.get(
     '/monitors',
     ClusterKeyAuthorization.isAuthorizedService,

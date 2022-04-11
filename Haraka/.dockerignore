@@ -58,7 +58,7 @@ tests/coverage
 
 settings.json
 
-go-sdk/tester/
+GoSDK/tester/
 # tls
 tls_cert.pem
 tls_key.pem

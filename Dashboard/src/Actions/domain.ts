@@ -87,7 +87,7 @@ export function createDomain({
 
         try {
             const response = await BackendAPI.put(
-                `status-page/${projectId}/${statusPageId}/domain`,
+                `StatusPage/${projectId}/${statusPageId}/domain`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
 
@@ -135,7 +135,7 @@ export const deleteDomain = ({
         dispatch(deleteDomainRequest());
         try {
             const response =
-                await delete `status-page/${projectId}/${statusPageId}/${domainId}`;
+                await delete `StatusPage/${projectId}/${statusPageId}/${domainId}`;
 
             dispatch(deleteDomainSuccess(response.data));
         } catch (error) {
@@ -186,7 +186,7 @@ export function updateDomain({
         dispatch(updateDomainRequest());
         try {
             const response = await BackendAPI.put(
-                `status-page/${projectId}/${statusPageId}/${domainId}`,
+                `StatusPage/${projectId}/${statusPageId}/${domainId}`,
                 { domain, cert, privateKey, enableHttps, autoProvisioning }
             );
 

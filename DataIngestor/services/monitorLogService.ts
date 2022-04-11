@@ -2,7 +2,7 @@ import MonitorLogByHourService from './monitorLogByHourService';
 import MonitorLogByDayService from './monitorLogByDayService';
 import MonitorLogByWeekService from './monitorLogByWeekService';
 import MonitorService from './monitorService';
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 import moment from 'moment';
 
 const monitorLogCollection = global.db.collection('monitorlogs');

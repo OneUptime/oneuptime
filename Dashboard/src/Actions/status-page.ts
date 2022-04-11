@@ -18,7 +18,7 @@ export default class StatusPageActions extends Actions {
             listActionProps: {
                 isRequestAllowed: true,
             },
-            apiPath: 'status-page',
+            apiPath: 'StatusPage',
             friendlyName: 'Status Page',
             isResourceInProject: true,
         });

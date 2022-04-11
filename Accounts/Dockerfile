@@ -21,21 +21,21 @@ RUN npm install
 COPY ./common /usr/src/common
 RUN npm compile
 
-# Install common-server
-RUN mkdir /usr/src/common-server
-WORKDIR /usr/src/common-server
-COPY ./common-server/package*.json /usr/src/common-server/
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
-COPY ./common-server /usr/src/common-server
+COPY ./CommonServer /usr/src/CommonServer
 RUN npm compile
 
 
-# Install common-ui
-RUN mkdir /usr/src/common-ui
-WORKDIR /usr/src/common-ui
-COPY ./common-ui/package*.json /usr/src/common-ui/
+# Install CommonUI
+RUN mkdir /usr/src/CommonUI
+WORKDIR /usr/src/CommonUI
+COPY ./CommonUI/package*.json /usr/src/CommonUI/
 RUN npm install
-COPY ./common-ui /usr/src/common-ui
+COPY ./CommonUI /usr/src/CommonUI
 RUN npm compile
 
 

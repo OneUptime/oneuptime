@@ -175,7 +175,7 @@ describe('Status API', function () {
     it('should not add status page if the page name is missing', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/status-page/${projectId}`)
+            .post(`/StatusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -194,7 +194,7 @@ describe('Status API', function () {
     it('should add status page', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/status-page/${projectId}`)
+            .post(`/StatusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'Status Page',
@@ -229,7 +229,7 @@ describe('Status API', function () {
     it('should add private status page', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/status-page/${projectId}`)
+            .post(`/StatusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'Private Status Page',
@@ -267,7 +267,7 @@ describe('Status API', function () {
     it('should get private status page for authorized user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/status-page/${privateStatusPageId}`)
+            .get(`/StatusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -280,7 +280,7 @@ describe('Status API', function () {
     it('should get valid private status page rss for authorized user', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/status-page/${privateStatusPageId}/rss`)
+            .get(`/StatusPage/${privateStatusPageId}/rss`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -291,7 +291,7 @@ describe('Status API', function () {
 
     it('should not get private status page for unauthorized user', function (done: $TSFixMe) {
         request
-            .get(`/status-page/${privateStatusPageId}`)
+            .get(`/StatusPage/${privateStatusPageId}`)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
                 expect(res).to.have.status(401);
@@ -302,7 +302,7 @@ describe('Status API', function () {
     it('should not update status page settings when domain is not string', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send({
                 domain: 5,
@@ -317,7 +317,7 @@ describe('Status API', function () {
     it('should not update status page settings when domain is not valid', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send({
                 domain: 'wwwtest',
@@ -332,7 +332,7 @@ describe('Status API', function () {
     it('should update status page settings', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .put(`/status-page/${projectId}`)
+            .put(`/StatusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 _id: statusPageId,
@@ -366,7 +366,7 @@ describe('Status API', function () {
     it('should return monitor category with monitors in status page data', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/status-page/${statusPageId}`)
+            .get(`/StatusPage/${statusPageId}`)
             .set('Authorization', authorization)
             .send()
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -390,7 +390,7 @@ describe('Status API', function () {
     it('should get list of scheduled events', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/status-page/${projectId}/${statusPageId}/events`)
+            .get(`/StatusPage/${projectId}/${statusPageId}/events`)
             .set('Authorization', authorization)
             .send()
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -410,7 +410,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         request
             .get(
-                `/status-page/${projectId}/${monitorId}/individualevents?date=${today}`
+                `/StatusPage/${projectId}/${monitorId}/individualevents?date=${today}`
             )
             .set('Authorization', authorization)
             .send()
@@ -439,7 +439,7 @@ describe('Status API', function () {
             })
             .then(() => {
                 request
-                    .post(`/status-page/${projectId}/${monitorId}/monitorLogs`)
+                    .post(`/StatusPage/${projectId}/${monitorId}/monitorLogs`)
                     .set('Authorization', authorization)
                     .send({
                         responseTime: true,
@@ -459,7 +459,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptimeapp.com' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -473,7 +473,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -512,7 +512,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.x.com' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -525,7 +525,7 @@ describe('Status API', function () {
                     { verified: true }
                 ).then(function () {
                     request
-                        .get(`/status-page/null?url=${domain}`)
+                        .get(`/StatusPage/null?url=${domain}`)
                         .send()
                         .end(function (err: $TSFixMe, res: $TSFixMe) {
                             if (err) throw err;
@@ -541,7 +541,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.y.com' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -549,7 +549,7 @@ describe('Status API', function () {
                 expect(res).to.have.status(200);
                 const domain = 'status.y.com';
                 request
-                    .get(`/status-page/null?url=${domain}`)
+                    .get(`/StatusPage/null?url=${domain}`)
                     .send()
                     .end(function (err: $TSFixMe, res: $TSFixMe) {
                         if (err) throw err;
@@ -623,7 +623,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptime.hackerbay' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -645,7 +645,7 @@ describe('Status API', function () {
             ],
         };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -667,7 +667,7 @@ describe('Status API', function () {
             ],
         };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -681,7 +681,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptime.com' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -695,7 +695,7 @@ describe('Status API', function () {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
         request
-            .put(`/status-page/${projectId}/${statusPageId}/domain`)
+            .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
@@ -719,7 +719,7 @@ describe('Status API', function () {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
-                    .post(`/status-page/${newProjectId}`)
+                    .post(`/StatusPage/${newProjectId}`)
                     .set('Authorization', authorization)
                     .send({
                         name: 'Status Page name',
@@ -735,7 +735,7 @@ describe('Status API', function () {
                         const newStatusPageId = res.body._id;
                         request
                             .put(
-                                `/status-page/${newProjectId}/${newStatusPageId}/domain`
+                                `/StatusPage/${newProjectId}/${newStatusPageId}/domain`
                             )
                             .set('Authorization', authorization)
                             .send(data)
@@ -765,7 +765,7 @@ describe('Status API', function () {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
-                    .post(`/status-page/${newProjectId}`)
+                    .post(`/StatusPage/${newProjectId}`)
                     .set('Authorization', authorization)
                     .send({
                         name: 'Status Page name',
@@ -781,7 +781,7 @@ describe('Status API', function () {
                         const newStatusPageId = res.body._id;
                         request
                             .put(
-                                `/status-page/${newProjectId}/${newStatusPageId}/domain`
+                                `/StatusPage/${newProjectId}/${newStatusPageId}/domain`
                             )
                             .set('Authorization', authorization)
                             .send(data)
@@ -810,7 +810,7 @@ describe('Status API', function () {
 
             const { _id: domainId } = statusPage.domains[0];
             request
-                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err: $TSFixMe, res: $TSFixMe) => {
@@ -830,7 +830,7 @@ describe('Status API', function () {
 
             const { _id: domainId } = statusPage.domains[0];
             request
-                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err: $TSFixMe, res: $TSFixMe) => {
@@ -850,7 +850,7 @@ describe('Status API', function () {
 
             const { _id: domainId } = statusPage.domains[0];
             request
-                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err: $TSFixMe, res: $TSFixMe) => {
@@ -872,7 +872,7 @@ describe('Status API', function () {
             // provide a random object id
             const statusPageId = '5ea70eb4be9f4b177a1719ad';
             request
-                .put(`/status-page/${projectId}/${statusPageId}/${domainId}`)
+                .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
                 .set('Authorization', authorization)
                 .end((err: $TSFixMe, res: $TSFixMe) => {
@@ -890,7 +890,7 @@ describe('Status API', function () {
 
             const { _id: domainId } = statusPage.domains[0];
             request
-                .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
+                .delete(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
                 .end((err: $TSFixMe, res: $TSFixMe) => {
                     if (err) throw err;
@@ -909,7 +909,7 @@ describe('Status API', function () {
             // create random status page id
             const statusPageId = '5ea70eb4be9f4b177a1719ad';
             request
-                .delete(`/status-page/${projectId}/${statusPageId}/${domainId}`)
+                .delete(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)
                 .end((err: $TSFixMe, res: $TSFixMe) => {
                     if (err) throw err;
@@ -998,7 +998,7 @@ describe('StatusPage API with Sub-Projects', function () {
                     anotherUserToken = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${anotherUserToken}`;
                     request
-                        .post(`/status-page/${projectId}`)
+                        .post(`/StatusPage/${projectId}`)
                         .set('Authorization', authorization)
                         .send({
                             links: [],
@@ -1035,7 +1035,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should not get private status page for authorized user that is not in project', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .get(`/status-page/${privateStatusPageId}`)
+            .get(`/StatusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -1047,7 +1047,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should not create a statusPage for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .post(`/status-page/${subProjectId}`)
+            .post(`/StatusPage/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -1082,7 +1082,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should create a statusPage in parent project by valid admin.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/status-page/${projectId}`)
+            .post(`/StatusPage/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -1118,7 +1118,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should create a statusPage in sub-project by valid admin.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/status-page/${subProjectId}`)
+            .post(`/StatusPage/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 links: [],
@@ -1153,7 +1153,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it("should get only sub-project's statuspages for valid sub-project user", function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .get(`/status-page/${subProjectId}/statuspage`)
+            .get(`/StatusPage/${subProjectId}/statuspage`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -1169,7 +1169,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should get both project and sub-project statuspage for valid parent project user.', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .get(`/status-page/${projectId}/statuspages`)
+            .get(`/StatusPage/${projectId}/statuspages`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -1195,7 +1195,7 @@ describe('StatusPage API with Sub-Projects', function () {
             })
             .end(function () {
                 request
-                    .get(`/status-page/${subProjectStatusPageId}`)
+                    .get(`/StatusPage/${subProjectStatusPageId}`)
                     .set('Authorization', authorization)
                     .end(function (err: $TSFixMe, res: $TSFixMe) {
                         if (err) throw err;
@@ -1210,7 +1210,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should not delete a status page for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
         const authorization = `Basic ${newUserToken}`;
         request
-            .delete(`/status-page/${subProjectId}/${subProjectStatusPageId}`)
+            .delete(`/StatusPage/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -1225,7 +1225,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should delete sub-project status page', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/status-page/${subProjectId}/${subProjectStatusPageId}`)
+            .delete(`/StatusPage/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;
@@ -1237,7 +1237,7 @@ describe('StatusPage API with Sub-Projects', function () {
     it('should delete parent project status page', function (done: $TSFixMe) {
         const authorization = `Basic ${token}`;
         request
-            .delete(`/status-page/${projectId}/${statusPageId}`)
+            .delete(`/StatusPage/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
             .end(function (err: $TSFixMe, res: $TSFixMe) {
                 if (err) throw err;

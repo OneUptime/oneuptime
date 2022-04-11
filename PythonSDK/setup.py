@@ -15,9 +15,9 @@ setup(
     description="A OneUptime package that tracks error event and send logs from your applications to your oneuptime dashboard.",
     long_description=README,
     long_description_content_type="text/x-rst",
-    url="https://github.com/OneUptime/python-sdk",
+    url="https://github.com/OneUptime/PythonSDK",
     project_urls={
-        "Bug Tracker": "https://github.com/OneUptime/python-sdk/issues",
+        "Bug Tracker": "https://github.com/OneUptime/PythonSDK/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

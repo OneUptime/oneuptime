@@ -1,5 +1,5 @@
 {
-    "name": "container-scanner",
+    "name": "ContainerScanner",
     "version": "3.0.0",
     "description": "A Container Security Scanner",
     "main": "index.ts",

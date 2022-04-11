@@ -1,12 +1,12 @@
 import ProbeService from '../Services/ProbeService';
-import { sendErrorResponse } from 'Common-server/Utils/Response';
+import { sendErrorResponse } from 'CommonServer/utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-} from 'Common-server/Utils/Express';
+} from 'CommonServer/utils/Express';
 
 import { clusterKey as CLUSTER_KEY } from '../Config';
 

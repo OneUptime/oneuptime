@@ -111,7 +111,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             );
             const adminDashboardVersion = await init.page$Eval(
                 page,
-                '#admin-dashboard-version',
+                '#AdminDashboard-version',
                 (elem: $TSFixMe) => elem.textContent
             );
 

@@ -292,7 +292,7 @@ public class OneUptimeTrackerTest {
         String errorMessage = "Got an error here";
         tracker.addToTimeline(this.sampleTimeline.getCategory(), this.sampleTimeline.getData(), this.sampleTimeline.getType());
         JsonObject event = tracker.captureMessage(errorMessage);
-        assertEquals("java-sdk", event.getAsJsonObject("sdk").get("name").getAsString());
+        assertEquals("JavaSDK", event.getAsJsonObject("sdk").get("name").getAsString());
     }
 
 }

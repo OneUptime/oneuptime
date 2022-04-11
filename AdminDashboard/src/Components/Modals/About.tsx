@@ -136,7 +136,7 @@ class About extends Component<ComponentProps> {
                                                 <td>
                                                     <span
                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
-                                                        id="admin-dashboard-version"
+                                                        id="AdminDashboard-version"
                                                     >
                                                         Admin Dashboard Version
                                                     </span>
@@ -149,7 +149,7 @@ class About extends Component<ComponentProps> {
                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     >
                                                         {versions.adminDashboard ? (
-                                                            <strong id="admin-dashboard-version">
+                                                            <strong id="AdminDashboard-version">
                                                                 {
                                                                     versions.adminDashboard
                                                                 }

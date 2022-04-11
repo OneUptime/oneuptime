@@ -13,7 +13,7 @@ import project from './project';
 import schedule from './schedule';
 import changePassword from './changePassword';
 import statusPage from './statusPage';
-import StatusPage from './status-page';
+import StatusPage from './StatusPage';
 import incident from './incident';
 import report from './report';
 import invoice from './invoice';

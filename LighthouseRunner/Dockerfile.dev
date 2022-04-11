@@ -1,5 +1,5 @@
 #
-# lighthouse-runner Dockerfile
+# LighthouseRunner Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -21,12 +21,12 @@ RUN npm install
 COPY ./common /usr/src/common
 RUN npm compile
 
-# Install common-server
-RUN mkdir /usr/src/common-server
-WORKDIR /usr/src/common-server
-COPY ./common-server/package*.json /usr/src/common-server/
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
-COPY ./common-server /usr/src/common-server
+COPY ./CommonServer /usr/src/CommonServer
 RUN npm compile
 
 #SET ENV Variables
@@ -41,8 +41,8 @@ RUN apk add chromium
 RUN cd /usr/src/app
 
 # Copy package.json files
-COPY ./lighthouse-runner/package.json /usr/src/app/package.json
-COPY ./lighthouse-runner/package-lock.json /usr/src/app/package-lock.json
+COPY ./LighthouseRunner/package.json /usr/src/app/package.json
+COPY ./LighthouseRunner/package-lock.json /usr/src/app/package-lock.json
 
 
 RUN npm install

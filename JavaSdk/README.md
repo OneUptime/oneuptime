@@ -1,4 +1,4 @@
-[![maven](https://img.shields.io/maven-central/v/io.hackerbay.oneuptime/java-sdk)](https://search.maven.org/artifact/io.hackerbay.oneuptime/java-sdk)
+[![maven](https://img.shields.io/maven-central/v/io.hackerbay.oneuptime/JavaSDK)](https://search.maven.org/artifact/io.hackerbay.oneuptime/JavaSDK)
 
 # OneUptime SDK
 
@@ -13,14 +13,14 @@ You can install to use in your project by adding the following to your `pom.xml`
 ```xml
 <dependency>
     <groupId>io.hackerbay.oneuptime</groupId>
-    <artifactId>java-sdk</artifactId>
+    <artifactId>JavaSDK</artifactId>
     <version>CURRENT_VERSION</version>
 </dependency>
 ```
 
 ### Others
 
-Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.oneuptime/java-sdk) for other modes of installation.
+Check [Maven Central Repository](https://search.maven.org/artifact/io.hackerbay.oneuptime/JavaSDK) for other modes of installation.
 
 <a name="module_api"></a>
 

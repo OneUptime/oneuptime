@@ -1,8 +1,8 @@
-test_java-sdk:
+test_JavaSDK:
     stage: BuildAndTest
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh test_java-sdk java-sdk backend`
+        - export next_stage=`./ci/scripts/checkhash.sh test_JavaSDK JavaSDK backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - curl -sSL https://get.docker.com/ | sh #Install docker.
@@ -20,12 +20,12 @@ test_java-sdk:
         - sudo apt-get autoremove -y  --purge
         - sudo apt-get install -y openjdk-8-jdk
         - sudo apt-get install -y maven
-        - cp -f java-sdk/.m2/settings.xml $HOME/.m2/settings.xml
-        - cd java-sdk
+        - cp -f JavaSDK/.m2/settings.xml $HOME/.m2/settings.xml
+        - cd JavaSDK
         - mvn clean test
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh test_java-sdk java-sdk backend
+        - ./ci/scripts/storehash.sh test_JavaSDK JavaSDK backend
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     except:

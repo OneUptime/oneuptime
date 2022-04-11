@@ -59,10 +59,10 @@ Resolution: Delete all statefulset and start again.
 kubectl delete pvc datadir-fi-mongodb-0 datadir-fi-mongodb-1
 
 # If staging
-sudo helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/oneuptime
+sudo helm upgrade -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./HelmChart/public/oneuptime
 
 # If production
-sudo helm upgrade -f ./helm-chart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/oneuptime
+sudo helm upgrade -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime
 ```
 
 Important: Restore. See restore section in this document for more info.
@@ -81,9 +81,9 @@ Example:
 # Open MongoDB to the internet.
 # Only run this when MongoDB is not open to the internet
 
-sudo kubectl delete job fi-init-script
+sudo kubectl delete job fi-InitScript
 
-sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=true --set mongodb.externalAccess.service.type=LoadBalancer --set externalAccess.service.port=27017 --set mongodb.externalAccess.autoDiscovery.enabled=true --set mongodb.serviceAccount.create=true --set mongodb.rbac.create=true fi ./helm-chart/public/oneuptime
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=true --set mongodb.externalAccess.service.type=LoadBalancer --set externalAccess.service.port=27017 --set mongodb.externalAccess.autoDiscovery.enabled=true --set mongodb.serviceAccount.create=true --set mongodb.rbac.create=true fi ./HelmChart/public/oneuptime
 
 ```
 
@@ -108,9 +108,9 @@ mongorestore --uri="mongodb://oneuptime:password@localhost:27017/oneuptimedb" --
 On source cluster:
 
 ```
-kubectl delete job fi-init-script
+kubectl delete job fi-InitScript
 
-sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=false --set mongodb.externalAccess.autoDiscovery.enabled=false --set mongodb.serviceAccount.create=false --set mongodb.rbac.create=false fi ./helm-chart/public/oneuptime
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=false --set mongodb.externalAccess.autoDiscovery.enabled=false --set mongodb.serviceAccount.create=false --set mongodb.rbac.create=false fi ./HelmChart/public/oneuptime
 
 ```
 

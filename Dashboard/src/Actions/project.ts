@@ -328,7 +328,7 @@ export function switchProject(
             project
         );
         if (isViewer) {
-            history.push(`/dashboard/project/${project.slug}/status-pages`);
+            history.push(`/dashboard/project/${project.slug}/StatusPages`);
         } else {
             history.push(`/dashboard/project/${project.slug}`);
         }

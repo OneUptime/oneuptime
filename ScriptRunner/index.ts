@@ -1,4 +1,4 @@
-import app from 'Common-server/utils/StartServer';
+import app from 'CommonServer/utils/StartServer';
 import cron from 'node-cron';
 import main from './workers/main';
 

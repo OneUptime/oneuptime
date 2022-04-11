@@ -7,7 +7,7 @@
         "test": "jest --runInBand ./saas-tests/**/*.test.js",
         "saas-test": "npm run test",
         "enterprise-test": "jest ./enterprise-tests/**/*.test.js",
-        "staging-test": "export INIT_SCRIPT_URL=https://staging.oneuptime.com/init-script && export HTTP_TEST_SERVER_URL=https://staging-test-server.oneuptime.com && export HOME_URL=https://staging.oneuptime.com && export ACCOUNTS_URL=https://staging.oneuptime.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.oneuptime.com/admin && export DASHBOARD_URL=https://staging.oneuptime.com/dashboard && export BACKEND_URL=https://staging.oneuptime.com/api && export STATUSPAGE_URL=https://staging.oneuptime.com/status-page && export APIDOCS_URL=https://staging.oneuptime.com/docs && jest ./saas-tests/**/*.test.js",
+        "staging-test": "export INIT_SCRIPT_URL=https://staging.oneuptime.com/InitScript && export HTTP_TEST_SERVER_URL=https://staging-test-server.oneuptime.com && export HOME_URL=https://staging.oneuptime.com && export ACCOUNTS_URL=https://staging.oneuptime.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.oneuptime.com/admin && export DASHBOARD_URL=https://staging.oneuptime.com/dashboard && export BACKEND_URL=https://staging.oneuptime.com/api && export STATUSPAGE_URL=https://staging.oneuptime.com/StatusPage && export APIDOCS_URL=https://staging.oneuptime.com/docs && jest ./saas-tests/**/*.test.js",
         "debug-staging-test": "export SLOMO=20 && export HEADLESS=false && npm run-script staging-test"
     },
     "keywords": [],

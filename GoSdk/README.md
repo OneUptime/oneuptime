@@ -330,6 +330,6 @@ Capture a custom error object to be sent to the server
 ## Contribution
 
 -   Clone repository
--   run `cd go-sdk`
+-   run `cd GoSDK`
 -   run `go get -d ./...` to install dependencies
 -   run `go test -v` to run tests

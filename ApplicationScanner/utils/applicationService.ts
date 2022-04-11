@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import logger from 'Common-server/Utils/Logger';
+import logger from 'CommonServer/utils/Logger';
 import EncryptionKeys from './encryptionKeys';
 const algorithm = EncryptionKeys.algorithm;
 const key = EncryptionKeys.key;

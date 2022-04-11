@@ -94,9 +94,9 @@ function getParentRoute(
         urlParts.pop();
         return urlParts.join('/');
     }
-    if (childRoute.includes('status-page')) {
+    if (childRoute.includes('StatusPage')) {
         const urlParts = childRoute.split('/').slice(0, 4);
-        return urlParts.join('/').concat('/status-pages');
+        return urlParts.join('/').concat('/StatusPages');
     }
     if (childRoute.includes('profile')) {
         const urlParts = childRoute.split('/').slice(0, 2);

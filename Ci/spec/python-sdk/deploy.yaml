@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - PYTHON SDK
-staging_python-sdk:
+staging_PythonSDK:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -10,7 +10,7 @@ staging_python-sdk:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y python3-pip
-        - cd python-sdk
+        - cd PythonSDK
         - pip3 install -r requirements.txt
         # - git init
         # - git add .
@@ -23,7 +23,7 @@ staging_python-sdk:
         - git add .
         - git commit -m "staging commit version 4.0.$CI_PIPELINE_ID"
         - git checkout staging || git checkout -b staging
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/python-sdk.git staging --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/PythonSDK.git staging --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -35,7 +35,7 @@ staging_python-sdk:
         name: staging
 
 ## DEPLOYMENT STAGE - PYTHON SDK
-production_python-sdk:
+production_PythonSDK:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -46,7 +46,7 @@ production_python-sdk:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt-get install -y python3-pip
-        - cd python-sdk
+        - cd PythonSDK
         - pip3 install -r requirements.txt
         - bumpversion --new-version 4.0.$CI_PIPELINE_ID patch setup.py
         - python3 setup.py sdist bdist_wheel
@@ -56,7 +56,7 @@ production_python-sdk:
         - git add .
         - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git checkout -f master
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/python-sdk.git master --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/PythonSDK.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh

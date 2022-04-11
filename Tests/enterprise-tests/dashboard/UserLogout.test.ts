@@ -30,7 +30,7 @@ describe('User logout', () => {
     });
 
     test(
-        'Admin should be able to logout from dashboard (not admin-dashboard)',
+        'Admin should be able to logout from dashboard (not AdminDashboard)',
         async (done: $TSFixMe) => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],

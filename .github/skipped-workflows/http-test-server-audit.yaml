@@ -15,7 +15,7 @@ jobs:
           check-latest: true
       - name: Run audit
         run: |-
-          cd http-test-server
+          cd HttpTestServer
           npm install
           npm run audit
 

@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
 
 import { post } from '../Utils/api';
 import moment from 'moment';
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 

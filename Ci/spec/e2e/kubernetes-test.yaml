@@ -12,7 +12,7 @@ e2e_microk8s_test:
         - export ADMIN_DASHBOARD_URL=http://localhost/admin
         - export DASHBOARD_URL=http://localhost/dashboard
         - export BACKEND_URL=http://localhost/api
-        - export STATUSPAGE_URL=http://localhost/status-page
+        - export STATUSPAGE_URL=http://localhost/StatusPage
         - export APIDOCS_URL=http://localhost/docs
         - export LICENSING_URL=http://localhost/license
         - cd tests

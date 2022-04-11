@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'Common-server/Utils/Express'
+import express, { Request, Response } from 'CommonServer/utils/Express'
 import OneUptime from 'oneuptime-staging'
 const app = express()
 

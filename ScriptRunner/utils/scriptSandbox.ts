@@ -2,7 +2,7 @@ import { join } from 'path';
 import { performance } from 'perf_hooks';
 import { isMainThread, Worker, parentPort, workerData } from 'worker_threads';
 
-// TODO - make this configurable from admin-dashboard
+// TODO - make this configurable from AdminDashboard
 const runConfig = {
     availableImports: ['axios', 'request'], // init allowed modules
     maxSyncStatementDuration: 3000,

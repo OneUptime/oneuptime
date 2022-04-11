@@ -84,10 +84,10 @@ describe('SSO API', () => {
     test(
         'should add new SSO',
         async (done: $TSFixMe) => {
-            /** Upon login, admin-dashboard is loaded */
+            /** Upon login, AdminDashboard is loaded */
             await moveToSsoPage(page);
 
-            /**  With respect to admin-dashboard code refactoring,
+            /**  With respect to AdminDashboard code refactoring,
              *  removal of UNDEFINED
              *  sso-count is only visible after an sso has been created*/
 

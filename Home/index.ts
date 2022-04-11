@@ -72,21 +72,18 @@ app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get(
-    '/product/status-page',
-    (_req: ExpressRequest, res: ExpressResponse) => {
-        res.redirect('/product/public-status-page');
-    }
-);
+app.get('/product/StatusPage', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/public-StatusPage');
+});
 
-app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/public-status-page');
+app.get('/StatusPage', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/public-StatusPage');
 });
 
 app.get(
-    '/product/public-status-page',
+    '/product/public-StatusPage',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render('public-status-page', {
+        res.render('public-StatusPage', {
             support: false,
             footerCards: true,
             cta: true,
@@ -98,14 +95,14 @@ app.get(
     }
 );
 
-app.get('/public-status-page', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/public-status-page');
+app.get('/public-StatusPage', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/public-StatusPage');
 });
 
 app.get(
-    '/product/private-status-page',
+    '/product/private-StatusPage',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render('private-status-page', {
+        res.render('private-StatusPage', {
             support: false,
             footerCards: true,
             cta: true,
@@ -117,12 +114,9 @@ app.get(
     }
 );
 
-app.get(
-    '/private-status-page',
-    (_req: ExpressRequest, res: ExpressResponse) => {
-        res.redirect('/product/private-status-page');
-    }
-);
+app.get('/private-StatusPage', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/private-StatusPage');
+});
 
 app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('https://status.oneuptime.com');
@@ -817,8 +811,8 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
         'https://oneuptime.com/',
         'https://oneuptime.com/pricing',
         'https://oneuptime.com/support',
-        'https://oneuptime.com/product/public-status-page',
-        'https://oneuptime.com/product/private-status-page',
+        'https://oneuptime.com/product/public-StatusPage',
+        'https://oneuptime.com/product/private-StatusPage',
         'https://oneuptime.com/product/uptime-monitoring',
         'https://oneuptime.com/product/incident-management',
         'https://oneuptime.com/product/app-security',

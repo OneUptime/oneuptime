@@ -1,6 +1,6 @@
 const monitorStatusCollection = global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 import { post } from '../Utils/api';
 import MonitorService from './monitorService';
 import moment from 'moment';

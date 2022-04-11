@@ -1,10 +1,10 @@
 # Helm Chart Repo
-audit_helm-chart:
+audit_HelmChart:
     stage: BuildAndTest
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
-        - export next_stage=`./ci/scripts/checkhash.sh audit_helm-chart helm-chart`
+        - export next_stage=`./ci/scripts/checkhash.sh audit_HelmChart HelmChart`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
@@ -16,7 +16,7 @@ audit_helm-chart:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
-        - cd helm-chart
+        - cd HelmChart
         - npm install
         - npm run audit
         - npm run dep-check
@@ -25,7 +25,7 @@ audit_helm-chart:
         - sudo helm lint ./public/oneuptime
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
-        - ./ci/scripts/storehash.sh audit_helm-chart helm-chart
+        - ./ci/scripts/storehash.sh audit_HelmChart HelmChart
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
     only:

@@ -1,4 +1,4 @@
-import Query from 'Common-server/types/db/Query';
+import Query from 'CommonServer/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe) {

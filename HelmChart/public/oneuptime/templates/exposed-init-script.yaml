@@ -4,30 +4,30 @@
 ####################################
 
 {{- if .Values.saas.exposeInitScriptContainer }}
-###########-----init-script------#################
-# OneUptime init-script
+###########-----InitScript------#################
+# OneUptime InitScript
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+    name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
     namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+        app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+            app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
     replicas: 1
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+                app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "init-script" .Values.image.tag }}
-                  name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "InitScript" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   env:
                       - name: IS_SAAS_SERVICE
@@ -59,7 +59,7 @@ spec:
                   ports:
                       - containerPort: {{ $.Values.host.initScriptPort }}
                         hostPort: {{ $.Values.host.initScriptPort }}
-                        name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+                        name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
             restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
@@ -67,10 +67,10 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+        app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+    name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
     namespace: {{ $.Release.Namespace }}
 spec:
     ports:
@@ -78,7 +78,7 @@ spec:
           protocol: TCP
           targetPort: {{ $.Values.host.initScriptPort }}
     selector:
-        app: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+        app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
     type: ClusterIP
 ---
 ###########################################

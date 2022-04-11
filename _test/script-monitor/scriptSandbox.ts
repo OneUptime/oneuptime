@@ -9,7 +9,7 @@ import {
 } from 'worker_threads';
 
 
-// TODO - make this configurable from admin-dashboard
+// TODO - make this configurable from AdminDashboard
 const runConfig = {
     availableImports: ['axios'], // init allowed modules
     maxSyncStatementDuration: 3000,

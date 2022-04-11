@@ -21,12 +21,12 @@ RUN npm install
 COPY ./common /usr/src/common
 RUN npm compile
 
-# Install common-server
-RUN mkdir /usr/src/common-server
-WORKDIR /usr/src/common-server
-COPY ./common-server/package*.json /usr/src/common-server/
+# Install CommonServer
+RUN mkdir /usr/src/CommonServer
+WORKDIR /usr/src/CommonServer
+COPY ./CommonServer/package*.json /usr/src/CommonServer/
 RUN npm install
-COPY ./common-server /usr/src/common-server
+COPY ./CommonServer /usr/src/CommonServer
 RUN npm compile
 
 #SET ENV Variables
@@ -39,15 +39,15 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /usr/src/app
 
 # Copy package.json files
-COPY ./http-test-server/package.json /usr/src/app/package.json
-COPY ./http-test-server/package-lock.json /usr/src/app/package-lock.json
+COPY ./HttpTestServer/package.json /usr/src/app/package.json
+COPY ./HttpTestServer/package-lock.json /usr/src/app/package-lock.json
 
 
 # Install app dependencies
 RUN npm install
 
 # Expose ports.
-#   - 3010: OneUptime-http-test-server
+#   - 3010: OneUptime-HttpTestServer
 EXPOSE 3010
 
 # Expose Debugger port

@@ -19,7 +19,7 @@ spec:
               app: {{ printf "%s-%s" $.Release.Name "lighthouse" }}
       spec:
           containers:
-              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "lighthouse-runner" .Values.image.tag }}
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "LighthouseRunner" .Values.image.tag }}
                 name: {{ printf "%s-%s" $.Release.Name "lighthouse" }}
                 imagePullPolicy: {{ $.Values.image.pullPolicy }}
                 resources:

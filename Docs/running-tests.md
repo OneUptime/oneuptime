@@ -47,7 +47,7 @@ Once the cluster is running, you can run tests like:
 ```
 export SLOMO=20
 export HEADLESS=false
-jest  ./saas-tests/status-page/status-page.test.js # or any file.
+jest  ./saas-tests/StatusPage/StatusPage.test.js # or any file.
 ```
 
 There's also a .vscode/launch.json in test folder which will help you to debug tests with vscode.

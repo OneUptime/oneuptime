@@ -119,7 +119,7 @@ describe('Subscriber API', function () {
                                                         );
                                                         request
                                                             .post(
-                                                                `/status-page/${projectId}`
+                                                                `/StatusPage/${projectId}`
                                                             )
                                                             .set(
                                                                 'Authorization',

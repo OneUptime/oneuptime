@@ -93,7 +93,7 @@ func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception, er
 		Exception:       errorObj,
 		ErrorTrackerKey: errorTrackerKey,
 		SDK: &SDK{
-			Name:    "go-sdk",
+			Name:    "GoSDK",
 			Version: Version, // TODO dynamic version setting cuz version is set manually in the oneuptimeTracker.go file before every release
 		},
 	}

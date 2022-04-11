@@ -21,7 +21,7 @@ jobs:
       NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
     defaults:
       run:
-        working-directory: ./js-sdk
+        working-directory: ./JavaScriptSDK
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
