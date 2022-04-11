@@ -353,11 +353,6 @@ export default class Service {
         return 'Subscriber(s) removed successfully';
     }
 
-    async hardDeleteBy(query: Query) {
-        await SubscriberModel.deleteMany(query);
-        return 'Subscriber(s) removed successfully';
-    }
-
     async restoreBy(query: Query) {
         query.deleted = true;
         let subscriber = await this.findBy({ query, select: '_id' });

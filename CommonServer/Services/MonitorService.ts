@@ -1452,10 +1452,6 @@ export default class Service {
         return monitor;
     }
 
-    async hardDeleteBy(query: Query) {
-        await MonitorModel.deleteMany(query);
-        return 'Monitor(s) removed successfully!';
-    }
     // yet to be edited
     async getManualMonitorTime(monitorId: $TSFixMe) {
         const [monitorTime, monitorIncidents] = await Promise.all([

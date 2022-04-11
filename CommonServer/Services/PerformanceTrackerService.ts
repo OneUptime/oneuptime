@@ -261,11 +261,6 @@ export default class Service {
         return performanceTracker;
     }
 
-    async hardDeleteBy(query: Query) {
-        await PerformanceTrackerModel.deleteMany(query);
-        return 'Performance Tracker removed successfully!';
-    }
-
     async countBy(query: Query) {
         if (!query) {
             query = {};

@@ -1,0 +1,22 @@
+{
+  "name": "mailservice",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "compile": "tsc",
+    "dev": "cross-env NODE_ENV=development ts-node-dev --inspect=0.0.0.0 index.ts",
+    "test": "echo 'no tests'"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "Common": "file:../Common",
+    "CommonServer": "file:../CommonServer",
+    "nodemailer": "^6.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.23"
+  }
+}

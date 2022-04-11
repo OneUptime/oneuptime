@@ -135,11 +135,6 @@ export default class Service {
         return count;
     }
 
-    async hardDeleteBy(query: Query) {
-        await SsoModel.deleteMany(query);
-        return 'SSO(s) removed successfully!';
-    }
-
     // grab the email from xml response
     // assuming there's only one email in the xml response
     // or the same email x times in the response

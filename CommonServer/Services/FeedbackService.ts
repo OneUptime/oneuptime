@@ -1,9 +1,8 @@
 import FeedbackModel from '../Models/feedback';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import UserService from './UserService';
 import ProjectService from './ProjectService';
 import AirtableService from './AirtableService';
-import Query from '../Types/DB/Query';
 export default class Service {
     //Description: Create new project for user.
     //Params:
@@ -63,10 +62,5 @@ export default class Service {
         MailService.sendUserFeedbackResponse(user.email, user.name);
 
         return feedback;
-    }
-
-    async hardDeleteBy(query: Query) {
-        await FeedbackModel.deleteMany(query);
-        return 'Feedback(s) removed successfully!';
     }
 }

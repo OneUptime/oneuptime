@@ -1305,11 +1305,6 @@ export default class Service {
         ZapierService.pushToZapier('incident_note', incident, data);
     }
 
-    async hardDeleteBy(query: Query) {
-        await IncidentModel.deleteMany(query);
-        return 'Incident(s) removed successfully!';
-    }
-
     async restoreBy(query: Query) {
         query.deleted = true;
         let incident = await this.findBy({ query, select: '_id' });

@@ -259,11 +259,6 @@ export default class Service {
 
         return count;
     }
-
-    async hardDeleteBy(query: Query) {
-        await GlobalConfigModel.deleteMany(query);
-        return 'Global Config(s) Removed Successfully!';
-    }
 }
 
 import Crypto from 'crypto';

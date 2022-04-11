@@ -227,9 +227,4 @@ export default class Service {
         });
         return updatedCustomField;
     }
-
-    async hardDeleteBy(query: Query) {
-        await CustomFieldModel.deleteMany(query);
-        return 'Custom field(s) removed successfully!';
-    }
 }

@@ -20,7 +20,7 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
 import VerificationTokenModel from '../Models/verificationToken';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import AirtableService from './AirtableService';
 
 import speakeasy from 'speakeasy';

@@ -467,11 +467,6 @@ export default class Service {
         return subProjectSchedules;
     }
 
-    async hardDeleteBy(query: Query) {
-        await ScheduleModel.deleteMany(query);
-        return 'Schedule(s) removed successfully';
-    }
-
     async restoreBy(query: Query) {
         query.deleted = true;
         const populate = [

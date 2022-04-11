@@ -171,9 +171,4 @@ export default class Service {
 
         return gitCredential;
     }
-
-    async hardDeleteBy(query: Query) {
-        await GitCredentialModel.deleteMany(query);
-        return 'Git credential(s) successfully deleted';
-    }
 }

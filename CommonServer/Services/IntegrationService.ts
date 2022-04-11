@@ -234,11 +234,6 @@ export default class Service {
             return integrations;
         }
     }
-
-    async hardDeleteBy(query: Query) {
-        await IntegrationModel.deleteMany(query);
-        return 'Integration(s) Removed Successfully!';
-    }
 }
 import IntegrationModel from '../Models/integration';
 

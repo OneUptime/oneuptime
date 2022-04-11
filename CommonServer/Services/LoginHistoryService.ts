@@ -1,6 +1,6 @@
 import LoginHistoryModel from '../Models/loginIPLog';
 import DeviceDetector from 'node-device-detector';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import UserService from './UserService';
 
 import FindBy from '../Types/DB/FindBy';

@@ -116,11 +116,6 @@ export default class Service {
         ]);
         return incidentPriority;
     }
-
-    async hardDeleteBy(query: Query) {
-        await incidentPriorityModel.deleteMany(query);
-        return 'Incident priorities removed successfully!';
-    }
 }
 
 import IncidentSettingsService from './IncidentSettingsService';

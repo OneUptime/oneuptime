@@ -237,11 +237,6 @@ export default class Service {
         }
     }
 
-    async hardDeleteBy(query: Query) {
-        await EscalationModel.deleteMany(query);
-        return 'Escalation(s) removed successfully';
-    }
-
     async restoreBy(query: Query) {
         query.deleted = true;
         let escalation = await this.findBy({ query, select: '_id' });

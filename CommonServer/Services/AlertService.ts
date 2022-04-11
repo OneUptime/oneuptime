@@ -8,7 +8,7 @@ import SubscriberAlertService from './SubscriberAlertService';
 import EmailTemplateService from './EmailTemplateService';
 import SmsTemplateService from './SmsTemplateService';
 import EscalationService from './EscalationService';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import UserService from './UserService';
 import MonitorService from './MonitorService';
 import TwilioService from './TwilioService';
@@ -3894,11 +3894,6 @@ export default class Service {
             })
         );
         return subProjectAlerts;
-    }
-
-    async hardDeleteBy(query: Query) {
-        await AlertModel.deleteMany(query);
-        return 'Alert(s) removed successfully';
     }
 
     async restoreBy(query: Query) {

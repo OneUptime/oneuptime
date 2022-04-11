@@ -12,7 +12,6 @@ import EscalationService from './EscalationService';
 import StripeService from './StripeService';
 import TeamService from './TeamService';
 import StatusPageService from './StatusPageService';
-
 import { IS_SAAS_SERVICE } from '../config/server';
 import componentService from './ComponentService';
 import DomainVerificationService from './DomainVerificationService';
@@ -21,27 +20,7 @@ import getSlug from '../Utils/getSlug';
 import flattenArray from '../Utils/flattenArray';
 import IncidentSettingsService from './IncidentSettingsService';
 
-import FindOneBy from '../Types/DB/FindOneBy';
-import FindBy from '../Types/DB/FindBy';
-import Query from '../Types/DB/Query';
-
 export default class Service {
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
-        if (!query['deleted']) query['deleted'] = false;
-
-        const projectQuery = ProjectModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-
-        projectQuery.select(select);
-        projectQuery.populate(populate);
-
-        const projects = await projectQuery;
-        return projects;
-    }
-
     async create(data) {
         const projectModel = new ProjectModel();
         const adminUser = await UserService.findOneBy({
@@ -141,16 +120,6 @@ export default class Service {
                 '{{monitorName}} is {{incidentType}}. This incident is currently being investigated by our team and more information will be added soon.',
         });
         return project;
-    }
-
-    async countBy(query: Query) {
-        if (!query) {
-            query = {};
-        }
-        if (!query['deleted']) query['deleted'] = false;
-
-        const count = await ProjectModel.countDocuments(query);
-        return count;
     }
 
     async deleteBy(query, userId, cancelSub = true) {
@@ -316,86 +285,6 @@ export default class Service {
         return project;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-        if (!query['deleted']) query['deleted'] = false;
-
-        const projectQuery = ProjectModel.findOne(query)
-            .sort(sort)
-            .lean()
-            .sort(sort);
-
-        projectQuery.select(select);
-        projectQuery.populate(populate);
-
-        const project = await projectQuery;
-        return project;
-    }
-
-    async updateOneBy(query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        const oldProject = await this.findOneBy({
-            query: Object.assign({}, query, { deleted: { $ne: null } }),
-            select: 'apiKey',
-        });
-        if (!data.apiKey && !oldProject.apiKey) {
-            data.apiKey = uuidv1();
-        }
-
-        if (data && data.name) {
-            data.slug = getSlug(data.name);
-        }
-
-        let updatedProject = await ProjectModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
-            sendCreatedIncidentNotificationSms sendAcknowledgedIncidentNotificationSms sendResolvedIncidentNotificationSms
-            sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
-            sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
-            enableInvestigationNoteNotificationSMS enableInvestigationNoteNotificationEmail sendAnnouncementNotificationSms
-            sendAnnouncementNotificationEmail sendCreatedScheduledEventNotificationSms sendCreatedScheduledEventNotificationEmail
-            sendScheduledEventResolvedNotificationSms sendScheduledEventResolvedNotificationEmail sendNewScheduledEventInvestigationNoteNotificationSms
-            sendNewScheduledEventInvestigationNoteNotificationEmail sendScheduledEventCancelledNotificationSms sendScheduledEventCancelledNotificationEmail
-            enableInvestigationNoteNotificationWebhook unpaidSubscriptionNotifications`; // All these are needed during state update
-        updatedProject = await this.findOneBy({
-            query: Object.assign({}, query, { deleted: { $ne: null } }),
-            select,
-            populate,
-        });
-        return updatedProject;
-    }
-
-    async updateBy(query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        let updatedData = await ProjectModel.updateMany(query, {
-            $set: data,
-        });
-
-        const populate = [{ path: 'parentProjectId', select: 'name' }];
-        const select =
-            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
-
-        updatedData = await this.findBy({ query, select, populate });
-        return updatedData;
-    }
-
     async updateAlertOptions(data) {
         const projectId = data._id;
         const userId = data.userId;
@@ -460,11 +349,6 @@ export default class Service {
             error.code = 403;
             throw error;
         }
-    }
-
-    async saveProject(project) {
-        project = await project.save();
-        return project;
     }
 
     async getProjectIdsBy(query) {
@@ -730,11 +614,6 @@ export default class Service {
             { _id: project._id },
             { seats: projectSeats.toString() }
         );
-    }
-
-    async hardDeleteBy(query) {
-        await ProjectModel.deleteMany(query);
-        return 'Project(s) Removed Successfully!';
     }
 
     async getAllProjects(skip, limit) {

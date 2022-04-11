@@ -195,21 +195,6 @@ export default class Service {
         return performanceTrackerMetric;
     }
 
-    async hardDeleteBy(query: Query) {
-        await PerformanceTrackerMetricModel.deleteMany(query);
-        return 'Performance tracker metric(s) removed successfully!';
-    }
-
-    async countBy(query: Query) {
-        if (!query) {
-            query = {};
-        }
-        if (!query['deleted']) query['deleted'] = false;
-
-        const count = await PerformanceTrackerMetricModel.countDocuments(query);
-        return count;
-    }
-
     async createMetricsData(
         appId: $TSFixMe,
         type: $TSFixMe,

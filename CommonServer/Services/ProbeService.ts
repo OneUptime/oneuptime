@@ -1,11 +1,8 @@
 import ProbeModel from '../Models/probe';
 import RealTimeService from './realTimeService';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { v1 as uuidv1 } from 'uuid';
 import MonitorService from './MonitorService';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorLogService from './MonitorLogService';
-import LighthouseLogService from './LighthouseLogService';
 import IncidentService from './IncidentService';
 import IncidentTimelineService from './IncidentTimelineService';
 import moment from 'moment';
@@ -13,143 +10,75 @@ import { some, forEach } from 'p-iteration';
 import vm from 'vm';
 import AutomatedScriptService from './AutomatedScriptService';
 
-import FindOneBy from '../Types/DB/FindOneBy';
-import FindBy from '../Types/DB/FindBy';
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/SSL';
+import DatabaseService from './DatabaseService';
 
-export default class Service {
-    async create(data) {
-        let probeKey;
-        if (data.probeKey) {
-            probeKey = data.probeKey;
-        } else {
-            probeKey = uuidv1();
-        }
-
-        const storedProbe = await this.findOneBy({
-            query: { probeName: data.probeName },
-            select: 'probeName',
+export default class ProbeService extends DatabaseService<typeof Model> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'Probe',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
         });
-        if (storedProbe && storedProbe.probeName) {
-            throw new BadDataException('Probe name already exists.');
-        } else {
-            const probe = new ProbeModel();
-
-            probe.probeKey = probeKey;
-
-            probe.probeName = data.probeName;
-
-            probe.version = data.probeVersion;
-            const savedProbe = await probe.save();
-            return savedProbe;
-        }
     }
 
-    async updateOneBy(query, data) {
-        if (!query) {
-            query = {};
+    protected override async onBeforeCreate({
+        data,
+    }: CreateBy): Promise<CreateBy> {
+        if (!data.get('probeKey')) {
+            data.set('probeKey', UUID.generate());
         }
 
-        query['deleted'] = false;
-        const probe = await ProbeModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
-        return probe;
-    }
-
-    async updateBy(query, data) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-        let updatedData = await ProbeModel.updateMany(query, {
-            $set: data,
-        });
-
-        const selectProbe =
-            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
-
-        updatedData = await this.findBy({ query, select: selectProbe });
-        return updatedData;
-    }
-
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
-        if (!skip) skip = 0;
-
-        if (!limit) limit = 0;
-
-        if (typeof skip === 'string') {
-            skip = parseInt(skip);
-        }
-
-        if (typeof limit === 'string') {
-            limit = parseInt(limit);
-        }
-
-        if (!query) {
-            query = {};
-        }
-
-        query['deleted'] = false;
-        const probeQuery = ProbeModel.find(query)
-            .lean()
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
-
-        probeQuery.select(select);
-        probeQuery.populate(populate);
-
-        const probe = await probeQuery;
-
-        return probe;
-    }
-
-    async findOneBy({ query, populate, select, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-
-        query['deleted'] = false;
-        const probeQuery = ProbeModel.findOne(query).sort(sort).lean();
-
-        probeQuery.select(select);
-        probeQuery.populate(populate);
-
-        const probe = await probeQuery;
-        return probe;
-    }
-
-    async countBy(query) {
-        if (!query) {
-            query = {};
-        }
-
-        query['deleted'] = false;
-        const count = await ProbeModel.countDocuments(query);
-        return count;
-    }
-
-    async deleteBy(query) {
-        if (!query) {
-            query = {};
-        }
-        query['deleted'] = false;
-        const probe = await ProbeModel.findOneAndUpdate(
-            query,
-            { $set: { deleted: true, deletedAt: Date.now() } },
-            { new: true }
-        );
-        return probe;
-    }
-
-    async hardDeleteBy(query) {
-        await ProbeModel.deleteMany(query);
-        return 'Probe(s) removed successfully!';
+        return Promise.resolve({ data } as CreateBy);
     }
 
     async sendProbe(probeId, monitorId) {
@@ -165,11 +94,6 @@ export default class Service {
             // run in the background
             RealTimeService.updateProbe(probe, monitorId);
         }
-    }
-
-    async saveLighthouseLog(data) {
-        const log = await LighthouseLogService.create(data);
-        return log;
     }
 
     async createMonitorDisabledStatus(data) {
@@ -1231,6 +1155,8 @@ export default class Service {
 }
 
 import _ from 'lodash';
+import CreateBy from '../Types/DB/CreateBy';
+import UUID from 'Common/Utils/UUID';
 
 const incomingCheckAnd = (payload, condition) => {
     let validity = false;

@@ -3,16 +3,16 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/EmailStatus';
+} from '../Models/Smtp';
 import DatabaseService from './DatabaseService';
 
-export default class EmailStatusService extends DatabaseService<typeof Model> {
+export default class EmailSmtpService extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,
             uniqueFields: uniqueFields,
-            friendlyName: 'Email Status',
+            friendlyName: 'SMTP',
             publicListProps: {
                 populate: [],
                 select: [],

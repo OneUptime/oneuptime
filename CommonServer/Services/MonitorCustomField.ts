@@ -160,9 +160,4 @@ export default class Service {
         });
         return updatedCustomField;
     }
-
-    async hardDeleteBy(query: Query) {
-        await MonitorCustomFieldModel.deleteMany(query);
-        return 'Monitor Custom field(s) removed successfully!';
-    }
 }

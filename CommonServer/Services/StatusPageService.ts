@@ -1535,11 +1535,6 @@ export default class Service {
         };
     }
 
-    async hardDeleteBy(query: Query) {
-        await StatusPageModel.deleteMany(query);
-        return 'Status Page(s) Removed Successfully!';
-    }
-
     async restoreBy(query: Query) {
         query.deleted = true;
 

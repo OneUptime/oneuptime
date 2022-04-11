@@ -1,7 +1,6 @@
 import LeadsModel from '../Models/lead';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import AirtableService from './AirtableService';
-import Query from '../Types/DB/Query';
 
 export default class Service {
     //Description: Create new project for user.
@@ -66,10 +65,5 @@ export default class Service {
             type: data.type,
         });
         return lead;
-    }
-
-    async hardDeleteBy(query: Query) {
-        await LeadsModel.deleteMany(query);
-        return 'Lead(s) Removed Successfully!';
     }
 }

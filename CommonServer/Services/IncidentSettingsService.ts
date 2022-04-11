@@ -195,11 +195,6 @@ export default class Service {
 
         return deletedIncidentSetting;
     }
-
-    async hardDeleteBy(query: Query) {
-        await incidentSettingsModel.deleteMany(query);
-        return 'Incident setting(s) removed successfully!';
-    }
 }
 
 import incidentSettingsModel from '../Models/incidentSettings';

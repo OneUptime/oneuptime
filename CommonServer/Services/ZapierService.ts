@@ -11,8 +11,6 @@ import IncidentMessageService from './IncidentMessageService';
 import IncidentMessageModel from '../Models/incidentMessage';
 
 import FindOneBy from '../Types/DB/FindOneBy';
-import Query from '../Types/DB/Query';
-
 export default class Service {
     async findBy({ query, select, populate, sort }: FindOneBy) {
         if (!query) {
@@ -937,10 +935,5 @@ export default class Service {
                 }
             }
         }
-    }
-
-    async hardDeleteBy(query: Query) {
-        await ZapierModel.deleteMany(query);
-        return 'Zapier(s) removed successfully';
     }
 }

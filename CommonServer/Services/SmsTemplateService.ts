@@ -1,43 +1,61 @@
-// export default class Service {
-//     async getTemplates(projectId: string) {
-//         const populate = [{ path: 'projectId', select: 'name' }];
-//         const select = 'projectId body smsType allowedVariables';
-//         const templates = await Promise.all(
-//             defaultSmsTemplate.map(async template => {
-//                 const smsTemplate = await this.findOneBy({
-//                     query: {
-//                         projectId: projectId,
-//                         smsType: template.smsType,
-//                     },
-//                     select,
-//                     populate,
-//                 });
-//                 return smsTemplate != null && smsTemplate != undefined
-//                     ? smsTemplate
-//                     : template;
-//             })
-//         );
-//         return templates;
-//     }
+import Model, {
+    requiredFields,
+    uniqueFields,
+    slugifyField,
+    encryptedFields,
+} from '../Models/SmsTemplate';
+import DatabaseService from './DatabaseService';
 
-//     async resetTemplate(projectId: string, templateId: $TSFixMe) {
-//         const oldTemplate = await this.findOneBy({
-//             query: { _id: templateId },
-//             select: 'smsType _id',
-//         });
-//         const newTemplate = defaultSmsTemplate.filter(
-//             template => template.smsType === oldTemplate.smsType
-//         )[0];
-//         const resetTemplate = await this.updateOneBy(
-//             {
-//                 _id: oldTemplate._id,
-//             },
-//             {
-//                 smsType: newTemplate.smsType,
-//                 body: newTemplate.body,
-//                 allowedVariables: newTemplate.allowedVariables,
-//             }
-//         );
-//         return resetTemplate;
-//     }
-// }
+export default class SmsTemplateService extends DatabaseService<typeof Model> {
+    constructor() {
+        super({
+            model: Model,
+            requiredFields: requiredFields,
+            uniqueFields: uniqueFields,
+            friendlyName: 'SMS Template',
+            publicListProps: {
+                populate: [],
+                select: [],
+            },
+            adminListProps: {
+                populate: [],
+                select: [],
+            },
+            ownerListProps: {
+                populate: [],
+                select: [],
+            },
+            memberListProps: {
+                populate: [],
+                select: [],
+            },
+            viewerListProps: {
+                populate: [],
+                select: [],
+            },
+            publicItemProps: {
+                populate: [],
+                select: [],
+            },
+            adminItemProps: {
+                populate: [],
+                select: [],
+            },
+            memberItemProps: {
+                populate: [],
+                select: [],
+            },
+            viewerItemProps: {
+                populate: [],
+                select: [],
+            },
+            ownerItemProps: {
+                populate: [],
+                select: [],
+            },
+            isResourceByProject: false,
+            slugifyField: slugifyField,
+            encryptedFields: encryptedFields,
+        });
+    }
+}

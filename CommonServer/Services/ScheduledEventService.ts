@@ -451,20 +451,6 @@ export default class Service {
         return subProjectOngoingScheduledEvents;
     }
 
-    async countBy(query: Query) {
-        if (!query) {
-            query = {};
-        }
-        query['deleted'] = false;
-        const count = await ScheduledEventModel.countDocuments(query);
-        return count;
-    }
-
-    async hardDeleteBy(query: Query) {
-        await ScheduledEventModel.deleteMany(query);
-        return 'Event(s) removed successfully!';
-    }
-
     /**
      * @description removes a particular monitor from scheduled event
      * @description if no monitor remains after deletion, then the scheduled event is deleted

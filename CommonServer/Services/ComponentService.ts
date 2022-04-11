@@ -447,11 +447,6 @@ export default class Service {
         return 'A new seat added. Now you can add a component';
     }
 
-    async hardDeleteBy(query: Query) {
-        await ComponentModel.deleteMany(query);
-        return 'Component(s) removed successfully!';
-    }
-
     async restoreBy(query: Query) {
         query.deleted = true;
         const populateComponent = [

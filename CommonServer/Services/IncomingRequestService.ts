@@ -462,11 +462,6 @@ export default class Service {
         return updateIncomingRequest;
     }
 
-    async hardDeleteBy(query: Query) {
-        await IncomingRequestModel.deleteMany(query);
-        return 'Incoming request(s) removed successfully!';
-    }
-
     /**
      * @description removes a particular monitor from incoming request
      * @description if no monitor remains after deletion, then the incoming request is deleted

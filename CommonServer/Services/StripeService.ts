@@ -3,7 +3,7 @@ import UserService from './UserService';
 import PaymentService from './PaymentService';
 import ProjectService from './ProjectService';
 import ProjectModel from '../Models/project';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { sendSlackAlert } from '../Utils/stripeHandlers';
 const stripe = require('stripe')(payment.paymentPrivateKey, {

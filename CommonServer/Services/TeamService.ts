@@ -955,7 +955,7 @@ export default class Service {
 
 import ProjectService from './ProjectService';
 import UserService from './UserService';
-import MailService from './MailService';
+import MailService from '../../MailService/Services/MailService';
 import PaymentService from './PaymentService';
 import NotificationService from './NotificationService';
 import RealTimeService from './realTimeService';

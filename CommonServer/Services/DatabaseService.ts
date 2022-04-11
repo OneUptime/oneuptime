@@ -322,10 +322,6 @@ class DatabaseService<ModelType> {
         });
     }
 
-    public async hardDeleteBy(query: Query) {
-        return await this._hardDeleteBy(query);
-    }
-
     private async _hardDeleteBy(query: Query) {
         return await this.model.remove(query);
     }

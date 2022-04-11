@@ -157,11 +157,6 @@ export default class Service {
         );
         return resetTemplate;
     }
-
-    async hardDeleteBy(query: Query) {
-        await EmailTemplateModel.deleteMany(query);
-        return 'Email Template(s) removed successfully';
-    }
 }
 
 import EmailTemplateModel from '../Models/emailTemplate';

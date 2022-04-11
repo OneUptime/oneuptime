@@ -93,11 +93,4 @@ export default class Service {
 
         return await this.updateOneBy({ query, data });
     }
-
-    async hardDeleteBy(query: Query) {
-        if (!query) return null;
-
-        await IncidentNoteTemplateModel.deleteMany(query);
-        return 'Incident note templates removed successfully';
-    }
 }

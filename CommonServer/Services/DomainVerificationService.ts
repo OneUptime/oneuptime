@@ -7,8 +7,6 @@ import randomChar from '../Utils/randomChar';
 import StatusPageService from './StatusPageService';
 import ProjectService from './ProjectService';
 const dnsPromises = dns.promises;
-
-import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 import errorService from '../Utils/error';
@@ -17,19 +15,6 @@ export default class Service {
     async create({ domain, projectId }: $TSFixMe) {
         const parsed = psl.parse(domain);
         const token = 'oneuptime=' + randomChar();
-
-        // all domain should be tied to parentProject only
-
-        const project = await ProjectService.findOneBy({
-            query: { _id: projectId },
-            select: 'parentProjectId',
-        });
-        if (!project) {
-            throw new BadDataException('Project not found or does not exist');
-        }
-        if (project.parentProjectId) {
-            projectId = project.parentProjectId._id || project.parentProjectId;
-        }
 
         const creationData = {
             domain: parsed.domain,
@@ -40,28 +25,6 @@ export default class Service {
         };
 
         return await DomainVerificationTokenModel.create(creationData);
-    }
-
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
-        if (!query) {
-            query = {};
-        }
-        query['deleted'] = false;
-
-        if (query.domain) {
-            const parsed = psl.parse(query.domain);
-            query.domain = parsed.domain;
-        }
-
-        const domainQuery = DomainVerificationTokenModel.findOne(query)
-            .sort(sort)
-            .lean();
-
-        domainQuery.select(select);
-        domainQuery.populate(populate);
-
-        const domain = await domainQuery;
-        return domain;
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
@@ -109,25 +72,6 @@ export default class Service {
 
         const domains = await domainsQuery;
         return domains;
-    }
-
-    async updateOneBy(query: Query, data: $TSFixMe) {
-        if (query && query.domain) {
-            const parsed = psl.parse(query.domain);
-            query.domain = parsed.domain;
-        }
-
-        if (!query) {
-            query = {};
-        }
-        if (!query['deleted']) query['deleted'] = false;
-
-        const updatedDomain =
-            await DomainVerificationTokenModel.findOneAndUpdate(query, data, {
-                new: true,
-            });
-
-        return updatedDomain;
     }
 
     async resetDomain(domain: $TSFixMe) {
@@ -256,11 +200,6 @@ export default class Service {
         return false;
     }
 
-    async hardDeleteBy(query: Query) {
-        await DomainVerificationTokenModel.deleteMany(query);
-        return 'Domain verification token(s) Removed Successfully!';
-    }
-
     async deleteBy(query: Query) {
         const domainCount = await this.countBy(query);
 
@@ -324,28 +263,5 @@ export default class Service {
             }
         }
         return projectId;
-    }
-
-    async countBy(query: Query) {
-        if (!query) {
-            query = {};
-        }
-
-        if (!query['deleted']) query['deleted'] = false;
-
-        // fetch subproject
-        if (query.projectId) {
-            let subProjects = await ProjectService.findBy({
-                query: { parentProjectId: query.projectId },
-                select: '_id',
-            });
-            subProjects = subProjects.map((project: $TSFixMe) => project._id); // grab just the project ids
-            const totalProjects = [query.projectId, ...subProjects];
-
-            query = { ...query, projectId: { $in: totalProjects } };
-        }
-
-        const count = await DomainVerificationTokenModel.countDocuments(query);
-        return count;
     }
 }
