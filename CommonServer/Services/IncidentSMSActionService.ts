@@ -2,6 +2,7 @@ import Model, {
     requiredFields,
     uniqueFields,
     slugifyField,
+    encryptedFields,
 } from '../Models/IncidentSMSAction';
 import DatabaseService from './DatabaseService';
 
@@ -56,6 +57,7 @@ export default class IncidentSMSActionService extends DatabaseService<
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
+encryptedFields: encryptedFields
         });
     }
 }

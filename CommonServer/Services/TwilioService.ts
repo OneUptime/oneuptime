@@ -1,6 +1,6 @@
 import incidentSMSActionModel from '../Models/incidentSMSAction';
 import twilio from 'twilio';
-import SmsSmtpService from './SmsSmtpService';
+import SmsSmtpService from './SmsProviderService';
 import Handlebars from 'handlebars';
 import defaultSmsTemplates from '../config/smsTemplate';
 import BadDataException from 'Common/Types/Exception/BadDataException';

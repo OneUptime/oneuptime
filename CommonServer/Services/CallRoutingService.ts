@@ -13,6 +13,7 @@ import Model, {
     requiredFields,
     uniqueFields,
     slugifyField,
+    encryptedFields,
 } from '../Models/CallRouting';
 import DatabaseService from './DatabaseService';
 import CallRoutingLogService from './CallRoutingLogService';
@@ -66,6 +67,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
             },
             isResourceByProject: true,
             slugifyField: slugifyField,
+encryptedFields: encryptedFields
         });
     }
 

@@ -55,7 +55,7 @@ class DatabaseService<ModelType> {
     public publicListProps: ListProps;
     public requiredFields: RequiredFields;
     public uniqueFields: UniqueFields;
-    public encryptedFields: EncryptedFields;
+    public encryptedFields: encryptedFields;
     public viewerItemProps: ItemProps;
     public viewerListProps: ListProps;
     public isResourceByProject: boolean;
@@ -96,7 +96,7 @@ class DatabaseService<ModelType> {
         ownerListProps: ListProps;
         isResourceByProject: boolean;
         slugifyField: string;
-        encryptedFields: EncryptedFields;
+        encryptedFields: encryptedFields;
     }) {
         this.model = model;
         this.friendlyName = friendlyName;

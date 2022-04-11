@@ -2,6 +2,7 @@ import Model, {
     requiredFields,
     uniqueFields,
     slugifyField,
+    encryptedFields,
 } from '../Models/MonitorLogByDay';
 import DatabaseService from './DatabaseService';
 
@@ -56,6 +57,7 @@ export default class MonitorLogByDayService extends DatabaseService<
             },
             isResourceByProject: true,
             slugifyField: slugifyField,
+encryptedFields: encryptedFields
         });
     }
 }

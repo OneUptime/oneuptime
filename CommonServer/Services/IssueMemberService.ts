@@ -2,6 +2,7 @@ import Model, {
     requiredFields,
     uniqueFields,
     slugifyField,
+    encryptedFields,
 } from '../Models/IssueMember';
 import DatabaseService from './DatabaseService';
 
@@ -54,6 +55,7 @@ export default class IssueMemberService extends DatabaseService<typeof Model> {
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
+encryptedFields: encryptedFields
         });
     }
 }

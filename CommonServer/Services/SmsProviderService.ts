@@ -3,18 +3,16 @@ import Model, {
     uniqueFields,
     slugifyField,
     encryptedFields,
-} from '../Models/CertificateStore';
+} from '../Models/SmsProvider';
 import DatabaseService from './DatabaseService';
 
-export default class CertificateStoreService extends DatabaseService<
-    typeof Model
-> {
+export default class SmsProviderService extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
             requiredFields: requiredFields,
             uniqueFields: uniqueFields,
-            friendlyName: 'Certificate Store',
+            friendlyName: 'SMS Provider',
             publicListProps: {
                 populate: [],
                 select: [],

@@ -2,6 +2,7 @@ import Model, {
     requiredFields,
     uniqueFields,
     slugifyField,
+    encryptedFields,
 } from '../Models/ApplicationScanner';
 import DatabaseService from './DatabaseService';
 import UUID from 'Common/Utils/UUID';
@@ -58,6 +59,7 @@ export default class SslService extends DatabaseService<typeof Model> {
             },
             isResourceByProject: true,
             slugifyField: slugifyField,
+encryptedFields: encryptedFields
         });
     }
 

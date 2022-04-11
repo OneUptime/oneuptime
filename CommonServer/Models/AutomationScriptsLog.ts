@@ -51,7 +51,7 @@ const schema = new Schema(
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];
-export const encryptedFields: EncryptedFields = [];
+export const encryptedFields: encryptedFields = [];
 
 export const slugifyField: string = '';
 
