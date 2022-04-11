@@ -57,7 +57,7 @@ schema.virtual('teams.teamMembers.groups', {
 export const requiredFields: RequiredFields = schema.requiredPaths();
 
 export const uniqueFields: UniqueFields = [];
-export const encryptedFields: encryptedFields = [];
+export const encryptedFields: EncryptedFields = [];
 
 export const slugifyField: string = '';
 

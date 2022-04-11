@@ -57,7 +57,7 @@ export default class CertificateStoreService extends DatabaseService<
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 }

@@ -88,7 +88,7 @@ export default class CallRoutingLogService extends DatabaseService<
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 

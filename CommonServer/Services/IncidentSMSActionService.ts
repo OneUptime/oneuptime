@@ -57,7 +57,7 @@ export default class IncidentSMSActionService extends DatabaseService<
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 }

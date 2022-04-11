@@ -57,7 +57,7 @@ export default class MonitorLogByDayService extends DatabaseService<
             },
             isResourceByProject: true,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 }

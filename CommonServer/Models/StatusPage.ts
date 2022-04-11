@@ -151,6 +151,6 @@ export default new Schema({
 });
 
 export const uniqueFields: UniqueFields = [];
-export const encryptedFields: encryptedFields = [];
+export const encryptedFields: EncryptedFields = [];
 
 export const requiredFields: RequiredFields = ['name', 'projectId'];

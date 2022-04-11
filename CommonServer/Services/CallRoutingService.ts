@@ -67,7 +67,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
             },
             isResourceByProject: true,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 

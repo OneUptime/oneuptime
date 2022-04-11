@@ -57,7 +57,7 @@ export default class SubscriberAlertService extends DatabaseService<
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 }

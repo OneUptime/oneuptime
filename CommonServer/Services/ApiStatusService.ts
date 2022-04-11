@@ -55,7 +55,7 @@ export default class SslService extends DatabaseService<typeof Model> {
             },
             isResourceByProject: false,
             slugifyField: slugifyField,
-encryptedFields: encryptedFields
+            encryptedFields: encryptedFields,
         });
     }
 }
