@@ -2,16 +2,16 @@ import * as types from '../constants/customField';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const createCustomFieldRequest = () => ({
+export const createCustomFieldRequest = (): void => ({
     type: types.CREATE_CUSTOM_FIELD_REQUEST,
 });
 
-export const createCustomFieldSuccess = (payload: $TSFixMe) => ({
+export const createCustomFieldSuccess = (payload: $TSFixMe): void => ({
     type: types.CREATE_CUSTOM_FIELD_SUCCESS,
     payload,
 });
 
-export const createCustomFieldFailure = (error: ErrorPayload) => ({
+export const createCustomFieldFailure = (error: ErrorPayload): void => ({
     type: types.CREATE_CUSTOM_FIELD_FAILURE,
     payload: error,
 });
@@ -40,16 +40,16 @@ export const createCustomField =
         }
     };
 
-export const updateCustomFieldRequest = () => ({
+export const updateCustomFieldRequest = (): void => ({
     type: types.UPDATE_CUSTOM_FIELD_REQUEST,
 });
 
-export const updateCustomFieldSuccess = (payload: $TSFixMe) => ({
+export const updateCustomFieldSuccess = (payload: $TSFixMe): void => ({
     type: types.UPDATE_CUSTOM_FIELD_SUCCESS,
     payload,
 });
 
-export const updateCustomFieldFailure = (error: ErrorPayload) => ({
+export const updateCustomFieldFailure = (error: ErrorPayload): void => ({
     type: types.UPDATE_CUSTOM_FIELD_FAILURE,
     payload: error,
 });
@@ -79,16 +79,16 @@ export const updateCustomField =
         }
     };
 
-export const fetchCustomFieldsRequest = () => ({
+export const fetchCustomFieldsRequest = (): void => ({
     type: types.FETCH_CUSTOM_FIELDS_REQUEST,
 });
 
-export const fetchCustomFieldsSuccess = (payload: $TSFixMe) => ({
+export const fetchCustomFieldsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_CUSTOM_FIELDS_SUCCESS,
     payload,
 });
 
-export const fetchCustomFieldsFailure = (error: ErrorPayload) => ({
+export const fetchCustomFieldsFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_CUSTOM_FIELDS_FAILURE,
     payload: error,
 });
@@ -122,16 +122,16 @@ export const fetchCustomFields =
         }
     };
 
-export const deleteCustomFieldRequest = () => ({
+export const deleteCustomFieldRequest = (): void => ({
     type: types.DELETE_CUSTOM_FIELD_REQUEST,
 });
 
-export const deleteCustomFieldSuccess = (payload: $TSFixMe) => ({
+export const deleteCustomFieldSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_CUSTOM_FIELD_SUCCESS,
     payload,
 });
 
-export const deleteCustomFieldFailure = (error: ErrorPayload) => ({
+export const deleteCustomFieldFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_CUSTOM_FIELD_FAILURE,
     payload: error,
 });

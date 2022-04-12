@@ -85,7 +85,7 @@ class Util {
         }
         return obj;
     }
-    _getUserDeviceDetails() {
+    _getUserDeviceDetails(): void {
         const deviceDetails = { device: null, browser: null };
         if (typeof window !== 'undefined') {
             const details = window.navigator.appVersion;
@@ -144,7 +144,7 @@ class Util {
         errorObj.stacktrace.frames = frames;
         return errorObj;
     }
-    _readFileFromSource(fileName: $TSFixMe) {
+    _readFileFromSource(fileName: $TSFixMe): void {
         return new Promise(resolve => {
             readFile(fileName, (err, data) => {
                 const content = err ? null : data.toString();
@@ -154,7 +154,7 @@ class Util {
             });
         });
     }
-    _formatFileName(fileName: $TSFixMe) {
+    _formatFileName(fileName: $TSFixMe): void {
         const fileIndicator = 'file://';
         let localFileName = fileName;
         if (fileName.indexOf(fileIndicator) > -1) {

@@ -30,7 +30,7 @@ const run = async (
     functionCode: $TSFixMe,
     isCalled: $TSFixMe, // skip IIFE calls
     options = { maxScriptRunTime, maxSyncStatementDuration }
-) => {
+): void => {
     if (isMainThread) {
         // modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration } = options;

@@ -1243,16 +1243,16 @@ export const selectedProbe = (val: $TSFixMe): void => {
     };
 };
 
-export const closeBreachedMonitorSlaRequest = () => ({
+export const closeBreachedMonitorSlaRequest = (): void => ({
     type: types.CLOSE_BREACHED_MONITOR_SLA_REQUEST,
 });
 
-export const closeBreachedMonitorSlaSuccess = (payload: $TSFixMe) => ({
+export const closeBreachedMonitorSlaSuccess = (payload: $TSFixMe): void => ({
     type: types.CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const closeBreachedMonitorSlaFailure = (error: ErrorPayload) => ({
+export const closeBreachedMonitorSlaFailure = (error: ErrorPayload): void => ({
     type: types.CLOSE_BREACHED_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -1280,16 +1280,16 @@ export const closeBreachedMonitorSla =
         }
     };
 
-export const fetchBreachedMonitorSlaRequest = () => ({
+export const fetchBreachedMonitorSlaRequest = (): void => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
 });
 
-export const fetchBreachedMonitorSlaSuccess = (payload: $TSFixMe) => ({
+export const fetchBreachedMonitorSlaSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const fetchBreachedMonitorSlaFailure = (error: ErrorPayload) => ({
+export const fetchBreachedMonitorSlaFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_FAILURE,
     payload: error,
 });

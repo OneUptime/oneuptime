@@ -31,7 +31,7 @@ class OneUptimeListener {
             this._setUpHttpsListener();
         }
     }
-    _init() {
+    _init(): void {
         this._setUpDomListener();
         this._setUpFetchListener();
         this._setUpXhrListener();
@@ -47,7 +47,7 @@ class OneUptimeListener {
         return this.timelineObj.clearTimeline();
     }
     // set up console listener
-    _setUpConsoleListener() {
+    _setUpConsoleListener(): void {
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
         const console = (function (oldCons): void {
             return {
@@ -83,7 +83,7 @@ class OneUptimeListener {
         global.console = console;
     }
     // set up dom listener
-    _setUpDomListener() {
+    _setUpDomListener(): void {
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
@@ -111,7 +111,7 @@ class OneUptimeListener {
         });
     }
     // set up xhr listener
-    _setUpXhrListener() {
+    _setUpXhrListener(): void {
         const open = window.XMLHttpRequest.prototype.open;
 
         function openReplacement(
@@ -147,7 +147,7 @@ class OneUptimeListener {
         window.XMLHttpRequest.prototype.open = openReplacement;
     }
     // set up fetch listener
-    _setUpFetchListener() {
+    _setUpFetchListener(): void {
         const currentFetch = global.fetch;
 
         global.fetch = function (url, options): void {
@@ -174,7 +174,7 @@ class OneUptimeListener {
             return promise;
         };
     }
-    _setUpHttpsListener() {
+    _setUpHttpsListener(): void {
         override(Http);
         override(Https);
 
@@ -228,7 +228,7 @@ class OneUptimeListener {
             return log;
         }
     }
-    _logConsoleEvent(content: $TSFixMe, type: $TSFixMe) {
+    _logConsoleEvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj = {
             category: 'console',
             data: {
@@ -240,7 +240,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logXHREvent(content: $TSFixMe, type: $TSFixMe) {
+    _logXHREvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj = {
             category: 'xhr',
             data: {
@@ -252,7 +252,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logFetchEvent(content: $TSFixMe, type: $TSFixMe) {
+    _logFetchEvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj = {
             category: 'fetch',
             data: {
@@ -264,7 +264,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe) {
+    _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj = {
             category: type, // HTTP
             data: {
@@ -294,7 +294,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logClickEvent(event: $TSFixMe, type: $TSFixMe) {
+    _logClickEvent(event: $TSFixMe, type: $TSFixMe): void {
         // preepare the event tree
         const content = this._getEventTree(event);
         const timelineObj = {
@@ -308,7 +308,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _getEventTree(event: $TSFixMe) {
+    _getEventTree(event: $TSFixMe): void {
         const tree = [];
         const MAX_UP_TREE = 5; // we just want to go up the DOM for 5 times
         let current = 0;
@@ -367,7 +367,7 @@ class OneUptimeListener {
         path = path.join(' > ');
         return { tree, path }; // return the final tree which contains a max of 5 elements
     }
-    _getElementAttributes(elem: $TSFixMe) {
+    _getElementAttributes(elem: $TSFixMe): void {
         const attributes = [];
         const elementAtrributes = elem.attributes; // get all the attritubtes related to the element
         const excludedAttributes = ['class', 'value']; // exclude items that are nnot needed

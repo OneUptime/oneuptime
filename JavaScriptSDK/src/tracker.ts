@@ -57,16 +57,16 @@ class ErrorTracker {
             this._setUpNodeErrorListener();
         }
     }
-    _setErrorTrackerId(errorTrackerId: $TSFixMe) {
+    _setErrorTrackerId(errorTrackerId: $TSFixMe): void {
         this.errorTrackerId = errorTrackerId;
     }
-    _setErrorTrackerKey(errorTrackerKey: $TSFixMe) {
+    _setErrorTrackerKey(errorTrackerKey: $TSFixMe): void {
         this.errorTrackerKey = errorTrackerKey;
     }
-    _setApiUrl(apiUrl: URL) {
+    _setApiUrl(apiUrl: URL): void {
         this.apiUrl = `${apiUrl}/error-tracker/${this.errorTrackerId}/track`;
     }
-    _setUpOptions(options: $TSFixMe) {
+    _setUpOptions(options: $TSFixMe): void {
         for (const [key, value] of Object.entries(options)) {
             // proceed with current key if it is not in the config keys
             if (!this.configKeys.includes(key)) {
@@ -89,7 +89,7 @@ class ErrorTracker {
             }
         }
     }
-    _setEventId() {
+    _setEventId(): void {
         this.eventId = uuidv4();
     }
     getEventId() {
@@ -120,7 +120,7 @@ class ErrorTracker {
             }
         });
     }
-    _getTags() {
+    _getTags(): void {
         return this.tags;
     }
     setExtras(extras: $TSFixMe) {
@@ -140,7 +140,7 @@ class ErrorTracker {
         }
         this.fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];
     }
-    _getFingerprint(errorMessage: $TSFixMe) {
+    _getFingerprint(errorMessage: $TSFixMe): void {
         // if no fingerprint exist currently
         if (this.fingerprint.length < 1) {
             // set up finger print based on error since none exist
@@ -149,7 +149,7 @@ class ErrorTracker {
         return this.fingerprint;
     }
     // set up error listener
-    _setUpErrorListener() {
+    _setUpErrorListener(): void {
         window.onerror = async function (
             message,
             file,
@@ -181,7 +181,7 @@ class ErrorTracker {
             }
         };
     }
-    _setUpNodeErrorListener() {
+    _setUpNodeErrorListener(): void {
         process
             .on('uncaughtException', err => {
                 // display for the user
@@ -243,7 +243,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    _setHost() {
+    _setHost(): void {
         if (this.isWindow) {
             // Web apps
             this.setTag('url', window.location.origin);
@@ -294,7 +294,7 @@ class ErrorTracker {
             .catch(error => (content = error));
         return content;
     }
-    _makeApiRequest(data: $TSFixMe) {
+    _makeApiRequest(data: $TSFixMe): void {
         return new Promise((resolve, reject) => {
             axios
                 .post(this.apiUrl, data)
@@ -312,7 +312,7 @@ class ErrorTracker {
     getSDKDetails() {
         return { name, version };
     }
-    _clear(newEventId: $TSFixMe) {
+    _clear(newEventId: $TSFixMe): void {
         // clear tags
         this.tags = [];
         // clear extras

@@ -5,7 +5,7 @@ class OneUptimeTimelineManager {
         this.options = options;
         this.timeLineStack = [];
     }
-    _addItemToTimeline(item: $TSFixMe) {
+    _addItemToTimeline(item: $TSFixMe): void {
         // get the size of the stack
         if (this.timeLineStack.length === this.options.maxTimeline) {
             // this.timeLineStack.shift(); // remove the oldest item

@@ -3,16 +3,16 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/statusPageCategory';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // create status page category
-export const createStatusPageCategoryRequest = () => ({
+export const createStatusPageCategoryRequest = (): void => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_REQUEST,
 });
 
-export const createStatusPageCategorySuccess = (payload: $TSFixMe) => ({
+export const createStatusPageCategorySuccess = (payload: $TSFixMe): void => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_SUCCESS,
     payload,
 });
 
-export const createStatusPageCategoryFailure = (error: ErrorPayload) => ({
+export const createStatusPageCategoryFailure = (error: ErrorPayload): void => ({
     type: types.CREATE_STATUS_PAGE_CATEGORY_FAILURE,
     payload: error,
 });
@@ -40,16 +40,16 @@ export const createStatusPageCategory =
     };
 
 // update status page category
-export const updateStatusPageCategoryRequest = () => ({
+export const updateStatusPageCategoryRequest = (): void => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_REQUEST,
 });
 
-export const updateStatusPageCategorySuccess = (payload: $TSFixMe) => ({
+export const updateStatusPageCategorySuccess = (payload: $TSFixMe): void => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_SUCCESS,
     payload,
 });
 
-export const updateStatusPageCategoryFailure = (error: ErrorPayload) => ({
+export const updateStatusPageCategoryFailure = (error: ErrorPayload): void => ({
     type: types.UPDATE_STATUS_PAGE_CATEGORY_FAILURE,
     payload: error,
 });
@@ -77,16 +77,18 @@ export const updateStatusPageCategory =
     };
 
 // fetch status page categories
-export const fetchStatusPageCategoriesRequest = () => ({
+export const fetchStatusPageCategoriesRequest = (): void => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_REQUEST,
 });
 
-export const fetchStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
+export const fetchStatusPageCategoriesSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_SUCCESS,
     payload,
 });
 
-export const fetchStatusPageCategoriesFailure = (error: ErrorPayload) => ({
+export const fetchStatusPageCategoriesFailure = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_STATUS_PAGE_CATEGORIES_FAILURE,
     payload: error,
 });
@@ -117,16 +119,20 @@ export const fetchStatusPageCategories =
     };
 
 // fetch  status page categories
-export const fetchAllStatusPageCategoriesRequest = () => ({
+export const fetchAllStatusPageCategoriesRequest = (): void => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_REQUEST,
 });
 
-export const fetchAllStatusPageCategoriesSuccess = (payload: $TSFixMe) => ({
+export const fetchAllStatusPageCategoriesSuccess = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_SUCCESS,
     payload,
 });
 
-export const fetchAllStatusPageCategoriesFailure = (error: ErrorPayload) => ({
+export const fetchAllStatusPageCategoriesFailure = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_ALL_STATUS_PAGE_CATEGORIES_FAILURE,
     payload: error,
 });
@@ -157,16 +163,16 @@ export const fetchAllStatusPageCategories =
     };
 
 // delete status page category
-export const deleteStatusPageCategoryRequest = () => ({
+export const deleteStatusPageCategoryRequest = (): void => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_REQUEST,
 });
 
-export const deleteStatusPageCategorySuccess = (payload: $TSFixMe) => ({
+export const deleteStatusPageCategorySuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_SUCCESS,
     payload,
 });
 
-export const deleteStatusPageCategoryFailure = (error: ErrorPayload) => ({
+export const deleteStatusPageCategoryFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_STATUS_PAGE_CATEGORY_FAILURE,
     payload: error,
 });

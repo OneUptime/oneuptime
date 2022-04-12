@@ -133,7 +133,7 @@ class DataStore {
             process.exit(1);
         }
     }
-    _makeApiRequest(data: $TSFixMe) {
+    _makeApiRequest(data: $TSFixMe): void {
         return new Promise((resolve, reject) => {
             axios
                 .post(

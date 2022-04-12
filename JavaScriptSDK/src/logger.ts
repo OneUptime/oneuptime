@@ -12,13 +12,13 @@ class Logger {
         this._setApiUrl(apiUrl);
         this._setApplicationLogKey(applicationLogKey);
     }
-    _setApplicationLogId(applicationLogId: $TSFixMe) {
+    _setApplicationLogId(applicationLogId: $TSFixMe): void {
         this.applicationLogId = applicationLogId;
     }
-    _setApplicationLogKey(applicationLogKey: $TSFixMe) {
+    _setApplicationLogKey(applicationLogKey: $TSFixMe): void {
         this.applicationLogKey = applicationLogKey;
     }
-    _setApiUrl(apiUrl: URL) {
+    _setApiUrl(apiUrl: URL): void {
         this.apiUrl = `${apiUrl}/application-log/${this.applicationLogId}/log`;
     }
 
@@ -71,7 +71,7 @@ class Logger {
         return await this._makeApiRequest(data, logType, tags);
     }
 
-    _makeApiRequest(data: $TSFixMe, logType: $TSFixMe, tags = null) {
+    _makeApiRequest(data: $TSFixMe, logType: $TSFixMe, tags = null): void {
         const requestData = {
             content: data,
             applicationLogKey: this.applicationLogKey,

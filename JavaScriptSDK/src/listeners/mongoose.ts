@@ -30,7 +30,7 @@ class MongooseListener {
         };
     }
 
-    _setUpMongooseListener(mod) {
+    _setUpMongooseListener(mod): void {
         const proto = Object.getPrototypeOf(mod);
         const exec = proto.Query.prototype.exec;
 

@@ -22,21 +22,21 @@ export const setEndDate = (date: $TSFixMe): void => {
 };
 
 // create performance tracker
-export const createPerformanceTrackerRequest = () => ({
+export const createPerformanceTrackerRequest = (): void => ({
     type: types.CREATE_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const createPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
+export const createPerformanceTrackerSuccess = (payload: $TSFixMe): void => ({
     type: types.CREATE_PERFORMANCE_TRACKER_SUCCESS,
     payload,
 });
 
-export const createPerformanceTrackerFailure = (error: ErrorPayload) => ({
+export const createPerformanceTrackerFailure = (error: ErrorPayload): void => ({
     type: types.CREATE_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
 
-export const createPerformanceTrackerReset = () => ({
+export const createPerformanceTrackerReset = (): void => ({
     type: types.CREATE_PERFORMANCE_TRACKER_RESET,
 });
 
@@ -70,21 +70,21 @@ export const createPerformanceTracker =
     };
 
 // fetch a single performance tracker
-export const fetchPerformanceTrackerRequest = () => ({
+export const fetchPerformanceTrackerRequest = (): void => ({
     type: types.FETCH_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const fetchPerformanceTrackerSuccess = (payload: $TSFixMe) => ({
+export const fetchPerformanceTrackerSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_PERFORMANCE_TRACKER_SUCCESS,
     payload,
 });
 
-export const fetchPerformanceTrackerFailure = (error: ErrorPayload) => ({
+export const fetchPerformanceTrackerFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
 
-export const fetchPerformanceTrackerReset = () => ({
+export const fetchPerformanceTrackerReset = (): void => ({
     type: types.FETCH_PERFORMANCE_TRACKER_RESET,
 });
 
@@ -117,22 +117,24 @@ export const fetchPerformanceTracker =
     };
 
 // fetch performance tracker list
-export const fetchPerformanceTrackersRequest = (fetchingPage: $TSFixMe) => ({
+export const fetchPerformanceTrackersRequest = (
+    fetchingPage: $TSFixMe
+): void => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_REQUEST,
     payload: fetchingPage,
 });
 
-export const fetchPerformanceTrackersSuccess = (payload: $TSFixMe) => ({
+export const fetchPerformanceTrackersSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_SUCCESS,
     payload,
 });
 
-export const fetchPerformanceTrackersFailure = (error: ErrorPayload) => ({
+export const fetchPerformanceTrackersFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_FAILURE,
     payload: error,
 });
 
-export const fetchPerformanceTrackersReset = () => ({
+export const fetchPerformanceTrackersReset = (): void => ({
     type: types.FETCH_PERFORMANCE_TRACKERS_RESET,
 });
 
@@ -171,21 +173,21 @@ export const fetchPerformanceTrackers =
     };
 
 // update performance tracker
-export const updatePerformanceTrackerRequest = () => ({
+export const updatePerformanceTrackerRequest = (): void => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const updatePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
+export const updatePerformanceTrackerSuccess = (payload: $TSFixMe): void => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_SUCCESS,
     payload,
 });
 
-export const updatePerformanceTrackerFailure = (error: ErrorPayload) => ({
+export const updatePerformanceTrackerFailure = (error: ErrorPayload): void => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
 
-export const updatePerformanceTrackerReset = () => ({
+export const updatePerformanceTrackerReset = (): void => ({
     type: types.UPDATE_PERFORMANCE_TRACKER_RESET,
 });
 
@@ -219,21 +221,21 @@ export const updatePerformanceTracker =
     };
 
 // delete performance tracker
-export const deletePerformanceTrackerRequest = () => ({
+export const deletePerformanceTrackerRequest = (): void => ({
     type: types.DELETE_PERFORMANCE_TRACKER_REQUEST,
 });
 
-export const deletePerformanceTrackerSuccess = (payload: $TSFixMe) => ({
+export const deletePerformanceTrackerSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_PERFORMANCE_TRACKER_SUCCESS,
     payload,
 });
 
-export const deletePerformanceTrackerFailure = (error: ErrorPayload) => ({
+export const deletePerformanceTrackerFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_PERFORMANCE_TRACKER_FAILURE,
     payload: error,
 });
 
-export const deletePerformanceTrackerReset = () => ({
+export const deletePerformanceTrackerReset = (): void => ({
     type: types.DELETE_PERFORMANCE_TRACKER_RESET,
 });
 
@@ -266,21 +268,23 @@ export const deletePerformanceTracker =
     };
 
 // reset performance tracker api key
-export const resetPerformanceTrackerKeyRequest = () => ({
+export const resetPerformanceTrackerKeyRequest = (): void => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_REQUEST,
 });
 
-export const resetPerformanceTrackerKeySuccess = (payload: $TSFixMe) => ({
+export const resetPerformanceTrackerKeySuccess = (payload: $TSFixMe): void => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_SUCCESS,
     payload,
 });
 
-export const resetPerformanceTrackerKeyFailure = (error: ErrorPayload) => ({
+export const resetPerformanceTrackerKeyFailure = (
+    error: ErrorPayload
+): void => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_FAILURE,
     payload: error,
 });
 
-export const resetPerformanceTrackerKeyReset = () => ({
+export const resetPerformanceTrackerKeyReset = (): void => ({
     type: types.RESET_PERFORMANCE_TRACKER_KEY_RESET,
 });
 
@@ -314,16 +318,16 @@ export const resetPerformanceTrackerKey =
     };
 
 // remove quickstart guide
-export const removeQuickStartRequest = () => ({
+export const removeQuickStartRequest = (): void => ({
     type: types.REMOVE_QUICK_START_REQUEST,
 });
 
-export const removeQuickStartSuccess = (payload: $TSFixMe) => ({
+export const removeQuickStartSuccess = (payload: $TSFixMe): void => ({
     type: types.REMOVE_QUICK_START_SUCCESS,
     payload,
 });
 
-export const removeQuickStartFailure = (error: ErrorPayload) => ({
+export const removeQuickStartFailure = (error: ErrorPayload): void => ({
     type: types.REMOVE_QUICK_START_FAILURE,
     payload: error,
 });
@@ -358,16 +362,16 @@ export const removeQuickStart =
     };
 
 // fetch last metrics
-export const fetchLastMetricsRequest = () => ({
+export const fetchLastMetricsRequest = (): void => ({
     type: types.FETCH_LAST_METRICS_REQUEST,
 });
 
-export const fetchLastMetricsSuccess = (payload: $TSFixMe) => ({
+export const fetchLastMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_LAST_METRICS_SUCCESS,
     payload,
 });
 
-export const fetchLastMetricsFailure = (error: ErrorPayload) => ({
+export const fetchLastMetricsFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_LAST_METRICS_FAILURE,
     payload: error,
 });

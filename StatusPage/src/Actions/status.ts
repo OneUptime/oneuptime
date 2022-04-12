@@ -259,7 +259,7 @@ export const statusPageNoteReset = (): void => {
     };
 };
 
-export const showIncidentCard = (payload: $TSFixMe) => ({
+export const showIncidentCard = (payload: $TSFixMe): void => ({
     // payload => true or false
     type: types.SHOW_INCIDENT_CARD,
 
@@ -493,16 +493,16 @@ export const getOngoingScheduledEvent = (
     };
 };
 
-export const individualEventsRequest = () => ({
+export const individualEventsRequest = (): void => ({
     type: types.INDIVIDUAL_EVENTS_REQUEST,
 });
 
-export const individualEventsSuccess = (payload: $TSFixMe) => ({
+export const individualEventsSuccess = (payload: $TSFixMe): void => ({
     type: types.INDIVIDUAL_EVENTS_SUCCESS,
     payload,
 });
 
-export const individualEventsFailure = (error: ErrorPayload) => ({
+export const individualEventsFailure = (error: ErrorPayload): void => ({
     type: types.INDIVIDUAL_EVENTS_FAILURE,
     payload: error,
 });
@@ -549,16 +549,16 @@ export const getIndividualEvent = (
     };
 };
 
-export const futureEventsRequest = () => ({
+export const futureEventsRequest = (): void => ({
     type: types.FUTURE_EVENTS_REQUEST,
 });
 
-export const futureEventsSuccess = (payload: $TSFixMe) => ({
+export const futureEventsSuccess = (payload: $TSFixMe): void => ({
     type: types.FUTURE_EVENTS_SUCCESS,
     payload,
 });
 
-export const futureEventsFailure = (error: ErrorPayload) => ({
+export const futureEventsFailure = (error: ErrorPayload): void => ({
     type: types.FUTURE_EVENTS_FAILURE,
     payload: error,
 });
@@ -592,16 +592,16 @@ export const fetchFutureEvents =
         }
     };
 
-export const pastEventsRequest = () => ({
+export const pastEventsRequest = (): void => ({
     type: types.PAST_EVENTS_REQUEST,
 });
 
-export const pastEventsSuccess = (payload: $TSFixMe) => ({
+export const pastEventsSuccess = (payload: $TSFixMe): void => ({
     type: types.PAST_EVENTS_SUCCESS,
     payload,
 });
 
-export const pastEventsFailure = (error: ErrorPayload) => ({
+export const pastEventsFailure = (error: ErrorPayload): void => ({
     type: types.PAST_EVENTS_FAILURE,
     payload: error,
 });
@@ -762,16 +762,16 @@ export const getMoreEvent = (
     };
 };
 
-export const moreFutureEventsRequest = () => ({
+export const moreFutureEventsRequest = (): void => ({
     type: types.MORE_FUTURE_EVENTS_REQUEST,
 });
 
-export const moreFutureEventsSuccess = (payload: $TSFixMe) => ({
+export const moreFutureEventsSuccess = (payload: $TSFixMe): void => ({
     type: types.MORE_FUTURE_EVENTS_SUCCESS,
     payload,
 });
 
-export const moreFutureEventsFailure = (error: ErrorPayload) => ({
+export const moreFutureEventsFailure = (error: ErrorPayload): void => ({
     type: types.MORE_FUTURE_EVENTS_FAILURE,
     payload: error,
 });
@@ -804,16 +804,16 @@ export const fetchMoreFutureEvents =
         }
     };
 
-export const morePastEventsRequest = () => ({
+export const morePastEventsRequest = (): void => ({
     type: types.MORE_PAST_EVENTS_REQUEST,
 });
 
-export const morePastEventsSuccess = (payload: $TSFixMe) => ({
+export const morePastEventsSuccess = (payload: $TSFixMe): void => ({
     type: types.MORE_PAST_EVENTS_SUCCESS,
     payload,
 });
 
-export const morePastEventsFailure = (error: ErrorPayload) => ({
+export const morePastEventsFailure = (error: ErrorPayload): void => ({
     type: types.MORE_PAST_EVENTS_FAILURE,
     payload: error,
 });

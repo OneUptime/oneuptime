@@ -26,30 +26,30 @@ export const requestingSettingsFailed = (payload: $TSFixMe): void => {
     };
 };
 
-export const testSmtpRequest = () => ({
+export const testSmtpRequest = (): void => ({
     type: types.TEST_SMTP_REQUEST,
 });
 
-export const testSmtpSuccess = (payload: $TSFixMe) => ({
+export const testSmtpSuccess = (payload: $TSFixMe): void => ({
     type: types.TEST_SMTP_SUCCESS,
     payload,
 });
 
-export const testSmtpFailure = (error: $TSFixMe) => ({
+export const testSmtpFailure = (error: $TSFixMe): void => ({
     type: types.TEST_SMTP_FAILURE,
     payload: error,
 });
 
-export const testTwilioRequest = () => ({
+export const testTwilioRequest = (): void => ({
     type: types.TEST_TWILIO_REQUEST,
 });
 
-export const testTwilioSuccess = (payload: $TSFixMe) => ({
+export const testTwilioSuccess = (payload: $TSFixMe): void => ({
     type: types.TEST_TWILIO_SUCCESS,
     payload,
 });
 
-export const testTwilioFailure = (error: $TSFixMe) => ({
+export const testTwilioFailure = (error: $TSFixMe): void => ({
     type: types.TEST_TWILIO_FAILURE,
     payload: error,
 });

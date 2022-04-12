@@ -30,7 +30,7 @@ export const validateTokenSuccess = (accessToken: $TSFixMe): void => {
     };
 };
 
-export const resetvalidateToken = () => ({
+export const resetvalidateToken = (): void => ({
     type: types.RESET_VALIDATE_TOKEN,
 });
 

@@ -2,16 +2,16 @@ import * as types from '../constants/incidentCommunicationSla';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const createCommunicationSlaRequest = () => ({
+export const createCommunicationSlaRequest = (): void => ({
     type: types.CREATE_COMMUNICATION_SLA_REQUEST,
 });
 
-export const createCommunicationSlaSuccess = (payload: $TSFixMe) => ({
+export const createCommunicationSlaSuccess = (payload: $TSFixMe): void => ({
     type: types.CREATE_COMMUNICATION_SLA_SUCCESS,
     payload,
 });
 
-export const createCommunicationSlaFailure = (error: ErrorPayload) => ({
+export const createCommunicationSlaFailure = (error: ErrorPayload): void => ({
     type: types.CREATE_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });
@@ -40,16 +40,16 @@ export const createCommunicationSla =
         }
     };
 
-export const updateCommunicationSlaRequest = () => ({
+export const updateCommunicationSlaRequest = (): void => ({
     type: types.UPDATE_COMMUNICATION_SLA_REQUEST,
 });
 
-export const updateCommunicationSlaSuccess = (payload: $TSFixMe) => ({
+export const updateCommunicationSlaSuccess = (payload: $TSFixMe): void => ({
     type: types.UPDATE_COMMUNICATION_SLA_SUCCESS,
     payload,
 });
 
-export const updateCommunicationSlaFailure = (error: ErrorPayload) => ({
+export const updateCommunicationSlaFailure = (error: ErrorPayload): void => ({
     type: types.UPDATE_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });
@@ -85,16 +85,16 @@ export const updateCommunicationSla =
         }
     };
 
-export const fetchCommunicationSlasRequest = () => ({
+export const fetchCommunicationSlasRequest = (): void => ({
     type: types.FETCH_COMMUNICATION_SLAS_REQUEST,
 });
 
-export const fetchCommunicationSlasSuccess = (payload: $TSFixMe) => ({
+export const fetchCommunicationSlasSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_COMMUNICATION_SLAS_SUCCESS,
     payload,
 });
 
-export const fetchCommunicationSlasFailure = (error: ErrorPayload) => ({
+export const fetchCommunicationSlasFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_COMMUNICATION_SLAS_FAILURE,
     payload: error,
 });
@@ -128,16 +128,16 @@ export const fetchCommunicationSlas =
         }
     };
 
-export const deleteCommunicationSlaRequest = () => ({
+export const deleteCommunicationSlaRequest = (): void => ({
     type: types.DELETE_COMMUNICATION_SLA_REQUEST,
 });
 
-export const deleteCommunicationSlaSuccess = (payload: $TSFixMe) => ({
+export const deleteCommunicationSlaSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_COMMUNICATION_SLA_SUCCESS,
     payload,
 });
 
-export const deleteCommunicationSlaFailure = (error: ErrorPayload) => ({
+export const deleteCommunicationSlaFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });
@@ -166,21 +166,25 @@ export const deleteCommunicationSla =
     };
 
 // set active sla
-export const setActiveSla = (incidentSlaId: $TSFixMe) => ({
+export const setActiveSla = (incidentSlaId: $TSFixMe): void => ({
     type: types.SET_ACTIVE_SLA,
     payload: incidentSlaId,
 });
 
-export const fetchDefaultCommunicationSlaRequest = () => ({
+export const fetchDefaultCommunicationSlaRequest = (): void => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_REQUEST,
 });
 
-export const fetchDefaultCommunicationSlaSuccess = (payload: $TSFixMe) => ({
+export const fetchDefaultCommunicationSlaSuccess = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_SUCCESS,
     payload,
 });
 
-export const fetchDefaultCommunicationSlaFailure = (error: ErrorPayload) => ({
+export const fetchDefaultCommunicationSlaFailure = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_DEFAULT_COMMUNICATION_SLA_FAILURE,
     payload: error,
 });

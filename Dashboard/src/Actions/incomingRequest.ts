@@ -3,16 +3,16 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/incomingRequest';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const createIncomingRequestRequest = () => ({
+export const createIncomingRequestRequest = (): void => ({
     type: types.CREATE_INCOMING_REQUEST_REQUEST,
 });
 
-export const createIncomingRequestSuccess = (payload: $TSFixMe) => ({
+export const createIncomingRequestSuccess = (payload: $TSFixMe): void => ({
     type: types.CREATE_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const createIncomingRequestFailure = (error: ErrorPayload) => ({
+export const createIncomingRequestFailure = (error: ErrorPayload): void => ({
     type: types.CREATE_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -41,16 +41,16 @@ export const createIncomingRequest =
         }
     };
 
-export const editIncomingRequestRequest = () => ({
+export const editIncomingRequestRequest = (): void => ({
     type: types.EDIT_INCOMING_REQUEST_REQUEST,
 });
 
-export const editIncomingRequestSuccess = (payload: $TSFixMe) => ({
+export const editIncomingRequestSuccess = (payload: $TSFixMe): void => ({
     type: types.EDIT_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const editIncomingRequestFailure = (error: ErrorPayload) => ({
+export const editIncomingRequestFailure = (error: ErrorPayload): void => ({
     type: types.EDIT_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -80,16 +80,16 @@ export const editIncomingRequest =
         }
     };
 
-export const deleteIncomingRequestRequest = () => ({
+export const deleteIncomingRequestRequest = (): void => ({
     type: types.DELETE_INCOMING_REQUEST_REQUEST,
 });
 
-export const deleteIncomingRequestSuccess = (payload: $TSFixMe) => ({
+export const deleteIncomingRequestSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const deleteIncomingRequestFailure = (error: ErrorPayload) => ({
+export const deleteIncomingRequestFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -116,16 +116,16 @@ export const deleteIncomingRequest =
         }
     };
 
-export const fetchAllIncomingRequestRequest = () => ({
+export const fetchAllIncomingRequestRequest = (): void => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_REQUEST,
 });
 
-export const fetchAllIncomingRequestSuccess = (payload: $TSFixMe) => ({
+export const fetchAllIncomingRequestSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const fetchAllIncomingRequestFailure = (error: ErrorPayload) => ({
+export const fetchAllIncomingRequestFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -154,7 +154,7 @@ export const fetchAllIncomingRequest =
         }
     };
 
-export const setActiveIncomingRequest = (requestId: $TSFixMe) => ({
+export const setActiveIncomingRequest = (requestId: $TSFixMe): void => ({
     type: types.SET_ACTIVE_INCOMING_REQUEST,
     payload: requestId,
 });

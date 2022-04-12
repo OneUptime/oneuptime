@@ -44,16 +44,16 @@ export const setRevealIncidentSettingsVariables =
     };
 
 // FETCH ALL TEMPALTES IN A PROJECT
-export const fetchIncidentTemplatesRequest = () => ({
+export const fetchIncidentTemplatesRequest = (): void => ({
     type: types.FETCH_INCIDENT_TEMPLATES_REQUEST,
 });
 
-export const fetchIncidentTemplatesSuccess = (payload: $TSFixMe) => ({
+export const fetchIncidentTemplatesSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_INCIDENT_TEMPLATES_SUCCESS,
     payload,
 });
 
-export const fetchIncidentTemplatesFailure = (error: ErrorPayload) => ({
+export const fetchIncidentTemplatesFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_INCIDENT_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -80,16 +80,16 @@ export const fetchIncidentTemplates =
     };
 
 // CREATE TEMPLATE IN A PROJECT
-export const createIncidentTemplateRequest = () => ({
+export const createIncidentTemplateRequest = (): void => ({
     type: types.CREATE_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const createIncidentTemplateSuccess = (payload: $TSFixMe) => ({
+export const createIncidentTemplateSuccess = (payload: $TSFixMe): void => ({
     type: types.CREATE_INCIDENT_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const createIncidentTemplateFailure = (error: ErrorPayload) => ({
+export const createIncidentTemplateFailure = (error: ErrorPayload): void => ({
     type: types.CREATE_INCIDENT_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -116,16 +116,16 @@ export const createIncidentTemplate =
     };
 
 // UPDATE A TEMPLATE IN A PROJECT
-export const updateIncidentTemplateRequest = () => ({
+export const updateIncidentTemplateRequest = (): void => ({
     type: types.UPDATE_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const updateIncidentTemplateSuccess = (payload: $TSFixMe) => ({
+export const updateIncidentTemplateSuccess = (payload: $TSFixMe): void => ({
     type: types.UPDATE_INCIDENT_TEMPALTE_SUCCESS,
     payload,
 });
 
-export const updateIncidentTemplateFailure = (error: ErrorPayload) => ({
+export const updateIncidentTemplateFailure = (error: ErrorPayload): void => ({
     type: types.UPDATE_INCIDENT_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -152,16 +152,16 @@ export const updateIncidentTemplate =
     };
 
 // DELETE A TEMPLATE IN A PROJECT
-export const deleteIncidentTemplateRequest = () => ({
+export const deleteIncidentTemplateRequest = (): void => ({
     type: types.DELETE_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const deleteIncidentTemplateSuccess = (payload: $TSFixMe) => ({
+export const deleteIncidentTemplateSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_INCIDENT_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const deleteIncidentTemplateFailure = (error: ErrorPayload) => ({
+export const deleteIncidentTemplateFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_INCIDENT_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -188,16 +188,16 @@ export const deleteIncidentTemplate =
     };
 
 // SET DEFAULT INCIDENT TEMPLATE
-export const setDefaultTemplateRequest = () => ({
+export const setDefaultTemplateRequest = (): void => ({
     type: types.SET_DEFAULT_INCIDENT_TEMPLATE_REQUEST,
 });
 
-export const setDefaultTemplateSuccess = (payload: $TSFixMe) => ({
+export const setDefaultTemplateSuccess = (payload: $TSFixMe): void => ({
     type: types.SET_DEFAULT_INCIDENT_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const setDefaultTemplateFailure = (error: ErrorPayload) => ({
+export const setDefaultTemplateFailure = (error: ErrorPayload): void => ({
     type: types.SET_DEFAULT_INCIDENT_TEMPLATE_FAILURE,
     payload: error,
 });
@@ -222,22 +222,22 @@ export const setDefaultTemplate =
     };
 
 // SET ACTIVE TEMPLATE
-export const setActiveTemplate = (id: $TSFixMe) => ({
+export const setActiveTemplate = (id: $TSFixMe): void => ({
     type: types.SET_ACTIVE_TEMPLATE,
     payload: id,
 });
 
 // FETCH DEFAULT INCIDENT TEMPLATE
-export const fetchDefaultTemplateRequest = () => ({
+export const fetchDefaultTemplateRequest = (): void => ({
     type: types.FETCH_DEFAULT_TEMPLATE_REQUEST,
 });
 
-export const fetchDefaultTemplateSuccess = (payload: $TSFixMe) => ({
+export const fetchDefaultTemplateSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_DEFAULT_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const fetchDefaultTemplateFailure = (error: ErrorPayload) => ({
+export const fetchDefaultTemplateFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_DEFAULT_TEMPLATE_FAILURE,
     payload: error,
 });

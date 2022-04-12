@@ -5,16 +5,16 @@ import moment from 'moment';
 import { encode } from 'js-base64';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // fetch performance tracker metrics - TIME
-export const fetchTimeMetricsRequest = () => ({
+export const fetchTimeMetricsRequest = (): void => ({
     type: types.FETCH_TIME_METRICS_REQUEST,
 });
 
-export const fetchTimeMetricsSuccess = (payload: $TSFixMe) => ({
+export const fetchTimeMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_TIME_METRICS_SUCCESS,
     payload,
 });
 
-export const fetchTimeMetricsFailure = (error: ErrorPayload) => ({
+export const fetchTimeMetricsFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_TIME_METRICS_FAILURE,
     payload: error,
 });
@@ -52,16 +52,16 @@ export const fetchTimeMetrics =
     };
 
 // fetch performance tracker metrics - THROUGHPUT
-export const fetchThroughputMetricsRequest = () => ({
+export const fetchThroughputMetricsRequest = (): void => ({
     type: types.FETCH_THROUGHPUT_METRICS_REQUEST,
 });
 
-export const fetchThroughputMetricsSuccess = (payload: $TSFixMe) => ({
+export const fetchThroughputMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_THROUGHPUT_METRICS_SUCCESS,
     payload,
 });
 
-export const fetchThroughputMetricsFailure = (error: ErrorPayload) => ({
+export const fetchThroughputMetricsFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_THROUGHPUT_METRICS_FAILURE,
     payload: error,
 });
@@ -99,16 +99,16 @@ export const fetchThroughputMetrics =
     };
 
 // fetch performance tracker metrics - ERROR
-export const fetchErrorMetricsRequest = () => ({
+export const fetchErrorMetricsRequest = (): void => ({
     type: types.FETCH_ERROR_METRICS_REQUEST,
 });
 
-export const fetchErrorMetricsSuccess = (payload: $TSFixMe) => ({
+export const fetchErrorMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_ERROR_METRICS_SUCCESS,
     payload,
 });
 
-export const fetchErrorMetricsFailure = (error: ErrorPayload) => ({
+export const fetchErrorMetricsFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_ERROR_METRICS_FAILURE,
     payload: error,
 });
@@ -146,88 +146,88 @@ export const fetchErrorMetrics =
     };
 
 // handle setting startDate/endDate - (TIME || THROUGHPUT || ERROR)
-export const setTimeStartDate = (date: $TSFixMe) => ({
+export const setTimeStartDate = (date: $TSFixMe): void => ({
     type: types.SET_TIME_STARTDATE,
     payload: date,
 });
 
-export const setTimeEndDate = (date: $TSFixMe) => ({
+export const setTimeEndDate = (date: $TSFixMe): void => ({
     type: types.SET_TIME_ENDDATE,
     payload: date,
 });
 
-export const setThroughputStartDate = (date: $TSFixMe) => ({
+export const setThroughputStartDate = (date: $TSFixMe): void => ({
     type: types.SET_THROUGHPUT_STARTDATE,
     payload: date,
 });
 
-export const setThroughputEndDate = (date: $TSFixMe) => ({
+export const setThroughputEndDate = (date: $TSFixMe): void => ({
     type: types.SET_THROUGHPUT_ENDDATE,
     payload: date,
 });
 
-export const setErrorStartDate = (date: $TSFixMe) => ({
+export const setErrorStartDate = (date: $TSFixMe): void => ({
     type: types.SET_ERROR_STARTDATE,
     payload: date,
 });
 
-export const setErrorEndDate = (date: $TSFixMe) => ({
+export const setErrorEndDate = (date: $TSFixMe): void => ({
     type: types.SET_ERROR_ENDDATE,
     payload: date,
 });
 
-export const resetTimeDate = (startDate, endDate) => ({
+export const resetTimeDate = (startDate, endDate): void => ({
     type: types.RESET_TIME_DATE,
     payload: { startDate, endDate },
 });
 
-export const resetThroughputDate = (startDate, endDate) => ({
+export const resetThroughputDate = (startDate, endDate): void => ({
     type: types.RESET_THROUGHPUT_DATE,
     payload: { startDate, endDate },
 });
 
-export const resetErrorDate = (startDate, endDate) => ({
+export const resetErrorDate = (startDate, endDate): void => ({
     type: types.RESET_ERROR_DATE,
     payload: { startDate, endDate },
 });
 
-export const resetIncomingDate = (startDate, endDate) => ({
+export const resetIncomingDate = (startDate, endDate): void => ({
     type: types.RESET_INCOMING_DATE,
     payload: { startDate, endDate },
 });
 
-export const resetOutgoingDate = (startDate, endDate) => ({
+export const resetOutgoingDate = (startDate, endDate): void => ({
     type: types.RESET_OUTGOING_DATE,
     payload: { startDate, endDate },
 });
 
 // update metrics from realtime update
-export const updateTimeMetrics = (payload: $TSFixMe) => ({
+export const updateTimeMetrics = (payload: $TSFixMe): void => ({
     type: types.UPDATE_TIME_METRICS,
     payload,
 });
 
-export const updateThroughputMetrics = (payload: $TSFixMe) => ({
+export const updateThroughputMetrics = (payload: $TSFixMe): void => ({
     type: types.UPDATE_THROUGHPUT_METRICS,
     payload,
 });
 
-export const updateErrorMetrics = (payload: $TSFixMe) => ({
+export const updateErrorMetrics = (payload: $TSFixMe): void => ({
     type: types.UPDATE_ERROR_METRICS,
     payload,
 });
 
 // fetch all performance metrics (incoming/outgoing)
-export const fetchIncomingMetricsRequest = () => ({
+export const fetchIncomingMetricsRequest = (): void => ({
     type: types.FETCH_INCOMING_METRICS_REQUEST,
 });
 
-export const fetchIncomingMetricsSuccess = (payload: $TSFixMe) => ({
+export const fetchIncomingMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_INCOMING_METRICS_SUCCESS,
     payload,
 });
 
-export const fetchIncomingMetricsFailure = (error: ErrorPayload) => ({
+export const fetchIncomingMetricsFailure = (error: ErrorPayload): void => ({
     type: types.FETCH_INCOMING_METRICS_FAILURE,
     payload: error,
 });
@@ -264,16 +264,16 @@ export const fetchIncomingMetrics =
         return promise;
     };
 
-export const fetchOutgoingMetricsRequest = () => ({
+export const fetchOutgoingMetricsRequest = (): void => ({
     type: types.FETCH_OUTGOING_METRICS_REQUEST,
 });
 
-export const fetchOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
+export const fetchOutgoingMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.FETCH_OUTGOING_METRICS_SUCCESS,
     payload,
 });
 
-export const fetchOutgoingMetricsFailing = (error: ErrorPayload) => ({
+export const fetchOutgoingMetricsFailing = (error: ErrorPayload): void => ({
     type: types.FETCH_OUTGOING_METRICS_FAILURE,
     payload: error,
 });
@@ -310,42 +310,42 @@ export const fetchOutgoingMetrics =
         return promise;
     };
 
-export const setIncomingStartDate = (payload: $TSFixMe) => ({
+export const setIncomingStartDate = (payload: $TSFixMe): void => ({
     type: types.SET_INCOMING_STARTDATE,
     payload,
 });
 
-export const setIncomingEndDate = (payload: $TSFixMe) => ({
+export const setIncomingEndDate = (payload: $TSFixMe): void => ({
     type: types.SET_INCOMING_ENDDATE,
     payload,
 });
 
-export const setOutgoingStartDate = (payload: $TSFixMe) => ({
+export const setOutgoingStartDate = (payload: $TSFixMe): void => ({
     type: types.SET_OUTGOING_STARTDATE,
     payload,
 });
 
-export const setOutgoingEndDate = (payload: $TSFixMe) => ({
+export const setOutgoingEndDate = (payload: $TSFixMe): void => ({
     type: types.SET_OUTGOING_ENDDATE,
     payload,
 });
 
 // delete a particular performance metrics (incoming/outgoing)
-export const deleteIncomingMetricsRequest = () => ({
+export const deleteIncomingMetricsRequest = (): void => ({
     type: types.DELETE_INCOMING_METRICS_REQUEST,
 });
 
-export const deleteIncomingMetricsSuccess = (payload: $TSFixMe) => ({
+export const deleteIncomingMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_INCOMING_METRICS_SUCCESS,
     payload,
 });
 
-export const deleteIncomingMetricsFailure = (error: ErrorPayload) => ({
+export const deleteIncomingMetricsFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_INCOMING_METRICS_FAILURE,
     payload: error,
 });
 
-export const resetIncomingDelete = () => ({
+export const resetIncomingDelete = (): void => ({
     type: types.RESET_INCOMING_DELETE,
 });
 
@@ -377,21 +377,21 @@ export const deleteIncomingMetrics =
         return promise;
     };
 
-export const deleteOutgoingMetricsRequest = () => ({
+export const deleteOutgoingMetricsRequest = (): void => ({
     type: types.DELETE_OUTGOING_METRICS_REQUEST,
 });
 
-export const deleteOutgoingMetricsSuccess = (payload: $TSFixMe) => ({
+export const deleteOutgoingMetricsSuccess = (payload: $TSFixMe): void => ({
     type: types.DELETE_OUTGOING_METRICS_SUCCESS,
     payload,
 });
 
-export const deleteOutgoingMetricsFailure = (error: ErrorPayload) => ({
+export const deleteOutgoingMetricsFailure = (error: ErrorPayload): void => ({
     type: types.DELETE_OUTGOING_METRICS_FAILURE,
     payload: error,
 });
 
-export const resetOutgoingDelete = () => ({
+export const resetOutgoingDelete = (): void => ({
     type: types.RESET_OUTGOING_DELETE,
 });
 
