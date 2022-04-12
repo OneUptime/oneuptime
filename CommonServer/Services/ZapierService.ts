@@ -784,7 +784,7 @@ export default class Service {
         incidentObj: $TSFixMe,
         incidentNote: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ) : void {
         if (incidentNote) {
             incidentObj.content = incidentNote.content;
             incidentObj.incident_state = incidentNote.incident_state;
@@ -839,7 +839,7 @@ export default class Service {
         url: URL,
         type: $TSFixMe,
         monitors: $TSFixMe
-    ) {
+    ): void {
         const zapier = new ZapierModel();
 
         zapier.projectId = projectId;

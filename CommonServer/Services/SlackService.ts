@@ -1,3 +1,12 @@
+import IntegrationService from './IntegrationService';
+import axios from 'axios';
+import ProjectService from './ProjectService';
+import {
+    INCIDENT_RESOLVED,
+    INCIDENT_CREATED,
+    INCIDENT_ACKNOWLEDGED,
+} from '../constants/incidentEvents';
+
 export default class Service {
     // process messages to be sent to slack workspace channels
     async sendNotification(
@@ -7,7 +16,7 @@ export default class Service {
         incidentStatus: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe
-    ) {
+    ): void {
         const self = this;
         let response;
 
@@ -82,7 +91,7 @@ export default class Service {
         integration: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe
-    ) {
+    ) : void{
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -213,7 +222,7 @@ export default class Service {
         incident: $TSFixMe,
         data: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ): void {
         const self = this;
         let response;
 
@@ -269,7 +278,7 @@ export default class Service {
         integration: $TSFixMe,
         data: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ): void {
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
 
         const payload = {
@@ -299,11 +308,4 @@ export default class Service {
     }
 }
 
-import IntegrationService from './IntegrationService';
-import axios from 'axios';
-import ProjectService from './ProjectService';
-import {
-    INCIDENT_RESOLVED,
-    INCIDENT_CREATED,
-    INCIDENT_ACKNOWLEDGED,
-} from '../constants/incidentEvents';
+

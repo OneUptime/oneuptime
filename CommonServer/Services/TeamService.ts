@@ -272,7 +272,7 @@ export default class Service {
         return [];
     }
 
-    isValidBusinessEmails(emails: $TSFixMe) {
+    isValidBusinessEmails(emails: $TSFixMe): void {
         let valid = true;
         if (emails && emails.length > 0) {
             for (let i = 0; i < emails.length; i++) {
@@ -757,7 +757,7 @@ export default class Service {
         userId: string,
         teamMemberUserId: string,
         role: $TSFixMe
-    ) {
+    ): void {
         let previousRole = '';
         const nextRole = role;
         let index;

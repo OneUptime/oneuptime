@@ -171,7 +171,7 @@ export default class CallRoutingLogService extends DatabaseService<
         type: $TSFixMe,
         data: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         if (!query) query = {};
         if (!data) data = {};
 
@@ -426,7 +426,7 @@ export default class CallRoutingLogService extends DatabaseService<
         password: $TSFixMe,
         clientIP: $TSFixMe,
         userAgent: $TSFixMe
-    ) {
+    ): void {
         let user = null;
         if (util.isEmailValid(email)) {
             // find user if present in db.
@@ -963,7 +963,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return users;
     }
 
-    getAccessToken({ userId, expiresIn }: $TSFixMe) {
+    getAccessToken({ userId, expiresIn }: $TSFixMe): void {
         return jwt.sign(
             {
                 id: userId,

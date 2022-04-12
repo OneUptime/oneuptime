@@ -86,7 +86,7 @@ class BaseAction {
         return constants;
     }
 
-    getActions() {
+    getActions(): void {
         const constants = this.getConstants();
 
         const actions = {};

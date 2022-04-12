@@ -138,7 +138,7 @@ export default class Service {
     // grab the email from xml response
     // assuming there's only one email in the xml response
     // or the same email x times in the response
-    getEmail(xml: $TSFixMe) {
+    getEmail(xml: $TSFixMe): void {
         const stringifiedXml = String(xml);
 
         const regex = // eslint-disable-next-line no-control-regex

@@ -159,7 +159,7 @@ export default class Service {
         privateKey: $TSFixMe,
         enableHttps: $TSFixMe,
         autoProvisioning: $TSFixMe
-    ) {
+    ): void {
         let createdDomain = {};
 
         // check if domain already exist
@@ -308,7 +308,7 @@ export default class Service {
         privateKey: $TSFixMe,
         enableHttps: $TSFixMe,
         autoProvisioning: $TSFixMe
-    ) {
+    ) : void{
         let createdDomain = {};
 
         const existingBaseDomain = await DomainVerificationService.findOneBy({
@@ -473,7 +473,7 @@ export default class Service {
         statusPageSlug: $TSFixMe,
         statusPageName: $TSFixMe,
         filterMonitors: $TSFixMe
-    ) {
+    ) : void {
         const populate = [
             {
                 path: 'monitors.monitor',
@@ -2064,7 +2064,7 @@ function limitEvents(
     events: $TSFixMe,
     limit: PositiveNumber,
     skip: PositiveNumber
-) {
+) : void {
     skip = skip * limit;
     if (skip !== 0) {
         limit += limit;

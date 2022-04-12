@@ -1515,7 +1515,7 @@ export default class TwilioService {
         userId: string,
         projectId: string,
         validationResult: $TSFixMe
-    ) {
+    ): void {
         let smsBody;
         try {
             const customTwilioSettings = await this.findByOne({

@@ -595,7 +595,7 @@ export const updateScheduledEventNoteInvestigationRequest = (): void => ({
 
 export const updateScheduledEventNoteInvestigationSuccess = (
     payload: $TSFixMe
-) => ({
+) : void => ({
     type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_SUCCESS,
     payload,
 });
@@ -613,7 +613,7 @@ export const updateScheduledEventNoteInvestigation =
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
-    ) =>
+    ): void  =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInvestigationRequest());
@@ -658,7 +658,7 @@ export const deleteScheduledEventNote =
         projectId: string,
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe
-    ) =>
+    ): void =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteScheduledEventNoteRequest());
@@ -696,7 +696,7 @@ export const resolveScheduledEventFailure = (error: ErrorPayload): void => ({
 
 export const resolveScheduledEvent =
     (projectId: string, scheduledEventId: $TSFixMe) =>
-    async (dispatch: Dispatch) => {
+    async (dispatch: Dispatch): void => {
         try {
             dispatch(resolveScheduledEventRequest());
 
