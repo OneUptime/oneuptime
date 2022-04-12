@@ -43,7 +43,7 @@ export default class Service {
         schedule,
         escalations,
         incidentAcknowledged,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let item = new OnCallScheduleStatusModel();
 
         item.project = project;

@@ -1530,7 +1530,7 @@ export default class Service {
         projectId,
         skip = 0,
         limit = 10,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const selectStatusPage = 'slug title name description _id';
 
         const [data, count] = await Promise.all([

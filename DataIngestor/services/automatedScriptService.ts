@@ -75,7 +75,7 @@ export default {
         triggeredBy,
         resources,
         stackSize = 0,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         if (stackSize === 3) {
             const resource = resources[0];
             if (resource) {
@@ -137,7 +137,7 @@ export default {
         triggeredId,
         triggeredBy = 'script',
         stackSize,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const { script, scriptType, successEvent, failureEvent } =
             await this.findOneBy({
                 _id: ObjectId(automatedScriptId),

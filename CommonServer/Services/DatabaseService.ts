@@ -607,7 +607,7 @@ class DatabaseService<ModelType> {
         query,
         data,
         multiple = true,
-    }: InternalUpdateBy) {
+    }: InternalUpdateBy): void {
         try {
             if (!query['deleted']) query['deleted'] = false;
 

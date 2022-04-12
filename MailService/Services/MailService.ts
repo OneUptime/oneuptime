@@ -7633,7 +7633,7 @@ export default class MailService {
         name,
         userEmail,
         projectUrl,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -7802,7 +7802,7 @@ export default class MailService {
         projectPlan,
         name,
         userEmail,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;

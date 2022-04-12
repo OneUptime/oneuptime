@@ -470,7 +470,7 @@ export default class Service {
         schedule,
         incident,
         monitorId,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const projectId = incident.projectId._id
             ? incident.projectId._id
             : incident.projectId;
@@ -752,7 +752,7 @@ export default class Service {
         schedule,
         onCallScheduleStatus,
         alertProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const monitorId = monitor._id;
 
         const projectId = incident.projectId._id
@@ -1030,7 +1030,7 @@ export default class Service {
         onCallScheduleStatus,
         eventType,
         pushProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let pushMessage;
         const userData = await UserService.findOneBy({
             query: { _id: user._id },
@@ -1148,7 +1148,7 @@ export default class Service {
         onCallScheduleStatus,
         eventType,
         emailProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const probeName =
             incident.probes.length > 0 && incident.probes[0].probeId.probeName;
         let date = new Date();
@@ -1385,7 +1385,7 @@ export default class Service {
         onCallScheduleStatus,
         eventType,
         callProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let alert;
         const date = new Date();
         const monitorId = monitor._id;
@@ -1595,7 +1595,7 @@ export default class Service {
         onCallScheduleStatus,
         eventType,
         smsProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let alert;
         const projectId = project._id;
         const date = new Date();
@@ -2237,7 +2237,7 @@ export default class Service {
         escalation,
         onCallScheduleStatus,
         eventType,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const projectId = incident.projectId._id || incident.projectId;
         try {
             let date = new Date();
@@ -2590,7 +2590,7 @@ export default class Service {
         escalation,
         onCallScheduleStatus,
         eventType,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const projectId = incident.projectId._id || incident.projectId;
 
         try {

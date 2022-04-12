@@ -1,13 +1,12 @@
 export default class Name {
-    
-    private _title : string = '';
-    public get title() : string {
+    private _title: string = '';
+    public get title(): string {
         return this._title;
     }
-    public set title(v : string) {
+    public set title(v: string) {
         this._title = v;
     }
-    
+
     private _name: string = '';
     public get name(): string {
         return this._name;
@@ -25,7 +24,7 @@ export default class Name {
     }
 
     getLastName() {
-        return this.name.split(' ')[this.name.split(' ').length -1];
+        return this.name.split(' ')[this.name.split(' ').length - 1];
     }
 
     getMiddleName() {

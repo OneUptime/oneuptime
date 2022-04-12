@@ -27,7 +27,7 @@ export default class Service {
         sort = -1,
         select,
         populate,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
