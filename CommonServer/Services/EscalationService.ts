@@ -278,7 +278,7 @@ function computeActiveTeamIndex(
     numberOfTeams: $TSFixMe,
     intervalDifference: $TSFixMe,
     rotationInterval: $TSFixMe
-) {
+): void {
     const difference = Math.floor(intervalDifference / rotationInterval);
     return difference % numberOfTeams;
 }

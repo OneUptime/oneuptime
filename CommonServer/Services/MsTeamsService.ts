@@ -16,7 +16,7 @@ export default class Service {
         incidentStatus: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe
-    ) {
+    ): void {
         const self = this;
         let response;
 
@@ -91,7 +91,7 @@ export default class Service {
         integration: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe
-    ) {
+    ): void {
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -223,7 +223,7 @@ export default class Service {
         incident: $TSFixMe,
         data: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ): void {
         const self = this;
         let response;
 
@@ -279,7 +279,7 @@ export default class Service {
         integration: $TSFixMe,
         data: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ): void {
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const payload = {

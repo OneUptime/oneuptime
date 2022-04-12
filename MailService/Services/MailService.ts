@@ -156,7 +156,7 @@ export default class MailService {
         const internalSmtp = !mailServer || settings.internalSmtp;
         let privateMailer;
 
-        if (host && user && pass) {
+        if (mailServer.host && mailServer.user && mailServer.pass) {
             if (internalSmtp) {
                 privateMailer = nodemailer.createTransport({
                     host: mailServer.host,
@@ -2721,7 +2721,7 @@ export default class MailService {
         subProject: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -2872,7 +2872,7 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3030,7 +3030,7 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3191,7 +3191,7 @@ export default class MailService {
         addedByUser: $TSFixMe,
         email: Email,
         role: $TSFixMe
-    ) {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3351,7 +3351,7 @@ export default class MailService {
         project: $TSFixMe,
         removedByUser: $TSFixMe,
         email: Email
-    ) {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3510,7 +3510,7 @@ export default class MailService {
         subProject: $TSFixMe,
         removedByUser: $TSFixMe,
         email: Email
-    ) {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3697,7 +3697,7 @@ export default class MailService {
         criterionName,
         probeName,
         emailProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6488,7 +6488,7 @@ export default class MailService {
         oldPlan: $TSFixMe,
         newPlan: $TSFixMe,
         email: Email
-    ) {
+    ): string {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6955,7 +6955,7 @@ export default class MailService {
         projectId: string,
         oldPlan: $TSFixMe,
         email: Email
-    ) {
+    ): string {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -7115,7 +7115,7 @@ export default class MailService {
         name: string,
         chargeAttemptStage: $TSFixMe,
         invoiceUrl: URL
-    ) {
+    ): string {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;

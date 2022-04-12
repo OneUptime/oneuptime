@@ -441,11 +441,7 @@ export default class Service {
         return projectIdArr;
     }
 
-    async getUniqueMembersIndividualProject({
-        isFlatenArr,
-
-        members,
-    }) {
+    async getUniqueMembersIndividualProject({ isFlatenArr, members }): void {
         let result = [];
         if (!isFlatenArr) {
             for (const member of members) {

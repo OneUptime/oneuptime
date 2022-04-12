@@ -20,7 +20,7 @@ export default class Service {
         data: $TSFixMe,
         integrationType: $TSFixMe,
         notificationOptions: $TSFixMe
-    ) {
+    ): void {
         const integrationModel = new IntegrationModel(data);
 
         integrationModel.projectId = projectId;

@@ -1860,7 +1860,7 @@ export default class Service {
         data: $TSFixMe,
         statusNoteStatus: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         const uuid = new Date().getTime();
         const track = {};
 
@@ -1879,7 +1879,7 @@ export default class Service {
             monitor,
             statusPageSlug,
             subscribers,
-        }: $TSFixMe) => {
+        }: $TSFixMe): void => {
             await this.sendSubscriberAlert(
                 subscriber,
                 incident,
@@ -1963,7 +1963,7 @@ export default class Service {
             monitor,
             enabledStatusPage,
             subscribers,
-        }: $TSFixMe) => {
+        }: $TSFixMe): void => {
             await this.sendSubscriberAlert(
                 subscriber,
                 incident,
@@ -2769,7 +2769,7 @@ export default class Service {
             monitor,
             enabledStatusPage,
             subscribers,
-        }: $TSFixMe) => {
+        }: $TSFixMe): void => {
             await this.sendSubscriberAlert(
                 subscriber,
                 incident,
@@ -2872,7 +2872,7 @@ export default class Service {
             monitor,
             enabledStatusPage,
             subscribers,
-        }: $TSFixMe) => {
+        }: $TSFixMe): void => {
             await this.sendSubscriberAlert(
                 subscriber,
                 incident,
@@ -2966,7 +2966,7 @@ export default class Service {
         totalSubscribers: $TSFixMe,
         id: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ): void {
         const date = new Date();
         const isStatusPageNoteAlert = note && incidentState && statusNoteStatus;
         const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
@@ -3837,7 +3837,7 @@ export default class Service {
         }
     }
 
-    mapCountryShortNameToCountryCode(shortName: $TSFixMe) {
+    mapCountryShortNameToCountryCode(shortName: $TSFixMe): void {
         return countryCode[[shortName]];
     }
 
@@ -3845,7 +3845,7 @@ export default class Service {
         timezone: $TSFixMe,
         escalationStartTime: $TSFixMe,
         escalationEndTime: $TSFixMe
-    ) {
+    ): void {
         if (!timezone || !escalationStartTime || !escalationEndTime) {
             return true;
         }
@@ -3866,7 +3866,7 @@ export default class Service {
         );
     }
 
-    checkIsOnDuty(startTime: $TSFixMe, endTime: $TSFixMe) {
+    checkIsOnDuty(startTime: $TSFixMe, endTime: $TSFixMe): void {
         if (!startTime && !endTime) return true;
         const oncallstart = moment(startTime).format('HH:mm');
         const oncallend = moment(endTime).format('HH:mm');
@@ -4030,7 +4030,7 @@ export default class Service {
                 subscriber,
                 component,
                 subscribers,
-            }: $TSFixMe) => {
+            }: $TSFixMe): void => {
                 await this.sendSubscriberScheduledEventAlert(
                     subscriber,
                     schedule,
@@ -4080,7 +4080,7 @@ export default class Service {
                 subscriber,
                 component,
                 subscribers,
-            }: $TSFixMe) => {
+            }: $TSFixMe): void => {
                 await this.sendSubscriberScheduledEventAlert(
                     subscriber,
                     schedule,
@@ -4570,7 +4570,7 @@ export default class Service {
         componentName: $TSFixMe,
         totalSubscribers: $TSFixMe,
         id: $TSFixMe
-    ) {
+    ): void {
         const date = new Date();
         const projectName = schedule.projectId.name;
         const projectId = schedule.projectId._id;
@@ -5032,7 +5032,7 @@ export default class Service {
                 subscribers,
                 unsubscribeUrl,
                 monitorName,
-            }: $TSFixMe) => {
+            }: $TSFixMe): void => {
                 if (subscriber.alertVia === AlertType.Email) {
                     const [
                         hasGlobalSmtpSettings,

@@ -11,7 +11,7 @@ export default class Service {
         clientIP: $TSFixMe,
         userAgent: $TSFixMe,
         status: $TSFixMe
-    ) {
+    ): void {
         const detector = new DeviceDetector();
         const result = detector.detect(userAgent);
         const ipLocation = await UserService.getUserIpLocation(clientIP);

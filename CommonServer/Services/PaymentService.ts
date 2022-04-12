@@ -36,7 +36,7 @@ export default class Service {
 
         alertPhoneNumber,
         segments = 1
-    ) {
+    ): string {
         // let release;
         try {
             // const mutex = getMutex(
@@ -90,7 +90,7 @@ export default class Service {
         userId,
 
         alertType
-    ) {
+    ): void {
         try {
             const project = await ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -168,7 +168,7 @@ export default class Service {
         alertPhoneNumber,
 
         alertType
-    ) {
+    ): void {
         // let release;
         const status = {};
         // const mutex = getMutex(
@@ -473,7 +473,7 @@ export default class Service {
         extraUserPlanId,
 
         extraUsersToAdd
-    ) {
+    ): void {
         const subscription = await stripe.subscriptions.create({
             customer: stripeCustomerId,
             items: [

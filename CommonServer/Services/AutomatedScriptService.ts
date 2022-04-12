@@ -231,7 +231,7 @@ export default class Service {
         return Promise.all(eventPromises);
     }
 
-\    async runAutomatedScript({
+    async runAutomatedScript({
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',

@@ -21,7 +21,7 @@ export default class Service {
         content: $TSFixMe,
         status: $TSFixMe,
         error: $TSFixMe
-    ) {
+    ): void {
         let item = new CallLogsModel();
 
         item.from = from;

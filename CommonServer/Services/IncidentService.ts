@@ -681,7 +681,7 @@ export default class Service {
         zapier: $TSFixMe,
         httpRequest = {},
         acknowledgedByApi = false
-    ) {
+    ): void {
         let incident = await this.findOneBy({
             query: { _id: incidentId, acknowledged: false },
             select: '_id',
@@ -865,7 +865,7 @@ export default class Service {
         zapier: $TSFixMe,
         httpRequest = {},
         resolvedByApi = false
-    ) {
+    ): void {
         const data = {};
         let incident = await this.findOneBy({
             query: { _id: incidentId },
@@ -1158,7 +1158,7 @@ export default class Service {
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
-    ) {
+    ): void {
         const monitors = await MonitorService.findBy({
             query: { componentId: componentId },
             select: '_id',
@@ -1571,7 +1571,7 @@ export default class Service {
         }
     }
 
-    clearInterval(incidentId: $TSFixMe) {
+    clearInterval(incidentId: $TSFixMe): void {
         intervals = intervals.filter(interval => {
             if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);

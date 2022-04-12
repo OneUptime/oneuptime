@@ -41,7 +41,7 @@ export default class StripeService {
         subscriptionId: $TSFixMe,
         chargeAttemptCount: $TSFixMe,
         invoiceUrl: URL
-    ) {
+    ): void {
         const [user, project] = await Promise.all([
             UserService.findOneBy({
                 query: { stripeCustomerId: customerId },
@@ -262,7 +262,7 @@ export default class StripeService {
         chargeAmount: $TSFixMe,
         projectId: string,
         alertOptions: $TSFixMe
-    ) {
+    ): void {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
         const user = await UserService.findOneBy({
@@ -389,7 +389,7 @@ export default class StripeService {
         description: $TSFixMe,
         metadata: $TSFixMe,
         source: $TSFixMe
-    ) {
+    ): void {
         let updatedPaymentIntent;
         await stripe.invoiceItems.create({
             amount: amount,

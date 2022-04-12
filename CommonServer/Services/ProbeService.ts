@@ -702,7 +702,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return probe;
     }
 
-    scriptConditions(resp, con) {
+    scriptConditions(resp, con): void {
         const body = resp ?? null;
 
         const successReasons = [];
@@ -762,7 +762,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         };
     }
 
-    conditions(monitorType, con, payload, resp, response) {
+    conditions(monitorType, con, payload, resp, response): void {
         const status = resp
             ? resp.status
                 ? resp.status
@@ -850,7 +850,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         };
     }
 
-    incomingCondition(payload, conditions) {
+    incomingCondition(payload, conditions): void {
         let eventOccurred = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
@@ -903,7 +903,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return { eventOccurred, matchedCriterion };
     }
 
-    toArray(params) {
+    toArray(params): void {
         const array = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
@@ -1479,7 +1479,7 @@ const checkAnd = (
     queryParams,
 
     headers
-) => {
+): void => {
     let validity = true;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -3853,7 +3853,7 @@ const checkOr = (
     queryParams,
 
     headers
-) => {
+): void => {
     let validity = false;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {

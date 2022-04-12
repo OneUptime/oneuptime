@@ -3,9 +3,9 @@ import { customAlphabet } from 'nanoid';
 import { numbers } from 'nanoid-dictionary';
 
 export default class Slug {
-    public static getSlug(name: string) {
+    public static getSlug(name: string): string {
         name = String(name);
-        if (!name || !name.trim()) return;
+        if (!name || !name.trim()) return '';
 
         let slug = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
         slug = `${slug}-${customAlphabet(numbers, 10)}`;

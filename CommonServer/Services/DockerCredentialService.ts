@@ -73,7 +73,7 @@ export default class DockerCredentialService extends DatabaseService<
     }: {
         username: string;
         password: string;
-    }) {
+    }): void {
         try {
             const response = await API.post(
                 new URL(

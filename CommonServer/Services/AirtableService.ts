@@ -128,7 +128,12 @@ export default class Service {
         }
     }
 
-    logProjectDeletionFeedback({ reason, project, name, email }: $TSFixMe) {
+    logProjectDeletionFeedback({
+        reason,
+        project,
+        name,
+        email,
+    }: $TSFixMe): void {
         if (!base) return;
 
         return base('Project Delete').create({

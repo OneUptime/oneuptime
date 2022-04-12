@@ -19,15 +19,15 @@ export default class Name {
         this.name = name;
     }
 
-    getFirstName() {
+    getFirstName(): string {
         return this.name.split(' ')[0];
     }
 
-    getLastName() {
+    getLastName(): string {
         return this.name.split(' ')[this.name.split(' ').length - 1];
     }
 
-    getMiddleName() {
+    getMiddleName(): string {
         return this.name.split(' ')[0];
     }
 

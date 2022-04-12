@@ -830,7 +830,7 @@ export default class Service {
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
-    ) {
+    ): void {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
 
@@ -1287,7 +1287,7 @@ export default class Service {
         startDate: $TSFixMe,
         endDate: $TSFixMe,
         filter: $TSFixMe
-    ) {
+    ): void {
         const start = moment(startDate).toDate();
         const end = moment(endDate).toDate();
         const monitor = await this.findOneBy({
@@ -1707,7 +1707,7 @@ export default class Service {
         }
     }
 
-    calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
+    calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1968,7 +1968,7 @@ export default class Service {
         return updatedMonitor;
     }
 
-    calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) {
+    calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;

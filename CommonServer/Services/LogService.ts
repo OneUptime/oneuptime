@@ -142,7 +142,7 @@ export default class Service {
         filter: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         query.stringifiedContent = {
             $regex: new RegExp(filter),
             $options: 'i',

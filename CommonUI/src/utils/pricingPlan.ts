@@ -98,7 +98,7 @@ export default class PricingPlan {
         }
     }
 
-    public static getPlanById(id: string) {
+    public static getPlanById(id: string): void {
         const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];

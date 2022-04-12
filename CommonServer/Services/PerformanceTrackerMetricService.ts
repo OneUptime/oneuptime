@@ -68,7 +68,7 @@ export default class Service {
         sort = -1,
         select,
         populate,
-    }: $TSFixMe) {
+    }: $TSFixMe): string {
         if (!query) {
             query = {};
         }
@@ -200,7 +200,7 @@ export default class Service {
         type: $TSFixMe,
         data: $TSFixMe,
         receivedAt: $TSFixMe
-    ) {
+    ): string {
         receivedAt = moment(receivedAt).format();
         // handle incoming/outgoing request
         const allData = [];

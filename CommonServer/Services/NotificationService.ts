@@ -9,7 +9,7 @@ export default class Service {
         userId: string,
         icon: $TSFixMe,
         meta: $TSFixMe
-    ) {
+    ): void {
         if (!meta) {
             meta = {};
         }

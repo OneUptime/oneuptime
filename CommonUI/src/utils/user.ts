@@ -8,7 +8,7 @@ export default class User {
         return LocalStorage.getItem('access_token');
     }
 
-    public static setAccessToken(token: string) {
+    public static setAccessToken(token: string): void {
         LocalStorage.setItem('access_token', token);
     }
 
@@ -16,11 +16,11 @@ export default class User {
         return LocalStorage.getItem('cardRegistered');
     }
 
-    public static setCardRegistered(value: boolean) {
+    public static setCardRegistered(value: boolean): void {
         LocalStorage.setItem('cardRegistered', value.toString());
     }
 
-    public static setUserId(id: string) {
+    public static setUserId(id: string): void {
         LocalStorage.setItem('id', id);
     }
 
@@ -32,7 +32,7 @@ export default class User {
         return LocalStorage.getItem('name');
     }
 
-    public static setName(name: string) {
+    public static setName(name: string): void {
         LocalStorage.setItem('name', name);
     }
 
@@ -53,7 +53,7 @@ export default class User {
     }
 
     // TODO: Fix project type
-    public static setProject(project: JSONObject) {
+    public static setProject(project: JSONObject): void {
         LocalStorage.setItem('project', project);
     }
 
