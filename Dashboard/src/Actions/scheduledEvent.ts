@@ -595,7 +595,7 @@ export const updateScheduledEventNoteInvestigationRequest = (): void => ({
 
 export const updateScheduledEventNoteInvestigationSuccess = (
     payload: $TSFixMe
-) : void => ({
+): void => ({
     type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_SUCCESS,
     payload,
 });
@@ -613,7 +613,7 @@ export const updateScheduledEventNoteInvestigation =
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
-    ): void  =>
+    ): void =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInvestigationRequest());

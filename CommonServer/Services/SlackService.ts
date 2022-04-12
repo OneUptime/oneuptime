@@ -91,7 +91,7 @@ export default class Service {
         integration: $TSFixMe,
         component: $TSFixMe,
         duration: $TSFixMe
-    ) : void{
+    ): void {
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
@@ -307,5 +307,3 @@ export default class Service {
         return 'Webhook successfully pinged';
     }
 }
-
-

@@ -784,7 +784,7 @@ export default class Service {
         incidentObj: $TSFixMe,
         incidentNote: $TSFixMe,
         monitor: $TSFixMe
-    ) : void {
+    ): void {
         if (incidentNote) {
             incidentObj.content = incidentNote.content;
             incidentObj.incident_state = incidentNote.incident_state;

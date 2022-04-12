@@ -3924,7 +3924,7 @@ export default class MailService {
         replyAddress: $TSFixMe,
         customFields: $TSFixMe,
         unsubscribeUrl: URL
-    ) : void {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -4789,7 +4789,7 @@ export default class MailService {
         statusNoteStatus: $TSFixMe,
         customFields: $TSFixMe,
         unsubscribeUrl: URL
-    ) : void {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -4993,7 +4993,7 @@ export default class MailService {
         componentName: $TSFixMe,
         replyAddress: $TSFixMe,
         unsubscribeUrl: URL
-    ) : void{
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -5463,7 +5463,7 @@ export default class MailService {
         componentName: $TSFixMe,
         replyAddress: $TSFixMe,
         unsubscribeUrl: URL
-    ) : void{
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -5923,7 +5923,7 @@ export default class MailService {
         projectId: string,
         unsubscribeUrl: URL,
         monitorName: $TSFixMe
-    ) : void {
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -6147,7 +6147,7 @@ export default class MailService {
         customFields: $TSFixMe,
         length: $TSFixMe,
         unsubscribeUrl: URL
-    ) : void{
+    ): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -7469,7 +7469,7 @@ export default class MailService {
         incidentId,
         reason,
         incidentSlaTimeline,
-    }: $TSFixMe) : void{
+    }: $TSFixMe): void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
