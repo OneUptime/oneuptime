@@ -67,7 +67,10 @@ export default class Service {
         return response;
     }
 
-    async getTeamMemberBy(projectId: string, teamMemberUserId: string): void {
+    async getTeamMemberBy(
+        projectId: ObjectID,
+        teamMemberUserId: ObjectID
+    ): void {
         let index;
         let subProject = null;
 
@@ -146,8 +149,8 @@ export default class Service {
     //Param 3: role: Role set by Admin.
     //Returns: promise
     async inviteTeamMembers(
-        addedByUserId: string,
-        projectId: string,
+        addedByUserId: ObjectID,
+        projectId: ObjectID,
         emails: $TSFixMe,
         role: $TSFixMe
     ): void {
@@ -250,7 +253,7 @@ export default class Service {
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-    async getTeamMembers(projectId: string): void {
+    async getTeamMembers(projectId: ObjectID): void {
         const subProject = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
@@ -317,7 +320,7 @@ export default class Service {
     //Param 5: project: Project.
     //Returns: promise
     async inviteTeamMembersMethod(
-        projectId: string,
+        projectId: ObjectID,
         emails: $TSFixMe,
         role: $TSFixMe,
         addedBy: $TSFixMe,
@@ -573,9 +576,9 @@ export default class Service {
     //Param 3: teamMemberUserId: Team Member Id of user to delete by Owner.
     //Returns: promise
     async removeTeamMember(
-        projectId: string,
-        userId: string,
-        teamMemberUserId: string
+        projectId: ObjectID,
+        userId: ObjectID,
+        teamMemberUserId: ObjectID
     ): void {
         let index;
         let subProject = null;
@@ -753,9 +756,9 @@ export default class Service {
     //Param 4: nextRole: Role of user to updated by Admin.
     //Returns: promise
     async updateTeamMemberRole(
-        projectId: string,
-        userId: string,
-        teamMemberUserId: string,
+        projectId: ObjectID,
+        userId: ObjectID,
+        teamMemberUserId: ObjectID,
         role: $TSFixMe
     ): void {
         let previousRole = '';
@@ -962,6 +965,7 @@ import RealTimeService from './realTimeService';
 import ErrorService from '../Utils/error';
 import domains from '../config/domains';
 import VerificationTokenModel from '../Models/verificationToken';
+import ObjectID from 'Common/Types/ObjectID';
 import crypto from 'crypto';
 
 import { IS_SAAS_SERVICE } from '../config/server';

@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import userData from './data/user';
 import projectData from './data/project';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -18,7 +19,7 @@ const request = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
-let projectId: string, token: $TSFixMe, userId;
+let projectId: ObjectID, token: $TSFixMe, userId;
 
 describe('Notification API', function (): void {
     this.timeout(20000);

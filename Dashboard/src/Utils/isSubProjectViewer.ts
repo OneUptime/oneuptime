@@ -4,7 +4,9 @@
  * @param {object} subProject the subProject
  */
 
-const isSubProjectViewer = (userId: string, subProject: $TSFixMe): void => {
+import ObjectID from 'Common/Types/ObjectID';
+
+const isSubProjectViewer = (userId: ObjectID, subProject: $TSFixMe): void => {
     const user = subProject
         ? subProject.users.find(
               (user: $TSFixMe) =>

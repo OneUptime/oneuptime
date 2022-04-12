@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/incident';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -34,7 +35,7 @@ export const resetProjectIncidents = (): void => {
 
 // Gets project Incidents
 export function getProjectIncidents(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -67,7 +68,7 @@ export function getProjectIncidents(
 
 //get all icident for a project belonging to a component
 export function getProjectComponentIncidents(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -135,7 +136,7 @@ export const resetIncidents = (): void => {
 };
 
 // Gets project Incidents
-export const getIncidents = (projectId: string): void => {
+export const getIncidents = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`incident/${projectId}`);
         dispatch(incidentsRequest(promise));
@@ -152,7 +153,7 @@ export const getIncidents = (projectId: string): void => {
 };
 //get component incidents
 export function getComponentIncidents(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
@@ -174,7 +175,7 @@ export function getComponentIncidents(
 
 // Create a new incident
 
-export const createIncidentRequest = (projectId: string): void => {
+export const createIncidentRequest = (projectId: ObjectID): void => {
     return {
         type: types.CREATE_INCIDENT_REQUEST,
         payload: projectId,
@@ -209,7 +210,7 @@ export const createIncidentReset = (): void => {
 
 // Calls the API to create new incident.
 export function createNewIncident(
-    projectId: string,
+    projectId: ObjectID,
     monitors: $TSFixMe,
     incidentType: $TSFixMe,
     title: $TSFixMe,
@@ -316,7 +317,7 @@ export const resolveIncidentSuccess = (incident: $TSFixMe): void => {
 
 // Calls the API to get the incident to show
 export const getIncident = (
-    projectId: string,
+    projectId: ObjectID,
     incidentSlug: $TSFixMe
 ): void => {
     //This fucntion will switch to incidentSlug of the params beig passed.
@@ -347,7 +348,7 @@ export const addIncident = (incident: $TSFixMe): void => {
 };
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -400,9 +401,9 @@ export const setActiveIncident = (incidentId: $TSFixMe): void => {
 
 // calls the api to post acknowledgement data to the database
 export function acknowledgeIncident(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
-    userId: string,
+    userId: ObjectID,
     multiple: $TSFixMe
 ) {
     //This fucntion will switch to incidentId of the params beig passed.
@@ -498,9 +499,9 @@ export function acknowledgeIncident(
 
 // calls the api to store the resolve status to the database
 export function resolveIncident(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
-    userId: string,
+    userId: ObjectID,
     multiple: $TSFixMe
 ) {
     //This function will switch to incidentId of the params being passed.
@@ -616,7 +617,7 @@ export const closeIncidentSuccess = (incident: $TSFixMe): void => {
 };
 
 export const closeIncident = (
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe
 ): void => {
     //This function will switch to incidentId of the params beig passed.
@@ -669,7 +670,7 @@ export const resetUnresolvedIncidents = (): void => {
 
 // Calls the API to register a user.
 export const fetchUnresolvedIncidents = (
-    projectId: string,
+    projectId: ObjectID,
     isHome = false
 ): void => {
     //This fucntion will switch to incidentId of the params beig passed.
@@ -694,7 +695,7 @@ export const fetchUnresolvedIncidents = (
 };
 
 // Calls the API to delete incidents after deleting the project
-export const deleteProjectIncidents = (projectId: string): void => {
+export const deleteProjectIncidents = (projectId: ObjectID): void => {
     return {
         type: types.DELETE_PROJECT_INCIDENTS,
         payload: projectId,
@@ -731,7 +732,7 @@ export const investigationNoteSuccess = (incidentMessage: $TSFixMe): void => {
 };
 
 export function setInvestigationNote(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
     body: $TSFixMe
 ): void {
@@ -787,7 +788,7 @@ export const internalNoteSuccess = (incident: $TSFixMe): void => {
 };
 
 export function setInternalNote(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
     body: $TSFixMe
 ): void {
@@ -860,7 +861,7 @@ export const deleteIncidentReset = (error: ErrorPayload): void => {
 
 //Delete an incident
 export const deleteIncident = (
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -915,7 +916,7 @@ export const hideIncident = (data: $TSFixMe): void => {
 };
 
 export function fetchIncidentMessages(
-    projectId: string,
+    projectId: ObjectID,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber,
@@ -1002,7 +1003,7 @@ export const editIncidentMessageSwitch = (index: $TSFixMe): void => {
 };
 
 export function deleteIncidentMessage(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
     incidentMessageId: $TSFixMe
 ): void {
@@ -1073,7 +1074,7 @@ export const deleteIncidentMessageFailure = (error: ErrorPayload): void => {
 };
 
 export function updateIncident(
-    projectId: string,
+    projectId: ObjectID,
     incidentId: $TSFixMe,
     incidentType: $TSFixMe,
     title: $TSFixMe,

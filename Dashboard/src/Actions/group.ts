@@ -1,6 +1,7 @@
 import * as types from '../constants/group';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import { User } from '../config.js';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -20,7 +21,7 @@ export const addGroupFailure = (error: ErrorPayload): void => ({
 });
 
 export const createGroup =
-    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addGroupRequest());
 
         try {
@@ -60,7 +61,7 @@ export const updateGroupFailure = (error: ErrorPayload): void => ({
 });
 
 export const updateGroup =
-    (projectId: string, groupId: $TSFixMe, data: $TSFixMe) =>
+    (projectId: ObjectID, groupId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         dispatch(updateGroupRequest(groupId));
 
@@ -139,7 +140,7 @@ export const getProjectGroupsFailure = (error: ErrorPayload): void => ({
 });
 
 export const getProjectGroups =
-    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         dispatch(getProjectGroupsRequest());
         try {
@@ -177,7 +178,7 @@ export const deleteGroupFailure = (error: ErrorPayload): void => ({
 });
 
 export const deleteGroup =
-    (projectId: string, groupId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, groupId: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(deleteGroupRequest());
 
         try {

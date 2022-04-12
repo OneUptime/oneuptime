@@ -1,6 +1,7 @@
 process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import chaiSubset from 'chai-subset';
@@ -28,7 +29,7 @@ import ContainerSecurityService from '../backend/services/containerSecurityServi
 let probeId: $TSFixMe;
 import GlobalConfig from './utils/globalConfig';
 import AirtableService from '../backend/services/airtableService';
-let token: $TSFixMe, userId, projectId: string, componentId: $TSFixMe;
+let token: $TSFixMe, userId, projectId: ObjectID, componentId: $TSFixMe;
 const probeKey = 'test-key';
 const sleep = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));

@@ -20,6 +20,7 @@ const jwtSecretKey = process.env['JWT_SECRET'];
 import { IS_SAAS_SERVICE, IS_TESTING } from '../config/server';
 const { NODE_ENV } = process.env;
 import VerificationTokenModel from '../Models/verificationToken';
+import ObjectID from 'Common/Types/ObjectID';
 import MailService from '../../MailService/Services/MailService';
 import AirtableService from './AirtableService';
 
@@ -170,7 +171,7 @@ export default class CallRoutingLogService extends DatabaseService<
         query: Query,
         type: $TSFixMe,
         data: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         if (!query) query = {};
         if (!data) data = {};
@@ -374,7 +375,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return isValid;
     }
 
-    async generateTwoFactorSecret(userId: string): void {
+    async generateTwoFactorSecret(userId: ObjectID): void {
         const user = await this.findOneBy({
             query: { _id: userId },
             select: 'email',
@@ -396,7 +397,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return { otpauth_url: secretCode.otpauth_url };
     }
 
-    async verifyAuthToken(token: $TSFixMe, userId: string): void {
+    async verifyAuthToken(token: $TSFixMe, userId: ObjectID): void {
         const user = await this.findOneBy({
             query: { _id: userId },
             select: '_id twoFactorSecretCode',
@@ -654,7 +655,10 @@ export default class CallRoutingLogService extends DatabaseService<
     }
 
     // Description: replace password temporarily in "admin mode"
-    async switchToAdminMode(userId: string, temporaryPassword: $TSFixMe): void {
+    async switchToAdminMode(
+        userId: ObjectID,
+        temporaryPassword: $TSFixMe
+    ): void {
         if (!temporaryPassword) {
             const error = new Error(
                 'A temporary password is required for admin mode'
@@ -699,7 +703,7 @@ export default class CallRoutingLogService extends DatabaseService<
     }
 
     // Descripiton: revert from admin mode and replce user password
-    async exitAdminMode(userId: string): void {
+    async exitAdminMode(userId: ObjectID): void {
         const user = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
@@ -891,7 +895,7 @@ export default class CallRoutingLogService extends DatabaseService<
         }
     }
 
-    async addNotes(userId: string, notes: $TSFixMe): void {
+    async addNotes(userId: ObjectID, notes: $TSFixMe): void {
         const user = await this.updateOneBy(
             {
                 _id: userId,

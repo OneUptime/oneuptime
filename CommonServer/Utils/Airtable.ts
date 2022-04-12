@@ -2,7 +2,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import AirtableLib from 'airtable';
 import Dictionary from 'Common/Types/Dictionary';
 import { AirtableApiKey, AirtableBaseId } from '../Config';
-
+import ObjectID from 'Common/Types/ObjectID';
 class Airtable {
     private static base = new AirtableLib({ apiKey: AirtableApiKey }).base(
         AirtableBaseId
@@ -20,7 +20,7 @@ class Airtable {
 
     public static async update(
         tableName: string,
-        id: string,
+        id: ObjectID,
         fields: Dictionary<string>
     ): void {
         return this.base(tableName).update(id, fields);
@@ -33,7 +33,7 @@ class Airtable {
         return this.base(tableName).create(fields);
     }
 
-    public static async delete(tableName: string, id: string): void {
+    public static async delete(tableName: string, id: ObjectID): void {
         return this.base(tableName).destroy(id);
     }
 }

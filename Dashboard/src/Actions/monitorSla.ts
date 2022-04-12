@@ -1,6 +1,7 @@
 import * as types from '../constants/monitorSla';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
@@ -19,7 +20,7 @@ export const createMonitorSlaFailure = (error: ErrorPayload): void => ({
 });
 
 export const createMonitorSla =
-    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createMonitorSlaRequest());
 
@@ -58,7 +59,7 @@ export const updateMonitorSlaFailure = (error: ErrorPayload): void => ({
 
 export const updateMonitorSla =
     (
-        projectId: string,
+        projectId: ObjectID,
         monitorSlaId: $TSFixMe,
         data: $TSFixMe,
         handleDefault = false
@@ -102,7 +103,7 @@ export const fetchMonitorSlasFailure = (error: ErrorPayload): void => ({
 });
 
 export const fetchMonitorSlas =
-    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchMonitorSlasRequest());
@@ -140,7 +141,7 @@ export const deleteMonitorSlaFailure = (error: ErrorPayload): void => ({
 });
 
 export const deleteMonitorSla =
-    (projectId: string, monitorSlaId: $TSFixMe) =>
+    (projectId: ObjectID, monitorSlaId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteMonitorSlaRequest());
@@ -183,7 +184,7 @@ export const fetchDefaultMonitorSlaFailure = (error: ErrorPayload): void => ({
 });
 
 export const fetchDefaultMonitorSla =
-    (projectId: string) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultMonitorSlaRequest());
 

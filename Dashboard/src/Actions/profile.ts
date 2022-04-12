@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import Route from 'Common/Types/api/route';
 import * as types from '../constants/profile';
 import FormData from 'form-data';
@@ -178,7 +179,7 @@ export const generateTwoFactorQRCodeError = (error: ErrorPayload): void => {
     };
 };
 
-export const generateTwoFactorQRCode = (userId: string): void => {
+export const generateTwoFactorQRCode = (userId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
@@ -393,7 +394,7 @@ export const sendEmailVerificationLink = (values: $TSFixMe): void => {
 };
 
 export const sendVerificationSMS = (
-    projectId: string,
+    projectId: ObjectID,
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -443,7 +444,7 @@ export const verifySMSCodeReset = (): void => {
     };
 };
 
-export const verifySMSCode = (projectId: string, values: $TSFixMe): void => {
+export const verifySMSCode = (projectId: ObjectID, values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `twilio/sms/verify?projectId=${projectId}`,
@@ -578,7 +579,10 @@ export const deleteAccountFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const deleteAccount = (userId: string, confirmation: $TSFixMe): void => {
+export const deleteAccount = (
+    userId: ObjectID,
+    confirmation: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());

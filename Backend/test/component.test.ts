@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import chaiSubset from 'chai-subset';
@@ -26,7 +27,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
     userId,
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,
     resourceCount = 0;
@@ -384,12 +385,12 @@ describe('Component API', function (): void {
     });
 });
 
-let subProjectId: string,
+let subProjectId: ObjectID,
     newUserToken: $TSFixMe,
     newUserId,
-    newProjectId: string,
+    newProjectId: ObjectID,
     otherUserId,
-    otherProjectId: string,
+    otherProjectId: ObjectID,
     subProjectComponentId: $TSFixMe,
     newComponentId: $TSFixMe;
 

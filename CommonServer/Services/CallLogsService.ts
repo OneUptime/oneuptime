@@ -17,7 +17,7 @@ export default class Service {
     async create(
         from: $TSFixMe,
         to: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         content: $TSFixMe,
         status: $TSFixMe,
         error: $TSFixMe
@@ -50,7 +50,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -87,6 +87,7 @@ export default class Service {
 }
 
 import CallLogsModel from '../Models/callLogs';
+import ObjectID from 'Common/Types/ObjectID';
 
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';

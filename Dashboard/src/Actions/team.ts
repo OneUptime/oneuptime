@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/team';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const teamLoadingRequest = (): void => {
@@ -23,7 +24,7 @@ export const teamLoadingError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to load team.
-export const teamLoading = (projectId: string): void => {
+export const teamLoading = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}`);
         dispatch(teamLoadingRequest());
@@ -61,7 +62,7 @@ export const subProjectTeamLoadingError = (error: ErrorPayload): void => {
     };
 };
 // Calls the API to load team.
-export const subProjectTeamLoading = (projectId: string): void => {
+export const subProjectTeamLoading = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
@@ -101,7 +102,7 @@ export const teamCreateError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to create team members.
-export const teamCreate = (projectId: string, values: $TSFixMe): void => {
+export const teamCreate = (projectId: ObjectID, values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
@@ -154,7 +155,10 @@ export const resetTeamDelete = (): void => {
 };
 
 // Calls the API to delete team meber.
-export const teamDelete = (projectId: string, teamMemberId: $TSFixMe): void => {
+export const teamDelete = (
+    projectId: ObjectID,
+    teamMemberId: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
@@ -198,7 +202,7 @@ export const teamMemberError = (error: ErrorPayload): void => {
 
 // Calls the API to get team member.
 export const getTeamMember = (
-    projectId: string,
+    projectId: ObjectID,
     teamMemberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -240,7 +244,7 @@ export const teamUpdateRoleError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to update team member role.
-export const teamUpdateRole = (projectId: string, values: $TSFixMe): void => {
+export const teamUpdateRole = (projectId: ObjectID, values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,

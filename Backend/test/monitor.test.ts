@@ -4,6 +4,7 @@ process.env['IS_SAAS_SERVICE'] = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 chai.use(require('chai-subset'));
@@ -26,8 +27,8 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    userId: string,
-    projectId: string,
+    userId: ObjectID,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     resourceCategoryId: $TSFixMe,
     monitor2Id: $TSFixMe;
@@ -978,7 +979,9 @@ describe('Monitor API with resource Category', function (): void {
     });
 });
 
-let subProjectId: string, newUserToken: $TSFixMe, subProjectMonitorId: $TSFixMe;
+let subProjectId: ObjectID,
+    newUserToken: $TSFixMe,
+    subProjectMonitorId: $TSFixMe;
 
 describe('Monitor API with Sub-Projects', function (): void {
     this.timeout(30000);

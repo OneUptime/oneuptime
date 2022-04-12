@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -15,7 +16,7 @@ import ProjectService from '../backend/services/projectService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 
-let token: $TSFixMe, projectId: string, userId: string;
+let token: $TSFixMe, projectId: ObjectID, userId: ObjectID;
 
 describe('Monitor Criteria API', function (): void {
     this.timeout(20000);

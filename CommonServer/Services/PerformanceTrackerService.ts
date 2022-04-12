@@ -1,5 +1,6 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import PerformanceTrackerModel from '../Models/performanceTracker';
+import ObjectID from 'Common/Types/ObjectID';
 import ComponentService from './ComponentService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import generate from 'nanoid/generate';
@@ -164,7 +165,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }

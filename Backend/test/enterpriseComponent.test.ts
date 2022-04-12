@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -15,8 +16,8 @@ import ProjectService from '../backend/services/projectService';
 import ComponentService from '../backend/services/componentService';
 
 let token: $TSFixMe,
-    projectId: string,
-    newProjectId: string,
+    projectId: ObjectID,
+    newProjectId: ObjectID,
     componentId: $TSFixMe;
 
 describe('Enterprise Component API', function (): void {

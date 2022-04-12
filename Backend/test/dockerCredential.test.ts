@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 
 process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';
 import userData from './data/user';
 import dockerCredential from './data/dockerCredential';
@@ -21,7 +22,7 @@ import AirtableService from '../backend/services/airtableService';
 
 describe('Docker Credential API', function (): void {
     const timeout = 30000;
-    let projectId: string, userId, token: $TSFixMe, credentialId: $TSFixMe;
+    let projectId: ObjectID, userId, token: $TSFixMe, credentialId: $TSFixMe;
     const dockerRegistryUrl = dockerCredential.dockerRegistryUrl;
     const dockerUsername = dockerCredential.dockerUsername;
     const dockerPassword = dockerCredential.dockerPassword;

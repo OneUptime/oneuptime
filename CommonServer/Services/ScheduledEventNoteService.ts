@@ -1,4 +1,5 @@
 import ScheduledEventNoteModel from '../Models/scheduledEventNote';
+import ObjectID from 'Common/Types/ObjectID';
 import ErrorService from '../Utils/error';
 import RealTimeService from './realTimeService';
 import AlertService from './AlertService';
@@ -8,7 +9,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe, projectId: string): void {
+    async create(data: $TSFixMe, projectId: ObjectID): void {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 
         const populate = [
@@ -63,7 +64,7 @@ export default class Service {
         return scheduledEventMessage;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: string): void {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -167,7 +168,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string, projectId: string): void {
+    async deleteBy(query: Query, userId: ObjectID, projectId: ObjectID): void {
         const data = {
             deleted: true,
             event_state: 'Deleted',

@@ -208,7 +208,7 @@ export default class Service {
         return timelines;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -233,6 +233,7 @@ export default class Service {
 }
 
 import IncidentTimelineModel from '../Models/incidentTimeline';
+import ObjectID from 'Common/Types/ObjectID';
 import IncidentService from './IncidentService';
 import RealTimeService from './realTimeService';
 import ErrorService from '../Utils/error';

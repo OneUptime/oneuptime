@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/alert';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -32,7 +33,7 @@ export const alertSuccess = (alert: $TSFixMe): void => {
 
 // Calls the API to fetch Alerts.
 
-export const fetchAlert = (projectId: string): void => {
+export const fetchAlert = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`alert/${projectId}`);
 
@@ -81,7 +82,7 @@ export const projectAlertSuccess = (alert: $TSFixMe): void => {
 // Calls the API to fetch Alerts.
 
 export function fetchProjectAlert(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -138,7 +139,7 @@ export const incidentAlertSuccess = (alert: $TSFixMe): void => {
 // Calls the API to fetch Alerts.
 
 export function fetchIncidentAlert(
-    projectId: string,
+    projectId: ObjectID,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -195,7 +196,7 @@ export const subscriberAlertSuccess = (alert: $TSFixMe): void => {
 // Calls the API to fetch Subscriber Alerts.
 
 export function fetchSubscriberAlert(
-    projectId: string,
+    projectId: ObjectID,
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -253,7 +254,7 @@ export const fetchAlertChargesSuccess = (alertCharges: $TSFixMe): void => {
 };
 
 export function fetchAlertCharges(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -302,7 +303,7 @@ export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe): void => {
     };
 };
 
-export const downloadAlertCharges = (projectId: string): void => {
+export const downloadAlertCharges = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
 

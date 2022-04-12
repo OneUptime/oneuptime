@@ -1,12 +1,13 @@
 import NotificationModel from '../Models/notification';
+import ObjectID from 'Common/Types/ObjectID';
 import RealTimeService from './realTimeService';
 import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(
-        projectId: string,
+        projectId: ObjectID,
         message: $TSFixMe,
-        userId: string,
+        userId: ObjectID,
         icon: $TSFixMe,
         meta: $TSFixMe
     ): void {

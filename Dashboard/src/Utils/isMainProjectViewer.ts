@@ -4,8 +4,11 @@
  * @param {array} subProjects the subProjects
  * @param {object} currentProject the currentProject
  */
+
+import ObjectID from 'Common/Types/ObjectID';
+
 const isMainProjectViewer = (
-    userId: string,
+    userId: ObjectID,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ): void => {

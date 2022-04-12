@@ -4,6 +4,7 @@ import IncidentService from './IncidentService';
 import IncidentTimelineService from './IncidentTimelineService';
 import MonitorService from './MonitorService';
 import ZapierModel from '../Models/zapier';
+import ObjectID from 'Common/Types/ObjectID';
 import IncidentModel from '../Models/incident';
 import NotificationService from './NotificationService';
 import RealTimeService from './realTimeService';
@@ -26,7 +27,7 @@ export default class Service {
         return zap;
     }
 
-    async test(projectId: string, apiKey: string): void {
+    async test(projectId: ObjectID, apiKey: string): void {
         const project = await ProjectService.findOneBy({
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
@@ -45,7 +46,7 @@ export default class Service {
         }
     }
 
-    async getIncidents(projectId: string): void {
+    async getIncidents(projectId: ObjectID): void {
         const zapierResponseArray = [];
         const zapierResponse = {};
 
@@ -102,7 +103,7 @@ export default class Service {
         }
     }
 
-    async getIncidentsNotes(projectId: string): void {
+    async getIncidentsNotes(projectId: ObjectID): void {
         const zapierResponseArray: $TSFixMe = [];
         const zapierResponse = {};
 
@@ -210,7 +211,7 @@ export default class Service {
         return zapierResponse;
     }
 
-    async getAcknowledgedIncidents(projectId: string): void {
+    async getAcknowledgedIncidents(projectId: ObjectID): void {
         const zapierResponseArray = [];
         const zapierResponse = {};
 
@@ -266,7 +267,7 @@ export default class Service {
         }
     }
 
-    async getResolvedIncidents(projectId: string): void {
+    async getResolvedIncidents(projectId: ObjectID): void {
         const zapierResponseArray = [];
         const zapierResponse = {};
 
@@ -835,7 +836,7 @@ export default class Service {
     }
 
     async subscribe(
-        projectId: string,
+        projectId: ObjectID,
         url: URL,
         type: $TSFixMe,
         monitors: $TSFixMe

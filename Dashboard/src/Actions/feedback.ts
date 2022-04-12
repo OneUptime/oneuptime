@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/feedback';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const openFeedbackModal = function (): void {
@@ -43,7 +44,7 @@ export const resetCreateFeedback = (): void => {
 
 // Calls the API to register a user.
 export function createFeedback(
-    projectId: string,
+    projectId: ObjectID,
     feedback: $TSFixMe,
     page: $TSFixMe
 ): void {

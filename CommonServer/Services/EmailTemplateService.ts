@@ -56,7 +56,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const emailTemplate = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
@@ -114,7 +114,7 @@ export default class Service {
         return count;
     }
 
-    async getTemplates(projectId: string): void {
+    async getTemplates(projectId: ObjectID): void {
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
             defaultTemplate.map(async template => {
@@ -134,7 +134,7 @@ export default class Service {
         return templates;
     }
 
-    async resetTemplate(projectId: string, templateId: $TSFixMe): void {
+    async resetTemplate(projectId: ObjectID, templateId: $TSFixMe): void {
         const select = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await this.findOneBy({
             query: { _id: templateId },
@@ -160,6 +160,7 @@ export default class Service {
 }
 
 import EmailTemplateModel from '../Models/emailTemplate';
+import ObjectID from 'Common/Types/ObjectID';
 import emailTemplateVariables from '../config/emailTemplateVariables';
 import defaultTemplate from '../config/emailTemplate';
 

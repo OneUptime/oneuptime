@@ -7,6 +7,7 @@ import UserService from './UserService';
 import twilio from 'twilio';
 import { IS_SAAS_SERVICE } from '../config/server';
 import ProjectService from './ProjectService';
+import ObjectID from 'Common/Types/ObjectID';
 import FileService from './FileService';
 import Query from '../Types/DB/Query';
 import Model, {
@@ -71,7 +72,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         });
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -100,7 +101,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return numbers;
     }
 
-    async reserveNumber(data: $TSFixMe, projectId: string): void {
+    async reserveNumber(data: $TSFixMe, projectId: ObjectID): void {
         let confirmBuy = null;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -275,7 +276,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         }
     }
 
-    async chargeRoutedCall(projectId: string, body: $TSFixMe): void {
+    async chargeRoutedCall(projectId: ObjectID, body: $TSFixMe): void {
         const callSid = body['CallSid'];
         const callStatus = body['CallStatus'] || null;
         const callDetails = await TwilioService.getCallDetails(
@@ -666,7 +667,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async getCallRoutingLogs(projectId: string): void {
+    async getCallRoutingLogs(projectId: ObjectID): void {
         let logs: $TSFixMe = [];
         const callRouting = await this.findBy({
             query: { projectId },

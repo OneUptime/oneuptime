@@ -101,7 +101,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const schedule = await ScheduleModel.findOneAndUpdate(
             query,
             {
@@ -293,7 +293,7 @@ export default class Service {
     async addEscalation(
         scheduleId: $TSFixMe,
         escalations: $TSFixMe,
-        userId: string
+        userId: ObjectID
     ): void {
         const escalationIds = [];
         for (const data of escalations) {
@@ -367,7 +367,7 @@ export default class Service {
         return { escalations, count: escalationIds.length };
     }
 
-    async getUserEscalations(subProjectIds: $TSFixMe, userId: string): void {
+    async getUserEscalations(subProjectIds: $TSFixMe, userId: ObjectID): void {
         const selectEscalation =
             'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
 
@@ -397,7 +397,7 @@ export default class Service {
     async escalationCheck(
         escalationIds: $TSFixMe,
         scheduleId: $TSFixMe,
-        userId: string
+        userId: ObjectID
     ): void {
         let scheduleIds = await this.findOneBy({
             query: { _id: scheduleId },
@@ -519,6 +519,7 @@ export default class Service {
 }
 
 import ScheduleModel from '../Models/schedule';
+import ObjectID from 'Common/Types/ObjectID';
 import EscalationService from './EscalationService';
 import getSlug from '../Utils/getSlug';
 

@@ -20,7 +20,8 @@
         "react",
         "jsx-a11y",
         "progress",
-        "@typescript-eslint"
+        "@typescript-eslint",
+        "unused-imports"
     ],
     "extends": [
         "eslint:recommended",
@@ -54,8 +55,16 @@
             "error",
             "unix"
         ],
+
+        // https://www.npmjs.com/package/eslint-plugin-unused-imports
         "no-unused-vars": "off",
-        "@typescript-eslint/no-unused-vars": "error",
+        "@typescript-eslint/no-unused-vars": "off",
+        "unused-imports/no-unused-imports": "error",
+		"unused-imports/no-unused-vars": [
+			"error",
+			{ "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+		],
+
         "no-console": "error",
         "no-undef": "error",
         "no-empty": "error",

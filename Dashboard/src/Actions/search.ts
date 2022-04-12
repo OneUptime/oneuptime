@@ -8,6 +8,7 @@ import {
 } from '../constants/search';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 
 export const showSearchBar = function (): void {
     return {
@@ -42,7 +43,7 @@ export const searchFailure = (payload: $TSFixMe): void => {
         payload,
     };
 };
-export const search = (projectId: string, values: $TSFixMe): void => {
+export const search = (projectId: ObjectID, values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch(searchRequest());
         const promise = BackendAPI.post(`search/${projectId}`, values);

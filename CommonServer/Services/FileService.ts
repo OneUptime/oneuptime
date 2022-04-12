@@ -1,8 +1,8 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Database from '../Infrastructure/Database';
-
+import ObjectID from 'Common/Types/ObjectID';
 class FileService {
-    async getFileById(fileId: string): void {
+    async getFileById(fileId: ObjectID): void {
         const gfs = await Database.getFileClient();
         const file = await gfs.findOne({ _id: fileId });
 
@@ -13,7 +13,7 @@ class FileService {
         return file;
     }
 
-    async deleteFileById(fileId: string): void {
+    async deleteFileById(fileId: ObjectID): void {
         const gfs = await Database.getFileClient();
         await gfs.deleteOne({ _id: fileId });
     }

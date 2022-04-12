@@ -1,4 +1,5 @@
 import IncomingRequestModel from '../Models/incomingRequest';
+import ObjectID from 'Common/Types/ObjectID';
 import IncidentService from './IncidentService';
 import MonitorService from './MonitorService';
 import AlertService from './AlertService';
@@ -144,7 +145,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async getRequestUrl(projectId: string, requestId: $TSFixMe): void {
+    async getRequestUrl(projectId: ObjectID, requestId: $TSFixMe): void {
         // create a unique request url
         // update incomingRequest collection with the new url
 

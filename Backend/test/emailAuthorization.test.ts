@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -19,7 +20,7 @@ import AirtableService from '../backend/services/airtableService';
 const sleep = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
-let userId: string, projectId: string;
+let userId: ObjectID, projectId: ObjectID;
 
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';

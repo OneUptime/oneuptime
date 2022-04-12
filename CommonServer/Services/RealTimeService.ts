@@ -4,7 +4,7 @@ import { JSONObjectOrArray } from 'Common/Types/JSON';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Headers from 'Common/Types/API/Headers';
-
+import ObjectID from 'Common/Types/ObjectID';
 export default class Service {
     private api: API;
     private headers: Headers;
@@ -17,7 +17,7 @@ export default class Service {
     }
 
     async send(
-        projectId: string,
+        projectId: ObjectID,
         eventType: string,
         data: JSONObjectOrArray
     ): void {

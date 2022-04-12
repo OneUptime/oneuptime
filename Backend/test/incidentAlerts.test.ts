@@ -1,6 +1,7 @@
 process.env['PORT'] = 3020;
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
@@ -71,8 +72,8 @@ const sleep = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let authorization: $TSFixMe,
-    userId: string,
-    projectId: string,
+    userId: ObjectID,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     monitorId: $TSFixMe,
     scheduleId;

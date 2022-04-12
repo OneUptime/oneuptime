@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import data from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -15,7 +16,7 @@ import AirtableService from '../backend/services/airtableService';
 import GlobalConfigService from '../backend/services/globalConfigService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import GlobalConfig from './utils/globalConfig';
-let projectId: string, userId: string, token: $TSFixMe;
+let projectId: ObjectID, userId: ObjectID, token: $TSFixMe;
 
 describe('Global Config API', function (): void {
     this.timeout(20000);

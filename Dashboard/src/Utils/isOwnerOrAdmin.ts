@@ -4,7 +4,9 @@
  * @param {object} project the project
  */
 
-const isOwnerOrAdmin = (userId: string, project: $TSFixMe): void => {
+import ObjectID from 'Common/Types/ObjectID';
+
+const isOwnerOrAdmin = (userId: ObjectID, project: $TSFixMe): void => {
     const currentUser =
         project &&
         project.users.filter(

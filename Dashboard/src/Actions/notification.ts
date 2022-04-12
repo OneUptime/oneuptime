@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/notification';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import { User } from '../config';
@@ -58,7 +59,7 @@ export const notificationClosedSuccess = (notificationId: $TSFixMe): void => {
     };
 };
 
-export const allNotificationReadSuccess = (userId: string): void => {
+export const allNotificationReadSuccess = (userId: ObjectID): void => {
     return {
         type: types.ALL_NOTIFICATION_READ_SUCCESS,
         payload: userId,
@@ -66,7 +67,7 @@ export const allNotificationReadSuccess = (userId: string): void => {
 };
 
 // Calls the API to get all notifications.
-export const fetchNotifications = (projectId: string): void => {
+export const fetchNotifications = (projectId: ObjectID): void => {
     return async function (dispatch: Dispatch): void {
         try {
             const notifications = await BackendAPI.get(
@@ -95,7 +96,7 @@ export const fetchNotifications = (projectId: string): void => {
 };
 
 export const markAsRead = (
-    projectId: string,
+    projectId: ObjectID,
     notificationIds: $TSFixMe
 ): void => {
     return async function (dispatch: Dispatch): void {
@@ -141,7 +142,7 @@ export const markAsRead = (
 };
 
 export function closeNotification(
-    projectId: string,
+    projectId: ObjectID,
     notificationId: $TSFixMe
 ): void {
     return async function (dispatch: Dispatch): void {
@@ -176,7 +177,7 @@ export function closeNotification(
     };
 }
 
-export const markAllAsRead = (projectId: string): void => {
+export const markAllAsRead = (projectId: ObjectID): void => {
     return async function (dispatch: Dispatch): void {
         try {
             const userId = User.getUserId();
@@ -203,7 +204,7 @@ export const markAllAsRead = (projectId: string): void => {
 };
 
 export function billingActionTaken(
-    projectId: string,
+    projectId: ObjectID,
     notificationId: $TSFixMe,
     values: $TSFixMe
 ): void {
@@ -233,7 +234,7 @@ export function billingActionTaken(
     };
 }
 
-export const resetProjectNotification = (projectId: string): void => {
+export const resetProjectNotification = (projectId: ObjectID): void => {
     return {
         type: types.RESET_PROJECT_NOTIFICATIONS,
         payload: projectId,

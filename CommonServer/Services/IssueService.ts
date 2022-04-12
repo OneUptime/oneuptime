@@ -1,4 +1,5 @@
 import IssueModel from '../Models/issue';
+import ObjectID from 'Common/Types/ObjectID';
 import sha256 from 'crypto-js/sha256';
 import ComponentService from './ComponentService';
 import RealTimeService from './realTimeService';
@@ -154,7 +155,11 @@ export default class Service {
         return issue;
     }
 
-    async deleteBy(query: Query, userId: string, componentId: $TSFixMe): void {
+    async deleteBy(
+        query: Query,
+        userId: ObjectID,
+        componentId: $TSFixMe
+    ): void {
         if (!query) {
             query = {};
         }

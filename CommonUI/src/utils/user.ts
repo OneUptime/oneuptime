@@ -2,7 +2,7 @@ import LocalStorage from './localstorage';
 import Email from 'Common/Types/Email';
 import URL from 'Common/Types/api/URL';
 import { JSONObject } from 'Common/Types/JSON';
-
+import ObjectID from 'Common/Types/ObjectID';
 export default class User {
     public static getAccessToken(): string {
         return LocalStorage.getItem('access_token');
@@ -20,7 +20,7 @@ export default class User {
         LocalStorage.setItem('cardRegistered', value.toString());
     }
 
-    public static setUserId(id: string): void {
+    public static setUserId(id: ObjectID): void {
         LocalStorage.setItem('id', id);
     }
 

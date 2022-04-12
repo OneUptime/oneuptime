@@ -1,13 +1,14 @@
 /* eslint-disable no-console */
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/errorTracker';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 //Create new error tracker
 //props -> {name: '', type, data -> { data.url}}
 export function createErrorTracker(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     values: $TSFixMe
 ): void {
@@ -68,7 +69,7 @@ export const resetCreateErrorTracker = (): void => {
     };
 };
 
-export const fetchErrorTrackersByProject = (projectId: string): void => {
+export const fetchErrorTrackersByProject = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`component/${projectId}/issues`);
 
@@ -90,7 +91,7 @@ export const fetchErrorTrackersByProject = (projectId: string): void => {
 };
 
 export function fetchErrorTrackers(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     skip = 0,
     limit = 0,
@@ -143,7 +144,7 @@ export const resetFetchErrorTrackers = (): void => {
 };
 
 export function fetchErrorTrackerIssues(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     skip: PositiveNumber,
@@ -216,7 +217,7 @@ export const resetFetchErrorTrackerIssues = (): void => {
 };
 
 export function fetchErrorEvent(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     errorEventId: $TSFixMe
@@ -293,7 +294,7 @@ export const setCurrentErrorEvent = (errorEventId: $TSFixMe): void => {
 //Delete an errorTrackeer
 //props -> {name: '', type, data -> { data.url}}
 export function deleteErrorTracker(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe
 ): void {
@@ -351,7 +352,7 @@ export const editErrorTrackerSwitch = (index: $TSFixMe): void => {
 };
 //Edit new errorTracker
 export function editErrorTracker(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     values: $TSFixMe
@@ -408,7 +409,7 @@ export const editErrorTrackerFailure = (error: ErrorPayload): void => {
 };
 
 export function resetErrorTrackerKey(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe
 ): void {
@@ -458,7 +459,7 @@ export const resetresetErrorTrackerKey = (): void => {
 };
 
 export function ignoreErrorEvent(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe,
@@ -522,7 +523,7 @@ export const ignoreErrorEventSuccess = (errorEvents: $TSFixMe): void => {
 };
 
 export function unresolveErrorEvent(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe
@@ -585,7 +586,7 @@ export const unresolveErrorEventSuccess = (errorEvents: $TSFixMe): void => {
 };
 
 export function resolveErrorEvent(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe
@@ -648,7 +649,7 @@ export const resolveErrorEventSuccess = (errorEvents: $TSFixMe): void => {
 };
 
 export function updateErrorEventMember(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe,
@@ -723,7 +724,7 @@ export const getErrorEventSuccess = (data: $TSFixMe): void => {
 };
 //Delete an errorTracker Issue
 export function deleteErrorTrackerIssue(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe

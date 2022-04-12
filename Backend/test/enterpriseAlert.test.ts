@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import userData from './data/user';
 import incidentData from './data/incident';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -19,7 +20,7 @@ import AlertService from '../backend/services/alertService';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,
     alertId: $TSFixMe;

@@ -1,10 +1,11 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/resourceCategories';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 export function fetchResourceCategories(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -60,7 +61,7 @@ export const fetchResourceCategoriesFailure = (error: ErrorPayload): void => {
 };
 
 export const createResourceCategory = (
-    projectId: string,
+    projectId: ObjectID,
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -94,7 +95,7 @@ export const createResourceCategory = (
 };
 
 export function updateResourceCategory(
-    projectId: string,
+    projectId: ObjectID,
     resourceCategoryId: $TSFixMe,
     values: $TSFixMe
 ): void {
@@ -176,7 +177,7 @@ export const updateResourceCategoryFailure = (error: ErrorPayload): void => {
 
 export function deleteResourceCategory(
     resourceCategoryId: $TSFixMe,
-    projectId: string
+    projectId: ObjectID
 ): void {
     return function (dispatch: Dispatch): void {
         const promise =
@@ -223,7 +224,7 @@ export const deleteResourceCategoryFailure = (error: ErrorPayload): void => {
 };
 
 export const fetchResourceCategoriesForNewResource = (
-    projectId: string
+    projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`resourceCategory/${projectId}`);

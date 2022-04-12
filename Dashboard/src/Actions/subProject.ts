@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/subProject';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import { User } from '../config';
@@ -32,7 +33,7 @@ export const resetSubProjects = (): void => {
 };
 
 export const getSubProjects = (
-    projectId: string,
+    projectId: ObjectID,
     skip = 0,
     limit = 10
 ): void => {
@@ -101,7 +102,7 @@ export const createNewSubProjectReset = (): void => {
 };
 
 export function createSubProject(
-    projectId: string,
+    projectId: ObjectID,
     subProjectName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
@@ -157,7 +158,7 @@ export const resetSubProjectKeyReset = (): void => {
     };
 };
 
-export const resetSubProjectToken = (subProjectId: string): void => {
+export const resetSubProjectToken = (subProjectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`project/${subProjectId}/resetToken`);
 
@@ -209,8 +210,8 @@ export const resetRenameSubProject = (): void => {
 };
 
 export function renameSubProject(
-    projectId: string,
-    subProjectId: string,
+    projectId: ObjectID,
+    subProjectId: ObjectID,
     subProjectName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
@@ -240,7 +241,7 @@ export const deleteSubProjectRequest = (): void => {
     };
 };
 
-export const deleteSubProjectSuccess = (subProjectId: string): void => {
+export const deleteSubProjectSuccess = (subProjectId: ObjectID): void => {
     return {
         type: types.DELETE_SUBPROJECT_SUCCESS,
         payload: subProjectId,
@@ -267,8 +268,8 @@ export const resetDeleteSubProject = (): void => {
 };
 
 export const deleteSubProject = (
-    projectId: string,
-    subProjectId: string
+    projectId: ObjectID,
+    subProjectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`project/${projectId}/${subProjectId}`,
@@ -302,7 +303,7 @@ export const exitSubProjectRequest = (): void => {
     };
 };
 
-export const exitSubProjectSuccess = (userId: string): void => {
+export const exitSubProjectSuccess = (userId: ObjectID): void => {
     return {
         type: types.EXIT_SUBPROJECT_SUCCESS,
         payload: userId,
@@ -317,9 +318,9 @@ export const exitSubProjectError = (error: ErrorPayload): void => {
 };
 
 export function exitSubProject(
-    projectId: string,
-    subProjectId: string,
-    userId: string
+    projectId: ObjectID,
+    subProjectId: ObjectID,
+    userId: ObjectID
 ): void {
     return function (dispatch: Dispatch): void {
         const promise =
@@ -354,7 +355,9 @@ export const markSubProjectForDeleteRequest = (): void => {
     };
 };
 
-export const markSubProjectForDeleteSuccess = (subProjectId: string): void => {
+export const markSubProjectForDeleteSuccess = (
+    subProjectId: ObjectID
+): void => {
     return {
         type: types.MARK_SUBPROJECT_DELETE_SUCCESS,
         payload: subProjectId,
@@ -369,8 +372,8 @@ export const markSubProjectForDeleteError = (error: ErrorPayload): void => {
 };
 
 export function markSubProjectForDelete(
-    projectId: string,
-    subProjectId: string,
+    projectId: ObjectID,
+    subProjectId: ObjectID,
     feedback: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {

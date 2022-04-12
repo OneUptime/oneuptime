@@ -209,7 +209,7 @@ export default class Service {
         }
     }
     async updateAllLighthouseLogs(
-        projectId: string,
+        projectId: ObjectID,
         monitorId: $TSFixMe,
         query: Query
     ): void {
@@ -228,6 +228,7 @@ export default class Service {
 }
 
 import LighthouseLogModel from '../Models/lighthouseLog';
+import ObjectID from 'Common/Types/ObjectID';
 import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
 import probeService from './ProbeService';

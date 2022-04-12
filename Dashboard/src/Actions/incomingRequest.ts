@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/incomingRequest';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -18,7 +19,7 @@ export const createIncomingRequestFailure = (error: ErrorPayload): void => ({
 });
 
 export const createIncomingRequest =
-    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createIncomingRequestRequest());
 
@@ -56,7 +57,7 @@ export const editIncomingRequestFailure = (error: ErrorPayload): void => ({
 });
 
 export const editIncomingRequest =
-    (projectId: string, requestId: $TSFixMe, data: $TSFixMe) =>
+    (projectId: ObjectID, requestId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());
@@ -95,7 +96,8 @@ export const deleteIncomingRequestFailure = (error: ErrorPayload): void => ({
 });
 
 export const deleteIncomingRequest =
-    (projectId: string, requestId: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, requestId: $TSFixMe) =>
+    async (dispatch: Dispatch) => {
         try {
             dispatch(deleteIncomingRequestRequest());
 
@@ -131,7 +133,7 @@ export const fetchAllIncomingRequestFailure = (error: ErrorPayload): void => ({
 });
 
 export const fetchAllIncomingRequest =
-    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchAllIncomingRequestRequest());
@@ -160,7 +162,7 @@ export const setActiveIncomingRequest = (requestId: $TSFixMe): void => ({
 });
 
 export const incomingRequestToggle =
-    (projectId: string, requestId: $TSFixMe, enabled: $TSFixMe) =>
+    (projectId: ObjectID, requestId: $TSFixMe, enabled: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(editIncomingRequestRequest());

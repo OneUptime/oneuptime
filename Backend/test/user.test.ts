@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import data from './data/user';
 const profile = require('./data/user').profile;
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 // import decode from 'urldecode' unused
@@ -24,7 +25,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 import { fetchIdpSAMLResponse } from './utils/test-utils';
 
-let projectId: string, userId: string, token: $TSFixMe;
+let projectId: ObjectID, userId: ObjectID, token: $TSFixMe;
 const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
 
 describe('User API', function (): void {

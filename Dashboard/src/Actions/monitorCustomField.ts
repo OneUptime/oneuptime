@@ -1,6 +1,7 @@
 import * as types from '../constants/monitorCustomField';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const createCustomFieldRequest = (): void => ({
     type: types.CREATE_CUSTOM_FIELD_REQUEST,
@@ -17,7 +18,7 @@ export const createCustomFieldFailure = (error: ErrorPayload): void => ({
 });
 
 export const createCustomField =
-    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCustomFieldRequest());
 
@@ -94,7 +95,7 @@ export const fetchCustomFieldsFailure = (error: ErrorPayload): void => ({
 });
 
 export const fetchCustomFields =
-    (projectId: string, skip = 0, limit = 0) =>
+    (projectId: ObjectID, skip = 0, limit = 0) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCustomFieldsRequest());
@@ -139,7 +140,7 @@ export const deleteCustomFieldFailure = (error: ErrorPayload): void => ({
 });
 
 export const deleteCustomField =
-    (projectId: string, customFieldId: $TSFixMe) =>
+    (projectId: ObjectID, customFieldId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCustomFieldRequest());

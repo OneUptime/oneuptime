@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import chaiSubset from 'chai-subset';
@@ -21,7 +22,7 @@ import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe,
     userId,
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLog: $TSFixMe;
 const log = {

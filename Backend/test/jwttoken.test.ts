@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -16,7 +17,7 @@ const request = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
 
-let token: $TSFixMe, projectId: string, refreshToken: $TSFixMe, userId;
+let token: $TSFixMe, projectId: ObjectID, refreshToken: $TSFixMe, userId;
 
 describe('Jwt Token API', function (): void {
     this.timeout(20000);

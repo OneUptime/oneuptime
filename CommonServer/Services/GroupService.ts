@@ -1,4 +1,5 @@
 import GroupModel from '../Models/groups';
+import ObjectID from 'Common/Types/ObjectID';
 import Query from '../Types/DB/Query';
 import FindBy from '../Types/DB/FindBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -87,7 +88,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const group = await GroupModel.findOneAndUpdate(
             query,
             {
@@ -104,7 +105,7 @@ export default class Service {
         return group;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: string): void {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: ObjectID): void {
         if (!query) {
             query = {};
         }

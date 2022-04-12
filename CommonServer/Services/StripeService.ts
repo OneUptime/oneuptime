@@ -3,6 +3,7 @@ import UserService from './UserService';
 import PaymentService from './PaymentService';
 import ProjectService from './ProjectService';
 import ProjectModel from '../Models/project';
+import ObjectID from 'Common/Types/ObjectID';
 import MailService from '../../MailService/Services/MailService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { sendSlackAlert } from '../Utils/stripeHandlers';
@@ -134,7 +135,7 @@ export default class StripeService {
         return { projectDeleted: true };
     }
 
-    async charges(userId: string): void {
+    async charges(userId: ObjectID): void {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -146,7 +147,7 @@ export default class StripeService {
         return charges.data;
     }
 
-    async createCreditCard(tok: $TSFixMe, userId: string): void {
+    async createCreditCard(tok: $TSFixMe, userId: ObjectID): void {
         const [tokenCard, cards] = await Promise.all([
             stripe.tokens.retrieve(tok),
 
@@ -196,7 +197,7 @@ export default class StripeService {
         }
     }
 
-    async update(userId: string, cardId: $TSFixMe): void {
+    async update(userId: ObjectID, cardId: $TSFixMe): void {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -208,7 +209,7 @@ export default class StripeService {
         return card;
     }
 
-    async delete(cardId: $TSFixMe, userId: string): void {
+    async delete(cardId: $TSFixMe, userId: ObjectID): void {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -229,7 +230,7 @@ export default class StripeService {
         return card;
     }
 
-    async get(userId: string, cardId: $TSFixMe): void {
+    async get(userId: ObjectID, cardId: $TSFixMe): void {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',
@@ -258,9 +259,9 @@ export default class StripeService {
     }
 
     async chargeCustomerForBalance(
-        userId: string,
+        userId: ObjectID,
         chargeAmount: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         alertOptions: $TSFixMe
     ): void {
         const description = 'Recharge balance';
@@ -357,9 +358,9 @@ export default class StripeService {
     }
 
     async addBalance(
-        userId: string,
+        userId: ObjectID,
         chargeAmount: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;

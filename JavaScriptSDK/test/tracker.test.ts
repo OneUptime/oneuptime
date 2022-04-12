@@ -1,4 +1,5 @@
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 
 const expect = chai.expect;
 import chaihttp from 'chai-http';
@@ -25,7 +26,7 @@ describe('Tracker Timeline', function (): void {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
     this.timeout(timeout + 1000);
-    let projectId: string, token: $TSFixMe, componentId;
+    let projectId: ObjectID, token: $TSFixMe, componentId;
     // create a new user
     const component = { name: 'Our Component' };
 

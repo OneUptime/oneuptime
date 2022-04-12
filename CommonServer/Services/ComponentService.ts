@@ -1,5 +1,6 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import ComponentModel from '../Models/component';
+import ObjectID from 'Common/Types/ObjectID';
 import Plans from '../config/plans';
 import RealTimeService from './realTimeService';
 import NotificationService from './NotificationService';
@@ -262,7 +263,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -396,7 +397,7 @@ export default class Service {
     }
 
     async getComponentsByPaginate(
-        projectId: string,
+        projectId: ObjectID,
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {

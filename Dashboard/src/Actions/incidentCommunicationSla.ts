@@ -1,6 +1,7 @@
 import * as types from '../constants/incidentCommunicationSla';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const createCommunicationSlaRequest = (): void => ({
     type: types.CREATE_COMMUNICATION_SLA_REQUEST,
@@ -17,7 +18,7 @@ export const createCommunicationSlaFailure = (error: ErrorPayload): void => ({
 });
 
 export const createCommunicationSla =
-    (projectId: string, data: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, data: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createCommunicationSlaRequest());
 
@@ -56,7 +57,7 @@ export const updateCommunicationSlaFailure = (error: ErrorPayload): void => ({
 
 export const updateCommunicationSla =
     (
-        projectId: string,
+        projectId: ObjectID,
         incidentSlaId: $TSFixMe,
         data: $TSFixMe,
         handleDefault = false
@@ -100,7 +101,7 @@ export const fetchCommunicationSlasFailure = (error: ErrorPayload): void => ({
 });
 
 export const fetchCommunicationSlas =
-    (projectId: string, skip = 0, limit = 0) =>
+    (projectId: ObjectID, skip = 0, limit = 0) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchCommunicationSlasRequest());
@@ -143,7 +144,7 @@ export const deleteCommunicationSlaFailure = (error: ErrorPayload): void => ({
 });
 
 export const deleteCommunicationSla =
-    (projectId: string, incidentSlaId: $TSFixMe) =>
+    (projectId: ObjectID, incidentSlaId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteCommunicationSlaRequest());
@@ -190,7 +191,7 @@ export const fetchDefaultCommunicationSlaFailure = (
 });
 
 export const fetchDefaultCommunicationSla =
-    (projectId: string) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchDefaultCommunicationSlaRequest());
 

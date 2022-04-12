@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import ObjectID from 'Common/Types/ObjectID';
 import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
@@ -35,7 +36,7 @@ Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts) {
 });
 
 export default class MailService {
-    async getProjectSmtpSettings(projectId: string): void {
+    async getProjectSmtpSettings(projectId: ObjectID): void {
         let user,
             pass,
             host,
@@ -3913,7 +3914,7 @@ export default class MailService {
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
@@ -4546,7 +4547,7 @@ export default class MailService {
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
@@ -4777,7 +4778,7 @@ export default class MailService {
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
@@ -4985,7 +4986,7 @@ export default class MailService {
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         schedule: $TSFixMe,
         projectName: $TSFixMe,
@@ -5221,7 +5222,7 @@ export default class MailService {
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         schedule: $TSFixMe,
         projectName: $TSFixMe,
@@ -5455,7 +5456,7 @@ export default class MailService {
         scheduledTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         schedule: $TSFixMe,
         projectName: $TSFixMe,
@@ -5695,7 +5696,7 @@ export default class MailService {
         replyAddress: $TSFixMe,
         projectName: $TSFixMe,
         monitorName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         unsubscribeUrl: URL,
         monitorsAffected: $TSFixMe
     ): void {
@@ -5920,7 +5921,7 @@ export default class MailService {
         emailTemplate: $TSFixMe,
         replyAddress: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         unsubscribeUrl: URL,
         monitorName: $TSFixMe
     ): void {
@@ -6135,7 +6136,7 @@ export default class MailService {
         incidentTime: $TSFixMe,
         monitorName: $TSFixMe,
         email: Email,
-        userId: string,
+        userId: ObjectID,
         userName: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
@@ -6952,7 +6953,7 @@ export default class MailService {
 
     async sendUpgradeToEnterpriseMail(
         projectName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         oldPlan: $TSFixMe,
         email: Email
     ): string {
@@ -7269,7 +7270,7 @@ export default class MailService {
             throw error;
         }
     }
-    async hasCustomSmtpSettings(projectId: string): void {
+    async hasCustomSmtpSettings(projectId: ObjectID): void {
         const select =
             'projectId user pass host port from name iv secure enabled createdAt';
         const smtpConfigurations = await EmailSmtpService.findOneBy({

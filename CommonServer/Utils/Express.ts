@@ -1,7 +1,7 @@
 import express from 'express';
 import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
-
+import ObjectID from 'Common/Types/ObjectID';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 export const ExpressStatic = express.static;
@@ -17,7 +17,7 @@ export type ExpressResponse = express.Response;
 
 export interface OneUptimeRequest extends express.Request {
     probe?: ProbeRequest;
-    id: string;
+    id: ObjectID;
     requestStartedAt: Date;
     requestEndedAt: Date;
 }

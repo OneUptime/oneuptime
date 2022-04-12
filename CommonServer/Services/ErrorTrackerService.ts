@@ -157,7 +157,7 @@ export default class Service {
         return { errorTrackers, count, skip, limit };
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -236,6 +236,7 @@ export default class Service {
 }
 
 import ErrorTrackerModel from '../Models/errorTracker';
+import ObjectID from 'Common/Types/ObjectID';
 import ComponentService from './ComponentService';
 import ResourceCategoryService from './ResourceCategoryService';
 import RealTimeService from './realTimeService';

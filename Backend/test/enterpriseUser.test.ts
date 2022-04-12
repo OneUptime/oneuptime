@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import data from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -13,8 +14,8 @@ import { createEnterpriseUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 
-let projectId: string,
-    newProjectId: string,
+let projectId: ObjectID,
+    newProjectId: ObjectID,
     userRole: $TSFixMe,
     token: $TSFixMe;
 

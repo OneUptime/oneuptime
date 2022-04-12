@@ -3,6 +3,7 @@ import AirtableService from 'CommonServer/Utils/airtable';
 import Email from 'Common/Types/email';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default {
     confirm: async (license: string, email: Email, limit: PositiveNumber) => {
@@ -12,7 +13,7 @@ export default {
             limit
         );
         const userRecord: {
-            id: string;
+            id: ObjectID;
             expiryDate: Date;
         } = {
             id: '',

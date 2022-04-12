@@ -2,9 +2,11 @@
 // Params
 // params 1: project
 // returns JSX.Element or NULL
+
+import ObjectID from 'Common/Types/ObjectID';
 const HasProjectOwner = (
     project: $TSFixMe,
-    projectId: string,
+    projectId: ObjectID,
     subProjects: $TSFixMe
 ): void => {
     if (project._id === projectId) {

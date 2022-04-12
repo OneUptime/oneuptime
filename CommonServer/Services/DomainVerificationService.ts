@@ -2,6 +2,7 @@ import dns from 'dns';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import psl from 'psl';
 import DomainVerificationTokenModel from '../Models/domainVerificationToken';
+import ObjectID from 'Common/Types/ObjectID';
 import flatten from '../Utils/flattenArray';
 import randomChar from '../Utils/randomChar';
 import StatusPageService from './StatusPageService';
@@ -143,7 +144,7 @@ export default class Service {
     }
 
     async doesDomainBelongToProject(
-        projectId: string,
+        projectId: ObjectID,
         subDomain: $TSFixMe
     ): void {
         // ensure that a particular domain is available to all project and subProject

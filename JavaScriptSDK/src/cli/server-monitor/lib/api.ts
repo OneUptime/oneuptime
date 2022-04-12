@@ -7,7 +7,7 @@
  */
 
 import Promise from 'promise';
-
+import ObjectID from 'Common/Types/ObjectID';
 import cron from 'cron';
 import si from 'systeminformation';
 
@@ -25,7 +25,7 @@ import { onlineTestData, degradedTestData, offlineTestData } from './config';
  * @return {Object} The ping server cron job.
  */
 const ping = (
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     apiUrl: URL,
     apiKey: string,

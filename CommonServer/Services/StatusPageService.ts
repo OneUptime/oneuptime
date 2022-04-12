@@ -2,6 +2,36 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import ServiceBase from './DatabaseService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageModel, { requiredFields } from '../Models/StatusPage';
+import ObjectID from 'Common/Types/ObjectID';
+
+import IncidentModel from '../Models/incident';
+
+import IncidentService from './IncidentService';
+import ScheduledEventsService from './ScheduledEventService';
+import MonitorService from './MonitorService';
+import ErrorService from '../Utils/error';
+import SubscriberService from './SubscriberService';
+import ProjectService from './ProjectService';
+import AlertService from './AlertService';
+
+import _ from 'lodash';
+import defaultStatusPageColors from '../config/statusPageColors';
+import DomainVerificationService from './DomainVerificationService';
+import flattenArray from '../Utils/flattenArray';
+import ScheduledEventNoteService from './ScheduledEventNoteService';
+import IncidentMessageService from './IncidentMessageService';
+import moment from 'moment';
+
+import uuid from 'uuid';
+import CertificateStoreService from './CertificateService';
+import AnnouncementModel from '../Models/announcements';
+import ExternalStatusPageModel from '../Models/externalStatusPage';
+import getSlug from '../Utils/getSlug';
+import AnnouncementLogModel from '../Models/announcementLogs';
+
+import Query from '../Types/DB/Query';
+import axios from 'axios';
+const bearer = process.env.TWITTER_BEARER_TOKEN;
 
 const publicListProps = {
     populate: [],
@@ -153,7 +183,7 @@ export default class Service {
 
     async createDomain(
         subDomain: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         statusPageId: $TSFixMe,
         cert: $TSFixMe,
         privateKey: $TSFixMe,
@@ -300,7 +330,7 @@ export default class Service {
     }
 
     async updateDomain(
-        projectId: string,
+        projectId: ObjectID,
         statusPageId: $TSFixMe,
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
@@ -469,7 +499,7 @@ export default class Service {
     }
 
     async duplicateStatusPage(
-        statusPageProjectId: string,
+        statusPageProjectId: ObjectID,
         statusPageSlug: $TSFixMe,
         statusPageName: $TSFixMe,
         filterMonitors: $TSFixMe
@@ -527,7 +557,7 @@ export default class Service {
         return this.create(data);
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -1495,7 +1525,7 @@ export default class Service {
         }
     }
 
-    async isPermitted(userId: string, statusPage: $TSFixMe): void {
+    async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
         const fn = async (resolve: $TSFixMe): void => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1729,7 +1759,7 @@ export default class Service {
     }
 
     async updateExternalStatusPage(
-        projectId: string,
+        projectId: ObjectID,
         _id: $TSFixMe,
         data: $TSFixMe
     ): void {
@@ -1749,9 +1779,9 @@ export default class Service {
     }
 
     async deleteExternalStatusPage(
-        projectId: string,
+        projectId: ObjectID,
         _id: $TSFixMe,
-        userId: string
+        userId: ObjectID
     ): void {
         const query = { projectId, _id };
 
@@ -1909,7 +1939,7 @@ export default class Service {
         return response;
     }
 
-    async deleteAnnouncement(query: Query, userId: string): void {
+    async deleteAnnouncement(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -1999,7 +2029,7 @@ export default class Service {
         return announcementLogs;
     }
 
-    async deleteAnnouncementLog(query: Query, userId: string): void {
+    async deleteAnnouncementLog(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -2130,32 +2160,3 @@ const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe): void => {
         return 'some';
     }
 };
-
-import IncidentModel from '../Models/incident';
-
-import IncidentService from './IncidentService';
-import ScheduledEventsService from './ScheduledEventService';
-import MonitorService from './MonitorService';
-import ErrorService from '../Utils/error';
-import SubscriberService from './SubscriberService';
-import ProjectService from './ProjectService';
-import AlertService from './AlertService';
-
-import _ from 'lodash';
-import defaultStatusPageColors from '../config/statusPageColors';
-import DomainVerificationService from './DomainVerificationService';
-import flattenArray from '../Utils/flattenArray';
-import ScheduledEventNoteService from './ScheduledEventNoteService';
-import IncidentMessageService from './IncidentMessageService';
-import moment from 'moment';
-
-import uuid from 'uuid';
-import CertificateStoreService from './CertificateService';
-import AnnouncementModel from '../Models/announcements';
-import ExternalStatusPageModel from '../Models/externalStatusPage';
-import getSlug from '../Utils/getSlug';
-import AnnouncementLogModel from '../Models/announcementLogs';
-
-import Query from '../Types/DB/Query';
-import axios from 'axios';
-const bearer = process.env.TWITTER_BEARER_TOKEN;

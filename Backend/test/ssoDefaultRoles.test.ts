@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -21,7 +22,7 @@ import testUtils from './utils/test-utils';
 
 testUtils.setShared({ request });
 let adminId: $TSFixMe,
-    userId: string,
+    userId: ObjectID,
     adminAuthorizationHeader: $TSFixMe,
     projectId1: $TSFixMe,
     projectId2: $TSFixMe,

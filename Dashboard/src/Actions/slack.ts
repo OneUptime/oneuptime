@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/slack';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -32,7 +33,10 @@ export const resetdeleteSlackLink = (): void => {
 };
 
 // Calls the API to link slack team to project
-export const deleteSlackLink = (projectId: string, teamId: $TSFixMe): void => {
+export const deleteSlackLink = (
+    projectId: ObjectID,
+    teamId: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`slack/${projectId}/unLink/${teamId}`, null);
 
@@ -79,7 +83,7 @@ export const resetGetSlackTeams = (): void => {
 };
 
 export function getSlackTeams(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {

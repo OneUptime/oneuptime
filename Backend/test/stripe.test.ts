@@ -4,6 +4,7 @@ process.env['IS_SAAS_SERVICE'] = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -16,7 +17,7 @@ import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import AirtableService from '../backend/services/airtableService';
 
-let token, projectId: string, userId: string;
+let token, projectId: ObjectID, userId: ObjectID;
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let cardId: $TSFixMe, authorization: $TSFixMe;

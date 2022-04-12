@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import chaiSubset from 'chai-subset';
@@ -15,8 +16,8 @@ import { createUser } from './utils/userSignUp';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe,
-    userId: string,
-    projectId: string,
+    userId: ObjectID,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     errorTracker: $TSFixMe,
     errorEvent: $TSFixMe,

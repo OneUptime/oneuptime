@@ -7,7 +7,7 @@ import Model, {
     encryptedFields,
 } from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
-
+import ObjectID from 'Common/Types/ObjectID';
 export default class SslService extends DatabaseService<typeof Model> {
     constructor() {
         super({
@@ -61,7 +61,7 @@ export default class SslService extends DatabaseService<typeof Model> {
         });
     }
 
-    async validateResend(userId: string): void {
+    async validateResend(userId: ObjectID): void {
         const smsCount = await this.countBy({
             query: {
                 userId: userId,

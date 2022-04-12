@@ -1,5 +1,6 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import IncidentModel from '../Models/incident';
+import ObjectID from 'Common/Types/ObjectID';
 import IncidentTimelineService from './IncidentTimelineService';
 import MonitorService from './MonitorService';
 import AlertService from './AlertService';
@@ -387,7 +388,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -675,7 +676,7 @@ export default class Service {
      */
     async acknowledge(
         incidentId: $TSFixMe,
-        userId: string,
+        userId: ObjectID,
         name: $TSFixMe,
         probeId: $TSFixMe,
         zapier: $TSFixMe,
@@ -859,7 +860,7 @@ export default class Service {
     // Returns: promise with incident or error.
     async resolve(
         incidentId: $TSFixMe,
-        userId: string,
+        userId: ObjectID,
         name: $TSFixMe,
         probeId: $TSFixMe,
         zapier: $TSFixMe,
@@ -981,7 +982,7 @@ export default class Service {
     }
 
     //
-    async close(incidentId: $TSFixMe, userId: string): void {
+    async close(incidentId: $TSFixMe, userId: ObjectID): void {
         const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
@@ -991,7 +992,7 @@ export default class Service {
 
     async getUnresolvedIncidents(
         subProjectIds: $TSFixMe,
-        userId: string,
+        userId: ObjectID,
         isHome = false
     ): void {
         let incidentsUnresolved = await this.findBy({
@@ -1054,7 +1055,7 @@ export default class Service {
             : incidentsUnresolved.concat(incidentsResolved);
     }
 
-    async getSubProjectIncidents(projectId: string): void {
+    async getSubProjectIncidents(projectId: ObjectID): void {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -1105,7 +1106,7 @@ export default class Service {
     }
 
     async getComponentIncidents(
-        projectId: string,
+        projectId: ObjectID,
         componentId: $TSFixMe
     ): void {
         const monitors = await MonitorService.findBy({
@@ -1154,7 +1155,7 @@ export default class Service {
     }
 
     async getProjectComponentIncidents(
-        projectId: string,
+        projectId: ObjectID,
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -1282,7 +1283,7 @@ export default class Service {
     }
 
     async sendIncidentNoteAdded(
-        projectId: string,
+        projectId: ObjectID,
         incident: $TSFixMe,
         data: $TSFixMe
     ): void {
@@ -1354,7 +1355,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe, userId: string): void {
+    async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
         const incidents = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors _id',
@@ -1453,7 +1454,7 @@ export default class Service {
     }
 
     async startInterval(
-        projectId: string,
+        projectId: ObjectID,
         monitors: $TSFixMe,
         incident: $TSFixMe
     ): void {

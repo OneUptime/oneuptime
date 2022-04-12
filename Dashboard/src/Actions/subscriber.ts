@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/subscriber';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -36,7 +37,7 @@ export const resetCreateSubscriber = (): void => {
 
 // Calls the API to create new subscriber.
 export function createSubscriber(
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     data: $TSFixMe
 ): void {
@@ -92,7 +93,7 @@ export const resetExportCsv = (): void => {
 
 // Calls the API to export subscribers to csv
 export function exportCSV(
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber,
@@ -151,7 +152,7 @@ export const resetDeleteSubscriber = (): void => {
 
 // Calls the API to delete a subscriber.
 export const deleteSubscriber = (
-    projectId: string,
+    projectId: ObjectID,
     subscriberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -222,7 +223,7 @@ export const downloadCsvTemplate = (): void => {
  */
 export function importSubscribersFromCsvFile(
     data: $TSFixMe,
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {

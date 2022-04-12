@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import data from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -19,7 +20,7 @@ import GlobalConfigService from '../backend/services/globalConfigService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import smtpCredential from './data/smtpCredential';
 
-let projectId: string, jwtToken: $TSFixMe, emailSmtpId: $TSFixMe;
+let projectId: ObjectID, jwtToken: $TSFixMe, emailSmtpId: $TSFixMe;
 
 describe('Email SMTP Api Test', function (): void {
     this.timeout(200000);

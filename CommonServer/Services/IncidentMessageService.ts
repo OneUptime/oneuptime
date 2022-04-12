@@ -123,7 +123,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -149,6 +149,7 @@ export default class Service {
 }
 
 import IncidentMessageModel from '../Models/incidentMessage';
+import ObjectID from 'Common/Types/ObjectID';
 import RealTimeService from './realTimeService';
 import IncidentService from './IncidentService';
 

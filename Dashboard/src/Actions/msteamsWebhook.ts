@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/msteams';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -30,7 +31,10 @@ export const resetDeleteMsTeams = (): void => {
 };
 
 // Calls the API to link webhook team to project
-export const deleteMsTeams = (projectId: string, msTeamsId: $TSFixMe): void => {
+export const deleteMsTeams = (
+    projectId: ObjectID,
+    msTeamsId: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
         null);
@@ -78,7 +82,7 @@ export const resetGetMsTeams = (): void => {
 };
 
 export function getMsTeams(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -105,7 +109,7 @@ export function getMsTeams(
 }
 
 export function getMsTeamsMonitor(
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -159,7 +163,7 @@ export const resetCreateMsTeams = (): void => {
 };
 
 // Calls the API to add webhook to project
-export const createMsTeams = (projectId: string, data: $TSFixMe): void => {
+export const createMsTeams = (projectId: ObjectID, data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
@@ -205,7 +209,7 @@ export const resetUpdateMsTeams = (): void => {
 
 // Calls the API to add webhook to project
 export function updateMsTeams(
-    projectId: string,
+    projectId: ObjectID,
     webhookId: $TSFixMe,
     data: $TSFixMe
 ): void {

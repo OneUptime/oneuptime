@@ -1,3 +1,4 @@
+import ObjectID from 'Common/Types/ObjectID';
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
@@ -13,7 +14,7 @@ const user = {
     password,
 };
 
-let projectId: string = null;
+let projectId: ObjectID = null;
 
 describe('Project', () => {
     const operationTimeOut = init.timeout;

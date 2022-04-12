@@ -2,6 +2,7 @@ import express, {
     ExpressRequest,
     ExpressResponse,
 } from 'CommonServer/Utils/Express';
+import ObjectID from 'Common/Types/ObjectID';
 import ScheduleService from '../services/scheduleService';
 const router = express.getRouter();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -485,7 +486,8 @@ router.post(
                         if (
                             teamMember.userId &&
                             teamMemberUserIds.filter(
-                                (userId: string) => userId == teamMember.userId
+                                (userId: ObjectID) =>
+                                    userId == teamMember.userId
                             ).length > 1
                         ) {
                             return sendErrorResponse(req, res, {

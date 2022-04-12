@@ -3,7 +3,7 @@ import {
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
-
+import ObjectID from 'Common/Types/ObjectID';
 import app from 'CommonServer/Utils/StartServer';
 
 import path from 'path';
@@ -236,7 +236,7 @@ app.post('/unsubscribe', async (req: ExpressRequest, res: ExpressResponse) => {
                 message: 'No monitor was selected',
             });
         } else {
-            monitors.forEach(async (monitorId: string) => {
+            monitors.forEach(async (monitorId: ObjectID) => {
                 await axios({
                     method: 'PUT',
                     url: `${apiHost}/subscriber/unsubscribe/${monitorId}/${email}`,

@@ -1,13 +1,12 @@
-import mongoose from '../config/db';
 import ProjectService from '../Services/projectService';
 import { sendErrorResponse } from 'CommonServer/Utils/Response';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 import {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-const ObjectID = mongoose.Types.ObjectId;
 import MonitorService from '../Services/monitorService';
 
 export default {
@@ -91,7 +90,7 @@ export default {
         }
     },
 
-    isValidProjectId: function (projectId: string): void {
+    isValidProjectId: function (projectId: ObjectID): void {
         if (!ObjectID.isValid(projectId)) {
             return false;
         }

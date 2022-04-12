@@ -1,4 +1,5 @@
 import ScriptModel from '../Models/automatedScripts';
+import ObjectID from 'Common/Types/ObjectID';
 import ScriptModelLog from '../Models/automationScriptsLog';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BackendAPI from '../Utils/api';
@@ -331,7 +332,7 @@ export default class Service {
         );
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }

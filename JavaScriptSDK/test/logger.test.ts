@@ -1,4 +1,5 @@
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
@@ -16,7 +17,7 @@ describe('OneUptimeLogger', function (): void {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
     this.timeout(timeout + 1000);
-    let projectId: string,
+    let projectId: ObjectID,
         token: $TSFixMe,
         componentId,
         applicationLog: $TSFixMe;

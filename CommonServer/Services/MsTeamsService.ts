@@ -1,6 +1,7 @@
 import IntegrationService from './IntegrationService';
 import axios from 'axios';
 import ProjectService from './ProjectService';
+import ObjectID from 'Common/Types/ObjectID';
 import {
     INCIDENT_RESOLVED,
     INCIDENT_CREATED,
@@ -10,7 +11,7 @@ import {
 export default class Service {
     // process messages to be sent to slack workspace channels
     async sendNotification(
-        projectId: string,
+        projectId: ObjectID,
         incident: $TSFixMe,
         monitor: $TSFixMe,
         incidentStatus: $TSFixMe,
@@ -219,7 +220,7 @@ export default class Service {
     }
 
     async sendIncidentNoteNotification(
-        projectId: string,
+        projectId: ObjectID,
         incident: $TSFixMe,
         data: $TSFixMe,
         monitor: $TSFixMe

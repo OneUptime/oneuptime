@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 
 process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';
 import userData from './data/user';
 import dockerCredential from './data/dockerCredential';
@@ -24,9 +25,9 @@ import AirtableService from '../backend/services/airtableService';
 
 describe('Container Security API', function (): void {
     const timeout = 30000;
-    let projectId: string,
+    let projectId: ObjectID,
         componentId: $TSFixMe,
-        userId: string,
+        userId: ObjectID,
         token: $TSFixMe,
         containerSecurityId: $TSFixMe,
         credentialId: $TSFixMe;

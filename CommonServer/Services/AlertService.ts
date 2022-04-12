@@ -1,4 +1,5 @@
 import AlertModel from '../Models/alert';
+import ObjectID from 'Common/Types/ObjectID';
 import ProjectService from './ProjectService';
 import PaymentService from './PaymentService';
 import AlertType from '../config/alertType';
@@ -122,7 +123,7 @@ export default class Service {
     }
 
     async doesPhoneNumberComplyWithHighRiskConfig(
-        projectId: string,
+        projectId: ObjectID,
         alertPhoneNumber: $TSFixMe
     ): void {
         const project = await ProjectService.findOneBy({
@@ -415,7 +416,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -1801,7 +1802,7 @@ export default class Service {
     }
 
     async sendStausPageNoteNotificationToProjectWebhooks(
-        projectId: string,
+        projectId: ObjectID,
         incident: $TSFixMe,
         statusPageNoteData: $TSFixMe
     ): void {
@@ -1859,7 +1860,7 @@ export default class Service {
         incident: $TSFixMe,
         data: $TSFixMe,
         statusNoteStatus: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         const uuid = new Date().getTime();
         const track = {};
@@ -3945,7 +3946,7 @@ export default class Service {
     }
 
     //Return true, if the limit is not reached yet.
-    async checkPhoneAlertsLimit(projectId: string): void {
+    async checkPhoneAlertsLimit(projectId: ObjectID): void {
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
         );

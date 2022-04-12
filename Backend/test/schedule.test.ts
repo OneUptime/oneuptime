@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -18,7 +19,7 @@ import AirtableService from '../backend/services/airtableService';
 
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, projectId: string, scheduleId: $TSFixMe, userId;
+let token: $TSFixMe, projectId: ObjectID, scheduleId: $TSFixMe, userId;
 
 describe('Schedule API', function (): void {
     this.timeout(30000);
@@ -169,7 +170,7 @@ describe('Schedule API', function (): void {
     });
 });
 
-let subProjectId: string,
+let subProjectId: ObjectID,
     newUserToken: $TSFixMe,
     subProjectScheduleId: $TSFixMe;
 

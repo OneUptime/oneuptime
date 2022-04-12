@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -22,7 +23,7 @@ import scheduledEventNoteService from '../backend/services/scheduledEventNoteSer
 
 let token: $TSFixMe,
     userId,
-    projectId: string,
+    projectId: ObjectID,
     scheduledEventId: $TSFixMe,
     componentId,
     monitorId: $TSFixMe,

@@ -1,4 +1,5 @@
 import SubscriberModel from '../Models/subscriber';
+import ObjectID from 'Common/Types/ObjectID';
 import StatusPageService from './StatusPageService';
 
 import FindOneBy from '../Types/DB/FindOneBy';
@@ -82,7 +83,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const subscriber = await SubscriberModel.findOneAndUpdate(
             query,
             {

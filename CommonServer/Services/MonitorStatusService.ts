@@ -216,7 +216,7 @@ export default class Service {
         }
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -256,6 +256,7 @@ export default class Service {
 }
 
 import MonitorStatusModel from '../Models/monitorStatus';
+import ObjectID from 'Common/Types/ObjectID';
 import MonitorService from './MonitorService';
 import RealTimeService from './realTimeService';
 

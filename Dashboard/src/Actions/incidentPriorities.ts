@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/incidentPriorities';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -24,7 +25,7 @@ function fetchIncidentPrioritiesFailure(error: ErrorPayload): void {
 }
 
 export function fetchIncidentPriorities(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -49,7 +50,7 @@ export function fetchIncidentPriorities(
 }
 
 export const createIncidentPriority = (
-    projectId: string,
+    projectId: ObjectID,
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -91,7 +92,7 @@ function createIncidentPriorityFailure(data: $TSFixMe): void {
 }
 
 export const updateIncidentPriority = (
-    projectId: string,
+    projectId: ObjectID,
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -130,7 +131,7 @@ function updateIncidentPriorityFailure(data: $TSFixMe): void {
 }
 
 export const deleteIncidentPriority = (
-    projectId: string,
+    projectId: ObjectID,
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {

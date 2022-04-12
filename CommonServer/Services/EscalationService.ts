@@ -1,4 +1,5 @@
 import EscalationModel from '../Models/escalation';
+import ObjectID from 'Common/Types/ObjectID';
 import moment from 'moment';
 import DateTime from '../Utils/DateTime';
 import ScheduleService from './ScheduleService';
@@ -90,7 +91,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -159,7 +160,7 @@ export default class Service {
     }
 
     async deleteEscalationMember(
-        projectId: string,
+        projectId: ObjectID,
         memberId: $TSFixMe,
         deletedById: $TSFixMe
     ): void {

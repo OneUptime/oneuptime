@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
 export const SELECTED_MENU = 'SELECTED_MENU';
@@ -72,7 +73,7 @@ export const validationError = (error: ErrorPayload): void => {
 export const subscribeUser = (
     userDetails: $TSFixMe,
     monitors: $TSFixMe,
-    projectId: string,
+    projectId: ObjectID,
     statusPageId: $TSFixMe,
     notificationType: $TSFixMe
 ) => {

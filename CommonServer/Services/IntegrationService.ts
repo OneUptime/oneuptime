@@ -15,8 +15,8 @@ export default class Service {
 
     // create a new integration
     async create(
-        projectId: string,
-        userId: string,
+        projectId: ObjectID,
+        userId: ObjectID,
         data: $TSFixMe,
         integrationType: $TSFixMe,
         notificationOptions: $TSFixMe
@@ -73,7 +73,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -183,7 +183,7 @@ export default class Service {
         return updatedData;
     }
 
-    async removeMonitor(monitorId: $TSFixMe, userId: string): void {
+    async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
         let query = {};
         if (monitorId) {
             query = { monitorId: monitorId };
@@ -236,6 +236,7 @@ export default class Service {
     }
 }
 import IntegrationModel from '../Models/integration';
+import ObjectID from 'Common/Types/ObjectID';
 
 import FindOneBy from '../Types/DB/FindOneBy';
 import FindBy from '../Types/DB/FindBy';

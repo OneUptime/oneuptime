@@ -1,4 +1,5 @@
 import FeedbackModel from '../Models/feedback';
+import ObjectID from 'Common/Types/ObjectID';
 import MailService from '../../MailService/Services/MailService';
 import UserService from './UserService';
 import ProjectService from './ProjectService';
@@ -11,7 +12,7 @@ export default class Service {
     //Param 3: userId: User Id.
     //Returns: promise
     async create(
-        projectId: string,
+        projectId: ObjectID,
         message: $TSFixMe,
         page: $TSFixMe,
         createdById: $TSFixMe

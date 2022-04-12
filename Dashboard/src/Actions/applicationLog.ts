@@ -1,12 +1,13 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/applicationLog';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 //Create new log container
 //props -> {name: '', type, data -> { data.url}}
 export function createApplicationLog(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     values: $TSFixMe
 ): void {
@@ -70,7 +71,7 @@ export const resetCreateApplicationLog = (): void => {
 };
 
 export function fetchApplicationLogs(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     skip = 0,
     limit = 0,
@@ -127,7 +128,7 @@ export const resetFetchApplicationLogs = (): void => {
 //Delete a applicationLog
 //props -> {name: '', type, data -> { data.url}}
 export function deleteApplicationLog(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ): void {
@@ -190,7 +191,7 @@ export const deleteComponentApplicationLogs = (componentId: $TSFixMe): void => {
 };
 
 export function fetchLogs(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe,
     skip: PositiveNumber,
@@ -266,7 +267,7 @@ export const resetFetchLogs = (): void => {
 };
 
 export function resetApplicationLogKey(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ): void {
@@ -324,7 +325,7 @@ export const editApplicationLogSwitch = (index: $TSFixMe): void => {
 };
 //Edit new applicationLog
 export function editApplicationLog(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe,
     values: $TSFixMe
@@ -383,7 +384,7 @@ export const editApplicationLogFailure = (error: ErrorPayload): void => {
 };
 
 export function fetchStats(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
 ): void {
@@ -451,7 +452,7 @@ export const getLogSuccess = (log: $TSFixMe): void => {
 };
 
 export function searchLog(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe,
     payload: $TSFixMe

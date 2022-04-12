@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/user';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 export const fetchUsersRequest = (): void => {
@@ -77,7 +78,7 @@ export const fetchUserError = (error: $TSFixMe): void => {
 
 // Calls the API to fetch a user.
 export const fetchUser =
-    (userId: string) =>
+    (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(fetchUserRequest());
 
@@ -270,7 +271,7 @@ export const deleteUserError = (error: $TSFixMe): void => {
 
 // Calls the API to delete a user.
 export const deleteUser =
-    (userId: string) =>
+    (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(deleteUserRequest());
 
@@ -326,7 +327,7 @@ export const restoreUserError = (error: $TSFixMe): void => {
 
 // Calls the API to restore a user
 export const restoreUser =
-    (userId: string) =>
+    (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(restoreUserRequest());
 
@@ -382,7 +383,7 @@ export const blockUserError = (error: $TSFixMe): void => {
 
 // Calls the API to restore a user
 export const blockUser =
-    (userId: string) =>
+    (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(blockUserRequest());
 
@@ -438,7 +439,7 @@ export const enableAdminModeReset = (): void => {
 
 // Enable admin mode
 export const enableAdminMode =
-    (userId: string, values: $TSFixMe) => async (dispatch: Dispatch) => {
+    (userId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(enableAdminModeRequest());
 
         try {
@@ -496,7 +497,7 @@ export const disableAdminModeReset = (): void => {
 
 // Disable admin mode
 export const disableAdminMode =
-    (userId: string) => async (dispatch: Dispatch) => {
+    (userId: ObjectID) => async (dispatch: Dispatch) => {
         dispatch(disableAdminModeRequest());
 
         try {
@@ -553,7 +554,7 @@ export const unblockUserError = (error: $TSFixMe): void => {
 
 // Calls the API to unblock a user
 export const unblockUser =
-    (userId: string) =>
+    (userId: ObjectID) =>
     async (dispatch: Dispatch): void => {
         dispatch(unblockUserRequest());
 
@@ -609,7 +610,7 @@ export const addUserNoteError = (error: $TSFixMe): void => {
 
 // Calls the API to add Admin Note
 export const addUserNote =
-    (userId: string, values: $TSFixMe) => async (dispatch: Dispatch) => {
+    (userId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         dispatch(addUserNoteRequest());
 
         try {
@@ -725,7 +726,7 @@ export const twoFactorAuthTokenError = (error: $TSFixMe): void => {
 };
 
 export const updateTwoFactorAuthToken = (
-    userId: string,
+    userId: ObjectID,
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -776,7 +777,7 @@ export const fetchUserHistoryError = (error: $TSFixMe): void => {
 };
 
 export function fetchUserloginHistory(
-    userId: string,
+    userId: ObjectID,
     skip: PositiveNumber,
     limit = 10
 ): void {

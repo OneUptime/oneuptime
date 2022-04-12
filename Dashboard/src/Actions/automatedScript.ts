@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/automatedScript';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -32,7 +33,7 @@ export const createAutomatedScriptFailure = (error: ErrorPayload): void => {
 };
 
 export const createAutomatedScript = (
-    projectId: string,
+    projectId: ObjectID,
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -89,7 +90,7 @@ export const updateAutomatedScriptFailure = (error: ErrorPayload): void => {
 };
 
 export function updateAutomatedScript(
-    projectId: string,
+    projectId: ObjectID,
     automatedScriptId: $TSFixMe,
     data: $TSFixMe
 ): void {
@@ -150,7 +151,7 @@ export const fetchSingleAutomatedScriptFailure = (data: $TSFixMe): void => {
 };
 
 export function fetchSingleAutomatedScript(
-    projectId: string,
+    projectId: ObjectID,
     automatedSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -201,7 +202,7 @@ export const fetchAutomatedScriptFailure = (error: ErrorPayload): void => {
 };
 
 export function fetchAutomatedScript(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -242,7 +243,7 @@ export const runAutomatedScriptSuccess = (data: $TSFixMe): void => {
 };
 
 export const runScript = (
-    projectId: string,
+    projectId: ObjectID,
     automatedScriptId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -287,7 +288,7 @@ const deleteAutomatedScriptFailure = (error: ErrorPayload): void => {
 };
 
 export function deleteAutomatedScript(
-    projectId: string,
+    projectId: ObjectID,
     automatedSlug: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {

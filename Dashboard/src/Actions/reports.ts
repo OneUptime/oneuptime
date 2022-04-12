@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/report';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -28,7 +29,7 @@ export const getActiveMembersError = (error: ErrorPayload): void => {
 
 export const getActiveMembers =
     (
-        projectId: string,
+        projectId: ObjectID,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
         skip: PositiveNumber,
@@ -82,7 +83,7 @@ export const getActiveMonitorsError = (error: ErrorPayload): void => {
 
 export const getActiveMonitors =
     (
-        projectId: string,
+        projectId: ObjectID,
         startDate: $TSFixMe,
         endDate: $TSFixMe,
         skip: PositiveNumber,
@@ -138,7 +139,7 @@ export const getIncidentsError = (error: ErrorPayload): void => {
 
 export const getIncidents =
     (
-        projectId: string,
+        projectId: ObjectID,
         filter: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
@@ -191,7 +192,7 @@ export const getResolveTimeError = (error: ErrorPayload): void => {
 
 export const getResolveTime =
     (
-        projectId: string,
+        projectId: ObjectID,
         filter: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe

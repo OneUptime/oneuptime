@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/schedule';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -35,7 +36,7 @@ export const scheduleSuccess = (schedule: $TSFixMe): void => {
 // Calls the API to fetch Schedules.
 
 export function fetchSchedules(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -88,7 +89,7 @@ export const subProjectScheduleSuccess = (schedule: $TSFixMe): void => {
 
 // Calls the API to fetch Schedules.
 
-export const fetchSubProjectSchedules = (projectId: string): void => {
+export const fetchSubProjectSchedules = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(`schedule/${projectId}/schedules`);
@@ -137,7 +138,7 @@ export const projectScheduleSuccess = (schedule: $TSFixMe): void => {
 // Gets list of schedules in a project.
 
 export function fetchProjectSchedule(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -185,7 +186,7 @@ export const createScheduleSuccess = (schedule: $TSFixMe): void => {
 
 // Calls the API to create the schedule.
 
-export const createSchedule = (projectId: string, values: $TSFixMe): void => {
+export const createSchedule = (projectId: ObjectID, values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`schedule/${projectId}`, values);
 
@@ -233,7 +234,7 @@ export const renameScheduleError = (error: ErrorPayload): void => {
 };
 
 export function renameSchedule(
-    projectId: string,
+    projectId: ObjectID,
     scheduleId: $TSFixMe,
     scheduleName: $TSFixMe
 ): void {
@@ -293,7 +294,7 @@ export const deleteScheduleSuccess = (schedule: $TSFixMe): void => {
     };
 };
 
-export const deleteProjectSchedules = (projectId: string): void => {
+export const deleteProjectSchedules = (projectId: ObjectID): void => {
     return {
         type: types.DELETE_PROJECT_SCHEDULES,
         payload: projectId,
@@ -308,7 +309,7 @@ export const deleteScheduleError = (error: ErrorPayload): void => {
 };
 
 export const deleteSchedule = (
-    projectId: string,
+    projectId: ObjectID,
     scheduleId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -381,7 +382,7 @@ export const addMonitorError = (error: ErrorPayload): void => {
 };
 
 export function addMonitors(
-    projectId: string,
+    projectId: ObjectID,
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ): void {
@@ -450,7 +451,7 @@ export const addUserError = (error: ErrorPayload): void => {
 };
 
 export function addUsers(
-    projectId: string,
+    projectId: ObjectID,
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ): void {
@@ -519,7 +520,7 @@ export const escalationError = (error: ErrorPayload): void => {
 };
 
 export function addEscalation(
-    projectId: string,
+    projectId: ObjectID,
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ): void {
@@ -547,7 +548,7 @@ export function addEscalation(
 }
 
 export const getEscalation = (
-    projectId: string,
+    projectId: ObjectID,
     scheduleId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -624,7 +625,10 @@ export const userScheduleError = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchUserSchedule = (projectId: string, userId: string): void => {
+export const fetchUserSchedule = (
+    projectId: ObjectID,
+    userId: ObjectID
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `schedule/${projectId}/${userId}/getescalations`

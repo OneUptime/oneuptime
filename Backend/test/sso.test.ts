@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -25,7 +26,7 @@ const ssoObject = {
     ipRanges: '127.0.0.1',
 };
 
-let token: $TSFixMe, userId: string;
+let token: $TSFixMe, userId: ObjectID;
 
 describe('SSO API', function (): void {
     this.timeout(300000);

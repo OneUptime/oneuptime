@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/tutorial';
 import Route from 'Common/Types/api/route';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
@@ -77,7 +78,7 @@ export const fetchTutorial = (): void => {
     };
 };
 
-export const closeTutorial = (type: $TSFixMe, projectId: string): void => {
+export const closeTutorial = (type: $TSFixMe, projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.put('tutorial', { type, projectId });

@@ -1,5 +1,5 @@
 import { env } from './config';
-
+import ObjectID from 'Common/Types/ObjectID';
 export default class PricingPlan {
     public static getPlans(): void {
         if (
@@ -98,7 +98,7 @@ export default class PricingPlan {
         }
     }
 
-    public static getPlanById(id: string): void {
+    public static getPlanById(id: ObjectID): void {
         const plans = this.getPlans();
         if (id) return plans.find(plan => plan.planId === id);
         else return plans[0];

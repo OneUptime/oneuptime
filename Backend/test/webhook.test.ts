@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -18,7 +19,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import GlobalConfig from './utils/globalConfig';
 
 // eslint-disable-next-line
-let token: $TSFixMe, userId, projectId: string, monitorId: $TSFixMe, msTeamsId: $TSFixMe, msTeamsId1: $TSFixMe, slackId: $TSFixMe, slackId1: $TSFixMe;
+let token: $TSFixMe, userId, projectId: ObjectID, monitorId: $TSFixMe, msTeamsId: $TSFixMe, msTeamsId1: $TSFixMe, slackId: $TSFixMe, slackId1: $TSFixMe;
 const monitor = {
     name: 'New Monitor',
     type: 'url',

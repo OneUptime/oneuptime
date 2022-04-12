@@ -1,6 +1,7 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import Route from 'Common/Types/api/route';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/project';
 import { User, IS_SAAS_SERVICE } from '../config.js';
 import { history } from '../store';
@@ -126,7 +127,7 @@ export const resetProjects = (): void => {
     };
 };
 
-export const getProjects = (switchToProjectId: string): void => {
+export const getProjects = (switchToProjectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `project/projects?skip=${0}&limit=${9999}`,
@@ -204,7 +205,7 @@ export const getProjectBalanceSuccess = (project: $TSFixMe): void => {
     };
 };
 
-export const getProjectBalance = (projectId: string): void => {
+export const getProjectBalance = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`project/${projectId}/balance`, null);
 
@@ -270,7 +271,7 @@ export const createProject = (values: $TSFixMe): void => {
 };
 
 export function switchToProjectViewerNav(
-    userId: string,
+    userId: ObjectID,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ): void {
@@ -445,7 +446,7 @@ export const resetProjectTokenError = (error: ErrorPayload): void => {
     };
 };
 
-export const resetProjectToken = (projectId: string): void => {
+export const resetProjectToken = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`project/${projectId}/resetToken`);
 
@@ -505,7 +506,7 @@ export const renameProjectError = (error: ErrorPayload): void => {
 };
 
 export const renameProject = (
-    projectId: string,
+    projectId: ObjectID,
     projectName: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -549,7 +550,7 @@ export const deleteProjectRequest = (): void => {
     };
 };
 
-export const deleteProjectSuccess = (projectId: string): void => {
+export const deleteProjectSuccess = (projectId: ObjectID): void => {
     return {
         type: types.DELETE_PROJECT_SUCCESS,
         payload: projectId,
@@ -563,7 +564,10 @@ export const deleteProjectError = (error: ErrorPayload): void => {
     };
 };
 
-export const deleteProject = (projectId: string, feedback: $TSFixMe): void => {
+export const deleteProject = (
+    projectId: ObjectID,
+    feedback: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`project/${projectId}/deleteProject`,
         {
@@ -617,7 +621,7 @@ export const changePlanError = (error: ErrorPayload): void => {
 };
 
 export function changePlan(
-    projectId: string,
+    projectId: ObjectID,
     planId: $TSFixMe,
     projectName: $TSFixMe,
     oldPlan: $TSFixMe,
@@ -661,7 +665,7 @@ export function changePlan(
 }
 
 export function upgradeToEnterpriseMail(
-    projectId: string,
+    projectId: ObjectID,
     projectName: $TSFixMe,
     oldPlan: $TSFixMe
 ): void {
@@ -711,7 +715,7 @@ export const exitProjectRequest = (): void => {
     };
 };
 
-export const exitProjectSuccess = (userId: string): void => {
+export const exitProjectSuccess = (userId: ObjectID): void => {
     return {
         type: types.EXIT_PROJECT_SUCCESS,
         payload: userId,
@@ -725,7 +729,7 @@ export const exitProjectError = (error: ErrorPayload): void => {
     };
 };
 
-export const exitProject = (projectId: string, userId: string): void => {
+export const exitProject = (projectId: ObjectID, userId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise =
             delete (`project/${projectId}/user/${userId}/exitProject`, null);
@@ -758,7 +762,7 @@ export const markProjectForDeleteRequest = (): void => {
     };
 };
 
-export const markProjectForDeleteSuccess = (projectId: string): void => {
+export const markProjectForDeleteSuccess = (projectId: ObjectID): void => {
     return {
         type: types.MARK_PROJECT_DELETE_SUCCESS,
         payload: projectId,
@@ -773,7 +777,7 @@ export const markProjectForDeleteError = (error: ErrorPayload): void => {
 };
 
 export const markProjectForDelete = (
-    projectId: string,
+    projectId: ObjectID,
     feedback: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -819,7 +823,7 @@ export const alertOptionsUpdateError = (error: ErrorPayload): void => {
 };
 
 export const alertOptionsUpdate = (
-    projectId: string,
+    projectId: ObjectID,
     alertData: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -862,7 +866,7 @@ export const addBalanceError = (error: ErrorPayload): void => {
     };
 };
 
-export const addBalance = (projectId: string, data: $TSFixMe): void => {
+export const addBalance = (projectId: ObjectID, data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`stripe/${projectId}/addBalance`, data);
 
@@ -1181,7 +1185,7 @@ export const fetchProjectDomainsFailure = (error: ErrorPayload): void => {
 };
 
 export const fetchProjectDomains = (
-    projectId: string,
+    projectId: ObjectID,
     skip = 0,
     limit = 10
 ): void => {
@@ -1404,7 +1408,7 @@ export const fetchTrialError = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchTrial = (projectId: string): void => {
+export const fetchTrial = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`stripe/${projectId}/getTrial`);
 

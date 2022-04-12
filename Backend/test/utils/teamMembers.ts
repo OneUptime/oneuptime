@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import ObjectID from 'Common/Types/ObjectID';
 import ProjectModel from '../../backend/models/project';
 
 export default {
@@ -9,7 +10,7 @@ export default {
      * @returns {Object | {error : string}} the updated project or an error
      */
     addTeamMembersToProject: async function (
-        projectId: string,
+        projectId: ObjectID,
         teamMembers: $TSFixMe
     ): void {
         try {
@@ -47,7 +48,7 @@ export default {
      * @returns {Object | {error : string}} the updated project or an error
      */
     removeTeamMembersFromProject: async function (
-        projectId: string,
+        projectId: ObjectID,
         teamMembers: $TSFixMe
     ): void {
         try {

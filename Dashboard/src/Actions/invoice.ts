@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/invoice';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // Array of invoices
@@ -45,7 +46,7 @@ export const decrementNextCount = (): void => {
 
 // Get invoice from the backend
 export function getInvoice(
-    projectId: string,
+    projectId: ObjectID,
     startingAfter: $TSFixMe,
     endingBefore: $TSFixMe
 ): void {

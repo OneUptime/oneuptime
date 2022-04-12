@@ -9,6 +9,7 @@ import UUID from 'Common/Utils/UUID';
 import CreateBy from '../Types/DB/CreateBy';
 import Document from '../Infrastructure/ORM';
 import OneUptimeDate from 'Common/Types/Date';
+import ObjectID from 'Common/Types/ObjectID';
 
 export default class SslService extends DatabaseService<typeof Model> {
     constructor() {
@@ -78,7 +79,7 @@ export default class SslService extends DatabaseService<typeof Model> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async updateStatus(applicationScannerId: string): void {
+    async updateStatus(applicationScannerId: ObjectID): void {
         const data = new Document<typeof Model>();
         data.set('lastAlive', OneUptimeDate.getCurrentDate());
 

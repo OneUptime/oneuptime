@@ -1,5 +1,6 @@
 process.env['PORT'] = 3020;
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import { expect } from 'chai';
 
 import userData from './data/user';
@@ -17,7 +18,7 @@ import ProjectService from '../backend/services/projectService';
 import AirtableService from '../backend/services/airtableService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
-let token: $TSFixMe, projectId: string, userId: string;
+let token: $TSFixMe, projectId: ObjectID, userId: ObjectID;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
 describe('Audit Logs API', function (): void {

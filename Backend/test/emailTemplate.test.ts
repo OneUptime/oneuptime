@@ -3,6 +3,7 @@ import { expect } from 'chai';
 process.env['PORT'] = 3020;
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -18,7 +19,7 @@ import NotificationService from '../backend/services/notificationService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 
-let token: $TSFixMe, projectId: string, emailTemplateId: $TSFixMe, userId;
+let token: $TSFixMe, projectId: ObjectID, emailTemplateId: $TSFixMe, userId;
 
 describe('Email Template API', function (): void {
     this.timeout(20000);

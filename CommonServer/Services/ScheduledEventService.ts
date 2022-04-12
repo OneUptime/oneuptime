@@ -1,4 +1,5 @@
 import ScheduledEventModel from '../Models/scheduledEvent';
+import ObjectID from 'Common/Types/ObjectID';
 import UserModel from '../Models/user';
 import ErrorService from '../Utils/error';
 import RealTimeService from './realTimeService';
@@ -276,7 +277,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
             query,
             {
@@ -461,7 +462,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe, userId: string): void {
+    async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },

@@ -6,6 +6,7 @@ const stripe = Stripe(payment.paymentPrivateKey);
 import Plans from '../config/plans';
 import ProjectService from './ProjectService';
 import ProjectModel from '../Models/project';
+import ObjectID from 'Common/Types/ObjectID';
 import StripeService from './StripeService';
 import NotificationService from './NotificationService';
 import {
@@ -233,7 +234,7 @@ export default class Service {
         return customer.id;
     }
 
-    async addPayment(customerId: string): void {
+    async addPayment(customerId: ObjectID): void {
         const card = await stripe.customers.createSource(customerId);
         return card;
     }
@@ -245,8 +246,8 @@ export default class Service {
     //Returns : promise
 
     async subscribePlan(
-        stripePlanId: string,
-        stripeCustomerId: string,
+        stripePlanId: ObjectID,
+        stripeCustomerId: ObjectID,
         coupon: string
     ): void {
         const items = [];

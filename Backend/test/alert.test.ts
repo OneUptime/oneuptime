@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import userData from './data/user';
 import incidentData from './data/incident';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -24,9 +25,9 @@ import NotificationService from '../backend/services/notificationService';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe,
-    userId: string,
-    projectId: string,
-    subProjectId: string,
+    userId: ObjectID,
+    projectId: ObjectID,
+    subProjectId: ObjectID,
     incidentId: $TSFixMe,
     alertId: $TSFixMe,
     monitorId: $TSFixMe;

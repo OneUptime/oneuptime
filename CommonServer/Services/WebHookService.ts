@@ -7,7 +7,7 @@ import {
     PROJECT_WEBHOOK,
     EXTERNAL_SUBSCRIBER_WEBHOOK,
 } from '../constants/webHookTypes';
-
+import ObjectID from 'Common/Types/ObjectID';
 import {
     INCIDENT_RESOLVED,
     INCIDENT_ACKNOWLEDGED,
@@ -18,7 +18,7 @@ export default class Service {
     // process external subscriber webhook
     async sendSubscriberNotification(
         subscriber: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         incident: $TSFixMe,
         monitor: $TSFixMe,
         component: $TSFixMe,
@@ -53,7 +53,7 @@ export default class Service {
     }
     // process messages to be sent to slack workspace channels
     async sendIntegrationNotification(
-        projectId: string,
+        projectId: ObjectID,
         incident: $TSFixMe,
         monitor: $TSFixMe,
         incidentStatus: $TSFixMe,

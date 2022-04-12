@@ -1,11 +1,12 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/scheduledEvent';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export const fetchscheduledEvent =
-    (projectId: string, scheduledEventId: $TSFixMe) =>
+    (projectId: ObjectID, scheduledEventId: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(fetchscheduledEventRequest());
@@ -55,7 +56,7 @@ export const fetchscheduledEventFailure = (error: ErrorPayload): void => {
 };
 
 export const fetchscheduledEvents =
-    (projectId: string, skip: PositiveNumber, limit: PositiveNumber) =>
+    (projectId: ObjectID, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
         skip = Number(skip);
         limit = Number(limit);
@@ -135,7 +136,7 @@ export const fetchSubProjectScheduledEventsFailure = (
 };
 
 export const fetchSubProjectScheduledEvents =
-    (projectId: string) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchSubProjectScheduledEventsRequest());
             const response = await BackendAPI.get(
@@ -175,7 +176,7 @@ export const fetchOngoingScheduledEventsFailure = (
 });
 
 export const fetchOngoingScheduledEvents =
-    (projectId: string) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID) => async (dispatch: Dispatch) => {
         try {
             dispatch(fetchOngoingScheduledEventsRequest());
 
@@ -216,7 +217,7 @@ export const fetchSubProjectOngoingScheduledEventsFailure = (
 });
 
 export const fetchSubProjectOngoingScheduledEvents =
-    (projectId: string): void =>
+    (projectId: ObjectID): void =>
     async (dispatch: Dispatch): void => {
         try {
             dispatch(fetchSubProjectOngoingScheduledEventsRequest());
@@ -241,7 +242,7 @@ export const fetchSubProjectOngoingScheduledEvents =
     };
 
 export const createScheduledEvent =
-    (projectId: string, values: $TSFixMe) => async (dispatch: Dispatch) => {
+    (projectId: ObjectID, values: $TSFixMe) => async (dispatch: Dispatch) => {
         try {
             dispatch(createScheduledEventRequest());
 
@@ -287,7 +288,7 @@ export const createScheduledEventFailure = (error: ErrorPayload): void => {
 };
 
 export const deleteScheduledEvent =
-    (projectId: string, scheduledEventId: $TSFixMe): void =>
+    (projectId: ObjectID, scheduledEventId: $TSFixMe): void =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteScheduledEventRequest());
@@ -331,7 +332,7 @@ export const deleteScheduledEventFailure = (error: ErrorPayload): void => {
 
 export const cancelScheduledEvent =
     (
-        projectId: string,
+        projectId: ObjectID,
         scheduledEventId: $TSFixMe,
         history: $TSFixMe,
         redirect: $TSFixMe,
@@ -383,7 +384,7 @@ export const cancelScheduledEventFailure = (error: ErrorPayload): void => {
 };
 
 export function updateScheduledEvent(
-    projectId: string,
+    projectId: ObjectID,
     scheduledEventId: $TSFixMe,
     values: $TSFixMe
 ): void {
@@ -458,7 +459,7 @@ export const fetchScheduledEventNotesInternalFailure = (
 
 export const fetchScheduledEventNotesInternal =
     (
-        projectId: string,
+        projectId: ObjectID,
         scheduledEventId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber,
@@ -518,7 +519,7 @@ export const createScheduledEventNoteFailure = (error: ErrorPayload): void => ({
 });
 
 export const createScheduledEventNote =
-    (projectId: string, scheduledEventId: $TSFixMe, data: $TSFixMe) =>
+    (projectId: ObjectID, scheduledEventId: $TSFixMe, data: $TSFixMe) =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(createScheduledEventNoteRequest());
@@ -562,7 +563,7 @@ export const updateScheduledEventNoteInternalFailure = (
 
 export const updateScheduledEventNoteInternal =
     (
-        projectId: string,
+        projectId: ObjectID,
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
@@ -609,7 +610,7 @@ export const updateScheduledEventNoteInvestigationFailure = (
 
 export const updateScheduledEventNoteInvestigation =
     (
-        projectId: string,
+        projectId: ObjectID,
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
@@ -655,7 +656,7 @@ export const deleteScheduledEventNoteFailure = (error: ErrorPayload): void => ({
 
 export const deleteScheduledEventNote =
     (
-        projectId: string,
+        projectId: ObjectID,
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe
     ): void =>
@@ -695,7 +696,7 @@ export const resolveScheduledEventFailure = (error: ErrorPayload): void => ({
 });
 
 export const resolveScheduledEvent =
-    (projectId: string, scheduledEventId: $TSFixMe) =>
+    (projectId: ObjectID, scheduledEventId: $TSFixMe) =>
     async (dispatch: Dispatch): void => {
         try {
             dispatch(resolveScheduledEventRequest());
@@ -717,13 +718,13 @@ export const resolveScheduledEvent =
             dispatch(resolveScheduledEventFailure(errorMsg));
         }
     };
-export const nextPage = (projectId: string): void => {
+export const nextPage = (projectId: ObjectID): void => {
     return {
         type: types.NEXT_PAGE,
         payload: projectId,
     };
 };
-export const prevPage = (projectId: string): void => {
+export const prevPage = (projectId: ObjectID): void => {
     return {
         type: types.PREV_PAGE,
         payload: projectId,
@@ -751,7 +752,7 @@ export const fetchScheduledEventFailure = (error: ErrorPayload): void => {
 };
 
 export const fetchScheduledEvent = (
-    projectId: string,
+    projectId: ObjectID,
     slug: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {

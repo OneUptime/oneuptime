@@ -1,4 +1,5 @@
 import MonitorModel from '../Models/monitor';
+import ObjectID from 'Common/Types/ObjectID';
 import ProbeService from './ProbeService';
 import MonitorStatusService from './MonitorStatusService';
 import MonitorLogService from './MonitorLogService';
@@ -88,7 +89,7 @@ export default class Service {
         ]);
         let userCount = 0;
         if (subProjects && subProjects.length > 0) {
-            const userId: string = [];
+            const userId: ObjectID = [];
             subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
             subProjects.map((subProject: $TSFixMe) => {
                 subProject.users.map((user: $TSFixMe) => {
@@ -593,7 +594,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         if (!query) {
             query = {};
         }
@@ -826,7 +827,7 @@ export default class Service {
     }
 
     async getMonitorsBySubprojectsPaginate(
-        projectId: string,
+        projectId: ObjectID,
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
@@ -1163,7 +1164,7 @@ export default class Service {
     }
 
     async updateDeviceMonitorPingTime(
-        projectId: string,
+        projectId: ObjectID,
         deviceId: $TSFixMe
     ): void {
         const thisObj = this;
@@ -1914,9 +1915,9 @@ export default class Service {
     }
 
     async closeBreachedMonitorSla(
-        projectId: string,
+        projectId: ObjectID,
         monitorId: $TSFixMe,
-        userId: string
+        userId: ObjectID
     ): void {
         const monitor = await MonitorModel.findOneAndUpdate(
             {
@@ -1935,7 +1936,7 @@ export default class Service {
     }
 
     async changeMonitorComponent(
-        projectId: string,
+        projectId: ObjectID,
         monitorId: $TSFixMe,
         componentId: $TSFixMe
     ): void {

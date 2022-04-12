@@ -4,7 +4,7 @@ const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOS
 const Manager = module.exports;
 
 //eslint-disable-next-line @typescript-eslint/no-unused-vars
-Manager.create = function (opts: $TSFixMe): void {
+Manager.create = function (_opts: $TSFixMe): void {
     const manager = {};
 
     //

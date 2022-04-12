@@ -4,6 +4,7 @@ process.env['IS_SAAS_SERVICE'] = true;
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -27,7 +28,7 @@ import ComponentModel from '../backend/models/component';
 
 // eslint-disable-next-line
 let token: $TSFixMe,
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     resourceCategoryId,
     scheduledEventId: $TSFixMe,
@@ -923,7 +924,7 @@ describe('Status API', function (): void {
     });
 });
 
-let subProjectId: string,
+let subProjectId: ObjectID,
     newUserToken: $TSFixMe,
     anotherUserToken: $TSFixMe,
     subProjectStatusPageId: $TSFixMe;

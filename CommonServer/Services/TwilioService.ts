@@ -1,4 +1,5 @@
 import incidentSMSActionModel from '../Models/incidentSMSAction';
+import ObjectID from 'Common/Types/ObjectID';
 import twilio from 'twilio';
 import Handlebars from 'handlebars';
 import defaultSmsTemplates from '../config/smsTemplate';
@@ -41,10 +42,10 @@ export default class TwilioService {
         monitorName: $TSFixMe,
         number: $TSFixMe,
         incidentId: $TSFixMe,
-        userId: string,
+        userId: ObjectID,
         name: $TSFixMe,
         incidentType: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         smsProgress: $TSFixMe
     ): void {
         let smsBody;
@@ -176,7 +177,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         componentName: $TSFixMe,
         statusPageUrl: URL,
         customFields: $TSFixMe
@@ -306,7 +307,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         componentName: $TSFixMe,
         statusUrl: URL,
         customFields: $TSFixMe,
@@ -437,7 +438,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         componentName: $TSFixMe,
         statusPageUrl: URL,
         customFields: $TSFixMe,
@@ -568,7 +569,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         incident: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         componentName: $TSFixMe,
         statusPageUrl: URL,
         customFields: $TSFixMe,
@@ -735,7 +736,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         let smsBody;
         try {
@@ -858,7 +859,7 @@ export default class TwilioService {
         scheduleName: $TSFixMe,
         message: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         let smsBody;
         try {
@@ -980,7 +981,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         let smsBody;
         try {
@@ -1099,7 +1100,7 @@ export default class TwilioService {
         smsTemplate: $TSFixMe,
         schedule: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         let smsBody;
         try {
@@ -1219,7 +1220,7 @@ export default class TwilioService {
         title: $TSFixMe,
         description: $TSFixMe,
         projectName: $TSFixMe,
-        projectId: string
+        projectId: ObjectID
     ): void {
         let smsBody;
         try {
@@ -1339,7 +1340,7 @@ export default class TwilioService {
         number: $TSFixMe,
         accessToken: $TSFixMe,
         incidentId: $TSFixMe,
-        projectId: string,
+        projectId: ObjectID,
         incidentType: $TSFixMe,
         callProgress: $TSFixMe
     ): void {
@@ -1512,8 +1513,8 @@ export default class TwilioService {
 
     async sendVerificationSMS(
         to: $TSFixMe,
-        userId: string,
-        projectId: string,
+        userId: ObjectID,
+        projectId: ObjectID,
         validationResult: $TSFixMe
     ): void {
         let smsBody;
@@ -1633,7 +1634,7 @@ export default class TwilioService {
 
     // Fetch Available numbers to buy from twilio
     async fetchPhoneNumbers(
-        projectId: string,
+        projectId: ObjectID,
         countryCode: $TSFixMe,
         numberType: $TSFixMe
     ): void {
@@ -1734,7 +1735,7 @@ export default class TwilioService {
         return data;
     }
 
-    async buyPhoneNumber(projectId: string, phoneNumber: $TSFixMe): void {
+    async buyPhoneNumber(projectId: ObjectID, phoneNumber: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await this.findByOne({
@@ -1763,7 +1764,7 @@ export default class TwilioService {
         return numbers;
     }
 
-    async releasePhoneNumber(projectId: string, sid: $TSFixMe): void {
+    async releasePhoneNumber(projectId: ObjectID, sid: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await this.findByOne({
@@ -1784,7 +1785,7 @@ export default class TwilioService {
         return numbers;
     }
 
-    async getCallDetails(projectId: string, CallSid: $TSFixMe): void {
+    async getCallDetails(projectId: ObjectID, CallSid: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await this.findByOne({
@@ -1817,7 +1818,7 @@ export default class TwilioService {
         return price;
     }
 
-    async hasCustomSettings(projectId: string): void {
+    async hasCustomSettings(projectId: ObjectID): void {
         return await this.findByOne({
             query: { projectId, enabled: true },
             select: '_id',

@@ -3,6 +3,7 @@ process.env.LOG_LEVEL = 'error';
 process.env.API_URL = 'http://localhost:3002';
 
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
@@ -15,7 +16,7 @@ import serverMonitor from '../lib/api';
 const user = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();
 
-let token, projectId: string, apiKey: string, monitorId: $TSFixMe;
+let token, projectId: ObjectID, apiKey: string, monitorId: $TSFixMe;
 const badProjectId = 'badProjectId',
     badApiKey = 'badApiKey';
 const invalidProjectId = utils.generateRandomString();

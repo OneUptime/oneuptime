@@ -1,4 +1,5 @@
 import ResourceCategoryModel from '../Models/resourceCategory';
+import ObjectID from 'Common/Types/ObjectID';
 import MonitorModel from '../Models/monitor';
 import ApplicationLogModel from '../Models/applicationLog';
 import ErrorTrackerModel from '../Models/errorTracker';
@@ -7,7 +8,7 @@ import ContainerSecurityModel from '../Models/containerSecurity';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async deleteBy(query: Query, userId: string): void {
+    async deleteBy(query: Query, userId: ObjectID): void {
         const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {

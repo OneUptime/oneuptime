@@ -2,6 +2,7 @@ process.env['PORT'] = 3020;
 
 process.env['IS_SAAS_SERVICE'] = true;
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 const expect = chai.expect;
 import userData from './data/user';
 import app from '../server';
@@ -21,7 +22,7 @@ import MonitorCustomFieldService from '../backend/services/monitorCustomField';
 
 describe('Monitor Custom Field API', function (): void {
     const timeout = 30000;
-    let projectId: string,
+    let projectId: ObjectID,
         userId,
         token,
         authorization: $TSFixMe,

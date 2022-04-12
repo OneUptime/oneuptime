@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/component';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -100,7 +101,7 @@ export const fetchPaginatedComponentsSuccess = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchPaginatedComponentsRequest = (projectId: string): void => {
+export const fetchPaginatedComponentsRequest = (projectId: ObjectID): void => {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_REQUEST,
         payload: projectId,
@@ -109,7 +110,7 @@ export const fetchPaginatedComponentsRequest = (projectId: string): void => {
 
 export function fetchPaginatedComponentsFailure(
     error: ErrorPayload,
-    projectId: string
+    projectId: ObjectID
 ): void {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_FAILURE,
@@ -117,7 +118,10 @@ export function fetchPaginatedComponentsFailure(
     };
 }
 
-export const createComponent = (projectId: string, values: $TSFixMe): void => {
+export const createComponent = (
+    projectId: ObjectID,
+    values: $TSFixMe
+): void => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`component/${projectId}`, values);
@@ -173,7 +177,7 @@ export const resetCreateComponent = (): void => {
     };
 };
 
-export const editComponent = (projectId: string, values: $TSFixMe): void => {
+export const editComponent = (projectId: ObjectID, values: $TSFixMe): void => {
     values.projectId = values.projectId._id || values.projectId;
 
     return function (dispatch: Dispatch): void {
@@ -244,7 +248,7 @@ export const resetEditComponent = (): void => {
 // props -> {name: '', type, data -> { data.url}}
 export const deleteComponent = (
     componentId: $TSFixMe,
-    projectId: string
+    projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`component/${projectId}/${componentId}`,
@@ -292,14 +296,14 @@ export const deleteComponentFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const deleteProjectComponents = (projectId: string): void => {
+export const deleteProjectComponents = (projectId: ObjectID): void => {
     return {
         type: types.DELETE_PROJECT_COMPONENTS,
         payload: projectId,
     };
 };
 
-export const addSeat = (projectId: string): void => {
+export const addSeat = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
@@ -359,7 +363,7 @@ export const addSeatReset = (): void => {
 // Component Resources list
 // props -> {name: '', type, data -> { data.url}}
 export function fetchComponentResources(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -412,7 +416,7 @@ export const resetFetchComponentResources = (): void => {
 
 // Component Summary
 export function fetchComponentSummary(
-    projectId: string,
+    projectId: ObjectID,
     componentId: $TSFixMe,
     startDate: $TSFixMe,
     endDate: $TSFixMe
@@ -491,7 +495,7 @@ export const fetchComponentFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchComponent = (projectId: string, slug: $TSFixMe): void => {
+export const fetchComponent = (projectId: ObjectID, slug: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());

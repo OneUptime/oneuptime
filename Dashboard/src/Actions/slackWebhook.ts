@@ -1,5 +1,6 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/slackWebhooks';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -31,7 +32,7 @@ export const resetDeleteSlack = (): void => {
 };
 
 // Calls the API to link webhook team to project
-export const deleteSlack = (projectId: string, msTeamsId: $TSFixMe): void => {
+export const deleteSlack = (projectId: ObjectID, msTeamsId: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
         null);
@@ -79,7 +80,7 @@ export const resetGetSlack = (): void => {
 };
 
 export const getSlack = (
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void => {
@@ -106,7 +107,7 @@ export const getSlack = (
 };
 
 export function getSlackMonitor(
-    projectId: string,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
@@ -160,7 +161,7 @@ export const resetCreateSlack = (): void => {
 };
 
 // Calls the API to add webhook to project
-export const createSlack = (projectId: string, data: $TSFixMe): void => {
+export const createSlack = (projectId: ObjectID, data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
@@ -206,7 +207,7 @@ export const resetUpdateSlack = (): void => {
 
 // Calls the API to add webhook to project
 export function updateSlack(
-    projectId: string,
+    projectId: ObjectID,
     webhookId: $TSFixMe,
     data: $TSFixMe
 ): void {

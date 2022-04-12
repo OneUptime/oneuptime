@@ -5,6 +5,7 @@ const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
+import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 import app from '../server';
@@ -47,8 +48,8 @@ const sleep = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let token: $TSFixMe,
-    userId: string,
-    projectId: string,
+    userId: ObjectID,
+    projectId: ObjectID,
     monitorId: $TSFixMe,
     incidentId: $TSFixMe,
     testServerMonitorId,
@@ -690,7 +691,7 @@ describe('Incident API', function (): void {
     });
 });
 
-let subProjectId: string,
+let subProjectId: ObjectID,
     newUserToken: $TSFixMe,
     subProjectIncidentId: $TSFixMe;
 

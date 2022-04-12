@@ -1,10 +1,11 @@
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
+import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/callRouting';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 export function getCallRoutingNumbers(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -49,7 +50,7 @@ export const getCallRoutingNumbersFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const getTeamAndSchedules = (projectId: string): void => {
+export const getTeamAndSchedules = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const schedules = BackendAPI.get(
             `schedule/${projectId}?skip=${0}&limit=${0}`
@@ -97,7 +98,7 @@ export const getTeamAndSchedulesFailure = (error: ErrorPayload): void => {
 };
 
 export const addCallRoutingNumber = (
-    projectId: string,
+    projectId: ObjectID,
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -158,7 +159,7 @@ export const resetAddCallRoutingNumber = (): void => {
 };
 
 export function uploadCallRoutingAudio(
-    projectId: string,
+    projectId: ObjectID,
     callRoutingId: $TSFixMe,
     values: $TSFixMe,
     audioFieldName: $TSFixMe
@@ -240,7 +241,7 @@ export function uploadCallRoutingAudioFailure(
 }
 
 export function addCallRoutingSchedule(
-    projectId: string,
+    projectId: ObjectID,
     callRoutingId: $TSFixMe,
     values: $TSFixMe
 ): void {
@@ -296,7 +297,7 @@ export const addCallRoutingScheduleFailure = (error: ErrorPayload): void => {
 };
 
 export function fetchNumbers(
-    projectId: string,
+    projectId: ObjectID,
     countryCode: $TSFixMe,
     numberType: $TSFixMe
 ): void {
@@ -346,7 +347,7 @@ export const resetFetchNumbers = (): void => {
 };
 
 export const removeNumbers = (
-    projectId: string,
+    projectId: ObjectID,
     callRoutingId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
@@ -391,7 +392,7 @@ export const removeNumbersFailure = (error: ErrorPayload): void => {
 };
 
 export function getCallRoutingLogs(
-    projectId: string,
+    projectId: ObjectID,
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
@@ -449,7 +450,7 @@ export const getCallRoutingLogsReset = (): void => {
 };
 
 export function removeIntroAudio(
-    projectId: string,
+    projectId: ObjectID,
     callRoutingId: $TSFixMe,
     backup: $TSFixMe
 ): void {

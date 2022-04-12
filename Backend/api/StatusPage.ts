@@ -11,7 +11,7 @@ import RealTimeService from '../services/realTimeService';
 import DomainVerificationService from '../services/domainVerificationService';
 import IncidentService from '../services/incidentService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-
+import ObjectID from 'Common/Types/ObjectID';
 const router = express.getRouter();
 
 import validUrl from 'valid-url';
@@ -2826,7 +2826,7 @@ async function getMonitorLogs(req: ExpressRequest, monitors: $TSFixMe): void {
 async function getAnnouncements(
     req: ExpressRequest,
     statusPageId: $TSFixMe,
-    projectId: string
+    projectId: ObjectID
 ): void {
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };
