@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const subscriberModel = new SubscriberModel();
 
         subscriberModel.projectId = data.projectId || null;
@@ -43,7 +43,7 @@ export default class Service {
         });
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -61,7 +61,7 @@ export default class Service {
         return updatedSubscriber;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -82,7 +82,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         const subscriber = await SubscriberModel.findOneAndUpdate(
             query,
             {
@@ -99,7 +99,7 @@ export default class Service {
         return subscriber;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
         if (!limit) limit = 10;
         if (typeof skip === 'string') {
@@ -166,7 +166,7 @@ export default class Service {
         return subscribersArr;
     }
 
-    async subscribersForAlert(query: Query) {
+    async subscribersForAlert(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -220,7 +220,7 @@ export default class Service {
         return subscribersArr;
     }
 
-    async subscribe(data: $TSFixMe, monitors: $TSFixMe) {
+    async subscribe(data: $TSFixMe, monitors: $TSFixMe): void {
         const populateStatusPage = [
             { path: 'monitors.monitor', select: '_id' },
         ];
@@ -279,7 +279,7 @@ export default class Service {
         return subscriber;
     }
 
-    async subscribeFromCSVFile(subscribers: $TSFixMe) {
+    async subscribeFromCSVFile(subscribers: $TSFixMe): void {
         const { data, projectId, monitorId } = subscribers;
         const success = data.map(async (subscriber: $TSFixMe) => {
             const newSubscriber = Object.assign({}, subscriber, {
@@ -295,7 +295,7 @@ export default class Service {
         return await Promise.all(success);
     }
 
-    async subscriberCheck(subscriber: $TSFixMe) {
+    async subscriberCheck(subscriber: $TSFixMe): void {
         const existingSubscriber = await this.findByOne({
             query: {
                 monitorId: subscriber.monitorId,
@@ -320,7 +320,7 @@ export default class Service {
         return existingSubscriber !== null;
     }
 
-    async findByOne({ query, select, populate, sort }: FindOneBy) {
+    async findByOne({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -338,7 +338,7 @@ export default class Service {
         return subscriber;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -348,12 +348,12 @@ export default class Service {
         return count;
     }
 
-    async removeBy(query: Query) {
+    async removeBy(query: Query): void {
         await SubscriberModel.deleteMany(query);
         return 'Subscriber(s) removed successfully';
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
         let subscriber = await this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {

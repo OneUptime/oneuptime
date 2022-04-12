@@ -9,7 +9,7 @@ import ProjectService from './projectService';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    findBy: async function ({ query, limit, skip, sort }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip, sort }: $TSFixMe): void {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
@@ -27,7 +27,7 @@ export default {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function ({ query }: $TSFixMe) {
+    findOneBy: async function ({ query }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -39,7 +39,7 @@ export default {
         return incident;
     },
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }

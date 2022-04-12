@@ -58,17 +58,17 @@ export const resetCloseTutorial = (): void => {
 };
 
 export const fetchTutorial = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(new Route('tutorial'));
 
         dispatch(fetchTutorialRequest(promise));
 
         promise.then(
-            function (tutorial) {
+            function (tutorial): void {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchTutorialError(error));
             }
         );
@@ -78,17 +78,17 @@ export const fetchTutorial = (): void => {
 };
 
 export const closeTutorial = (type: $TSFixMe, projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.put('tutorial', { type, projectId });
 
         dispatch(closeTutorialRequest(promise));
 
         promise.then(
-            function (tutorial) {
+            function (tutorial): void {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(closeTutorialError(error));
             }
         );

@@ -28,7 +28,7 @@ export const statusPageFailure = (error: ErrorPayload): void => {
 
 // Calls the API to get status
 export const getStatusPage = (statusPageSlug: $TSFixMe, url: URL): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${statusPageSlug}?url=${url}`
         );
@@ -73,7 +73,7 @@ export const getAllStatusPageResource = (
     url: URL,
     range: $TSFixMe
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promises = [];
 
         promises.push(
@@ -287,7 +287,7 @@ export const getStatusPageNote = (
     days = 14,
     newTheme = false
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
@@ -327,7 +327,7 @@ export const getStatusPageIndividualNote = (
     need: $TSFixMe,
     theme: $TSFixMe
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${monitorId}/individualnotes?date=${date}&need=${need}&theme=${theme}`
         );
@@ -400,7 +400,7 @@ export const getScheduledEvent = (
     theme: $TSFixMe,
     days: $TSFixMe
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
@@ -463,7 +463,7 @@ export const getOngoingScheduledEvent = (
     theme: $TSFixMe,
     limit: PositiveNumber
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
         );
@@ -514,7 +514,7 @@ export const getIndividualEvent = (
     name: $TSFixMe,
     theme: $TSFixMe
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${monitorId}/individualevents?date=${date}&theme=${theme}`
         );
@@ -641,7 +641,7 @@ export const notmonitoredDays = (
     name: $TSFixMe,
     message: $TSFixMe
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(statusPageNoteReset());
         dispatch(
             individualNoteEnable({
@@ -681,7 +681,7 @@ export const getMoreNote = (
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}`
         );
@@ -734,7 +734,7 @@ export const getMoreEvent = (
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}`
         );
@@ -842,7 +842,7 @@ export const fetchMorePastEvents =
     };
 
 export const selectedProbe = (val: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: types.SELECT_PROBE,
             payload: val,
@@ -857,7 +857,7 @@ export function fetchMonitorStatuses(
     startDate: $TSFixMe,
     endDate: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
@@ -865,7 +865,7 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
-            function (monitorStatuses) {
+            function (monitorStatuses): void {
                 dispatch(
                     fetchMonitorStatusesSuccess({
                         projectId,
@@ -875,7 +875,7 @@ export function fetchMonitorStatuses(
                     })
                 );
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -902,7 +902,9 @@ export const fetchMonitorStatusesRequest = (id: $TSFixMe): void => {
     };
 };
 
-export const fetchMonitorStatusesSuccess = (monitorStatuses: $TSFixMe): void => {
+export const fetchMonitorStatusesSuccess = (
+    monitorStatuses: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITOR_STATUSES_SUCCESS,
         payload: monitorStatuses,
@@ -921,7 +923,7 @@ export function fetchMonitorLogs(
     monitorId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/${monitorId}/monitorLogs`,
             data
@@ -929,7 +931,7 @@ export function fetchMonitorLogs(
         dispatch(fetchMonitorLogsRequest(monitorId));
 
         promise.then(
-            function (monitorLogs) {
+            function (monitorLogs): void {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         monitorId,
@@ -938,7 +940,7 @@ export function fetchMonitorLogs(
                     })
                 );
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -957,21 +959,21 @@ export function fetchMonitorLogs(
     };
 }
 
-function fetchMonitorLogsRequest(monitorId: $TSFixMe) {
+function fetchMonitorLogsRequest(monitorId: $TSFixMe): void {
     return {
         type: types.FETCH_MONITOR_LOGS_REQUEST,
         payload: monitorId,
     };
 }
 
-function fetchMonitorLogsSuccess({ monitorId, logs }: $TSFixMe) {
+function fetchMonitorLogsSuccess({ monitorId, logs }: $TSFixMe): void {
     return {
         type: types.FETCH_MONITOR_LOGS_SUCCESS,
         payload: { monitorId, logs },
     };
 }
 
-function fetchMonitorLogsFailure(error: ErrorPayload) {
+function fetchMonitorLogsFailure(error: ErrorPayload): void {
     return {
         type: types.FETCH_MONITOR_LOGS_FAILURE,
         payload: error,
@@ -999,8 +1001,11 @@ export const fetchEventFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchEvent = (projectId: string, scheduledEventId: $TSFixMe): void => {
-    return async function (dispatch: Dispatch) {
+export const fetchEvent = (
+    projectId: string,
+    scheduledEventId: $TSFixMe
+): void => {
+    return async function (dispatch: Dispatch): void {
         dispatch(fetchEventRequest());
 
         try {
@@ -1049,7 +1054,7 @@ export function fetchEventNote(
     scheduledEventSlug: $TSFixMe,
     type: $TSFixMe
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         dispatch(fetchEventNoteRequest());
 
         try {
@@ -1098,7 +1103,7 @@ export function moreEventNote(
     type: $TSFixMe,
     skip: PositiveNumber
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             dispatch(moreEventNoteRequest());
 
@@ -1142,8 +1147,11 @@ export const fetchIncidentFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchIncident = (projectId: string, incidentSlug: $TSFixMe): void => {
-    return async function (dispatch: Dispatch) {
+export const fetchIncident = (
+    projectId: string,
+    incidentSlug: $TSFixMe
+): void => {
+    return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchIncidentRequest());
             const response = await BackendAPI.get(
@@ -1190,7 +1198,7 @@ export function fetchIncidentNotes(
     incidentId: $TSFixMe,
     postOnStatusPage: $TSFixMe
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchIncidentNotesRequest());
 
@@ -1239,7 +1247,7 @@ export function moreIncidentNotes(
     postOnStatusPage: $TSFixMe,
     skip: PositiveNumber
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             dispatch(moreIncidentNotesRequest());
 
@@ -1286,7 +1294,7 @@ export function fetchLastIncidentTimeline(
     projectId: string,
     incidentSlug: $TSFixMe
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchLastIncidentTimelineRequest());
 
@@ -1322,7 +1330,9 @@ export const fetchLastIncidentTimelinesSuccess = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchLastIncidentTimelinesFailure = (error: ErrorPayload): void => {
+export const fetchLastIncidentTimelinesFailure = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_FAILURE,
         payload: error,
@@ -1333,7 +1343,7 @@ export function fetchLastIncidentTimelines(
     projectId: string,
     statusPageSlug: $TSFixMe
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
 
@@ -1390,16 +1400,16 @@ export function getAnnouncements(
     skip = 0,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
         );
         dispatch(getAnnouncementsRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(getAnnouncementsSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -1440,16 +1450,16 @@ export function getSingleAnnouncement(
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         dispatch(getSingleAnnouncementRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -1491,16 +1501,16 @@ export function fetchAnnouncementLogs(
     skip = 0,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1535,7 +1545,7 @@ export function calculateTime(
     range: $TSFixMe,
     monitorId: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`monitor/${monitorId}/calculate-time`, {
             statuses,
             start,
@@ -1543,10 +1553,10 @@ export function calculateTime(
         });
         dispatch(calculateTimeRequest(monitorId));
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(calculateTimeSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(calculateTimeFailure(error));
             }
         );
@@ -1576,17 +1586,17 @@ export const fetchTweetsFailure = (error: ErrorPayload): void => {
 };
 
 export const fetchTweets = (handle: $TSFixMe, projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`StatusPage/${projectId}/tweets`, {
             handle,
         });
 
         dispatch(fetchTweetsRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchTweetsSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchTweetsFailure(error));
             }
         );
@@ -1618,17 +1628,17 @@ export function fetchExternalStatusPages(
     projectId: string,
     statusPageId: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
         );
 
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchExternalStatusPagesFailure(error));
             }
         );

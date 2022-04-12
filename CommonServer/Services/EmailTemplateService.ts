@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const emailTemplateModel = new EmailTemplateModel();
 
         emailTemplateModel.projectId = data.projectId || null;
@@ -16,7 +16,7 @@ export default class Service {
         return emailTemplate;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -38,7 +38,7 @@ export default class Service {
         return updatedEmailTemplate;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -56,7 +56,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         const emailTemplate = await EmailTemplateModel.findOneAndUpdate(
             query,
             {
@@ -73,7 +73,7 @@ export default class Service {
         return emailTemplate;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         query['deleted'] = false;
         const emailTemplates = EmailTemplateModel.find(query)
             .lean()
@@ -87,7 +87,7 @@ export default class Service {
         return result;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -104,7 +104,7 @@ export default class Service {
         return result;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -114,7 +114,7 @@ export default class Service {
         return count;
     }
 
-    async getTemplates(projectId: string) {
+    async getTemplates(projectId: string): void {
         const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
             defaultTemplate.map(async template => {
@@ -134,7 +134,7 @@ export default class Service {
         return templates;
     }
 
-    async resetTemplate(projectId: string, templateId: $TSFixMe) {
+    async resetTemplate(projectId: string, templateId: $TSFixMe): void {
         const select = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await this.findOneBy({
             query: { _id: templateId },

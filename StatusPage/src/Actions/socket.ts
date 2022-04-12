@@ -1,7 +1,7 @@
 import { Dispatch } from 'redux';
 
 export const updatestatuspagebysocket = (statuspage: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_STATUS_PAGE',
             payload: statuspage,
@@ -10,7 +10,7 @@ export const updatestatuspagebysocket = (statuspage: $TSFixMe): void => {
 };
 
 export const updatemonitorbysocket = (monitor: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_MONITOR',
             payload: monitor,
@@ -19,7 +19,7 @@ export const updatemonitorbysocket = (monitor: $TSFixMe): void => {
 };
 
 export const deletemonitorbysocket = (monitor: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'DELETE_MONITOR',
             payload: monitor._id,
@@ -31,7 +31,7 @@ export function updatemonitorstatusbysocket(
     status: $TSFixMe,
     probes: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_MONITOR_STATUS',
             payload: { status, probes },
@@ -40,7 +40,7 @@ export function updatemonitorstatusbysocket(
 }
 
 export const addincidentnotebysocket = (note: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'ADD_INCIDENT_NOTE',
             payload: note,
@@ -49,7 +49,7 @@ export const addincidentnotebysocket = (note: $TSFixMe): void => {
 };
 
 export const updateincidentnotebysocket = (note: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_INCIDENT_NOTE',
             payload: note,
@@ -58,7 +58,7 @@ export const updateincidentnotebysocket = (note: $TSFixMe): void => {
 };
 
 export const addscheduledeventbysocket = (event: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'ADD_SCHEDULED_EVENT',
             payload: event,
@@ -67,7 +67,7 @@ export const addscheduledeventbysocket = (event: $TSFixMe): void => {
 };
 
 export const deletescheduledeventbysocket = (event: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'DELETE_SCHEDULED_EVENT',
             payload: event,
@@ -76,7 +76,7 @@ export const deletescheduledeventbysocket = (event: $TSFixMe): void => {
 };
 
 export const updatescheduledeventbysocket = (event: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_SCHEDULED_EVENT',
             payload: event,
@@ -85,7 +85,7 @@ export const updatescheduledeventbysocket = (event: $TSFixMe): void => {
 };
 
 export const addeventnotebysocket = (note: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'ADD_EVENT_NOTE',
             payload: note,
@@ -94,7 +94,7 @@ export const addeventnotebysocket = (note: $TSFixMe): void => {
 };
 
 export const deleteeventnotebysocket = (note: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'DELETE_EVENT_NOTE',
             payload: note,
@@ -103,7 +103,7 @@ export const deleteeventnotebysocket = (note: $TSFixMe): void => {
 };
 
 export const updateeventnotebysocket = (note: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_EVENT_NOTE',
             payload: note,
@@ -112,7 +112,7 @@ export const updateeventnotebysocket = (note: $TSFixMe): void => {
 };
 
 export const updateprobebysocket = (probe: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_PROBE',
             payload: probe,
@@ -121,7 +121,7 @@ export const updateprobebysocket = (probe: $TSFixMe): void => {
 };
 
 export const incidentcreatedbysocket = (incident: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'INCIDENT_CREATED',
             payload: incident,
@@ -130,7 +130,7 @@ export const incidentcreatedbysocket = (incident: $TSFixMe): void => {
 };
 
 export const deleteincidentbysocket = (incident: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'INCIDENT_DELETED',
             payload: incident,
@@ -139,7 +139,7 @@ export const deleteincidentbysocket = (incident: $TSFixMe): void => {
 };
 
 export const updateincidentbysocket = (incident: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'INCIDENT_UPDATED',
             payload: incident,
@@ -148,7 +148,7 @@ export const updateincidentbysocket = (incident: $TSFixMe): void => {
 };
 
 export const addincidenttimelinebysocket = (timeline: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'INCIDENT_TIMELINE_CREATED',
             payload: timeline,
@@ -157,7 +157,7 @@ export const addincidenttimelinebysocket = (timeline: $TSFixMe): void => {
 };
 
 export const deleteincidentnotebysocket = (note: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'DELETE_INCIDENT_NOTE',
             payload: note,
@@ -166,7 +166,7 @@ export const deleteincidentnotebysocket = (note: $TSFixMe): void => {
 };
 
 export const resolvescheduledeventbysocket = (event: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'RESOLVE_SCHEDULED_EVENT',
             payload: event,
@@ -174,7 +174,7 @@ export const resolvescheduledeventbysocket = (event: $TSFixMe): void => {
     };
 };
 export const updatestweetsbysocket = (tweets: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_TWEETS',
             payload: tweets,

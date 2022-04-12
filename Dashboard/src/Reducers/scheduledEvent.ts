@@ -165,7 +165,10 @@ const INITIAL_STATE = {
     pages: {},
 };
 
-export default function scheduledEvent(state = INITIAL_STATE, action: Action) {
+export default function scheduledEvent(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         case CREATE_SCHEDULED_EVENT_SUCCESS: {
             let existingPayload = false;

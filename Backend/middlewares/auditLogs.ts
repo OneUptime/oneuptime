@@ -22,7 +22,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             const blackListedRoutes = ['/audit-logs/'];
             const blackListedReqObjectPaths = ['body.password'];

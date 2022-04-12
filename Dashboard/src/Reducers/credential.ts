@@ -14,7 +14,7 @@ const initialState = {
     dockerSecurities: [],
 };
 
-export default function credential(state = initialState, action: Action) {
+export default function credential(state = initialState, action: Action): void {
     switch (action.type) {
         case types.ADD_GIT_CREDENTIAL_REQUEST:
             return {

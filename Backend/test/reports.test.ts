@@ -32,29 +32,32 @@ const endDate = moment().format('YYYY-MM-DD');
 const startDate = moment().subtract(7, 'd').format('YYYY-MM-DD');
 const filter = 'month';
 
-describe('Reports API', function () {
+describe('Reports API', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -102,7 +105,7 @@ describe('Reports API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({

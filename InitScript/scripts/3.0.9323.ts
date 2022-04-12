@@ -7,7 +7,7 @@ const resourceCategoryCollection = 'resourcecategories';
 const statusPageCategoryCollection = 'statuspagecategories';
 const statusPageCollection = 'statuspages';
 
-async function run() {
+async function run(): void {
     // fetch status pages
     const statusPages = await find(statusPageCollection, {
         isGroupedByMonitorCategory: true,

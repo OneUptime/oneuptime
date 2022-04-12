@@ -13,7 +13,11 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create({ projectId }: $TSFixMe, data: $TSFixMe, recurring: $TSFixMe) {
+    async create(
+        { projectId }: $TSFixMe,
+        data: $TSFixMe,
+        recurring: $TSFixMe
+    ): void {
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor to create a scheduled event'
@@ -149,7 +153,7 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -241,7 +245,7 @@ export default class Service {
         return updatedScheduledEvent;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -272,7 +276,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
             query,
             {
@@ -308,7 +312,7 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -340,7 +344,7 @@ export default class Service {
         return scheduledEvents;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -376,7 +380,7 @@ export default class Service {
         return scheduledEvent;
     }
 
-    async getSubProjectScheduledEvents(subProjectIds: $TSFixMe) {
+    async getSubProjectScheduledEvents(subProjectIds: $TSFixMe): void {
         const populateScheduledEvent = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -415,7 +419,7 @@ export default class Service {
     async getSubProjectOngoingScheduledEvents(
         subProjectIds: $TSFixMe,
         query: Query
-    ) {
+    ): void {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -457,7 +461,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe, userId: string) {
+    async removeMonitor(monitorId: $TSFixMe, userId: string): void {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -535,7 +539,7 @@ export default class Service {
      * @param {object} query query parameter to use for db manipulation
      * @param {object} data data to be used to update the schedule
      */
-    async resolveScheduledEvent(query: Query, data: $TSFixMe) {
+    async resolveScheduledEvent(query: Query, data: $TSFixMe): void {
         data.resolved = true;
         data.resolvedAt = Date.now();
         let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -660,7 +664,7 @@ export default class Service {
     /**
      * @description Create Started note for all schedule events
      */
-    async createScheduledEventStartedNote() {
+    async createScheduledEventStartedNote(): void {
         const currentTime = moment();
 
         //fetch events that have started
@@ -722,7 +726,7 @@ export default class Service {
 
     /**
      * @description Create Ended note for all schedule events
-async  */ createScheduledEventEndedNote() {
+async  */ createScheduledEventEndedNote(): void {
         const currentTime = moment();
 
         //fetch events that have ended
@@ -775,6 +779,6 @@ async  */ createScheduledEventEndedNote() {
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-function isArrayUnique(myArray: $TSFixMe) {
+function isArrayUnique(myArray: $TSFixMe): void {
     return myArray.length === new Set(myArray).size;
 }

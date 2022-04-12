@@ -31,19 +31,22 @@ export const createAutomatedScriptFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const createAutomatedScript = (projectId: string, data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const createAutomatedScript = (
+    projectId: string,
+    data: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`automated-scripts/${projectId}`, data);
 
         dispatch(createAutomatedScriptRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(createAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -90,7 +93,7 @@ export function updateAutomatedScript(
     automatedScriptId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}`,
             data
@@ -99,12 +102,12 @@ export function updateAutomatedScript(
         dispatch(updateAutomatedScriptRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(updateAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -152,7 +155,7 @@ export function fetchSingleAutomatedScript(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
@@ -160,10 +163,10 @@ export function fetchSingleAutomatedScript(
         dispatch(fetchSingleAutomatedScriptRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchSingleAutomatedScriptSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -202,16 +205,16 @@ export function fetchAutomatedScript(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchAutomatedScriptFailure(error));
             }
         );
@@ -238,20 +241,23 @@ export const runAutomatedScriptSuccess = (data: $TSFixMe): void => {
     };
 };
 
-export const runScript = (projectId: string, automatedScriptId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const runScript = (
+    projectId: string,
+    automatedScriptId: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
         dispatch(runAutomatedScriptRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(runAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(runAutomatedScriptFailure(error));
             }
         );
@@ -284,17 +290,17 @@ export function deleteAutomatedScript(
     projectId: string,
     automatedSlug: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise =
             delete `automated-scripts/${projectId}/${automatedSlug}`;
         dispatch(deleteAutomatedScriptRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(deleteAutomatedScriptSuccess(response.data));
                 return true;
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteAutomatedScriptFailure(error));
                 return false;
             }

@@ -2,7 +2,7 @@ import { find, updateMany } from '../util/db';
 
 const monitorCollection = 'monitors';
 
-async function run() {
+async function run(): void {
     const monitors = await find(monitorCollection, {
         deleted: false,
         regions: { $exists: false },

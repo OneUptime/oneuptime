@@ -1,5 +1,5 @@
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!query['deleted']) query['deleted'] = false;
         const integrationQuery = IntegrationModel.find(query)
             .lean()
@@ -63,7 +63,7 @@ export default class Service {
         return integration;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -73,7 +73,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -88,7 +88,7 @@ export default class Service {
         return integration;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (query.deleted) query['deleted'] = false;
@@ -102,7 +102,7 @@ export default class Service {
         return result;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -159,7 +159,7 @@ export default class Service {
         }
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -183,7 +183,7 @@ export default class Service {
         return updatedData;
     }
 
-    async removeMonitor(monitorId: $TSFixMe, userId: string) {
+    async removeMonitor(monitorId: $TSFixMe, userId: string): void {
         let query = {};
         if (monitorId) {
             query = { monitorId: monitorId };
@@ -200,7 +200,7 @@ export default class Service {
         return integrations;
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
         const select =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';

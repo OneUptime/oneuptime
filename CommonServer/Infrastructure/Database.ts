@@ -26,7 +26,7 @@ export default class Database {
         return this.fileClient;
     }
 
-    public static async connect() {
+    public static async connect(): void {
         if (!this.databaseClient) {
             await this.getClient();
         }

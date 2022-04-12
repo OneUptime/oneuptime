@@ -11,7 +11,7 @@ import { serverUrl } from '../Config';
 import { deleteFile } from '../Utils/fsHandlers';
 
 export default {
-    run: async function ({ monitor }) {
+    run: async function ({ monitor }): void {
         if (
             monitor &&
             monitor.type &&
@@ -651,7 +651,7 @@ export default {
     },
 };
 
-function loadPodOutput(configPath, namespace) {
+function loadPodOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let podOutput = '';
         const podCommand = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
@@ -674,7 +674,7 @@ function loadPodOutput(configPath, namespace) {
     });
 }
 
-function loadJobOutput(configPath, namespace) {
+function loadJobOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let jobOutput = '';
         const jobCommand = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
@@ -697,7 +697,7 @@ function loadJobOutput(configPath, namespace) {
     });
 }
 
-function loadServiceOutput(configPath, namespace) {
+function loadServiceOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let serviceOutput = '';
         const serviceCommand = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
@@ -720,7 +720,7 @@ function loadServiceOutput(configPath, namespace) {
     });
 }
 
-function loadDeploymentOutput(configPath, namespace) {
+function loadDeploymentOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let deploymentOutput = '';
         const deploymentCommand = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
@@ -743,7 +743,7 @@ function loadDeploymentOutput(configPath, namespace) {
     });
 }
 
-function loadStatefulsetOutput(configPath, namespace) {
+function loadStatefulsetOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let statefulsetOutput = '';
         const statefulsetCommand = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;

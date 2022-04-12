@@ -31,15 +31,19 @@ export const resetSubProjects = (): void => {
     };
 };
 
-export const getSubProjects = (projectId: string, skip = 0, limit = 10): void => {
-    return function (dispatch: Dispatch) {
+export const getSubProjects = (
+    projectId: string,
+    skip = 0,
+    limit = 10
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `project/${projectId}/subProjects?skip=${skip}&limit=${limit}`
         );
         dispatch(subProjectsRequest(promise));
 
         promise.then(
-            function (subProjects) {
+            function (subProjects): void {
                 const subData = {
                     subProjects: subProjects.data.data,
 
@@ -49,7 +53,7 @@ export const getSubProjects = (projectId: string, skip = 0, limit = 10): void =>
                 };
                 dispatch(subProjectsSuccess(subData));
             },
-            function (error) {
+            function (error): void {
                 dispatch(subProjectsError(error));
             }
         );
@@ -91,13 +95,16 @@ export const resetCreateNewSubProject = (): void => {
 };
 
 export const createNewSubProjectReset = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(resetCreateNewSubProject());
     };
 };
 
-export function createSubProject(projectId: string, subProjectName: $TSFixMe) {
-    return function (dispatch: Dispatch) {
+export function createSubProject(
+    projectId: string,
+    subProjectName: $TSFixMe
+): void {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`project/${projectId}/subProject`, {
             subProjectName,
         });
@@ -105,12 +112,12 @@ export function createSubProject(projectId: string, subProjectName: $TSFixMe) {
         dispatch(createSubProjectRequest());
 
         return promise.then(
-            function (subProject) {
+            function (subProject): void {
                 dispatch(createSubProjectSuccess(subProject.data));
 
                 return subProject.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(createSubProjectError(error));
                 return { error };
             }
@@ -145,22 +152,22 @@ export const resetSubProjectTokenError = (error: ErrorPayload): void => {
 };
 
 export const resetSubProjectKeyReset = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(resetSubProjectTokenReset());
     };
 };
 
 export const resetSubProjectToken = (subProjectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`project/${subProjectId}/resetToken`);
 
         dispatch(resetSubProjectTokenRequest());
 
         promise.then(
-            function (subProject) {
+            function (subProject): void {
                 dispatch(resetSubProjectTokenSuccess(subProject));
             },
-            function (error) {
+            function (error): void {
                 dispatch(resetSubProjectTokenError(error));
             }
         );
@@ -196,7 +203,7 @@ export const renameSubProjectError = (error: ErrorPayload): void => {
 };
 
 export const resetRenameSubProject = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(renameSubProjectReset());
     };
 };
@@ -206,7 +213,7 @@ export function renameSubProject(
     subProjectId: string,
     subProjectName: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`project/${projectId}/${subProjectId}`, {
             subProjectName,
         });
@@ -214,11 +221,11 @@ export function renameSubProject(
         dispatch(renameSubProjectRequest());
 
         promise.then(
-            function (project) {
+            function (project): void {
                 dispatch(renameSubProjectSuccess(project));
                 return project;
             },
-            function (error) {
+            function (error): void {
                 dispatch(renameSubProjectError(error));
                 return { error };
             }
@@ -254,13 +261,16 @@ export const deleteSubProjectReset = (): void => {
 };
 
 export const resetDeleteSubProject = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(deleteSubProjectReset());
     };
 };
 
-export const deleteSubProject = (projectId: string, subProjectId: string): void => {
-    return function (dispatch: Dispatch) {
+export const deleteSubProject = (
+    projectId: string,
+    subProjectId: string
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`project/${projectId}/${subProjectId}`,
         {
             subProjectId,
@@ -269,12 +279,12 @@ export const deleteSubProject = (projectId: string, subProjectId: string): void 
         dispatch(deleteSubProjectRequest());
 
         promise.then(
-            function () {
+            function (): void {
                 dispatch(setActiveSubProject(projectId, true));
                 dispatch(deleteSubProjectSuccess(subProjectId));
                 return subProjectId;
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteSubProjectError(error));
                 return { error };
             }
@@ -311,17 +321,17 @@ export function exitSubProject(
     subProjectId: string,
     userId: string
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise =
             delete (`subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
             null);
         dispatch(exitSubProjectRequest());
 
         promise.then(
-            function () {
+            function (): void {
                 dispatch(exitSubProjectSuccess({ projectId, userId }));
             },
-            function (error) {
+            function (error): void {
                 dispatch(exitSubProjectError(error));
             }
         );
@@ -363,7 +373,7 @@ export function markSubProjectForDelete(
     subProjectId: string,
     feedback: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise =
             delete (`subProject/${projectId}/${subProjectId}/deleteProject`,
             { subProjectId, feedback });
@@ -371,10 +381,10 @@ export function markSubProjectForDelete(
         dispatch(markSubProjectForDeleteRequest());
 
         promise.then(
-            function () {
+            function (): void {
                 dispatch(markSubProjectForDeleteSuccess(projectId));
             },
-            function (error) {
+            function (error): void {
                 dispatch(markSubProjectForDeleteError(error));
             }
         );

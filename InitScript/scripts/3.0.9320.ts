@@ -2,7 +2,7 @@ import { customUpdate } from '../util/db';
 
 const statusPageCollection = 'statuspages';
 
-async function run() {
+async function run(): void {
     await customUpdate(
         statusPageCollection,
         {

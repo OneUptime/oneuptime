@@ -2,14 +2,14 @@ import axios from 'axios';
 const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
 
 export default {
-    create: function (config: $TSFixMe) {
+    create: function (config: $TSFixMe): void {
         return {
             // init: function(opts) {
             //     //request = opts.request;
             //     return Promise.resolve(null);
             // },
 
-            set: function (data: $TSFixMe) {
+            set: function (data: $TSFixMe): void {
                 const ch = data.challenge;
 
                 // make api call to backend to store
@@ -27,14 +27,14 @@ export default {
                 }).finally(() => null); // always return null
             },
 
-            get: function (data: $TSFixMe) {
+            get: function (data: $TSFixMe): void {
                 const ch = data.challenge;
 
                 const url = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios.get(url).then((result: $TSFixMe) => result);
             },
 
-            remove: function (data: $TSFixMe) {
+            remove: function (data: $TSFixMe): void {
                 const ch = data.challenge;
 
                 const url = `${BASE_URL}/api/ssl/challenge/${ch.token}`;

@@ -135,30 +135,32 @@ export const deleteAuditLogsError = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteAuditLogs = () => async (dispatch: Dispatch): void => {
-    dispatch(deleteAuditLogsRequest());
+export const deleteAuditLogs =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(deleteAuditLogsRequest());
 
-    try {
-        const response = await delete `audit-logs`;
+        try {
+            const response = await delete `audit-logs`;
 
-        const message = response.data.message;
+            const message = response.data.message;
 
-        dispatch(deleteAuditLogsSuccess(message));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(deleteAuditLogsSuccess(message));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteAuditLogsError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteAuditLogsError(errorMsg));
-    }
-};
+    };
 
 // fetch auditLogStatus
 
@@ -190,32 +192,34 @@ export const resetFetchAuditLogStatus = (): void => {
 };
 
 // Calls the API to fetch auditLogStatus
-export const fetchAuditLogStatus = () => async (dispatch: Dispatch): void => {
-    dispatch(fetchAuditLogStatusRequest());
+export const fetchAuditLogStatus =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchAuditLogStatusRequest());
 
-    try {
-        const response = await BackendAPI.get(
-            'globalConfig/auditLogMonitoringStatus'
-        );
+        try {
+            const response = await BackendAPI.get(
+                'globalConfig/auditLogMonitoringStatus'
+            );
 
-        dispatch(fetchAuditLogStatusSuccess(response.data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchAuditLogStatusSuccess(response.data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchAuditLogStatusError(errorMsg));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchAuditLogStatusError(errorMsg));
-        return 'error';
-    }
-};
+    };
 
 // change auditLogStatus
 

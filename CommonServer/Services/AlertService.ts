@@ -60,7 +60,7 @@ export default class Service {
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-    async getSchedulesForAlerts(incident: $TSFixMe, monitor: $TSFixMe) {
+    async getSchedulesForAlerts(incident: $TSFixMe, monitor: $TSFixMe): void {
         const monitorId = monitor._id;
         const projectId = incident.projectId._id || incident.projectId;
 
@@ -124,7 +124,7 @@ export default class Service {
     async doesPhoneNumberComplyWithHighRiskConfig(
         projectId: string,
         alertPhoneNumber: $TSFixMe
-    ) {
+    ): void {
         const project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'alertOptions',
@@ -144,7 +144,7 @@ export default class Service {
         return false;
     }
 
-    async findBy({ query, skip, limit, sort, populate, select }: FindBy) {
+    async findBy({ query, skip, limit, sort, populate, select }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -233,7 +233,7 @@ export default class Service {
         return savedAlert;
     }
 
-    async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe) {
+    async sendRealTimeUpdate({ incidentId, projectId }: $TSFixMe): void {
         const populateIncidentMessage = [
             {
                 path: 'incidentId',
@@ -361,7 +361,7 @@ export default class Service {
         RealTimeService.sendIncidentTimeline(result);
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -371,7 +371,7 @@ export default class Service {
         return count;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -389,7 +389,7 @@ export default class Service {
         return updatedAlert;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -415,7 +415,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -437,7 +437,7 @@ export default class Service {
         return alerts;
     }
 
-    async sendCreatedIncident(incident: $TSFixMe, monitor: $TSFixMe) {
+    async sendCreatedIncident(incident: $TSFixMe, monitor: $TSFixMe): void {
         if (incident) {
             const scheduleList = await this.getSchedulesForAlerts(
                 incident,
@@ -653,7 +653,12 @@ export default class Service {
         }
     }
 
-    async escalate({ schedule, incident, alertProgress, monitor }: $TSFixMe) {
+    async escalate({
+        schedule,
+        incident,
+        alertProgress,
+        monitor,
+    }: $TSFixMe): void {
         const selectOnCallScheduleStatus =
             'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
@@ -1288,7 +1293,7 @@ export default class Service {
     async sendSlaEmailToTeamMembers(
         { projectId, incidentCommunicationSla, incident, alertTime }: $TSFixMe,
         breached = false
-    ) {
+    ): void {
         const teamMembers = await TeamService.getTeamMembersBy({
             _id: projectId,
         });
@@ -1799,7 +1804,7 @@ export default class Service {
         projectId: string,
         incident: $TSFixMe,
         statusPageNoteData: $TSFixMe
-    ) {
+    ): void {
         const monitors = incident.monitors.map(
             (monitor: $TSFixMe) => monitor.monitorId
         );
@@ -1936,7 +1941,7 @@ export default class Service {
     async sendCreatedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
-    ) {
+    ): void {
         const uuid = new Date().getTime();
 
         const populateStatusPage = [
@@ -2037,7 +2042,10 @@ export default class Service {
         }
     }
 
-    async sendAcknowledgedIncidentMail(incident: $TSFixMe, monitor: $TSFixMe) {
+    async sendAcknowledgedIncidentMail(
+        incident: $TSFixMe,
+        monitor: $TSFixMe
+    ): void {
         if (incident) {
             const projectId = incident.projectId._id
                 ? incident.projectId._id
@@ -2388,7 +2396,7 @@ export default class Service {
         }
     }
 
-    async sendResolveIncidentMail(incident: $TSFixMe, monitor: $TSFixMe) {
+    async sendResolveIncidentMail(incident: $TSFixMe, monitor: $TSFixMe): void {
         if (incident) {
             const projectId = incident.projectId._id
                 ? incident.projectId._id
@@ -2740,7 +2748,7 @@ export default class Service {
     async sendAcknowledgedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
-    ) {
+    ): void {
         const uuid = new Date().getTime();
         const track = {};
         const populateStatusPage = [
@@ -2843,7 +2851,7 @@ export default class Service {
     async sendResolvedIncidentToSubscribers(
         incident: $TSFixMe,
         monitors: $TSFixMe
-    ) {
+    ): void {
         const uuid = new Date().getTime();
         const track = {};
         const populateStatusPage = [
@@ -3870,7 +3878,7 @@ export default class Service {
         return false;
     }
 
-    async getSubProjectAlerts(subProjectIds: $TSFixMe) {
+    async getSubProjectAlerts(subProjectIds: $TSFixMe): void {
         const populateAlert = [
             { path: 'userId', select: 'name email' },
             { path: 'monitorId', select: 'name' },
@@ -3896,7 +3904,7 @@ export default class Service {
         return subProjectAlerts;
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
         let alert = await this.findBy({ query, select: '_id' });
         if (alert && alert.length > 1) {
@@ -3937,7 +3945,7 @@ export default class Service {
     }
 
     //Return true, if the limit is not reached yet.
-    async checkPhoneAlertsLimit(projectId: string) {
+    async checkPhoneAlertsLimit(projectId: string): void {
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
         );
@@ -3981,7 +3989,7 @@ export default class Service {
         }
     }
 
-    async sendUnpaidSubscriptionEmail(project: $TSFixMe, user: $TSFixMe) {
+    async sendUnpaidSubscriptionEmail(project: $TSFixMe, user: $TSFixMe): void {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
 
@@ -4000,7 +4008,7 @@ export default class Service {
     async sendProjectDeleteEmailForUnpaidSubscription(
         project: $TSFixMe,
         user: $TSFixMe
-    ) {
+    ): void {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName } = project;
         const projectPlan =
@@ -4014,7 +4022,7 @@ export default class Service {
         });
     }
 
-    async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe) {
+    async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe): void {
         const uuid = new Date().getTime();
         if (schedule) {
             const track = {};
@@ -4064,7 +4072,7 @@ export default class Service {
         }
     }
 
-    async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe) {
+    async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe): void {
         const uuid = new Date().getTime();
         if (schedule) {
             const track = {};
@@ -4114,7 +4122,7 @@ export default class Service {
         }
     }
 
-    async sendCancelledScheduledEventToSubscribers(schedule: $TSFixMe) {
+    async sendCancelledScheduledEventToSubscribers(schedule: $TSFixMe): void {
         const uuid = new Date().getTime();
         if (schedule) {
             for (const monitor of schedule.monitors) {
@@ -4139,7 +4147,9 @@ export default class Service {
         }
     }
 
-    async sendScheduledEventInvestigationNoteToSubscribers(message: $TSFixMe) {
+    async sendScheduledEventInvestigationNoteToSubscribers(
+        message: $TSFixMe
+    ): void {
         const uuid = new Date().getTime();
 
         const monitorIds =
@@ -5009,7 +5019,7 @@ export default class Service {
         }
     }
 
-    async sendAnnouncementNotificationToSubscribers(message: $TSFixMe) {
+    async sendAnnouncementNotificationToSubscribers(message: $TSFixMe): void {
         const uuid = new Date().getTime();
 
         if (message) {
@@ -5450,7 +5460,7 @@ export default class Service {
  * @param {string} sms the body of the sms sent
  * @returns an interger
  */
-function calcSmsSegments(sms: $TSFixMe) {
+function calcSmsSegments(sms: $TSFixMe): void {
     let smsLength = sms.length;
     smsLength = Number(smsLength);
     return Math.ceil(smsLength / 160);

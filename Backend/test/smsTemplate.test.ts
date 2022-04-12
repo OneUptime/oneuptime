@@ -20,10 +20,10 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token: $TSFixMe, projectId: string, userId, smsTemplateId: $TSFixMe;
 
-describe('SMS Template API', function () {
+describe('SMS Template API', function (): void {
     this.timeout(20000);
 
-    before(async function () {
+    before(async function (): void {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -43,7 +43,7 @@ describe('SMS Template API', function () {
         token = res1.body.tokens.jwtAccessToken;
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -62,7 +62,7 @@ describe('SMS Template API', function () {
 
     // 'post /:projectId'
 
-    it('should create an sms template with valid data', async function () {
+    it('should create an sms template with valid data', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/smsTemplate/${projectId}`)
@@ -77,7 +77,7 @@ describe('SMS Template API', function () {
         expect(res.body.body).to.be.equal('SMS Body');
     });
 
-    it('should sanitize dirty template data sent to endpoint', async function () {
+    it('should sanitize dirty template data sent to endpoint', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/smsTemplate/${projectId}`)
@@ -90,7 +90,7 @@ describe('SMS Template API', function () {
         expect(res.body.body).to.be.equal('<img src="x">');
     });
 
-    it('should get an array of sms templates by valid projectId', async function () {
+    it('should get an array of sms templates by valid projectId', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/smsTemplate/${projectId}`)
@@ -99,7 +99,7 @@ describe('SMS Template API', function () {
         expect(res.body).to.be.an('array');
     });
 
-    it('should get an sms template by valid smsTemplateId', async function () {
+    it('should get an sms template by valid smsTemplateId', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
@@ -108,7 +108,7 @@ describe('SMS Template API', function () {
         expect(res.body).to.be.an('object');
     });
 
-    it('should update an sms template by valid smsTemplateId', async function () {
+    it('should update an sms template by valid smsTemplateId', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .put(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)
@@ -121,7 +121,7 @@ describe('SMS Template API', function () {
         expect(res.body.body).to.be.equal('New SMS Body');
     });
 
-    it('should update default sms template', async function () {
+    it('should update default sms template', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .put(`/smsTemplate/${projectId}`)
@@ -137,7 +137,7 @@ describe('SMS Template API', function () {
         expect(res.body[1].body).to.be.equal('Updated SMS Body');
     });
 
-    it('should deleted an sms template', async function () {
+    it('should deleted an sms template', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .delete(`/smsTemplate/${projectId}/smsTemplate/${smsTemplateId}`)

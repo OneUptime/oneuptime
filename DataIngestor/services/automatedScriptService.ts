@@ -9,7 +9,7 @@ import { ObjectId } from 'mongodb';
 import moment from 'moment';
 
 export default {
-    createLog: async function (id: $TSFixMe, data: $TSFixMe) {
+    createLog: async function (id: $TSFixMe, data: $TSFixMe): void {
         const scriptLog = {};
 
         scriptLog.automationScriptId = id ? ObjectId(id) : null;
@@ -46,7 +46,7 @@ export default {
         return newScriptLog;
     },
 
-    updateOne: async function (query: Query, data: $TSFixMe) {
+    updateOne: async function (query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -58,7 +58,7 @@ export default {
         return response;
     },
 
-    findOneBy: async function (query: Query) {
+    findOneBy: async function (query: Query): void {
         if (!query) {
             query = {};
         }

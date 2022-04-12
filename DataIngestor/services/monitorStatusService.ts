@@ -11,7 +11,7 @@ import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function (data: $TSFixMe) {
+    create: async function (data: $TSFixMe): void {
         const query = {};
 
         if (data.monitorId) query.monitorId = data.monitorId;
@@ -78,7 +78,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -93,7 +93,7 @@ export default {
         return updatedMonitorStatus;
     },
 
-    findOneBy: async function (query: Query) {
+    findOneBy: async function (query: Query): void {
         if (!query) {
             query = {};
         }
@@ -105,7 +105,7 @@ export default {
         return monitorStatus;
     },
 
-    findBy: async function ({ query, limit, skip, sort }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip, sort }: $TSFixMe): void {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 
@@ -119,7 +119,7 @@ export default {
         return incidents;
     },
 
-    async sendMonitorStatus(data: $TSFixMe) {
+    async sendMonitorStatus(data: $TSFixMe): void {
         const monitor = await MonitorService.findOneBy({
             query: { _id: ObjectId(data.monitorId) },
             // select: 'projectId',

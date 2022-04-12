@@ -49,7 +49,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function component(state = INITIAL_STATE, action: Action) {
+export default function component(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         case RESET_AUTOMATED_SCRIPT:
             return Object.assign({}, state, {

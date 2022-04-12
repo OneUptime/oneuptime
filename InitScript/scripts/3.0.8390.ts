@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const escalationsCollection = 'escalations';
 
-async function run() {
+async function run(): void {
     const escalations = await find(escalationsCollection, {
         pushReminders: { $exists: false },
     });

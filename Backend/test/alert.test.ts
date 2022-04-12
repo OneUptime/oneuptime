@@ -37,21 +37,21 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-describe('Alert API', function () {
-    after(async function () {
+describe('Alert API', function (): void {
+    after(async function (): void {
         await UserService.hardDeleteBy({});
     });
 
-    describe('Alert API without subprojects', function () {
+    describe('Alert API without subprojects', function (): void {
         this.timeout(30000);
 
-        before(function (done: $TSFixMe) {
+        before(function (done: $TSFixMe): void {
             this.timeout(30000);
-            GlobalConfig.initTestConfig().then(function () {
+            GlobalConfig.initTestConfig().then(function (): void {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: $TSFixMe) {
+                    function (err: $TSFixMe, res: $TSFixMe): void {
                         const project = res.body.project;
                         projectId = project._id;
                         userId = res.body.id;
@@ -61,7 +61,7 @@ describe('Alert API', function () {
                                 UserModel.findByIdAndUpdate(
                                     userId,
                                     { $set: { isVerified: true } },
-                                    function () {
+                                    function (): void {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -119,7 +119,7 @@ describe('Alert API', function () {
             });
         });
 
-        after(async function () {
+        after(async function (): void {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
             await AlertService.hardDeleteBy({ _id: alertId });
@@ -132,13 +132,13 @@ describe('Alert API', function () {
 
         // 'post /:projectId'
 
-        it('should register with valid projectId, monitorId, incidentId, alertVia', function (done: $TSFixMe) {
+        it('should register with valid projectId, monitorId, incidentId, alertVia', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send(incidentData)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     incidentId = res.body._id;
                     monitorId = res.body.monitors[0].monitorId._id;
                     request
@@ -150,7 +150,7 @@ describe('Alert API', function () {
                             incidentId: incidentId,
                             eventType: 'identified',
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             alertId = res.body._id;
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('object');
@@ -159,12 +159,12 @@ describe('Alert API', function () {
                 });
         });
 
-        it('should get an array of alerts by valid projectId', function (done: $TSFixMe) {
+        it('should get an array of alerts by valid projectId', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}/alert`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -173,12 +173,12 @@ describe('Alert API', function () {
                 });
         });
 
-        it('should get an array alerts of by valid incidentId', function (done: $TSFixMe) {
+        it('should get an array alerts of by valid incidentId', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}/incident/${incidentId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -187,23 +187,23 @@ describe('Alert API', function () {
                 });
         });
 
-        it('should deleted alert', function (done: $TSFixMe) {
+        it('should deleted alert', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     done();
                 });
         });
 
-        it('should not delete alert with non-existing projectId', function (done: $TSFixMe) {
+        it('should not delete alert with non-existing projectId', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -212,30 +212,30 @@ describe('Alert API', function () {
 
     let newUserToken: $TSFixMe;
 
-    describe('Alert API with Sub-Projects', function () {
+    describe('Alert API with Sub-Projects', function (): void {
         this.timeout(40000);
 
-        before(function (done: $TSFixMe) {
+        before(function (done: $TSFixMe): void {
             this.timeout(30000);
             const authorization = `Basic ${token}`;
             // create a subproject for parent project
-            GlobalConfig.initTestConfig().then(function () {
+            GlobalConfig.initTestConfig().then(function (): void {
                 request
                     .post(`/project/${projectId}/subProject`)
                     .set('Authorization', authorization)
                     .send({ subProjectName: 'New SubProject' })
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         subProjectId = res.body[0]._id;
                         // sign up second user (subproject user)
                         createUser(
                             request,
                             userData.newUser,
-                            function (err: $TSFixMe, res: $TSFixMe) {
+                            function (err: $TSFixMe, res: $TSFixMe): void {
                                 userId = res.body.id;
                                 UserModel.findByIdAndUpdate(
                                     userId,
                                     { $set: { isVerified: true } },
-                                    function () {
+                                    function (): void {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -265,7 +265,7 @@ describe('Alert API', function () {
                                                             .email,
                                                         role: 'Member',
                                                     })
-                                                    .end(function () {
+                                                    .end(function (): void {
                                                         done();
                                                     });
                                             });
@@ -277,7 +277,7 @@ describe('Alert API', function () {
             });
         });
 
-        after(async function () {
+        after(async function (): void {
             await ProjectService.hardDeleteBy({
                 _id: { $in: [projectId, subProjectId] },
             });
@@ -296,23 +296,26 @@ describe('Alert API', function () {
             await GlobalConfig.removeTestConfig();
         });
 
-        it('should not create alert for user not in the project.', function (done: $TSFixMe) {
+        it('should not create alert for user not in the project.', function (done: $TSFixMe): void {
             createUser(
                 request,
                 userData.anotherUser,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     userId = res.body.id;
                     UserModel.findByIdAndUpdate(
                         userId,
                         { $set: { isVerified: true } },
-                        function () {
+                        function (): void {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.anotherUser.email,
                                     password: userData.anotherUser.password,
                                 })
-                                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (
+                                    err: $TSFixMe,
+                                    res: $TSFixMe
+                                ): void {
                                     const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                     request
                                         .post(`/alert/${projectId}`)
@@ -342,7 +345,7 @@ describe('Alert API', function () {
             );
         });
 
-        it('should create alert in parent project', function (done: $TSFixMe) {
+        it('should create alert in parent project', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .post(`/alert/${projectId}`)
@@ -353,7 +356,7 @@ describe('Alert API', function () {
                     incidentId: incidentId,
                     eventType: 'identified',
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     alertId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
@@ -361,7 +364,7 @@ describe('Alert API', function () {
                 });
         });
 
-        it('should create alert in sub-project', function (done: $TSFixMe) {
+        it('should create alert in sub-project', function (done: $TSFixMe): void {
             const authorization = `Basic ${newUserToken}`;
             request
                 .post(`/alert/${subProjectId}`)
@@ -372,19 +375,19 @@ describe('Alert API', function () {
                     incidentId: incidentId,
                     eventType: 'identified',
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     done();
                 });
         });
 
-        it('should get only sub-project alerts for valid user.', function (done: $TSFixMe) {
+        it('should get only sub-project alerts for valid user.', function (done: $TSFixMe): void {
             const authorization = `Basic ${newUserToken}`;
             request
                 .get(`/alert/${subProjectId}/alert`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -393,12 +396,12 @@ describe('Alert API', function () {
                 });
         });
 
-        it('should get both project and sub-project alerts for valid user.', function (done: $TSFixMe) {
+        it('should get both project and sub-project alerts for valid user.', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('array');
                     expect(res.body[0]).to.have.property('alerts');
@@ -409,23 +412,23 @@ describe('Alert API', function () {
                 });
         });
 
-        it('should delete sub-project alert', function (done: $TSFixMe) {
+        it('should delete sub-project alert', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .delete(`/alert/${subProjectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     done();
                 });
         });
 
-        it('should delete project alert', function (done: $TSFixMe) {
+        it('should delete project alert', function (done: $TSFixMe): void {
             const authorization = `Basic ${token}`;
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     expect(res).to.have.status(200);
                     done();
                 });

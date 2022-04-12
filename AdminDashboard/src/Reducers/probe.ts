@@ -29,7 +29,7 @@ const initialState = {
     },
 };
 
-export default function probes(state = initialState, action: Action) {
+export default function probes(state = initialState, action: Action): void {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {

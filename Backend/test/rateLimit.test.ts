@@ -7,10 +7,10 @@ dotenv.config();
 const requests: $TSFixMe = [];
 let app, request: $TSFixMe, sandbox: $TSFixMe;
 
-describe('API limit rate', function () {
+describe('API limit rate', function (): void {
     this.timeout(10000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         import sinon from 'sinon';
         sandbox = sinon.createSandbox();
         sandbox
@@ -26,7 +26,7 @@ describe('API limit rate', function () {
         done();
     });
 
-    it('should get too many requests response after 3 requests', async function () {
+    it('should get too many requests response after 3 requests', async function (): void {
         for (let i = 1; i <= 3; i++) {
             requests.push(request.get('/'));
         }
@@ -35,7 +35,7 @@ describe('API limit rate', function () {
         expect(response.status).to.be.equal(429);
     });
 
-    after(function (done: $TSFixMe) {
+    after(function (done: $TSFixMe): void {
         sandbox.restore();
         done();
     });

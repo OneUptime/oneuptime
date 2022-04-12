@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const projectCollection = 'projects';
 
-async function run() {
+async function run(): void {
     const projects = await find(projectCollection, {
         deleted: false,
         sendCreatedIncidentNotificationSms: { $exists: false },

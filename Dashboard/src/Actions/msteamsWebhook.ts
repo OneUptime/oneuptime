@@ -31,19 +31,19 @@ export const resetDeleteMsTeams = (): void => {
 
 // Calls the API to link webhook team to project
 export const deleteMsTeams = (projectId: string, msTeamsId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
         null);
 
         dispatch(deleteMsTeamsRequest());
 
         return promise.then(
-            function (msTeams) {
+            function (msTeams): void {
                 dispatch(deleteMsTeamsSuccess(msTeams.data));
 
                 return msTeams.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteMsTeamsError(error));
             }
         );
@@ -82,7 +82,7 @@ export function getMsTeams(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
@@ -92,10 +92,10 @@ export function getMsTeams(
         dispatch(getMsTeamsRequest(promise));
 
         promise.then(
-            function (webhooks) {
+            function (webhooks): void {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -110,7 +110,7 @@ export function getMsTeamsMonitor(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
@@ -120,10 +120,10 @@ export function getMsTeamsMonitor(
         dispatch(getMsTeamsRequest(promise));
 
         promise.then(
-            function (webhooks) {
+            function (webhooks): void {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -160,17 +160,17 @@ export const resetCreateMsTeams = (): void => {
 
 // Calls the API to add webhook to project
 export const createMsTeams = (projectId: string, data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
         dispatch(createMsTeamsRequest());
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(createMsTeamsSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(createMsTeamsError(error));
             }
         );
@@ -209,7 +209,7 @@ export function updateMsTeams(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `webhook/${projectId}/${webhookId}`,
             data
@@ -218,12 +218,12 @@ export function updateMsTeams(
         dispatch(updateMsTeamsRequest());
 
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(updateMsTeamsSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateMsTeamsError(error));
             }
         );
@@ -251,7 +251,7 @@ export const paginateReset = (): void => {
 };
 
 export const paginate = (type: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

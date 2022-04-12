@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const subscriberCollection = 'subscribers';
 
-async function run() {
+async function run(): void {
     const subscribers = await find(subscriberCollection, {
         notificationType: { $exists: false },
     });

@@ -8,7 +8,7 @@ import { mongoUrl, databaseName } from './utils/config';
 const MongoClient = require('mongodb').MongoClient;
 
 // mongodb
-function getMongoClient() {
+function getMongoClient(): void {
     return new MongoClient(mongoUrl, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -16,7 +16,7 @@ function getMongoClient() {
 }
 // setup mongodb connection
 const client = getMongoClient();
-(async function () {
+(async function (): void {
     try {
         logger.info('connecting to db');
         await client.connect();

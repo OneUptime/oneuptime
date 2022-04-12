@@ -135,7 +135,7 @@ export const bindRaf = (fn: $TSFixMe): void => {
         fn(...args);
     };
 
-    return function (...invokingArguments: $TSFixMe[]) {
+    return function (...invokingArguments: $TSFixMe[]): void {
         args = invokingArguments;
 
         if (isRunning) {
@@ -179,7 +179,10 @@ export const filterProbeData = (
 export const getMonitorStatus = (statuses: $TSFixMe) =>
     statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
-export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe): void => {
+export const getServiceStatus = (
+    monitorsData: $TSFixMe,
+    probes: $TSFixMe
+): void => {
     const monitorsLength = monitorsData.length;
     const probesLength = probes && probes.length;
 
@@ -212,7 +215,10 @@ export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe): void
     }
 };
 
-export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe): void => {
+export const formatDecimal = (
+    value: $TSFixMe,
+    decimalPlaces: $TSFixMe
+): void => {
     return Number(
         Math.round(parseFloat(value + 'e' + decimalPlaces)) +
             'e-' +

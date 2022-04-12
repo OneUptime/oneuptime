@@ -20,30 +20,33 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 let token: $TSFixMe, projectId: string, userId: string;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
-describe('Audit Logs API', function () {
+describe('Audit Logs API', function (): void {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         testSuiteStartTime = new Date();
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -66,7 +69,7 @@ describe('Audit Logs API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -96,11 +99,11 @@ describe('Audit Logs API', function () {
         await AuditLogsService.hardDeleteBy({ query: deleteQuery });
     });
 
-    beforeEach(async function () {
+    beforeEach(async function (): void {
         testCaseStartTime = new Date();
     });
 
-    afterEach(async function () {
+    afterEach(async function (): void {
         // Deleting any auditLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
         const deleteQuery = {
@@ -119,25 +122,25 @@ describe('Audit Logs API', function () {
         });
     });
 
-    it('should reject get audit logs request of an unauthenticated user', function (done: $TSFixMe) {
+    it('should reject get audit logs request of an unauthenticated user', function (done: $TSFixMe): void {
         request
             .get('/audit-logs')
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject get audit logs request of NON master-admin user', function (done: $TSFixMe) {
-        createUser(request, userData.newUser, function () {
+    it('should reject get audit logs request of NON master-admin user', function (done: $TSFixMe): void {
+        createUser(request, userData.newUser, function (): void {
             request
                 .post('/user/login')
                 .send({
                     email: userData.newUser.email,
                     password: userData.newUser.password,
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     const token = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${token}`;
 
@@ -145,7 +148,7 @@ describe('Audit Logs API', function () {
                         .get('/audit-logs/')
                         .set('Authorization', authorization)
                         .send()
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             expect(res).to.have.status(400);
                             done();
                         });
@@ -153,7 +156,7 @@ describe('Audit Logs API', function () {
         });
     });
 
-    it('should send get audit logs data for master-admin user', async function () {
+    it('should send get audit logs data for master-admin user', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -170,7 +173,7 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when limit is provided', async function () {
+    it('should send appopriate data set when limit is provided', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -194,7 +197,7 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when skip is provided', async function () {
+    it('should send appopriate data set when skip is provided', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -220,17 +223,17 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should reject search request of an unauthenticated user', function (done: $TSFixMe) {
+    it('should reject search request of an unauthenticated user', function (done: $TSFixMe): void {
         request
             .post('/audit-logs/search')
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject search request of NON master-admin user', async function () {
+    it('should reject search request of NON master-admin user', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
         const authorization = `Basic ${token}`;
 
@@ -244,7 +247,7 @@ describe('Audit Logs API', function () {
         }
     });
 
-    it('should send Searched AuditLogs data for master-admin user', async function () {
+    it('should send Searched AuditLogs data for master-admin user', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -261,7 +264,7 @@ describe('Audit Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send only matched result to provided search string when searched.', async function () {
+    it('should send only matched result to provided search string when searched.', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 

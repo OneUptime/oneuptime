@@ -35,7 +35,7 @@ export const resetGetVersion = (): void => {
 };
 
 export const getVersion = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         let backendPromise = null;
         let helmChartPromise = null;
@@ -57,7 +57,7 @@ export const getVersion = (): void => {
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            function (versions) {
+            function (versions): void {
                 let versionsObject = {};
                 versions.forEach(version => {
                     versionsObject = { ...versionsObject, ...version.data };
@@ -65,7 +65,7 @@ export const getVersion = (): void => {
 
                 dispatch(getVersionSuccess(versionsObject));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getVersionError(error));
             }
         );

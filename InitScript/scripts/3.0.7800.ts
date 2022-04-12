@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const monitorCollection = 'monitors';
 
-async function run() {
+async function run(): void {
     // get all monitors that have a monitorCategoryId
     const monitors = await find(monitorCollection, {
         disabled: { $exists: false },

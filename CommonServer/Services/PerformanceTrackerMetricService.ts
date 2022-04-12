@@ -6,13 +6,13 @@ import FindOneBy from '../Types/DB/FindOneBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const performanceTrackerMetric =
             await PerformanceTrackerMetricModel.create(data);
         return performanceTrackerMetric;
     }
 
-    async createMany(allData: $TSFixMe) {
+    async createMany(allData: $TSFixMe): void {
         const allMetrics = await PerformanceTrackerMetricModel.insertMany(
             allData
         );
@@ -141,7 +141,7 @@ export default class Service {
         return trackerMetrics;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -156,7 +156,7 @@ export default class Service {
         return performanceTrackerMetric;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -177,7 +177,7 @@ export default class Service {
         return performanceTrackerMetric;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -244,7 +244,7 @@ export default class Service {
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
-    ) {
+    ): void {
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
 
@@ -297,7 +297,7 @@ export default class Service {
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
-    ) {
+    ): void {
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
         // store the metrics according to createdAt
@@ -347,7 +347,7 @@ export default class Service {
         appId: $TSFixMe,
         startDate: $TSFixMe,
         endDate: $TSFixMe
-    ) {
+    ): void {
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
         // store the metrics according to createdAt
@@ -394,7 +394,7 @@ export default class Service {
     }
 }
 
-function calcAvgTime(metric: $TSFixMe) {
+function calcAvgTime(metric: $TSFixMe): void {
     const length = metric.length;
 
     let avgTimeCount = 0,
@@ -410,7 +410,7 @@ function calcAvgTime(metric: $TSFixMe) {
     };
 }
 
-function calcAvgThroughput(metric: $TSFixMe) {
+function calcAvgThroughput(metric: $TSFixMe): void {
     const length = metric.length;
 
     let sum = 0;
@@ -423,7 +423,7 @@ function calcAvgThroughput(metric: $TSFixMe) {
     };
 }
 
-function calcAvgError(metric: $TSFixMe) {
+function calcAvgError(metric: $TSFixMe): void {
     const length = metric.length;
 
     let cumulative = 0;
@@ -436,7 +436,7 @@ function calcAvgError(metric: $TSFixMe) {
     };
 }
 
-function numDecimal(num: $TSFixMe, decimalPlace = 2) {
+function numDecimal(num: $TSFixMe, decimalPlace = 2): void {
     decimalPlace = Number(decimalPlace);
     return Number.parseFloat(num).toFixed(decimalPlace);
 }

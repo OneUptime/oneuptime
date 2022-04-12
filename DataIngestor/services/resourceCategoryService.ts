@@ -2,7 +2,7 @@ const resourceCategoryCollection = global.db.collection('resourcecategories');
 import { ObjectId } from 'mongodb';
 
 export default {
-    findBy: async function ({ query, limit, skip, sort }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip, sort }: $TSFixMe): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;

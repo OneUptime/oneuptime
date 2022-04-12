@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 
 const incidentCollection = 'incidents';
 
-async function run() {
+async function run(): void {
     const incidents = await find(incidentCollection, {
         monitors: { $exists: false },
         notifications: { $exists: false },

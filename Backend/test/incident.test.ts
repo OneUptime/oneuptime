@@ -67,10 +67,10 @@ const testServerMonitor = {
     data: { url: HTTP_TEST_SERVER_URL },
 };
 
-describe('Incident API', function () {
+describe('Incident API', function (): void {
     this.timeout(500000);
 
-    before(async function () {
+    before(async function (): void {
         this.timeout(90000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -143,7 +143,7 @@ describe('Incident API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await NotificationService.hardDeleteBy({ projectId: projectId });
         await AirtableService.deleteAll({ tableName: 'User' });
@@ -153,7 +153,7 @@ describe('Incident API', function () {
         await IncidentService.hardDeleteBy({ projectId: projectId });
     });
 
-    it('should create an incident', async function () {
+    it('should create an incident', async function (): void {
         const authorization = `Basic ${token}`;
         const test1 = await chai
 
@@ -202,7 +202,7 @@ describe('Incident API', function () {
         expect(webhookTestAfterIncident).to.have.status(200);
     });
 
-    it('should create an incident with multi-probes and add to incident timeline', async function () {
+    it('should create an incident with multi-probes and add to incident timeline', async function (): void {
         const authorization = `Basic ${token}`;
         await testServer.post('/api/settings').send({
             responseTime: 0,
@@ -234,7 +234,7 @@ describe('Incident API', function () {
         expect(res2.body.data[1].status).to.be.equal('offline');
     });
 
-    it('should auto-resolve an incident with multi-probes and add to incident timeline', async function () {
+    it('should auto-resolve an incident with multi-probes and add to incident timeline', async function (): void {
         const authorization = `Basic ${token}`;
         await testServer.post('/api/settings').send({
             responseTime: 0,
@@ -270,7 +270,7 @@ describe('Incident API', function () {
         expect(res1.body.data[5].status).to.be.equal('resolved');
     });
 
-    it('should get incidents belonging to a monitor', async function () {
+    it('should get incidents belonging to a monitor', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/monitor/${monitorId}`)
@@ -281,7 +281,7 @@ describe('Incident API', function () {
         expect(res.body).to.have.property('count');
     });
 
-    it('should get all incidents in a project', async function () {
+    it('should get all incidents in a project', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/incident/${projectId}/incident`)
@@ -292,7 +292,7 @@ describe('Incident API', function () {
         expect(res.body).to.have.property('count');
     });
 
-    it('should get an incident by incidentId', async function () {
+    it('should get an incident by incidentId', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/incident/${projectId}/incident/${incidentId}`)
@@ -302,7 +302,7 @@ describe('Incident API', function () {
         expect(res.body._id).to.be.equal(incidentId);
     });
 
-    it('should acknowledge an incident and send email to users', async function () {
+    it('should acknowledge an incident and send email to users', async function (): void {
         const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
         const res = await markIncidentAsAcknowledged({
@@ -324,7 +324,7 @@ describe('Incident API', function () {
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
-    it('should resolve an incident and send email to users', async function () {
+    it('should resolve an incident and send email to users', async function (): void {
         const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
         const res = await markIncidentAsResolved({
@@ -343,7 +343,7 @@ describe('Incident API', function () {
         expect(emailStatus.length).to.be.greaterThan(0);
     });
 
-    it('should update incident details.', async function () {
+    it('should update incident details.', async function (): void {
         const authorization = `Basic ${token}`;
         const incidentTitle = 'New incident title';
         const incidentDescription = 'New incident description';
@@ -361,7 +361,7 @@ describe('Incident API', function () {
         expect(res.body.description).to.be.equal(incidentDescription);
     });
 
-    it('should get incident timeline by incidentId', async function () {
+    it('should get incident timeline by incidentId', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/incident/${projectId}/timeline/${incidentId}`)
@@ -383,7 +383,7 @@ describe('Incident API', function () {
         ).to.equal(res.body.data);
     });
 
-    it('should require an incident state', async function () {
+    it('should require an incident state', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
@@ -396,7 +396,7 @@ describe('Incident API', function () {
         expect(res.body.message).to.be.equal('Incident State is required.');
     });
 
-    it('should require a valid incident message type', async function () {
+    it('should require a valid incident message type', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
@@ -412,7 +412,7 @@ describe('Incident API', function () {
         );
     });
 
-    it('should add an investigation incident message', async function () {
+    it('should add an investigation incident message', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
@@ -429,7 +429,7 @@ describe('Incident API', function () {
         expect(res.body.incident_state).to.be.equal('investigation');
     });
 
-    it('should add an internal incident message', async function () {
+    it('should add an internal incident message', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
@@ -448,7 +448,7 @@ describe('Incident API', function () {
         expect(res.body.data[0].incident_state).to.be.equal('just test');
     });
 
-    it('should update an investigation incident message', async function () {
+    it('should update an investigation incident message', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
@@ -466,7 +466,7 @@ describe('Incident API', function () {
         expect(res.body.incident_state).to.be.equal('automated');
     });
 
-    it('should update an internal incident message', async function () {
+    it('should update an internal incident message', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/incident/${incidentId}/message`)
@@ -485,7 +485,7 @@ describe('Incident API', function () {
         expect(res.body.incident_state).to.be.equal('update');
     });
 
-    it('should fetch list of investigation incident messages', async function () {
+    it('should fetch list of investigation incident messages', async function (): void {
         const authorization = `Basic ${token}`;
         const type = 'investigation';
         const res = await request
@@ -501,7 +501,7 @@ describe('Incident API', function () {
         expect(res.body.data[0].type).to.be.equal(type);
     });
 
-    it('should fetch list of status pages for the incident', async function () {
+    it('should fetch list of status pages for the incident', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/incident/${projectId}/${incidentId}/statuspages`)
@@ -512,7 +512,7 @@ describe('Incident API', function () {
         expect(res.body).to.have.property('count');
     });
 
-    it('should fetch list of internal incident messages', async function () {
+    it('should fetch list of internal incident messages', async function (): void {
         const authorization = `Basic ${token}`;
         const type = 'internal';
         const res = await request
@@ -525,13 +525,13 @@ describe('Incident API', function () {
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
 
-        const sameType = res.body.data.filter(function (e: $TSFixMe) {
+        const sameType = res.body.data.filter(function (e: $TSFixMe): void {
             return e.type === 'internal';
         });
         expect(sameType[0].type).to.be.equal(type);
     });
 
-    it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function () {
+    it('should not send incident alert when balance is below minimum amount (and stripeCustomerId is not valid)', async function (): void {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
@@ -636,7 +636,7 @@ describe('Incident API', function () {
         );
     });
 
-    it('should not create an alert charge when an alert is not sent to a user.', async function () {
+    it('should not create an alert charge when an alert is not sent to a user.', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/alert/${projectId}/alert/charges`)
@@ -648,7 +648,7 @@ describe('Incident API', function () {
         expect(res.body.data.length).to.be.equal(0);
     });
 
-    it('should send incident alert when balance is above minimum amount', async function () {
+    it('should send incident alert when balance is above minimum amount', async function (): void {
         const authorization = `Basic ${token}`;
         await ProjectModel.findByIdAndUpdate(projectId, {
             $set: {
@@ -677,7 +677,7 @@ describe('Incident API', function () {
         expect(callAlert.error).to.be.equal(false);
     });
 
-    it('should create an alert charge when an alert is sent to a user.', async function () {
+    it('should create an alert charge when an alert is sent to a user.', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/alert/${projectId}/alert/charges`)
@@ -694,10 +694,10 @@ let subProjectId: string,
     newUserToken: $TSFixMe,
     subProjectIncidentId: $TSFixMe;
 
-describe('Incident API with Sub-Projects', function () {
+describe('Incident API with Sub-Projects', function (): void {
     this.timeout(60000);
 
-    before(async function () {
+    before(async function (): void {
         this.timeout(60000);
 
         incidentData.monitors = [monitorId];
@@ -735,7 +735,7 @@ describe('Incident API with Sub-Projects', function () {
             });
     });
 
-    after(async function () {
+    after(async function (): void {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });
@@ -752,7 +752,7 @@ describe('Incident API with Sub-Projects', function () {
         await MonitorService.hardDeleteBy({ _id: monitorId });
     });
 
-    it('should not create an incident for user not present in project', async function () {
+    it('should not create an incident for user not present in project', async function (): void {
         const res = await createUser(request, userData.anotherUser);
         const verificationToken = await VerificationTokenModel.findOne({
             userId: res.body.id,
@@ -776,7 +776,7 @@ describe('Incident API with Sub-Projects', function () {
         );
     });
 
-    it('should create an incident in parent project.', async function () {
+    it('should create an incident in parent project.', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .post(`/incident/${projectId}/create-incident`)
@@ -787,7 +787,7 @@ describe('Incident API with Sub-Projects', function () {
         expect(res.body).to.be.an('object');
     });
 
-    it('should create an incident in sub-project.', async function () {
+    it('should create an incident in sub-project.', async function (): void {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
             .post(`/incident/${subProjectId}/create-incident`)
@@ -798,7 +798,7 @@ describe('Incident API with Sub-Projects', function () {
         expect(res.body).to.be.an('object');
     });
 
-    it("should get only sub-project's incidents for valid sub-project user", async function () {
+    it("should get only sub-project's incidents for valid sub-project user", async function (): void {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
             .get(`/incident/${subProjectId}/incident`)
@@ -811,7 +811,7 @@ describe('Incident API with Sub-Projects', function () {
         expect(res.body.data[0]._id).to.be.equal(subProjectIncidentId);
     });
 
-    it('should get both project and sub-project incidents for valid parent project user.', async function () {
+    it('should get both project and sub-project incidents for valid parent project user.', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
             .get(`/incident/${projectId}`)
@@ -824,7 +824,7 @@ describe('Incident API with Sub-Projects', function () {
         expect(res.body[1]._id).to.be.equal(projectId);
     });
 
-    it('should acknowledge subproject incident', async function () {
+    it('should acknowledge subproject incident', async function (): void {
         const authorization = `Basic ${newUserToken}`;
         const res = await markSubprojectIncidentAsAcknowledged({
             request,
@@ -838,7 +838,7 @@ describe('Incident API with Sub-Projects', function () {
         expect(res.body.incident.acknowledged).to.be.equal(true);
     });
 
-    it('should resolve subproject incident', async function () {
+    it('should resolve subproject incident', async function (): void {
         const authorization = `Basic ${newUserToken}`;
         const res = await markSubprojectIncidentAsResolved({
             request,

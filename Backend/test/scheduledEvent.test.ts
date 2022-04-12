@@ -48,29 +48,32 @@ const ongoingScheduledEvent = {
     monitorDuringEvent: false,
 };
 
-describe('Scheduled event API', function () {
+describe('Scheduled event API', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     userId = res.body.id;
                     projectId = project._id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -107,7 +110,7 @@ describe('Scheduled event API', function () {
                                                     .end(async function (
                                                         err: $TSFixMe,
                                                         res: $TSFixMe
-                                                    ) {
+                                                    ): void {
                                                         monitorId =
                                                             res.body._id;
 
@@ -169,7 +172,7 @@ describe('Scheduled event API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -186,7 +189,7 @@ describe('Scheduled event API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should not create a scheduled event when the fields are null', function (done: $TSFixMe) {
+    it('should not create a scheduled event when the fields are null', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/scheduledEvent/${projectId}`)
@@ -197,13 +200,13 @@ describe('Scheduled event API', function () {
                 endDate: '',
                 description: '',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a scheduled event when a monitor is selected multiple times', function (done: $TSFixMe) {
+    it('should not create a scheduled event when a monitor is selected multiple times', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/scheduledEvent/${projectId}`)
@@ -212,13 +215,13 @@ describe('Scheduled event API', function () {
                 ...scheduledEvent,
                 monitors: [monitorId, monitorId],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a scheduled event when the start date is greater than end date', function (done: $TSFixMe) {
+    it('should not create a scheduled event when the start date is greater than end date', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/scheduledEvent/${projectId}`)
@@ -228,19 +231,19 @@ describe('Scheduled event API', function () {
                 startDate: '2019-09-11 11:01:52.178',
                 endDate: '2019-06-26 11:31:53.302',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new scheduled event when proper fields are given by an authenticated user', function (done: $TSFixMe) {
+    it('should create a new scheduled event when proper fields are given by an authenticated user', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
             .send({ ...scheduledEvent, monitors: [monitorId] })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 scheduleEventId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(scheduledEvent.name);
@@ -248,12 +251,12 @@ describe('Scheduled event API', function () {
             });
     });
 
-    it('should get all scheduled events for a project', function (done: $TSFixMe) {
+    it('should get all scheduled events for a project', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/scheduledEvent/${projectId}/scheduledEvents/all`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body).to.have.length.greaterThan(0);
@@ -261,7 +264,7 @@ describe('Scheduled event API', function () {
             });
     });
 
-    it('should update a scheduled event when scheduledEventId is valid', function (done: $TSFixMe) {
+    it('should update a scheduled event when scheduledEventId is valid', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .put(`/scheduledEvent/${projectId}/${scheduleEventId}`)
@@ -271,31 +274,31 @@ describe('Scheduled event API', function () {
                 name: 'updated name',
                 monitors: [monitorId],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('updated name');
                 done();
             });
     });
 
-    it('should delete a scheduled event when scheduledEventId is valid', function (done: $TSFixMe) {
+    it('should delete a scheduled event when scheduledEventId is valid', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .delete(`/scheduledEvent/${projectId}/${scheduleEventId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should get first 10 scheduled events with data length 10, skip 0, limit 10 and count 12', function (done: $TSFixMe) {
+    it('should get first 10 scheduled events with data length 10, skip 0, limit 10 and count 12', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/scheduledEvent/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -315,12 +318,12 @@ describe('Scheduled event API', function () {
             });
     });
 
-    it('should get 2 last scheduled events with data length 2, skip 10, limit 10 and count 12', function (done: $TSFixMe) {
+    it('should get 2 last scheduled events with data length 2, skip 10, limit 10 and count 12', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/scheduledEvent/${projectId}?skip=10&limit=10`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -340,12 +343,12 @@ describe('Scheduled event API', function () {
             });
     });
 
-    it('should get 0 scheduled events with data length 0, skip 20, limit 10 and count 12', function (done: $TSFixMe) {
+    it('should get 0 scheduled events with data length 0, skip 20, limit 10 and count 12', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/scheduledEvent/${projectId}?skip=20&limit=10`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -365,13 +368,13 @@ describe('Scheduled event API', function () {
             });
     });
 
-    it('should fetch an onging scheduled event', function (done: $TSFixMe) {
+    it('should fetch an onging scheduled event', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
             .send({ ...ongoingScheduledEvent, monitors: [monitorId] })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 scheduleEventId = res.body._id;
                 request
                     .get(`/scheduledEvent/${projectId}/ongoingEvent`)
@@ -388,22 +391,22 @@ describe('Scheduled event API', function () {
     });
 });
 
-describe('User from other project have access to read / write and delete API.', function () {
+describe('User from other project have access to read / write and delete API.', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     createUser(
                         request,
                         userData.newUser,
-                        function (err: $TSFixMe, res: $TSFixMe) {
+                        function (err: $TSFixMe, res: $TSFixMe): void {
                             userId = res.body.id;
                             VerificationTokenModel.findOne(
                                 { userId },
@@ -416,7 +419,7 @@ describe('User from other project have access to read / write and delete API.', 
                                             `/user/confirmation/${verificationToken.token}`
                                         )
                                         .redirects(0)
-                                        .end(function () {
+                                        .end(function (): void {
                                             request
                                                 .post('/user/login')
                                                 .send({
@@ -445,7 +448,7 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -459,41 +462,41 @@ describe('User from other project have access to read / write and delete API.', 
         });
     });
 
-    it('should not be able to create new scheduled event', function (done: $TSFixMe) {
+    it('should not be able to create new scheduled event', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
             .send(scheduledEvent)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not be able to delete a scheduled event', function (done: $TSFixMe) {
+    it('should not be able to delete a scheduled event', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .delete(`/scheduledEvent/${projectId}/${scheduleEventId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not be able to get all scheduled events', function (done: $TSFixMe) {
+    it('should not be able to get all scheduled events', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/scheduledEvent/${projectId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not be able to update a scheduled event', function (done: $TSFixMe) {
+    it('should not be able to update a scheduled event', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .put(`/scheduledEvent/${projectId}/${scheduleEventId}`)
@@ -502,7 +505,7 @@ describe('User from other project have access to read / write and delete API.', 
                 ...scheduledEvent,
                 name: 'Name update',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });

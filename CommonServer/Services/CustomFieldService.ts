@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -23,7 +23,7 @@ export default class Service {
         return customField;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         let customField = await CustomFieldModel.create({
             ...data,
         });
@@ -39,7 +39,7 @@ export default class Service {
         return customField;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -110,7 +110,7 @@ export default class Service {
         return customField;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -142,7 +142,7 @@ export default class Service {
         return customFields;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -151,7 +151,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         // when a custom field is deleted
         // it should be removed from the corresponding incoming request
         const select =
@@ -208,7 +208,7 @@ export default class Service {
         return customField;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }

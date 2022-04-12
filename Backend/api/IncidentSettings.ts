@@ -31,7 +31,7 @@ router.get(
     '/:projectId/default',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId } = req.params;
             if (!projectId) {
@@ -126,7 +126,7 @@ router.put(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         const { projectId, templateId } = req.params;
         const { title, description, incidentPriority, isDefault, name } =
             req.body;
@@ -202,7 +202,7 @@ router.delete(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, templateId } = req.params;
 

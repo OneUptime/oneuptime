@@ -9,7 +9,7 @@ import BackendAPI from '../util/api';
 
 const projectCollection = 'projects';
 
-async function run() {
+async function run(): void {
     const projects = await find(projectCollection, {
         deleted: false,
     });

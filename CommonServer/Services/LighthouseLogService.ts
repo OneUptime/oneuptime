@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const Log = new LighthouseLogModel();
 
         Log.monitorId = data.monitorId;
@@ -32,7 +32,7 @@ export default class Service {
         return savedLog;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -48,7 +48,7 @@ export default class Service {
         return lighthouseLog;
     }
 
-    async updateManyBy(query: Query, data: $TSFixMe) {
+    async updateManyBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -64,7 +64,7 @@ export default class Service {
         return lighthouseLog;
     }
 
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -95,7 +95,7 @@ export default class Service {
         return lighthouseLogs;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -113,7 +113,7 @@ export default class Service {
         return lighthouseLog;
     }
 
-    async findLastestScan({ monitorId, url, skip, limit }: $TSFixMe) {
+    async findLastestScan({ monitorId, url, skip, limit }: $TSFixMe): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -187,7 +187,7 @@ export default class Service {
         };
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -197,7 +197,7 @@ export default class Service {
         return count;
     }
 
-    async sendLighthouseLog(data: $TSFixMe) {
+    async sendLighthouseLog(data: $TSFixMe): void {
         const monitor = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
@@ -212,7 +212,7 @@ export default class Service {
         projectId: string,
         monitorId: $TSFixMe,
         query: Query
-    ) {
+    ): void {
         await this.updateManyBy({ monitorId: monitorId }, query);
         const logs = await this.findLastestScan({
             monitorId,

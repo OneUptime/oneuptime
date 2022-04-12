@@ -76,31 +76,33 @@ export const fetchUserError = (error: $TSFixMe): void => {
 };
 
 // Calls the API to fetch a user.
-export const fetchUser = (userId: string) => async (dispatch: Dispatch): void => {
-    dispatch(fetchUserRequest());
+export const fetchUser =
+    (userId: string) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchUserRequest());
 
-    try {
-        const response = await BackendAPI.get(`user/users/${userId}`);
+        try {
+            const response = await BackendAPI.get(`user/users/${userId}`);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(fetchUserSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchUserSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchUserError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchUserError(errorMsg));
-    }
-};
+    };
 
 // Add user
 
@@ -131,33 +133,35 @@ export const resetAddUser = (): void => {
 };
 
 // Calls the API to add user.
-export const addUser = (user: $TSFixMe) => async (dispatch: Dispatch): void => {
-    try {
-        dispatch(addUserRequest());
+export const addUser =
+    (user: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        try {
+            dispatch(addUserRequest());
 
-        const response = await BackendAPI.post(`user/signup`, user);
+            const response = await BackendAPI.post(`user/signup`, user);
 
-        const userResponse = await BackendAPI.get(
-            `user/users/${response.data.id}`
-        );
+            const userResponse = await BackendAPI.get(
+                `user/users/${response.data.id}`
+            );
 
-        dispatch(addUserSuccess(userResponse.data));
-        return 'ok';
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(addUserSuccess(userResponse.data));
+            return 'ok';
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addUserError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addUserError(errorMsg));
-    }
-};
+    };
 
 //Update user setting
 
@@ -226,13 +230,13 @@ export const updateUserSetting =
     };
 
 export const logFile = (file: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 };
 
 export const resetFile = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({ type: 'RESET_FILE' });
     };
 };
@@ -265,31 +269,33 @@ export const deleteUserError = (error: $TSFixMe): void => {
 };
 
 // Calls the API to delete a user.
-export const deleteUser = (userId: string) => async (dispatch: Dispatch): void => {
-    dispatch(deleteUserRequest());
+export const deleteUser =
+    (userId: string) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(deleteUserRequest());
 
-    try {
-        const response = await delete `user/${userId}`;
+        try {
+            const response = await delete `user/${userId}`;
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(deleteUserSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(deleteUserSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteUserError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteUserError(errorMsg));
-    }
-};
+    };
 
 //Restore user
 export const restoreUserRequest = (): void => {
@@ -319,31 +325,33 @@ export const restoreUserError = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a user
-export const restoreUser = (userId: string) => async (dispatch: Dispatch): void => {
-    dispatch(restoreUserRequest());
+export const restoreUser =
+    (userId: string) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(restoreUserRequest());
 
-    try {
-        const response = await BackendAPI.put(`user/${userId}/restoreUser`);
+        try {
+            const response = await BackendAPI.put(`user/${userId}/restoreUser`);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(restoreUserSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(restoreUserSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(restoreUserError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(restoreUserError(errorMsg));
-    }
-};
+    };
 
 //Block user
 export const blockUserRequest = (): void => {
@@ -373,31 +381,33 @@ export const blockUserError = (error: $TSFixMe): void => {
 };
 
 // Calls the API to restore a user
-export const blockUser = (userId: string) => async (dispatch: Dispatch): void => {
-    dispatch(blockUserRequest());
+export const blockUser =
+    (userId: string) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(blockUserRequest());
 
-    try {
-        const response = await BackendAPI.put(`user/${userId}/blockUser`);
+        try {
+            const response = await BackendAPI.put(`user/${userId}/blockUser`);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(blockUserSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(blockUserSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(blockUserError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(blockUserError(errorMsg));
-    }
-};
+    };
 
 //Enable Admin Mode
 export const enableAdminModeRequest = (): void => {
@@ -542,31 +552,33 @@ export const unblockUserError = (error: $TSFixMe): void => {
 };
 
 // Calls the API to unblock a user
-export const unblockUser = (userId: string) => async (dispatch: Dispatch): void => {
-    dispatch(unblockUserRequest());
+export const unblockUser =
+    (userId: string) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(unblockUserRequest());
 
-    try {
-        const response = await BackendAPI.put(`user/${userId}/unblockUser`);
+        try {
+            const response = await BackendAPI.put(`user/${userId}/unblockUser`);
 
-        const data = response.data;
+            const data = response.data;
 
-        dispatch(unblockUserSuccess(data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(unblockUserSuccess(data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(unblockUserError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(unblockUserError(errorMsg));
-    }
-};
+    };
 
 //Add Project Notes
 export const addUserNoteRequest = (): void => {
@@ -712,17 +724,20 @@ export const twoFactorAuthTokenError = (error: $TSFixMe): void => {
     };
 };
 
-export const updateTwoFactorAuthToken = (userId: string, data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const updateTwoFactorAuthToken = (
+    userId: string,
+    data: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            function (error) {
+            function (error): void {
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -765,18 +780,18 @@ export function fetchUserloginHistory(
     skip: PositiveNumber,
     limit = 10
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `history/${userId}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchUserHistoryRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 const payload = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchUserHistoryError(error));
             }
         );

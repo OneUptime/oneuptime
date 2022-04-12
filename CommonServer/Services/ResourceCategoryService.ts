@@ -7,7 +7,7 @@ import ContainerSecurityModel from '../Models/containerSecurity';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         const resourceCategory = await ResourceCategoryModel.findOneAndUpdate(
             query,
             {

@@ -12,7 +12,7 @@ const initialState = {
     oncallDuty: [],
 };
 
-export default function groups(state = initialState, action: Action) {
+export default function groups(state = initialState, action: Action): void {
     let updatedGroup;
     switch (action.type) {
         case types.GET_GROUPS_REQUEST:

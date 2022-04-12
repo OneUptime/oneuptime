@@ -53,7 +53,7 @@ const HTTP_TEST_SERVER_URL =
     process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
 const INIT_SCRIPT_URL = process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
 
-function generateRandomBusinessEmail() {
+function generateRandomBusinessEmail(): void {
     return (
         Math.random().toString(36).substring(8) +
         '@' +
@@ -61,7 +61,7 @@ function generateRandomBusinessEmail() {
         '.com'
     );
 }
-function generatePassword() {
+function generatePassword(): void {
     return Math.random().toString(36).substring(7);
 }
 
@@ -71,7 +71,7 @@ function generatePassword() {
  *
  * The new generateRandomString only generate 5 lowercase alphabets with no numbers
  */
-function generateRandomString() {
+function generateRandomString(): void {
     const result = [];
     const characters = 'abcdefghijklmnopqrstuvwxyz';
     const charactersLength = characters.length;
@@ -84,12 +84,12 @@ function generateRandomString() {
 }
 
 // These are other required functions, variables present in other test-utils dashboard folder.
-function parseBoolean(val: $TSFixMe) {
+function parseBoolean(val: $TSFixMe): void {
     const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
     return !falsy.test(val) && !!val;
 }
 
-function generateWrongEmail() {
+function generateWrongEmail(): void {
     return (
         Math.random().toString(36).substring(8) +
         '@' +
@@ -98,11 +98,11 @@ function generateWrongEmail() {
     );
 }
 
-function generateRandomWebsite() {
+function generateRandomWebsite(): void {
     return 'http://' + Math.random().toString(36).substring(10) + '.com';
 }
 
-function capitalize(words: $TSFixMe) {
+function capitalize(words: $TSFixMe): void {
     if (!words || !words.trim()) return '';
 
     words = words.split(' ');

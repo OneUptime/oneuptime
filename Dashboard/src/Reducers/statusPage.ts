@@ -344,7 +344,10 @@ const INITIAL_STATE = {
     },
 };
 
-export default function statusPage(state = INITIAL_STATE, action: Action) {
+export default function statusPage(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     let status, statusPage, isExistingStatusPage;
     switch (action.type) {
         //create statuspage

@@ -35,7 +35,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function sso(state = INITIAL_STATE, action: Action) {
+export default function sso(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         case types.CREATE_SSO_REQUEST:
             return {

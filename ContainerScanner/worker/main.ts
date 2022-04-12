@@ -3,7 +3,7 @@ import BackendAPI from '../Utils/api';
 import ContainerSecurity from './containerSecurity';
 
 export default {
-    runContainerScan: async function () {
+    runContainerScan: async function (): void {
         const securities = await BackendAPI.get(
             'container/containerSecurities'
         );

@@ -116,7 +116,7 @@ const joinFn = (acc = [], curr: $TSFixMe): void => {
 };
 
 export const allRoutes = groups
-    .map(function merge(group) {
+    .map(function merge(group): void {
         const { routes } = group;
         const newRoutes = [];
         for (const route of routes) {

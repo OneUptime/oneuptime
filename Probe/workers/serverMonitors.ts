@@ -58,7 +58,7 @@ export default {
                 fs.unlinkSync(`./${identityFile}`);
             }
 
-            ssh.connect(config).then(async function () {
+            ssh.connect(config).then(async function (): void {
                 let os;
                 try {
                     const { stdout: osLine, stderr } = await ssh.execCommand(

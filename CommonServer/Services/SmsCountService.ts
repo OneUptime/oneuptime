@@ -61,7 +61,7 @@ export default class SslService extends DatabaseService<typeof Model> {
         });
     }
 
-    async validateResend(userId: string) {
+    async validateResend(userId: string): void {
         const smsCount = await this.countBy({
             query: {
                 userId: userId,

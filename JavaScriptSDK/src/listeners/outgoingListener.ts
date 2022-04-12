@@ -18,10 +18,10 @@ class OutgoingListener {
         override(Http);
         override(Https);
 
-        function override(module) {
+        function override(module): void {
             const original = module.request;
 
-            function wrapper(outgoing) {
+            function wrapper(outgoing): void {
                 // Store a call to the original in req
 
                 const req = original.apply(this, arguments);
@@ -41,7 +41,7 @@ class OutgoingListener {
                     method,
                 });
 
-                req.emit = function (eventName, response) {
+                req.emit = function (eventName, response): void {
                     switch (eventName) {
                         case 'response': {
                             response.on('end', () => {

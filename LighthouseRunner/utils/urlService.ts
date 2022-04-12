@@ -27,7 +27,7 @@ export default {
         return bodyContent;
     },
 
-    ping: async function (monitorId: $TSFixMe, data: $TSFixMe) {
+    ping: async function (monitorId: $TSFixMe, data: $TSFixMe): void {
         return await BackendAPI.post(`lighthouse/ping/${monitorId}`, data);
     },
 };

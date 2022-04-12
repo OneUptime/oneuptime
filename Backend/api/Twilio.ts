@@ -120,7 +120,7 @@ router.post(
     '/sms/sendVerificationToken',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { to } = req.body;
 

@@ -17,7 +17,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         let probeKey, probeName, clusterKey, probeVersion;
 
         if (req.params && req.params.probeKey) {

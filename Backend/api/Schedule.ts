@@ -21,7 +21,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
 
@@ -119,7 +119,7 @@ router.get(
     '/:projectId/schedule',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const projectId = req.params.projectId;
             const populate = [

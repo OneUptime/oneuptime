@@ -136,7 +136,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function user(state = INITIAL_STATE, action: Action) {
+export default function user(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         // fetch users list
         case FETCH_USERS_REQUEST:

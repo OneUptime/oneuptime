@@ -3,6 +3,6 @@
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-export default function isArrayUnique(myArray: $TSFixMe) {
+export default function isArrayUnique(myArray: $TSFixMe): void {
     return myArray.length === new Set(myArray).size;
 }

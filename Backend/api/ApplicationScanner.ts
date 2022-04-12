@@ -40,7 +40,7 @@ router.get(
 router.post(
     '/scanning',
     isAuthorizedApplicationScanner,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const security = req.body.security;
             const applicationSecurity =
@@ -64,7 +64,7 @@ router.post(
 router.post(
     '/failed',
     isAuthorizedApplicationScanner,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const security = req.body;
             const applicationSecurity =

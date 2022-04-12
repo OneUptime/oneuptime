@@ -3,7 +3,7 @@ import Query from '../Types/DB/Query';
 import FindBy from '../Types/DB/FindBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    async findBy({ query, limit, skip, sort }: FindBy) {
+    async findBy({ query, limit, skip, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -40,7 +40,7 @@ export default class Service {
         return response;
     }
 
-    async findOneBy(query: Query) {
+    async findOneBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -57,7 +57,7 @@ export default class Service {
         return group;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const groupExist = await this.findOneBy({
             name: data.name,
             projectId: data.projectId,
@@ -77,7 +77,7 @@ export default class Service {
         return group;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -87,7 +87,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         const group = await GroupModel.findOneAndUpdate(
             query,
             {
@@ -104,7 +104,7 @@ export default class Service {
         return group;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: string) {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: string): void {
         if (!query) {
             query = {};
         }
@@ -132,7 +132,7 @@ export default class Service {
         return group;
     }
 
-    async removeGroupMember(groupId: $TSFixMe, memberId: $TSFixMe) {
+    async removeGroupMember(groupId: $TSFixMe, memberId: $TSFixMe): void {
         const group = await this.findOneBy({ _id: groupId });
         const teamMembers = group.teams;
         const data = teamMembers.filter((id: $TSFixMe) => id !== memberId);

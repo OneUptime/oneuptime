@@ -16,7 +16,7 @@ if (limit && typeof limit === 'string') {
 import asyncSleep from 'await-sleep';
 
 const _this = {
-    runJob: async function () {
+    runJob: async function (): void {
         logger.info(`Getting a list of ${limit} monitors`);
 
         let monitors = await ProbeAPI.get('probe/monitors', limit);

@@ -21,17 +21,17 @@ const selectEmailStatus =
 
 let token: $TSFixMe, projectId: string, userId: string;
 
-describe('Feedback API', function () {
+describe('Feedback API', function (): void {
     this.timeout(50000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
-            GlobalConfig.enableEmailLog().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
+            GlobalConfig.enableEmailLog().then(function (): void {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: $TSFixMe) {
+                    function (err: $TSFixMe, res: $TSFixMe): void {
                         const project = res.body.project;
                         projectId = project._id;
                         userId = res.body.id;
@@ -47,7 +47,7 @@ describe('Feedback API', function () {
                                         `/user/confirmation/${verificationToken.token}`
                                     )
                                     .redirects(0)
-                                    .end(function () {
+                                    .end(function (): void {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -73,7 +73,7 @@ describe('Feedback API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -89,7 +89,7 @@ describe('Feedback API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create feedback and check the sent emails to oneuptime team and user', async function () {
+    it('should create feedback and check the sent emails to oneuptime team and user', async function (): void {
         const authorization = `Basic ${token}`;
         const testFeedback = {
             feedback: 'test feedback',

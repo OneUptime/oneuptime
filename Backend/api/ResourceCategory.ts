@@ -29,7 +29,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const resourceCategoryName = req.body.resourceCategoryName;
             const projectId = req.params.projectId;

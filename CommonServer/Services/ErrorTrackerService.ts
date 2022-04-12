@@ -1,7 +1,7 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         // check if component exist
         const componentCount = await ComponentService.countBy({
             _id: data.componentId,
@@ -64,7 +64,7 @@ export default class Service {
         return errorTracker;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -75,7 +75,7 @@ export default class Service {
     }
 
     // find a list of error trackers
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -105,7 +105,7 @@ export default class Service {
         return result;
     }
     // find a particular error tracker
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -124,7 +124,7 @@ export default class Service {
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
-    ) {
+    ): void {
         // Check if component exists
         const componentCount = await ComponentService.countBy({
             _id: componentId,
@@ -157,7 +157,7 @@ export default class Service {
         return { errorTrackers, count, skip, limit };
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -193,7 +193,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
         if (!query) {
             query = {};
         }

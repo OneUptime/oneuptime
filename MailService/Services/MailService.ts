@@ -800,7 +800,7 @@ export default class MailService {
         tokenVerifyUrl: URL,
         name: string,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -2070,7 +2070,7 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -2668,7 +2668,7 @@ export default class MailService {
         subProject: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -2816,7 +2816,7 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -2971,7 +2971,7 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3283,7 +3283,7 @@ export default class MailService {
         project: $TSFixMe,
         removedByUser: $TSFixMe,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -3439,7 +3439,7 @@ export default class MailService {
         subProject: $TSFixMe,
         removedByUser: $TSFixMe,
         email: Email
-    ) {
+    ):void {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;

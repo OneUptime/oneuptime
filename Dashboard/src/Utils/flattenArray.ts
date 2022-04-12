@@ -4,9 +4,9 @@
  * @return {array} a flattened array
  */
 
-export default function flat(arr: $TSFixMe) {
+export default function flat(arr: $TSFixMe): void {
     const flattened = [];
-    (function flatten(arr) {
+    (function flatten(arr): void {
         for (const val of arr) {
             if (Array.isArray(val)) {
                 flatten(val);

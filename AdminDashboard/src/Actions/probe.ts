@@ -37,21 +37,21 @@ export const getProbes = (skip = 0, limit = 10): void => {
 
     limit = parseInt(limit);
 
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
 
         promise = BackendAPI.get(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));
 
         promise.then(
-            function (probes) {
+            function (probes): void {
                 probes.data.skip = skip || 0;
 
                 probes.data.limit = limit || 10;
 
                 dispatch(probeSuccess(probes.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(probeError(error));
             }
         );
@@ -138,7 +138,7 @@ export const addProbeError = (error: $TSFixMe): void => {
 };
 
 export const resetAddProbe = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(addProbeReset());
     };
 };
@@ -202,36 +202,38 @@ export const updateProbeError = (error: $TSFixMe): void => {
 };
 
 // Calls the API to update a probe
-export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch): void => {
-    dispatch(updateProbeRequest());
+export const updateProbe =
+    (values: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(updateProbeRequest());
 
-    try {
-        const data = new FormData();
-        data.append('probeImage', values.probeImage);
-        data.append('id', values.id);
+        try {
+            const data = new FormData();
+            data.append('probeImage', values.probeImage);
+            data.append('id', values.id);
 
-        const response = await BackendAPI.put('probe/update/image', data);
+            const response = await BackendAPI.put('probe/update/image', data);
 
-        const resp = response.data;
-        if (Object.keys(resp).length > 0) {
-            dispatch(updateProbeSuccess(resp));
-            return 'ok';
-        } else {
-            dispatch(addProbeError('Network Error'));
+            const resp = response.data;
+            if (Object.keys(resp).length > 0) {
+                dispatch(updateProbeSuccess(resp));
+                return 'ok';
+            } else {
+                dispatch(addProbeError('Network Error'));
+            }
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(addProbeError(errorMsg));
+            return 'error';
         }
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
-        }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(addProbeError(errorMsg));
-        return 'error';
-    }
-};
+    };

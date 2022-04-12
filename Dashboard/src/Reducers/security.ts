@@ -43,7 +43,7 @@ const initialState = {
     activeApplicationSecurity: '',
 };
 
-export default function security(state = initialState, action: Action) {
+export default function security(state = initialState, action: Action): void {
     switch (action.type) {
         case types.ADD_CONTAINER_SECURITY_REQUEST:
             return {

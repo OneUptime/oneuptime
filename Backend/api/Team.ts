@@ -76,7 +76,7 @@ router.get(
     '/:projectId/:teamMemberId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         const projectId = req.params.projectId;
         const teamMemberUserId = req.params.teamMemberId;
 
@@ -122,7 +122,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         const data = req.body;
 
         const userId = req.user ? req.user : null;

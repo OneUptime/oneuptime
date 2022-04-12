@@ -22,10 +22,10 @@ class IncomingListener {
         override(Http);
         override(Https);
 
-        function override(module) {
+        function override(module): void {
             const emit = module.Server.prototype.emit;
 
-            module.Server.prototype.emit = function (type, req, res) {
+            module.Server.prototype.emit = function (type, req, res): void {
                 if (type === 'request') {
                     const path = req.pathname || req.path || req.url || '/';
                     const method = req.method;

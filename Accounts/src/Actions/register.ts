@@ -80,14 +80,14 @@ export const signupUser = (values: $TSFixMe): void => {
     if (redirectSource) {
         values.source = redirectSource;
     }
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `user/signup?token=${values.token}`,
             values
         );
         dispatch(signUpRequest(promise));
         promise.then(
-            function (user) {
+            function (user): void {
                 dispatch(signupSuccess(user.data));
 
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
@@ -102,7 +102,7 @@ export const signupUser = (values: $TSFixMe): void => {
                     dispatch(loginSuccess(user.data));
                 }
             },
-            function (error) {
+            function (error): void {
                 dispatch(signupError(error));
             }
         );
@@ -168,14 +168,14 @@ export const resetIsUserInvited = (): void => {
 
 // Calls the API to register a user.
 export const isUserInvited = (values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('user/isInvited'), values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(isUserInvitedSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(isUserInvitedError(error));
             }
         );
@@ -206,16 +206,16 @@ export const addCardSuccess = (card: $TSFixMe): void => {
 };
 
 export const addCard = (data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('stripe/checkCard'), data);
 
         dispatch(addCardRequest(promise));
 
         promise.then(
-            function (card) {
+            function (card): void {
                 dispatch(addCardSuccess(card.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(addCardFailed(error));
             }
         );
@@ -231,13 +231,13 @@ export const getEmailSuccess = (email: $TSFixMe): void => {
 };
 
 export const getEmailFromToken = (token: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`user/${token}/email`);
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(getEmailSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getEmailSuccess(error));
             }
         );

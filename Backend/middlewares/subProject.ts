@@ -14,7 +14,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             const userId = req.user
                 ? req.user.id

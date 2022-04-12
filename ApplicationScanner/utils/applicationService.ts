@@ -23,7 +23,7 @@ import {
 
 import { Client } from 'ssh2';
 export default {
-    scan: async function (security) {
+    scan: async function (security): void {
         if (
             security.gitCredential.gitUsername &&
             security.gitCredential.gitPassword
@@ -39,7 +39,7 @@ export default {
         }
     },
 
-    decryptPassword: async function (security) {
+    decryptPassword: async function (security): void {
         const values = [];
         for (let i = 0; i <= 15; i++) {
             values.push(security.gitCredential.iv[i]);
@@ -329,7 +329,7 @@ export default {
     },
 };
 
-async function deleteFolderRecursive(dir) {
+async function deleteFolderRecursive(dir): void {
     if (fs.existsSync(dir)) {
         const entries = await readdir(dir, { withFileTypes: true });
         await Promise.all(
@@ -344,7 +344,7 @@ async function deleteFolderRecursive(dir) {
     }
 }
 
-function formatUrl(url) {
+function formatUrl(url): void {
     // remove https://www. from url
     if (url.indexOf('https://www.') === 0) {
         return url.slice(12);
@@ -369,7 +369,7 @@ function formatUrl(url) {
     return url;
 }
 
-function createDir(dirPath) {
+function createDir(dirPath): void {
     return new Promise((resolve, reject) => {
         const workPath = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {

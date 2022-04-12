@@ -22,7 +22,7 @@ import ContainerSecurityService from '../backend/services/containerSecurityServi
 import ContainerSecurityLogService from '../backend/services/containerSecurityLogService';
 import AirtableService from '../backend/services/airtableService';
 
-describe('Container Security API', function () {
+describe('Container Security API', function (): void {
     const timeout = 30000;
     let projectId: string,
         componentId: $TSFixMe,
@@ -33,12 +33,12 @@ describe('Container Security API', function () {
 
     this.timeout(timeout);
 
-    before(function (done: $TSFixMe) {
-        GlobalConfig.initTestConfig().then(function () {
+    before(function (done: $TSFixMe): void {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -46,7 +46,7 @@ describe('Container Security API', function () {
                     UserService.updateOneBy(
                         { _id: userId },
                         { role: 'master-admin' }
-                    ).then(function () {
+                    ).then(function (): void {
                         VerificationTokenModel.findOne(
                             { userId },
                             function (
@@ -58,7 +58,7 @@ describe('Container Security API', function () {
                                         `/user/confirmation/${verificationToken.token}`
                                     )
                                     .redirects(0)
-                                    .end(function () {
+                                    .end(function (): void {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -104,7 +104,7 @@ describe('Container Security API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -117,7 +117,7 @@ describe('Container Security API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create a container security', function (done: $TSFixMe) {
+    it('should create a container security', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         DockerCredentialService.create({
@@ -125,7 +125,7 @@ describe('Container Security API', function () {
             dockerPassword: dockerCredential.dockerPassword,
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
-        }).then(function (credential) {
+        }).then(function (credential): void {
             credentialId = credential._id;
             const data = {
                 name: 'Test Container',
@@ -138,7 +138,7 @@ describe('Container Security API', function () {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     containerSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -150,7 +150,7 @@ describe('Container Security API', function () {
         });
     });
 
-    it('should update a container security', function (done: $TSFixMe) {
+    it('should update a container security', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const update = { name: 'Container Test' };
 
@@ -160,14 +160,14 @@ describe('Container Security API', function () {
             )
             .set('Authorization', authorization)
             .send(update)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(update.name);
                 done();
             });
     });
 
-    it('should get a particular container security in a component', function (done: $TSFixMe) {
+    it('should get a particular container security in a component', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -175,7 +175,7 @@ describe('Container Security API', function () {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(
                     String(containerSecurityId)
@@ -187,33 +187,33 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should get all the container security in a component', function (done: $TSFixMe) {
+    it('should get all the container security in a component', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should get all the container security with a particular credential', function (done: $TSFixMe) {
+    it('should get all the container security with a particular credential', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/container/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should scan a container security', function (done: $TSFixMe) {
+    it('should scan a container security', function (done: $TSFixMe): void {
         this.timeout(300000);
         const authorization = `Basic ${token}`;
 
@@ -222,13 +222,13 @@ describe('Container Security API', function () {
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should throw error if scanning with an invalid docker credentials or invalid image path', function (done: $TSFixMe) {
+    it('should throw error if scanning with an invalid docker credentials or invalid image path', function (done: $TSFixMe): void {
         this.timeout(500000);
         const authorization = `Basic ${token}`;
         const data = {
@@ -242,14 +242,14 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 const containerSecurityId = res.body._id;
                 request
                     .post(
                         `/security/${projectId}/container/scan/${containerSecurityId}`
                     )
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         expect(res).to.have.status(400);
                         expect(res.body.message).to.be.equal(
                             'Scanning failed please check your docker credential or image path/tag'
@@ -259,7 +259,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not create a container security if name already exist in the component', function (done: $TSFixMe) {
+    it('should not create a container security if name already exist in the component', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Container Test',
@@ -272,7 +272,7 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security with this name already exist in this component'
@@ -281,7 +281,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not create a container security if image path already exist in the component', function (done: $TSFixMe) {
+    it('should not create a container security if image path already exist in the component', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -294,7 +294,7 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security with this image path already exist in this component'
@@ -303,7 +303,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not create a container security if name is missing or undefined in the request body', function (done: $TSFixMe) {
+    it('should not create a container security if name is missing or undefined in the request body', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             dockerCredential: credentialId,
@@ -315,7 +315,7 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security Name is required'
@@ -324,7 +324,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not create a container security if image path is missing or undefined in the request body', function (done: $TSFixMe) {
+    it('should not create a container security if image path is missing or undefined in the request body', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -336,14 +336,14 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal('Image Path is required');
                 done();
             });
     });
 
-    it('should not create a container security if dockerCredential is missing or undefined in the request body', function (done: $TSFixMe) {
+    it('should not create a container security if dockerCredential is missing or undefined in the request body', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -355,7 +355,7 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential is required'
@@ -364,7 +364,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should delete a particular container security', function (done: $TSFixMe) {
+    it('should delete a particular container security', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -372,14 +372,14 @@ describe('Container Security API', function () {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body.deleted).to.be.true;
                 done();
             });
     });
 
-    it('should not scan a container security if it does not exist', function (done: $TSFixMe) {
+    it('should not scan a container security if it does not exist', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -388,7 +388,7 @@ describe('Container Security API', function () {
                 `/security/${projectId}/container/scan/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security not found or does not exist'
@@ -397,7 +397,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not delete a non-existing container security', function (done: $TSFixMe) {
+    it('should not delete a non-existing container security', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -406,7 +406,7 @@ describe('Container Security API', function () {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container Security not found or does not exist'
@@ -415,7 +415,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not get a non-existing container security', function (done: $TSFixMe) {
+    it('should not get a non-existing container security', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const containerSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
@@ -424,7 +424,7 @@ describe('Container Security API', function () {
                 `/security/${projectId}/${componentId}/container/${containerSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Container security not found or does not exist'
@@ -433,7 +433,7 @@ describe('Container Security API', function () {
             });
     });
 
-    it('should not create a container security if dockerCredential does not exist', function (done: $TSFixMe) {
+    it('should not create a container security if dockerCredential does not exist', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             name: 'Another Container',
@@ -446,7 +446,7 @@ describe('Container Security API', function () {
             .post(`/security/${projectId}/${componentId}/container`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Docker Credential not found or does not exist'

@@ -65,7 +65,7 @@ class PerformanceTracker {
         process.on('unhandledRejection', this._sendDataOnExit.bind(this));
         process.on('uncaughtException', this._sendDataOnExit.bind(this));
     }
-    async _sendDataOnExit() {
+    async _sendDataOnExit(): void {
         await this.store.processDataOnExit();
     }
     _setUpOutgoingListener() {
@@ -74,7 +74,7 @@ class PerformanceTracker {
     setUpDataBaseListener() {
         const load = Module._load;
 
-        Module._load = function (request: $TSFixMe) {
+        Module._load = function (request: $TSFixMe): void {
             const res = load.apply(this, arguments);
             if (request === 'mongoose') {
                 const mongo = new MongooseListener(this.start, this.end);

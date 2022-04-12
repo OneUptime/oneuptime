@@ -312,7 +312,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             // const subProjectIds = req.user.subProjects
             //     ? req.user.subProjects.map(project => project._id)
@@ -378,7 +378,7 @@ router.get(
     '/:projectId/incident',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const projectId = req.params.projectId;
             const populate = [
@@ -1697,7 +1697,7 @@ router.delete(
     '/:projectId/:incidentId',
     getUser,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, incidentId } = req.params;
             const incident = await IncidentService.deleteBy(

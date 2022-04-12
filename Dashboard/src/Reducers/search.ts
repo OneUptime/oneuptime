@@ -17,7 +17,7 @@ const initialState = {
     searchFieldVisible: false,
 };
 
-export default function search(state = initialState, action: Action) {
+export default function search(state = initialState, action: Action): void {
     switch (action.type) {
         case SHOW_SEARCH_BAR:
             return Object.assign({}, state, {

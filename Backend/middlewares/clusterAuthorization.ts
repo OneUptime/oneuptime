@@ -11,7 +11,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         let masterAdmin = false;
 
         if (req.authorizationType === 'MASTER-ADMIN') {

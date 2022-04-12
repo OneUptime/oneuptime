@@ -117,7 +117,7 @@ class SocketApp extends Component<ComponentProps> {
 
             socket.on(
                 `updateStatusPage-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     if (thisObj.props.statusPage._id === data._id) {
                         thisObj.props.updatestatuspagebysocket(data);
                     }
@@ -126,7 +126,7 @@ class SocketApp extends Component<ComponentProps> {
 
             socket.on(
                 `updateTweets-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     if (thisObj.props.statusPage._id === data.statusPageId) {
                         thisObj.props.updatestweetsbysocket(data.tweets);
                     }
@@ -135,21 +135,21 @@ class SocketApp extends Component<ComponentProps> {
 
             socket.on(
                 `updateMonitor-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updatemonitorbysocket(data);
                 }
             );
 
             socket.on(
                 `deleteMonitor-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.deletemonitorbysocket(data);
                 }
             );
 
             socket.on(
                 `updateMonitorStatus-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updatemonitorstatusbysocket(
                         data,
 
@@ -160,21 +160,21 @@ class SocketApp extends Component<ComponentProps> {
 
             socket.on(
                 `addIncidentNote-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.addincidentnotebysocket(data);
                 }
             );
 
             socket.on(
                 `updateIncidentNote-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updateincidentnotebysocket(data);
                 }
             );
 
             socket.on(
                 `addScheduledEvent-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     if (data.showEventOnStatusPage) {
                         thisObj.props.addscheduledeventbysocket(data);
                     }
@@ -182,71 +182,71 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `deleteScheduledEvent-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.deletescheduledeventbysocket(data);
                 }
             );
             socket.on(
                 `updateScheduledEvent-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updatescheduledeventbysocket(data);
                 }
             );
 
             socket.on(
                 `addEventNote-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.addeventnotebysocket(data);
                 }
             );
 
             socket.on(
                 `deleteEventNote-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.deleteeventnotebysocket(data);
                 }
             );
 
             socket.on(
                 `updateEventNote-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updateeventnotebysocket(data);
                 }
             );
-            socket.on(`updateProbe`, function (data: $TSFixMe) {
+            socket.on(`updateProbe`, function (data: $TSFixMe): void {
                 thisObj.props.updateprobebysocket(data);
             });
 
             socket.on(
                 `incidentCreated-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.incidentcreatedbysocket(data);
                 }
             );
 
             socket.on(
                 `deleteIncident-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.deleteincidentbysocket(data);
                 }
             );
 
             socket.on(
                 `updateIncident-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updateincidentbysocket(data);
                 }
             );
             socket.on(
                 `updateIncidentTimeline-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.addincidenttimelinebysocket(data);
                 }
             );
 
             socket.on(
                 `deleteIncidentNote-${this.props.project._id}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.deleteincidentnotebysocket(data);
                 }
             );

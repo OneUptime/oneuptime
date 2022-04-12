@@ -8,7 +8,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async findBy({ query, limit, skip, sort, select, populate }: FindBy) {
+    async findBy({ query, limit, skip, sort, select, populate }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -33,7 +33,7 @@ export default class Service {
         return escalations;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -55,7 +55,7 @@ export default class Service {
         return escalation;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const escalationModel = new EscalationModel({
             call: data.call,
             email: data.email,
@@ -80,7 +80,7 @@ export default class Service {
         return escalation;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -90,7 +90,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -107,7 +107,7 @@ export default class Service {
         return escalation;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -125,7 +125,7 @@ export default class Service {
         return escalation;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -162,7 +162,7 @@ export default class Service {
         projectId: string,
         memberId: $TSFixMe,
         deletedById: $TSFixMe
-    ) {
+    ): void {
         const escalations = await this.findBy({
             query: { projectId },
             select: '_id teams scheduleId',
@@ -237,7 +237,7 @@ export default class Service {
         }
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
         let escalation = await this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {
@@ -283,7 +283,7 @@ function computeActiveTeamIndex(
     return difference % numberOfTeams;
 }
 
-function computeActiveTeams(escalation: $TSFixMe) {
+function computeActiveTeams(escalation: $TSFixMe): void {
     const { teams, rotationInterval, rotateBy, createdAt, rotationTimezone } =
         escalation;
 

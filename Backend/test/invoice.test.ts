@@ -20,10 +20,10 @@ const stripe = Stripe(payment.paymentPrivateKey);
 
 let token, userId, projectId, stripeCustomerId, testPlan;
 
-describe('Invoice API', function () {
+describe('Invoice API', function (): void {
     this.timeout(200000);
 
-    before(async function () {
+    before(async function (): void {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
         const checkCardData = await request.post('/stripe/checkCard').send({
@@ -93,7 +93,7 @@ describe('Invoice API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -113,7 +113,7 @@ describe('Invoice API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should return invoices', async function () {
+    it('should return invoices', async function (): void {
         const authorization = `Basic ${token}`;
         const invoices = await request
 
@@ -132,7 +132,7 @@ describe('Invoice API', function () {
         expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 
-    it('should paginate invoices', async function () {
+    it('should paginate invoices', async function (): void {
         for (let i = 0; i < 10; i++) {
             await stripe.subscriptions.create({
                 customer: stripeCustomerId,

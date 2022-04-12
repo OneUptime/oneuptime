@@ -20,7 +20,7 @@ export const RenderIfViewer = (props: $TSFixMe): void => {
     return renderItems;
 };
 
-function mapStateToProps(state: RootState) {
+function mapStateToProps(state: RootState): void {
     return {
         currentProject: state.project.currentProject,
     };

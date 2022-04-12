@@ -1,9 +1,9 @@
 const q = null;
 window.PR_SHOULD_USE_CONTINUATION = !0;
 
-(function () {
-    function L(a: $TSFixMe) {
-        function m(a: $TSFixMe) {
+(function ():void {
+    function L(a: $TSFixMe):void {
+        function m(a: $TSFixMe):void {
             let f = a.charCodeAt(0);
             if (f !== 92) return f;
             const b = a.charAt(1);
@@ -15,13 +15,13 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 ? parseInt(a.substring(2), 16)
                 : a.charCodeAt(1);
         }
-        function e(a: $TSFixMe) {
+        function e(a: $TSFixMe):void {
             if (a < 32) return (a < 16 ? '\\x0' : '\\x') + a.toString(16);
             a = String.fromCharCode(a);
             if (a === '\\' || a === '-' || a === '[' || a === ']') a = '\\' + a;
             return a;
         }
-        function h(a: $TSFixMe) {
+        function h(a: $TSFixMe):void {
             for (
                 var f = a
                         .substring(1, a.length - 1)
@@ -61,7 +61,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                             ]));
                 }
             }
-            b.sort(function (a, f) {
+            b.sort(function (a, f):void {
                 return a[0] - f[0] || f[1] - a[1];
             });
             f = [];
@@ -82,7 +82,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
             b.push(']');
             return b.join('');
         }
-        function y(a: $TSFixMe) {
+        function y(a: $TSFixMe):void {
             for (
                 var f = a.source.match(
                         /\[(?:[^\\\]]|\\[\S\s])*]|\\u[\dA-Fa-f]{4}|\\x[\dA-Fa-f]{2}|\\\d+|\\[^\dux]|\(\?[!:=]|[()^]|[^()[\\^]+/g
@@ -122,7 +122,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                             : a !== '\\' &&
                               (f[c] = j.replace(
                                   /[A-Za-z]/g,
-                                  function (a: $TSFixMe) {
+                                  function (a: $TSFixMe):void {
                                       a = a.charCodeAt(0);
                                       return (
                                           '[' +
@@ -163,8 +163,8 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         }
         return RegExp(n.join('|'), l ? 'gi' : 'g');
     }
-    function M(a: $TSFixMe) {
-        function m(a: $TSFixMe) {
+    function M(a: $TSFixMe):void {
+        function m(a: $TSFixMe):void {
             switch (a.nodeType) {
                 case 1:
                     if (e.test(a.className)) break;
@@ -204,11 +204,11 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         m(a);
         return { a: h.join('').replace(/\n$/, ''), c: t };
     }
-    function B(a: $TSFixMe, m: $TSFixMe, e: $TSFixMe, h: $TSFixMe) {
+    function B(a: $TSFixMe, m: $TSFixMe, e: $TSFixMe, h: $TSFixMe):void {
         m && ((a = { a: m, d: a }), e(a), h.push.apply(h, a.e));
     }
-    function x(a: $TSFixMe, m: $TSFixMe) {
-        function e(a: $TSFixMe) {
+    function x(a: $TSFixMe, m: $TSFixMe):void {
+        function e(a: $TSFixMe):void {
             for (
                 var l = a.d,
                     p = [l, 'pln'],
@@ -260,7 +260,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         }
         var h = {},
             y: $TSFixMe;
-        (function () {
+        (function ():void {
             for (
                 var e = a.concat(m), l = [], p = {}, d = 0, g = e.length;
                 d < g;
@@ -279,7 +279,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         var t = m.length;
         return e;
     }
-    function u(a: $TSFixMe) {
+    function u(a: $TSFixMe):void {
         const m = [],
             e = [];
         a.tripleQuotedStrings
@@ -357,8 +357,8 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         );
         return x(m, e);
     }
-    function D(a: $TSFixMe, m: $TSFixMe) {
-        function e(a: $TSFixMe) {
+    function D(a: $TSFixMe, m: $TSFixMe):void {
+        function e(a: $TSFixMe):void {
             switch (a.nodeType) {
                 case 1:
                     if (k.test(a.className)) break;
@@ -385,8 +385,8 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                     }
             }
         }
-        function h(a: $TSFixMe) {
-            function b(a: $TSFixMe, d: $TSFixMe) {
+        function h(a: $TSFixMe):void {
+            function b(a: $TSFixMe, d: $TSFixMe):void {
                 var e = d ? a.cloneNode(!1) : a,
                     f = a.parentNode;
                 if (f) {
@@ -441,7 +441,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 r.appendChild(l);
         a.appendChild(r);
     }
-    function k(a: $TSFixMe, m: $TSFixMe) {
+    function k(a: $TSFixMe, m: $TSFixMe):void {
         for (let e = m.length; --e >= 0; ) {
             const h = m[e];
             A.hasOwnProperty(h)
@@ -450,12 +450,12 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 : (A[h] = a);
         }
     }
-    function C(a: $TSFixMe, m: $TSFixMe) {
+    function C(a: $TSFixMe, m: $TSFixMe):void {
         if (!a || !A.hasOwnProperty(a))
             a = /^\s*</.test(m) ? 'default-markup' : 'default-code';
         return A[a];
     }
-    function E(a: $TSFixMe) {
+    function E(a: $TSFixMe):void {
         var m = a.g;
         try {
             var e = M(a.h),
@@ -681,15 +681,15 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         ['coffee']
     );
     k(x([], [['str', /^[\S\s]+/]]), ['regex']);
-    window.prettyPrintOne = function (a: $TSFixMe, m: $TSFixMe, e: $TSFixMe) {
+    window.prettyPrintOne = function (a: $TSFixMe, m: $TSFixMe, e: $TSFixMe):void {
         const h = document.createElement('PRE');
         h.innerHTML = a;
         e && D(h, e);
         E({ g: m, i: e, h: h });
         return h.innerHTML;
     };
-    window.prettyPrint = function (a: $TSFixMe) {
-        function m() {
+    window.prettyPrint = function (a: $TSFixMe):void {
+        function m():void {
             for (
                 let e = window.PR_SHOULD_USE_CONTINUATION
                     ? l.now() + 250
@@ -771,7 +771,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
             l = Date;
         l.now ||
             (l = {
-                now: function () {
+                now: function ():void {
                     return +new Date();
                 },
             });

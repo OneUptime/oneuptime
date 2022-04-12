@@ -7,7 +7,7 @@ const projectCollection = 'projects';
 const incidentPriorityCollection = 'incidentpriorities';
 
 // run this script once
-async function run() {
+async function run(): void {
     const projects = await find(projectCollection, {
         deleted: false,
     });

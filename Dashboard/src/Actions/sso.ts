@@ -14,15 +14,15 @@ export const createSsoFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 export const createSso = ({ data }: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`sso`, data);
         dispatch(createSsoRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(createSsoSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(createSsoFailure(error));
             }
         );
@@ -42,7 +42,7 @@ export const fetchSsosFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
 
@@ -52,10 +52,10 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe): void => {
         dispatch(fetchSsosRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchSsosSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchSsosFailure(error));
             }
         );
@@ -75,15 +75,15 @@ export const fetchSsoFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 export const fetchSso = (ssoId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchSsoSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchSsoFailure(error));
             }
         );
@@ -103,15 +103,15 @@ export const updateSsoFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 export const updateSso = ({ id, data }: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`sso/${id}`, data);
         dispatch(updateSsoRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(updateSsoSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateSsoFailure(error));
             }
         );
@@ -131,15 +131,15 @@ export const deleteSsoFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 export const deleteSso = (ssoId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = delete `sso/${ssoId}`;
         dispatch(deleteSsoRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(deleteSsoSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteSsoFailure(error));
             }
         );

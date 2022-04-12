@@ -23,7 +23,10 @@ const INITIAL_STATE = {
     testSuccess: false,
 };
 
-export default function profileSettings(state = INITIAL_STATE, action: Action) {
+export default function profileSettings(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     const settings = {};
     switch (action.type) {
         case REQUESTING_SETTINGS:

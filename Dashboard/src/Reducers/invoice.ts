@@ -8,7 +8,10 @@ const getInitialState = () => ({
     nextCount: 0,
 });
 
-export default function getInvoice(state = getInitialState(), action: Action) {
+export default function getInvoice(
+    state = getInitialState(),
+    action: Action
+): void {
     switch (action.type) {
         case types.GET_INVOICE_REQUEST:
             return Object.assign({}, state, {

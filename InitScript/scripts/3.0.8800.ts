@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
 const errortrackerCollection = 'errortrackers';
 
-async function run() {
+async function run(): void {
     const errorTrackers = await find(errortrackerCollection, {
         $or: [
             { slug: { $exists: false } },

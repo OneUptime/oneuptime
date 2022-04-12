@@ -103,15 +103,15 @@ export const loginUser = (values: $TSFixMe): void => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
     if (redirect) values.redirect = redirect;
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('user/login'), values);
         dispatch(loginRequest(promise));
 
         promise.then(
-            function (user) {
+            function (user): void {
                 dispatch(loginSuccess(user.data));
             },
-            function (error) {
+            function (error): void {
                 if (error.message === 'Verify your email first.') {
                     dispatch(resendToken(values));
                     dispatch({
@@ -159,7 +159,7 @@ export const verifyAuthToken = (values: $TSFixMe): void => {
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
     values.email = values.email || email;
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             new Route('user/totp/verifyToken'),
             values
@@ -167,10 +167,10 @@ export const verifyAuthToken = (values: $TSFixMe): void => {
         dispatch(verifyTokenRequest(promise));
 
         promise.then(
-            function (user) {
+            function (user): void {
                 dispatch(loginSuccess(user.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(verifyTokenError(error));
             }
         );
@@ -206,7 +206,7 @@ export const verifyBackupCode = (values: $TSFixMe): void => {
     if (redirect) values.redirect = redirect;
     const email = User.getEmail();
     values.email = values.email || email;
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             new Route('user/verify/backupCode'),
             values
@@ -214,10 +214,10 @@ export const verifyBackupCode = (values: $TSFixMe): void => {
         dispatch(useBackupCodeRequest(promise));
 
         promise.then(
-            function (user) {
+            function (user): void {
                 dispatch(loginSuccess(user.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(useBackupCodeError(error));
             }
         );
@@ -261,14 +261,14 @@ export const resetMasterAdminExists = (): void => {
 
 // Calls the API to register a user.
 export const checkIfMasterAdminExists = (values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(masterAdminExistsSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(masterAdminExistsError(error));
             }
         );
@@ -278,7 +278,7 @@ export const checkIfMasterAdminExists = (values: $TSFixMe): void => {
 };
 
 export const changeLogin = (data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: types.CHANGE_LOGIN,
             payload: data,

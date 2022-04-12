@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const query = {};
 
         if (data.monitorId) query.monitorId = data.monitorId;
@@ -65,7 +65,7 @@ export default class Service {
 
     // allData is an array of object
     // to be bulk written to the db
-    async createMany(allData: $TSFixMe) {
+    async createMany(allData: $TSFixMe): void {
         const dataList = [];
         for (const data of allData) {
             const query = {};
@@ -123,7 +123,7 @@ export default class Service {
         return null;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -140,7 +140,7 @@ export default class Service {
         return updatedMonitorStatus;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -155,7 +155,7 @@ export default class Service {
         return updatedData;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -187,7 +187,7 @@ export default class Service {
         return monitorStatus;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -204,7 +204,7 @@ export default class Service {
         return monitorStatus;
     }
 
-    async sendMonitorStatus(data: $TSFixMe) {
+    async sendMonitorStatus(data: $TSFixMe): void {
         const monitor = await MonitorService.findOneBy({
             query: { _id: data.monitorId },
             select: 'projectId',
@@ -216,7 +216,7 @@ export default class Service {
         }
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }

@@ -40,7 +40,7 @@ const initialState = {
     },
 };
 
-export default function subscriber(state = initialState, action: Action) {
+export default function subscriber(state = initialState, action: Action): void {
     switch (action.type) {
         case types.CREATE_SUBSCRIBER_RESET:
             return Object.assign({}, state, {

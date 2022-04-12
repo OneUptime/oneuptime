@@ -17,16 +17,16 @@ let token: $TSFixMe, projectId: string, newProjectId: string;
 
 const teamEmail = 'noreply1@oneuptime.com';
 
-describe('Enterprise Team API', function () {
+describe('Enterprise Team API', function (): void {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -36,7 +36,7 @@ describe('Enterprise Team API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -45,7 +45,7 @@ describe('Enterprise Team API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -57,7 +57,7 @@ describe('Enterprise Team API', function () {
         });
     });
 
-    it('should add new user with valid details for project with no billing plan', function (done: $TSFixMe) {
+    it('should add new user with valid details for project with no billing plan', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/team/${projectId}`)
@@ -66,7 +66,7 @@ describe('Enterprise Team API', function () {
                 emails: teamEmail,
                 role: 'Member',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res.body[0].team[0].userId).to.be.a('string');
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');

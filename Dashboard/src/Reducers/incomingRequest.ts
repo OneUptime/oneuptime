@@ -32,7 +32,10 @@ const initialState = {
     activeIncomingRequest: '',
 };
 
-export default function incomingRequest(state = initialState, action: Action) {
+export default function incomingRequest(
+    state = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.FETCH_ALL_INCOMING_REQUEST_REQUEST:
             return {

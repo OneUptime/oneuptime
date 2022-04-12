@@ -83,7 +83,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function component(state = INITIAL_STATE, action: Action) {
+export default function component(state = INITIAL_STATE, action: Action): void {
     let components,
         isExistingComponent,
         failureComponentResourceList,

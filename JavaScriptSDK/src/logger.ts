@@ -22,7 +22,7 @@ class Logger {
         this.apiUrl = `${apiUrl}/application-log/${this.applicationLogId}/log`;
     }
 
-    async log(data: $TSFixMe, tags = null) {
+    async log(data: $TSFixMe, tags = null): void {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
@@ -38,7 +38,7 @@ class Logger {
         // make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
-    async warning(data: $TSFixMe, tags = null) {
+    async warning(data: $TSFixMe, tags = null): void {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
@@ -54,7 +54,7 @@ class Logger {
         // make api request to the server to save a log with the key, id and content
         return await this._makeApiRequest(data, logType, tags);
     }
-    async error(data: $TSFixMe, tags = null) {
+    async error(data: $TSFixMe, tags = null): void {
         const type = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {

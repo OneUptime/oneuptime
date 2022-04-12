@@ -201,7 +201,7 @@ export default ({
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {

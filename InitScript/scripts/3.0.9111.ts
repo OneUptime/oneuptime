@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const incidentSettingsCollection = 'incidentsettings';
 
 // run this script once
-async function run() {
+async function run(): void {
     const templates = await find(incidentSettingsCollection, {
         deleted: false,
         name: { $exists: false },

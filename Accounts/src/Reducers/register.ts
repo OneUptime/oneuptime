@@ -47,7 +47,7 @@ const initialState = {
     email: null,
 };
 
-export default function register(state = initialState, action: Action) {
+export default function register(state = initialState, action: Action): void {
     let incCount, decCount, stage;
     switch (action.type) {
         case SIGNUP_REQUEST:

@@ -135,30 +135,32 @@ export const deleteSmsLogsError = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteSmsLogs = () => async (dispatch: Dispatch): void => {
-    dispatch(deleteSmsLogsRequest());
+export const deleteSmsLogs =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(deleteSmsLogsRequest());
 
-    try {
-        const response = await delete `sms-logs`;
+        try {
+            const response = await delete `sms-logs`;
 
-        const message = response.data.message;
+            const message = response.data.message;
 
-        dispatch(deleteSmsLogsSuccess(message));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(deleteSmsLogsSuccess(message));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteSmsLogsError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteSmsLogsError(errorMsg));
-    }
-};
+    };
 
 // fetch smsLogStatus
 
@@ -190,32 +192,34 @@ export const resetFetchSmsLogStatus = (): void => {
 };
 
 // Calls the API to fetch smsLogStatus
-export const fetchSmsLogStatus = () => async (dispatch: Dispatch): void => {
-    dispatch(fetchSmsLogStatusRequest());
+export const fetchSmsLogStatus =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchSmsLogStatusRequest());
 
-    try {
-        const response = await BackendAPI.get(
-            'globalConfig/smsLogMonitoringStatus'
-        );
+        try {
+            const response = await BackendAPI.get(
+                'globalConfig/smsLogMonitoringStatus'
+            );
 
-        dispatch(fetchSmsLogStatusSuccess(response.data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchSmsLogStatusSuccess(response.data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchSmsLogStatusError(errorMsg));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchSmsLogStatusError(errorMsg));
-        return 'error';
-    }
-};
+    };
 
 // change smsLogStatus
 

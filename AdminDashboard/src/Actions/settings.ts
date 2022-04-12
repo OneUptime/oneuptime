@@ -54,90 +54,96 @@ export const testTwilioFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch): void => {
-    dispatch(testSmtpRequest());
+export const testSmtp =
+    (payload: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(testSmtpRequest());
 
-    try {
-        const response = await BackendAPI.post(
-            new Route('emailSmtp/test'),
-            payload
-        );
-        dispatch(testSmtpSuccess(response));
-        return response;
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+        try {
+            const response = await BackendAPI.post(
+                new Route('emailSmtp/test'),
+                payload
+            );
+            dispatch(testSmtpSuccess(response));
+            return response;
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
 
-        dispatch(testSmtpFailure(errorMsg));
-        return errorMsg;
-    }
-};
-
-export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch): void => {
-    dispatch(testTwilioRequest());
-
-    try {
-        const response = await BackendAPI.post(
-            new Route('twilio/sms/test'),
-            payload
-        );
-        dispatch(testTwilioSuccess(response));
-        return response;
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-
-        dispatch(testTwilioFailure(errorMsg));
-        return errorMsg;
-    }
-};
-
-export const fetchSettings = (type: $TSFixMe) => async (dispatch: Dispatch): void => {
-    dispatch(requestingSettings());
-    try {
-        const response = await BackendAPI.get(`globalConfig/${type}`);
-
-        const data = response.data || { value: {} };
-        if (type === 'smtp') {
-            data.value = { 'smtp-secure': false, ...data.value };
+            dispatch(testSmtpFailure(errorMsg));
+            return errorMsg;
         }
+    };
 
-        if (type === 'twilio') {
-            data.value = { 'call-enabled': false, ...data.value };
-        }
+export const testTwilio =
+    (payload: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(testTwilioRequest());
 
-        if (type === 'sso') {
-            data.value = { 'sso-enable': false, ...data.value };
+        try {
+            const response = await BackendAPI.post(
+                new Route('twilio/sms/test'),
+                payload
+            );
+            dispatch(testTwilioSuccess(response));
+            return response;
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+
+            dispatch(testTwilioFailure(errorMsg));
+            return errorMsg;
         }
-        dispatch(requestingSettingsSucceeded(data.value, type));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+    };
+
+export const fetchSettings =
+    (type: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(requestingSettings());
+        try {
+            const response = await BackendAPI.get(`globalConfig/${type}`);
+
+            const data = response.data || { value: {} };
+            if (type === 'smtp') {
+                data.value = { 'smtp-secure': false, ...data.value };
+            }
+
+            if (type === 'twilio') {
+                data.value = { 'call-enabled': false, ...data.value };
+            }
+
+            if (type === 'sso') {
+                data.value = { 'sso-enable': false, ...data.value };
+            }
+            dispatch(requestingSettingsSucceeded(data.value, type));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(requestingSettingsFailed(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(requestingSettingsFailed(errorMsg));
-    }
-};
+    };
 
 export const saveSettings =
     (type: $TSFixMe, settings: $TSFixMe) => async (dispatch: Dispatch) => {

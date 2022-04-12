@@ -2,7 +2,7 @@ import { find, update, removeField } from '../util/db';
 
 const statusPageCollection = 'statuspages';
 
-async function run() {
+async function run(): void {
     const statusPages = await find(statusPageCollection, {
         monitorIds: { $exists: true },
     });

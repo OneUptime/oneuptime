@@ -11,7 +11,7 @@ import Query from '../Types/DB/Query';
 import moment from 'moment';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const Log = new MonitorLogModel();
         let responseBody = '';
         if (data.resp && data.resp.body) {
@@ -78,7 +78,7 @@ export default class Service {
         return savedLog;
     }
 
-    async updateAggregateLogs(data: $TSFixMe) {
+    async updateAggregateLogs(data: $TSFixMe): void {
         const now = new Date();
 
         const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
@@ -219,7 +219,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -235,7 +235,7 @@ export default class Service {
         return monitorLog;
     }
 
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -264,7 +264,7 @@ export default class Service {
         return monitorLogs;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -279,7 +279,7 @@ export default class Service {
         return monitorLog;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -289,7 +289,7 @@ export default class Service {
         return count;
     }
 
-    async sendMonitorLog(data: $TSFixMe) {
+    async sendMonitorLog(data: $TSFixMe): void {
         const selectMonitorLog =
             'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 

@@ -4,7 +4,7 @@ const monitorCategoryCollection = 'monitorcategories';
 const resourceCategoryCollection = 'resourcecategories';
 const monitorCollection = 'monitors';
 
-async function run() {
+async function run(): void {
     // rename collection
     await rename(monitorCategoryCollection, resourceCategoryCollection);
 

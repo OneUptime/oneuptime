@@ -92,7 +92,7 @@ export default class CallRoutingLogService extends DatabaseService<
         });
     }
 
-    // async addUserToDefaultProjects({ domain, userId }: $TSFixMe) {
+    // async addUserToDefaultProjects({ domain, userId }: $TSFixMe):void {
 
     //     const populateDefaultRoleSso = [
     //         { path: 'domain', select: '_id domain' },
@@ -142,7 +142,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async updatePush({ userId, data }: $TSFixMe) {
+    async updatePush({ userId, data }: $TSFixMe): void {
         const user = await UserModel.findOne({ _id: userId });
         const checkExist = await user.identification.find(
             (user: $TSFixMe) =>
@@ -175,7 +175,7 @@ export default class CallRoutingLogService extends DatabaseService<
         if (!query) query = {};
         if (!data) data = {};
 
-        type = type.replace(/-([a-z])/g, function (g: $TSFixMe) {
+        type = type.replace(/-([a-z])/g, function (g: $TSFixMe): void {
             return g[1].toUpperCase();
         });
 
@@ -192,7 +192,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return tutorial || null;
     }
 
-    async sendToken(user: $TSFixMe, email: $TSFixMe) {
+    async sendToken(user: $TSFixMe, email: $TSFixMe): void {
         const verificationTokenModel = new VerificationTokenModel({
             userId: user._id,
             token: crypto.randomBytes(16).toString('hex'),
@@ -229,7 +229,7 @@ export default class CallRoutingLogService extends DatabaseService<
     //Params:
     //Param 1: data: User details.
     //Returns: promise.
-    async signup(data: $TSFixMe) {
+    async signup(data: $TSFixMe): void {
         const email = data.email;
         const stripePlanId = data.planId || null;
         const paymentIntent = data.paymentIntent || null;
@@ -317,7 +317,7 @@ export default class CallRoutingLogService extends DatabaseService<
         }
     }
 
-    async getUserIpLocation(clientIP: $TSFixMe) {
+    async getUserIpLocation(clientIP: $TSFixMe): void {
         try {
             const geo = geoip.lookup(clientIP);
             if (geo) {
@@ -334,7 +334,7 @@ export default class CallRoutingLogService extends DatabaseService<
         secretKey: $TSFixMe,
         numberOfCodes: $TSFixMe,
         firstCounter = 0
-    ) {
+    ): void {
         hotp.options = { digits: 8 };
         const backupCodes = [];
 
@@ -351,7 +351,7 @@ export default class CallRoutingLogService extends DatabaseService<
         code: $TSFixMe,
         secretKey: $TSFixMe,
         counter: $TSFixMe
-    ) {
+    ): void {
         hotp.options = { digits: 8 };
         const isValid = hotp.check(code, secretKey, counter);
         if (isValid) {
@@ -374,7 +374,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return isValid;
     }
 
-    async generateTwoFactorSecret(userId: string) {
+    async generateTwoFactorSecret(userId: string): void {
         const user = await this.findOneBy({
             query: { _id: userId },
             select: 'email',
@@ -396,7 +396,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return { otpauth_url: secretCode.otpauth_url };
     }
 
-    async verifyAuthToken(token: $TSFixMe, userId: string) {
+    async verifyAuthToken(token: $TSFixMe, userId: string): void {
         const user = await this.findOneBy({
             query: { _id: userId },
             select: '_id twoFactorSecretCode',
@@ -568,7 +568,7 @@ export default class CallRoutingLogService extends DatabaseService<
     //Params:
     //Param 1: email: User email.
     //Returns: promise.
-    async forgotPassword(email: $TSFixMe) {
+    async forgotPassword(email: $TSFixMe): void {
         if (util.isEmailValid(email)) {
             let user = await this.findOneBy({
                 query: { email: email },
@@ -611,7 +611,7 @@ export default class CallRoutingLogService extends DatabaseService<
     //Param 1:  password: User password.
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
-    async resetPassword(password: $TSFixMe, token: $TSFixMe) {
+    async resetPassword(password: $TSFixMe, token: $TSFixMe): void {
         let user = await this.findOneBy({
             query: {
                 resetPasswordToken: token,
@@ -654,7 +654,7 @@ export default class CallRoutingLogService extends DatabaseService<
     }
 
     // Description: replace password temporarily in "admin mode"
-    async switchToAdminMode(userId: string, temporaryPassword: $TSFixMe) {
+    async switchToAdminMode(userId: string, temporaryPassword: $TSFixMe): void {
         if (!temporaryPassword) {
             const error = new Error(
                 'A temporary password is required for admin mode'
@@ -699,7 +699,7 @@ export default class CallRoutingLogService extends DatabaseService<
     }
 
     // Descripiton: revert from admin mode and replce user password
-    async exitAdminMode(userId: string) {
+    async exitAdminMode(userId: string): void {
         const user = await this.findOneBy({
             query: { _id: userId },
             select: 'isAdminMode cachedPassword password',
@@ -736,7 +736,7 @@ export default class CallRoutingLogService extends DatabaseService<
     //Params:
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
-    async getNewToken(refreshToken: $TSFixMe) {
+    async getNewToken(refreshToken: $TSFixMe): void {
         let user = await this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
             select: '_id',
@@ -765,7 +765,7 @@ export default class CallRoutingLogService extends DatabaseService<
         }
     }
 
-    async changePassword(data: $TSFixMe) {
+    async changePassword(data: $TSFixMe): void {
         const currentPassword = data.currentPassword;
         let user = await this.findOneBy({
             query: { _id: data._id },
@@ -798,7 +798,7 @@ export default class CallRoutingLogService extends DatabaseService<
         }
     }
 
-    async getAllUsers(skip: PositiveNumber, limit: PositiveNumber) {
+    async getAllUsers(skip: PositiveNumber, limit: PositiveNumber): void {
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         let users = await this.findBy({
@@ -859,7 +859,7 @@ export default class CallRoutingLogService extends DatabaseService<
         return users;
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
 
         const select = '_id';
@@ -891,7 +891,7 @@ export default class CallRoutingLogService extends DatabaseService<
         }
     }
 
-    async addNotes(userId: string, notes: $TSFixMe) {
+    async addNotes(userId: string, notes: $TSFixMe): void {
         const user = await this.updateOneBy(
             {
                 _id: userId,
@@ -907,7 +907,7 @@ export default class CallRoutingLogService extends DatabaseService<
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         const select =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         let users = await this.findBy({ query, skip, limit, select });

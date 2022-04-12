@@ -20,29 +20,32 @@ import { createUser } from './utils/userSignUp';
 
 let projectId: string, token: $TSFixMe, userId;
 
-describe('Notification API', function () {
+describe('Notification API', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -65,7 +68,7 @@ describe('Notification API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -97,13 +100,13 @@ describe('Notification API', function () {
             });
     });
 
-    it('should get project notifications current user is present in', function (done: $TSFixMe) {
+    it('should get project notifications current user is present in', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/notification/${projectId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -112,19 +115,19 @@ describe('Notification API', function () {
             });
     });
 
-    it('should not get project notifications current user is not present in', function (done: $TSFixMe) {
+    it('should not get project notifications current user is not present in', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/notification/${projectData.firstProject._id}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should mark project notification as read', function (done: $TSFixMe) {
+    it('should mark project notification as read', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/notification/${projectId}`)
@@ -133,13 +136,13 @@ describe('Notification API', function () {
                 message: 'New Notification',
                 icon: 'bell',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 const notificationId = res.body._id;
                 request
                     .put(`/notification/${projectId}/read`)
                     .set('Authorization', authorization)
                     .send({ notificationIds: [notificationId] })
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('array');
                         expect(res.body).to.include(notificationId);
@@ -148,7 +151,7 @@ describe('Notification API', function () {
             });
     });
 
-    it('should close a notification', function (done: $TSFixMe) {
+    it('should close a notification', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/notification/${projectId}`)
@@ -157,12 +160,12 @@ describe('Notification API', function () {
                 message: 'New Notification',
                 icon: 'bell',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 const notificationId = res.body._id;
                 request
                     .put(`/notification/${projectId}/${notificationId}/closed`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
                         expect(res.body._id).to.be.equal(notificationId);
@@ -171,7 +174,7 @@ describe('Notification API', function () {
             });
     });
 
-    it('should mark all project notifications as read', function (done: $TSFixMe) {
+    it('should mark all project notifications as read', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/notification/${projectId}`)
@@ -180,22 +183,22 @@ describe('Notification API', function () {
                 message: 'New Notification',
                 icon: 'bell',
             })
-            .end(function () {
+            .end(function (): void {
                 request
                     .put(`/notification/${projectId}/readAll`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         expect(res).to.have.status(200);
                         done();
                     });
             });
     });
 
-    it('should reject request if the notification param is invalid ', function (done: $TSFixMe) {
+    it('should reject request if the notification param is invalid ', function (done: $TSFixMe): void {
         request
             .put(`/notification/${projectId}/read`)
             .send({ notificationIds: [projectData.fakeProject._id] })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(401);
                 done();
             });

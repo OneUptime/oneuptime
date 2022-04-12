@@ -16,7 +16,7 @@ import ProjectService from './projectService';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function (data: $TSFixMe) {
+    create: async function (data: $TSFixMe): void {
         const Log = {};
         let responseBody = '';
         if (data.resp && data.resp.body) {
@@ -88,7 +88,7 @@ export default {
         return savedLog;
     },
 
-    updateAggregateLogs: async function (data: $TSFixMe) {
+    updateAggregateLogs: async function (data: $TSFixMe): void {
         const now = new Date();
         const intervalHourDate = moment(now).format('MMM Do YYYY, h A');
         const intervalDayDate = moment(now).format('MMM Do YYYY');
@@ -216,7 +216,7 @@ export default {
         }
     },
 
-    updateOneBy: async function (query: Query, data: $TSFixMe) {
+    updateOneBy: async function (query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -229,7 +229,7 @@ export default {
         return monitorLog;
     },
 
-    async findOneBy(query: Query) {
+    async findOneBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -259,7 +259,7 @@ export default {
         return monitorLog;
     },
 
-    async sendMonitorLog(data: $TSFixMe) {
+    async sendMonitorLog(data: $TSFixMe): void {
         const [monitor, logData] = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },

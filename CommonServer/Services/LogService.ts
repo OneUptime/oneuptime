@@ -7,7 +7,7 @@ import Query from '../Types/DB/Query';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         // prepare  log model
         let log = new LogModel();
         let content;
@@ -49,7 +49,7 @@ export default class Service {
         });
         return log;
     }
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -64,7 +64,7 @@ export default class Service {
 
         return log;
     }
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -99,7 +99,7 @@ export default class Service {
         applicationLogId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
-    ) {
+    ): void {
         // try to get the application log by the ID
 
         const applicationLogCount = await ApplicationLogService.countBy({
@@ -127,7 +127,7 @@ export default class Service {
         });
         return logs;
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -165,7 +165,7 @@ export default class Service {
         return { searchedLogs, totalSearchCount };
     }
 
-    async searchByDuration(query: Query) {
+    async searchByDuration(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -197,7 +197,7 @@ export default class Service {
         return { searchedLogs, totalSearchCount };
     }
     // Introduce this to know the current date range of the query incase it wasnt given by the user
-    async getDateRange(query: Query) {
+    async getDateRange(query: Query): void {
         if (!query) {
             query = {};
         }

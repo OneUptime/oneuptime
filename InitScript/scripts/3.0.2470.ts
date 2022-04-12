@@ -5,7 +5,7 @@ import randomChar from '../util/randomChar';
 const statusPageCollection = 'statuspages';
 const domainVerificationTokenCollection = 'domainverificationtokens';
 
-async function run() {
+async function run(): void {
     const statusPages = await find(statusPageCollection, {
         domain: { $type: 'string' },
     });

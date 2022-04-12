@@ -136,30 +136,32 @@ export const deleteEmailLogsError = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteEmailLogs = () => async (dispatch: Dispatch): void => {
-    dispatch(deleteEmailLogsRequest());
+export const deleteEmailLogs =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(deleteEmailLogsRequest());
 
-    try {
-        const response = await delete `email-logs`;
+        try {
+            const response = await delete `email-logs`;
 
-        const message = response.data.message;
+            const message = response.data.message;
 
-        dispatch(deleteEmailLogsSuccess(message));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(deleteEmailLogsSuccess(message));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteEmailLogsError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteEmailLogsError(errorMsg));
-    }
-};
+    };
 
 // fetch emailLogStatus
 
@@ -191,32 +193,34 @@ export const resetFetchEmailLogStatus = (): void => {
 };
 
 // Calls the API to fetch emailLogStatus
-export const fetchEmailLogStatus = () => async (dispatch: Dispatch): void => {
-    dispatch(fetchEmailLogStatusRequest());
+export const fetchEmailLogStatus =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchEmailLogStatusRequest());
 
-    try {
-        const response = await BackendAPI.get(
-            'globalConfig/emailLogMonitoringStatus'
-        );
+        try {
+            const response = await BackendAPI.get(
+                'globalConfig/emailLogMonitoringStatus'
+            );
 
-        dispatch(fetchEmailLogStatusSuccess(response.data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchEmailLogStatusSuccess(response.data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchEmailLogStatusError(errorMsg));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchEmailLogStatusError(errorMsg));
-        return 'error';
-    }
-};
+    };
 
 // change emailLogStatus
 

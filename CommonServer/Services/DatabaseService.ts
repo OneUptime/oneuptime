@@ -185,7 +185,7 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async onUpdateSuccess() {
+    protected async onUpdateSuccess(): void {
         // a place holder method used for overriding.
         return Promise.resolve();
     }
@@ -195,7 +195,7 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async onDeleteSuccess() {
+    protected async onDeleteSuccess(): void {
         // a place holder method used for overriding.
         return Promise.resolve();
     }
@@ -229,7 +229,7 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async getException(error: Exception) {
+    protected async getException(error: Exception): void {
         throw error;
     }
 
@@ -306,7 +306,10 @@ class DatabaseService<ModelType> {
         }
     }
 
-    public async deleteOneBy({ query = {}, deletedByUserId }: DeleteOneBy) {
+    public async deleteOneBy({
+        query = {},
+        deletedByUserId,
+    }: DeleteOneBy): void {
         return await this._deleteBy({
             query,
             multiple: false,
@@ -314,7 +317,7 @@ class DatabaseService<ModelType> {
         });
     }
 
-    public async deleteBy({ query = {}, deletedByUserId }: DeleteBy) {
+    public async deleteBy({ query = {}, deletedByUserId }: DeleteBy): void {
         return await this._deleteBy({
             query,
             multiple: false,
@@ -322,7 +325,7 @@ class DatabaseService<ModelType> {
         });
     }
 
-    private async _hardDeleteBy(query: Query) {
+    private async _hardDeleteBy(query: Query): void {
         return await this.model.remove(query);
     }
 
@@ -637,11 +640,11 @@ class DatabaseService<ModelType> {
         }
     }
 
-    public async updateOneBy({ query, data }: UpdateOneBy) {
+    public async updateOneBy({ query, data }: UpdateOneBy): void {
         return await this._updateBy({ query, data, multiple: false });
     }
 
-    public async updateBy({ query, data }: UpdateBy) {
+    public async updateBy({ query, data }: UpdateBy): void {
         return await this._updateBy({ query, data, multiple: true });
     }
 

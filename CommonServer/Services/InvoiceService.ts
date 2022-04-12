@@ -8,7 +8,7 @@ export default class Service {
     //         that helps to fetch items fro the next list.
     //Returns : promise
 
-    async get(userId, startingAfter, endingBefore) {
+    async get(userId, startingAfter, endingBefore): void {
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select: 'stripeCustomerId',

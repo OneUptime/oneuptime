@@ -53,7 +53,7 @@ export default class Service {
         return populatedNotification || notification;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }

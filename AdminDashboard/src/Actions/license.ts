@@ -32,35 +32,37 @@ export const resetFetchLicense = (): void => {
 };
 
 // Calls the API to fetch license
-export const fetchLicense = () => async (dispatch: Dispatch): void => {
-    dispatch(fetchLicenseRequest());
-    dispatch(resetConfirmLicense());
+export const fetchLicense =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchLicenseRequest());
+        dispatch(resetConfirmLicense());
 
-    try {
-        const response = await BackendAPI.post(
-            new Route('globalConfig/configs'),
-            ['licenseKey', 'licenseEmail', 'licenseToken']
-        );
+        try {
+            const response = await BackendAPI.post(
+                new Route('globalConfig/configs'),
+                ['licenseKey', 'licenseEmail', 'licenseToken']
+            );
 
-        const data = response.data;
-        dispatch(fetchLicenseSuccess(data));
-        return data;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            const data = response.data;
+            dispatch(fetchLicenseSuccess(data));
+            return data;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchLicenseError(errorMsg));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchLicenseError(errorMsg));
-        return 'error';
-    }
-};
+    };
 
 // confirm license
 

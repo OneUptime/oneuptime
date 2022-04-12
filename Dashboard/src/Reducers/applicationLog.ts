@@ -59,7 +59,10 @@ const INITIAL_STATE = {
     },
     stats: {},
 };
-export default function applicationLog(state = INITIAL_STATE, action: Action) {
+export default function applicationLog(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     let applicationLogs,
         failureLogs,
         requestLogs,

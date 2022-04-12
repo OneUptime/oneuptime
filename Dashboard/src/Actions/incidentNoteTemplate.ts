@@ -27,10 +27,10 @@ export const createIncidentNoteTemplate =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(createIncidentNoteTemplateSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -70,10 +70,10 @@ export const fetchIncidentNoteTemplates =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -114,10 +114,10 @@ export const updateIncidentNoteTemplate =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(updateIncidentNoteTemplateSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -157,10 +157,10 @@ export const deleteIncidentNoteTemplate =
             delete `incidentNoteTemplate/${projectId}/${templateId}`;
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(deleteIncidentNoteTemplateSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

@@ -40,7 +40,7 @@ export function createSubscriber(
     monitorId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `subscriber/${projectId}/subscribe/${monitorId}`,
             data
@@ -49,10 +49,10 @@ export function createSubscriber(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            function (createSubscriber) {
+            function (createSubscriber): void {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(createSubscriberError(error));
             }
         );
@@ -98,7 +98,7 @@ export function exportCSV(
     limit: PositiveNumber,
     csv: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `subscriber/${projectId}/monitor/${monitorId}?skip=${skip}&limit=${limit}&output-type=${csv}`
         );
@@ -106,12 +106,12 @@ export function exportCSV(
         dispatch(exportCsvRequest(promise));
 
         promise.then(
-            function (csvData) {
+            function (csvData): void {
                 saveFile(csvData.data.data, 'subscriber.csv');
 
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(exportCsvError(error));
             }
         );
@@ -150,14 +150,17 @@ export const resetDeleteSubscriber = (): void => {
 };
 
 // Calls the API to delete a subscriber.
-export const deleteSubscriber = (projectId: string, subscriberId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const deleteSubscriber = (
+    projectId: string,
+    subscriberId: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`subscriber/${projectId}/${subscriberId}`, {});
 
         dispatch(deleteSubscriberRequest(promise));
 
         promise.then(
-            function (subscriber) {
+            function (subscriber): void {
                 dispatch(deleteSubscriberSuccess(subscriber.data));
                 dispatch({
                     type: 'REMOVE_MONITORS_SUBSCRIBERS',
@@ -165,7 +168,7 @@ export const deleteSubscriber = (projectId: string, subscriberId: $TSFixMe): voi
                     payload: subscriber.data,
                 });
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteSubscriberError(error));
             }
         );
@@ -200,7 +203,7 @@ export const downloadCsvTemplateSuccess = (): void => {
 export const downloadCsvTemplate = (): void => {
     const fields =
         'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(downloadCsvTemplateRequest());
         try {
             saveFile(fields, 'subscribers.csv');
@@ -222,7 +225,7 @@ export function importSubscribersFromCsvFile(
     projectId: string,
     monitorId: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `subscriber/${projectId}/${monitorId}/csv`,
             data
@@ -231,10 +234,10 @@ export function importSubscribersFromCsvFile(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            function (createSubscriber) {
+            function (createSubscriber): void {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(createSubscriberError(error));
             }
         );

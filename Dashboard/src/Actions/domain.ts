@@ -28,8 +28,12 @@ export const verifyDomainFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe): void => {
-    return async function (dispatch: Dispatch) {
+export const verifyDomain = ({
+    projectId,
+    domainId,
+    payload,
+}: $TSFixMe): void => {
+    return async function (dispatch: Dispatch): void {
         dispatch(verifyDomainRequest());
 
         try {
@@ -82,7 +86,7 @@ export function createDomain({
     autoProvisioning,
     enableHttps,
 }: $TSFixMe) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         dispatch(createDomainRequest());
 
         try {
@@ -131,7 +135,7 @@ export const deleteDomain = ({
     statusPageId,
     domainId,
 }: $TSFixMe) => {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         dispatch(deleteDomainRequest());
         try {
             const response =
@@ -182,7 +186,7 @@ export function updateDomain({
     enableHttps,
     autoProvisioning,
 }: $TSFixMe) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         dispatch(updateDomainRequest());
         try {
             const response = await BackendAPI.put(

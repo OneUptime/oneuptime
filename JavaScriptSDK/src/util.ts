@@ -14,7 +14,7 @@ class Util {
             ERROR: 'error',
         };
     }
-    async _getErrorStackTrace(errorEvent: $TSFixMe) {
+    async _getErrorStackTrace(errorEvent: $TSFixMe): void {
         const frames = [];
         // get error stack trace
         const stack = errorEvent.stack
@@ -112,7 +112,7 @@ class Util {
         }
         return deviceDetails;
     }
-    async _getErrorCodeSnippet(errorObj: $TSFixMe) {
+    async _getErrorCodeSnippet(errorObj: $TSFixMe): void {
         const frames = errorObj.stacktrace ? errorObj.stacktrace.frames : [];
         for (let i = 0; i < frames.length; i++) {
             let fileName = frames[i].fileName;

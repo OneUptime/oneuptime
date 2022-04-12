@@ -1,5 +1,5 @@
 export default class Service {
-    async create({ name, value }: $TSFixMe) {
+    async create({ name, value }: $TSFixMe): void {
         if (name === 'smtp' && value.internalSmtp && !value.customSmtp) {
             value = {
                 internalSmtp: true,
@@ -59,7 +59,7 @@ export default class Service {
         return globalConfig;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -135,7 +135,7 @@ export default class Service {
         return globalConfig;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -150,7 +150,7 @@ export default class Service {
         return globalConfigs;
     }
 
-    async findBy({ query, skip, limit, populate, select, sort }: FindBy) {
+    async findBy({ query, skip, limit, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
         if (!limit) limit = 0;
 
@@ -207,7 +207,7 @@ export default class Service {
         return globalConfigs;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -250,7 +250,7 @@ export default class Service {
         return globalConfig;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

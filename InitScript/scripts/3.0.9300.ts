@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
 const schedulesCollection = 'schedules';
 
-async function run() {
+async function run(): void {
     const schedules = await find(schedulesCollection, {
         $or: [
             { slug: { $exists: false } },

@@ -2,7 +2,7 @@ import { updateMany } from '../util/db';
 
 const scheduledCollection = 'scheduledevents';
 
-async function run() {
+async function run(): void {
     await updateMany(
         scheduledCollection,
         { cancelled: { $exists: false } },

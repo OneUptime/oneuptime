@@ -2,7 +2,7 @@ import { updateMany } from '../util/db';
 
 const projectCollection = 'projects';
 
-async function run() {
+async function run(): void {
     await updateMany(
         projectCollection,
         { sendCreatedScheduledEventNotificationSms: { $exists: false } },

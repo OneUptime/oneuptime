@@ -61,7 +61,7 @@ const lighthouseFetch = (url: URL): void => {
             await processLighthouseScan(result);
         });
 
-        async function processLighthouseScan(result: $TSFixMe) {
+        async function processLighthouseScan(result: $TSFixMe): void {
             clearTimeout(timeoutHandler);
             lighthouseWorker.removeAllListeners();
             if (result.error) {

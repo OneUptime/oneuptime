@@ -80,7 +80,10 @@ const INITIAL_STATE = {
     },
 };
 
-export default function profileSettings(state = INITIAL_STATE, action: Action) {
+export default function profileSettings(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         //update profile setting
         case types.UPDATE_PROFILE_SETTING_REQUEST:

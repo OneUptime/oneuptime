@@ -79,7 +79,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { componentId } = req.params;
             const { limit, skip } = req.query;

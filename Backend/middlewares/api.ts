@@ -19,7 +19,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         //get project id
         let projectId, apiKey;
 
@@ -91,13 +91,13 @@ export default {
         }
     },
 
-    isValidProjectId: function (projectId: string) {
+    isValidProjectId: function (projectId: string): void {
         if (!ObjectID.isValid(projectId)) {
             return false;
         }
         return true;
     },
-    hasAPIKey: function (req: $TSFixMe) {
+    hasAPIKey: function (req: $TSFixMe): void {
         if (req.query && req.query.apiKey) {
             return true;
         } else if (req.headers && (req.headers.apiKey || req.headers.apikey)) {
@@ -109,7 +109,7 @@ export default {
         return false;
     },
 
-    getProjectId: function (req: $TSFixMe) {
+    getProjectId: function (req: $TSFixMe): void {
         // Get Project Id, If Available
         let projectId;
 
@@ -132,7 +132,7 @@ export default {
         return projectId;
     },
 
-    getStatusPageId: function (req: $TSFixMe) {
+    getStatusPageId: function (req: $TSFixMe): void {
         const statusPageId =
             req.params?.statusPageId ||
             req.query?.statusPageId ||
@@ -143,7 +143,7 @@ export default {
         return statusPageId;
     },
 
-    getStatusPageSlug: function (req: $TSFixMe) {
+    getStatusPageSlug: function (req: $TSFixMe): void {
         const statusPageSlug =
             req.params?.statusPageSlug ||
             req.query?.statusPageSlug ||
@@ -154,7 +154,7 @@ export default {
         return statusPageSlug;
     },
 
-    getStatusPageUrl: function (req: $TSFixMe) {
+    getStatusPageUrl: function (req: $TSFixMe): void {
         const statusPageUrl =
             req.params?.url ||
             req.query?.url ||
@@ -168,7 +168,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({
             query: {

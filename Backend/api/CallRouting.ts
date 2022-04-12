@@ -183,7 +183,7 @@ router.post(
     '/:projectId/routingNumber',
     getUser,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const { projectId } = req.params;
@@ -202,7 +202,7 @@ router.put(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { callRoutingId } = req.params;
             const data = req.body;
@@ -232,7 +232,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe): void {
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }

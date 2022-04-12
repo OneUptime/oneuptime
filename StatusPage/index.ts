@@ -26,7 +26,7 @@ const mongoUrl =
 
 const { NODE_ENV } = process.env;
 
-function getMongoClient() {
+function getMongoClient(): void {
     return new MongoClient(mongoUrl, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -35,7 +35,7 @@ function getMongoClient() {
 
 // setup mongodb connection
 const client = getMongoClient();
-(async function () {
+(async function (): void {
     try {
         logger.info('connecting to db');
         await client.connect();
@@ -134,7 +134,7 @@ async function handleCustomDomain(
     client: $TSFixMe,
     collection: $TSFixMe,
     domain: $TSFixMe
-) {
+): void {
     const statusPage = await client
         .db(process.env['DB_NAME'])
         .collection(collection)
@@ -170,7 +170,7 @@ async function handleCertificate(
     client: $TSFixMe,
     collection: $TSFixMe,
     domain: $TSFixMe
-) {
+): void {
     const certificate = await client
         .db(process.env['DB_NAME'])
         .collection(collection)
@@ -185,7 +185,7 @@ app.use(
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const host = req.hostname;
         if (
             host &&
@@ -259,7 +259,7 @@ async function fetchCredential(
     apiHost: $TSFixMe,
     credentialName: $TSFixMe,
     configPath: $TSFixMe
-) {
+): void {
     return new Promise((resolve, reject) => {
         fetch(`${apiHost}/file/${credentialName}`).then(
             (res: ExpressResponse) => {
@@ -278,7 +278,7 @@ async function fetchCredential(
     });
 }
 
-function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe) {
+function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
     return new Promise(resolve => {
         const command = `echo ${content} | base64 -d`;
         let output = '';
@@ -292,14 +292,14 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe) {
             output += strData;
         });
         commandOutput.on('close', () => {
-            fs.writeFile(filePath, output, 'utf8', function () {
+            fs.writeFile(filePath, output, 'utf8', function (): void {
                 resolve('Done writing to disc');
             });
         });
     });
 }
 
-function createDir(dirPath: $TSFixMe) {
+function createDir(dirPath: $TSFixMe): void {
     return new Promise((resolve, reject) => {
         const workPath = path.resolve(process.cwd(), 'src', dirPath);
         if (fs.existsSync(workPath)) {
@@ -313,7 +313,7 @@ function createDir(dirPath: $TSFixMe) {
     });
 }
 
-function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
+function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
     const M = pat.length;
     const N = txt.length;
     let res = 0;
@@ -339,7 +339,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
 
 // using an IIFE here because we have an asynchronous code we want to run as we start the server
 // and since we can't await outside an async function, we had to use an IIFE to handle that
-(async function () {
+(async function (): void {
     // create http server
     http.createServer(app).listen(3006, () =>
         logger.info('Server running on port 3006')
@@ -381,7 +381,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe) {
             key: fs.readFileSync(
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
-            SNICallback: async function (domain: $TSFixMe, cb: $TSFixMe) {
+            SNICallback: async function (domain: $TSFixMe, cb: $TSFixMe): void {
                 const res = await handleCustomDomain(
                     client,
                     'statuspages',

@@ -8,7 +8,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe, projectId: string) {
+    async create(data: $TSFixMe, projectId: string): void {
         let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
 
         const populate = [
@@ -63,7 +63,7 @@ export default class Service {
         return scheduledEventMessage;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, projectId: string) {
+    async updateOneBy(query: Query, data: $TSFixMe, projectId: string): void {
         if (!query) {
             query = {};
         }
@@ -116,7 +116,7 @@ export default class Service {
         return eventMessage;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -131,7 +131,7 @@ export default class Service {
         return eventMessage;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -159,7 +159,7 @@ export default class Service {
         return eventMessage;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -167,7 +167,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string, projectId: string) {
+    async deleteBy(query: Query, userId: string, projectId: string): void {
         const data = {
             deleted: true,
             event_state: 'Deleted',
@@ -198,7 +198,7 @@ export default class Service {
         return deletedEventMessage;
     }
 
-    async hardDelete(query: Query) {
+    async hardDelete(query: Query): void {
         await ScheduledEventNoteModel.deleteMany(query);
         return 'Scheduled Event Note(s) removed successfully!';
     }

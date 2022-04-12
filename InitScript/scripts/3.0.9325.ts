@@ -3,7 +3,7 @@ import getSlug from '../util/getSlug';
 
 const incidentCollection = 'incidents';
 
-async function run() {
+async function run(): void {
     const incidents = await find(
         incidentCollection,
         {

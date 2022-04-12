@@ -4,15 +4,15 @@ import { runScript } from "./scriptSandbox"
 import axios from 'axios';
 
 
-describe('ScriptMonitor V2', function () {
+describe('ScriptMonitor V2', function ():void {
   this.timeout(10000);
 
-  describe("runScript function", function () {
+  describe("runScript function", function ():void {
     let server: $TSFixMe;
 
     // create a quick express server
 
-    before(function () {
+    before(function ():void {
 
       import express from "express"
       const app = express.getExpressApp();
@@ -22,12 +22,12 @@ describe('ScriptMonitor V2', function () {
 
     // close express server
 
-    after(function () {
+    after(function ():void {
       server.close();
     });
 
 
-    it("should return success for a valid script", async function () {
+    it("should return success for a valid script", async function ():void {
       const someFunction = async (done: $TSFixMe) => {
 
 
@@ -51,7 +51,7 @@ describe('ScriptMonitor V2', function () {
     });
 
 
-    it("should return false for error thrown in script", async function () {
+    it("should return false for error thrown in script", async function ():void {
       const someFunction = async (done: $TSFixMe) => {
         console.log('Error log');
         logger.error('Bad Error');
@@ -72,7 +72,7 @@ describe('ScriptMonitor V2', function () {
     });
 
 
-    it("should return scriptMonitor error when script returns a value in cb", async function () {
+    it("should return scriptMonitor error when script returns a value in cb", async function ():void {
       const someFunction = async (done: $TSFixMe) => {
         done("Some Error");
       }
@@ -88,7 +88,7 @@ describe('ScriptMonitor V2', function () {
     });
 
 
-    it("should return timeout error when script takes too long", async function () {
+    it("should return timeout error when script takes too long", async function ():void {
       const someFunction = async (done: $TSFixMe) => {
         return new Promise((resolve) => {
           setTimeout(() => "All timed out", 7000);
@@ -105,7 +105,7 @@ describe('ScriptMonitor V2', function () {
     });
 
 
-    it("should return timeout error when statement takes too long", async function () {
+    it("should return timeout error when statement takes too long", async function ():void {
       const someFunction = async (done: $TSFixMe) => {
         while (true) {
           // statement stuck in loop or too busy

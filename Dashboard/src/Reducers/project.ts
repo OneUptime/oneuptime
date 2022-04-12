@@ -128,7 +128,7 @@ const initialState = {
     },
 };
 
-export default function project(state = initialState, action: Action) {
+export default function project(state = initialState, action: Action): void {
     let projects, newProjects;
     switch (action.type) {
         case types.CHANGE_DELETE_MODAL:

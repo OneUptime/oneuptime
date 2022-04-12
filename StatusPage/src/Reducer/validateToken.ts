@@ -15,7 +15,7 @@ const initialState = {
     success: false,
 };
 
-export default function register(state = initialState, action: Action) {
+export default function register(state = initialState, action: Action): void {
     switch (action.type) {
         case types.VALIDATE_TOKEN_REQUEST:
             return Object.assign({}, state, {

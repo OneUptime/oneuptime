@@ -71,27 +71,29 @@ export const fetchSsoError = (payload: $TSFixMe): void => {
     };
 };
 
-export const fetchSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch): void => {
-    dispatch(fetchSsoRequest());
-    try {
-        const response = await BackendAPI.get(`sso/${ssoId}`);
+export const fetchSso =
+    (ssoId: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchSsoRequest());
+        try {
+            const response = await BackendAPI.get(`sso/${ssoId}`);
 
-        dispatch(fetchSsoSuccess(response.data));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchSsoSuccess(response.data));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchSsoError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchSsoError(errorMsg));
-    }
-};
+    };
 
 export const deleteSsoRequest = (): void => {
     return {
@@ -112,26 +114,28 @@ export const deleteSsoError = (payload: $TSFixMe): void => {
     };
 };
 
-export const deleteSso = (ssoId: $TSFixMe) => async (dispatch: Dispatch): void => {
-    dispatch(deleteSsoRequest());
-    try {
-        await delete `sso/${ssoId}`;
-        dispatch(deleteSsoSuccess());
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+export const deleteSso =
+    (ssoId: $TSFixMe) =>
+    async (dispatch: Dispatch): void => {
+        dispatch(deleteSsoRequest());
+        try {
+            await delete `sso/${ssoId}`;
+            dispatch(deleteSsoSuccess());
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteSsoError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteSsoError(errorMsg));
-    }
-};
+    };
 
 export const addSsoRequest = (): void => {
     return {

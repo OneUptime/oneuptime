@@ -84,7 +84,10 @@ const INITIAL_STATE = {
     errorTrackerIssueMembers: {},
     deleteErrorTrackerIssue: false,
 };
-export default function errorTracker(state = INITIAL_STATE, action: Action) {
+export default function errorTracker(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     let temporaryIssues,
         temporaryErrorEvents,
         temporaryErrorTrackers,

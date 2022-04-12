@@ -32,7 +32,7 @@ export const resetChangePassword = (): void => {
 
 // Calls the API to register a user.
 export const changePassword = (values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             new Route('user/reset-password'),
             values
@@ -40,10 +40,10 @@ export const changePassword = (values: $TSFixMe): void => {
         dispatch(changePasswordRequest(promise));
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(changePasswordSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(changePasswordError(error));
             }
         );

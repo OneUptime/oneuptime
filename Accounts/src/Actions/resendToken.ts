@@ -26,7 +26,7 @@ export const resendTokenSuccess = (data: $TSFixMe): void => {
 };
 
 export const resendTokenReset = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: types.RESENDTOKEN_RESET,
         });
@@ -34,15 +34,15 @@ export const resendTokenReset = (): void => {
 };
 
 export const resendToken = (values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('user/resend'), values);
         dispatch(resendTokenRequest(promise));
 
         promise.then(
-            function (data) {
+            function (data): void {
                 dispatch(resendTokenSuccess(data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(resendTokenError(error));
             }
         );

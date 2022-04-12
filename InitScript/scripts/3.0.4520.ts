@@ -2,7 +2,7 @@ import { find, update, removeField } from '../util/db';
 
 const scheduledEventNoteCollection = 'scheduledeventnotes';
 
-async function run() {
+async function run(): void {
     const scheduledEventNotes = await find(scheduledEventNoteCollection, {
         incident_state: { $type: 'string' },
     });

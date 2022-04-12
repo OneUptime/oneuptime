@@ -20,7 +20,7 @@ const puppeteerLaunchConfig = {
 
 const user = faker.helpers.createCard();
 
-function generateRandomString() {
+function generateRandomString(): void {
     return Math.random().toString(36).substring(10);
 }
 

@@ -80,7 +80,7 @@ router.put(
     '/:projectId/:smsSmtpId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const smsSmtpId = req.params.smsSmtpId;
@@ -102,7 +102,7 @@ router.delete(
     '/:projectId/:smsSmtpId',
     getUser,
     isUserOwner,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const smsSmtpId = req.params.smsSmtpId;
             const payload = {

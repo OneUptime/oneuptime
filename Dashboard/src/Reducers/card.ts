@@ -30,7 +30,7 @@ const initialState = {
     },
 };
 
-export default function card(state = initialState, action: Action) {
+export default function card(state = initialState, action: Action): void {
     switch (action.type) {
         case types.ADD_CARD_REQUEST:
             return Object.assign({}, state, {

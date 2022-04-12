@@ -42,7 +42,7 @@ const initialState = {
     activeSubProject: null,
 };
 
-export default function subProject(state = initialState, action: Action) {
+export default function subProject(state = initialState, action: Action): void {
     let subProjects, index;
     switch (action.type) {
         case types.SUBPROJECTS_SUCCESS:

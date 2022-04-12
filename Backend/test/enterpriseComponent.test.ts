@@ -19,16 +19,16 @@ let token: $TSFixMe,
     newProjectId: string,
     componentId: $TSFixMe;
 
-describe('Enterprise Component API', function () {
+describe('Enterprise Component API', function (): void {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -38,7 +38,7 @@ describe('Enterprise Component API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -47,7 +47,7 @@ describe('Enterprise Component API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -58,7 +58,7 @@ describe('Enterprise Component API', function () {
         });
     });
 
-    it('should create a new component for project with no billing plan', function (done: $TSFixMe) {
+    it('should create a new component for project with no billing plan', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post('/project/create')
@@ -66,7 +66,7 @@ describe('Enterprise Component API', function () {
             .send({
                 projectName: 'Test Project',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 newProjectId = res.body._id;
                 request
                     .post(`/component/${newProjectId}`)
@@ -74,7 +74,7 @@ describe('Enterprise Component API', function () {
                     .send({
                         name: 'New Component',
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         componentId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body.name).to.be.equal('New Component');

@@ -1,5 +1,5 @@
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (typeof limit === 'string') limit = parseInt(limit);
         if (typeof skip === 'string') skip = parseInt(skip);
         if (!query) query = {};
@@ -21,7 +21,7 @@ export default class Service {
         return incidentPriorities;
     }
 
-    async findOne({ query, select, populate, sort }: FindOneBy) {
+    async findOne({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -40,7 +40,7 @@ export default class Service {
         return incidentPriorities;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -51,7 +51,7 @@ export default class Service {
         return count;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const incidentPriority = new incidentPriorityModel();
         const { projectId, name, color } = data;
 
@@ -64,7 +64,7 @@ export default class Service {
         return incidentPriority;
     }
 
-    async updateOne(query: Query, data: $TSFixMe) {
+    async updateOne(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -80,7 +80,7 @@ export default class Service {
         return updatedIncidentPriority;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         if (!query) {
             query = {};
         }

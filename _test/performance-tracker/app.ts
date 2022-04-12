@@ -40,6 +40,6 @@ app.post('/post', async (req: ExpressRequest, res: ExpressResponse) => {
     res.send({ "status": "this is a post request" })
 })
 
-app.listen(4050, function () {
+app.listen(4050, function ():void {
     logger.info("Server running on PORT: " + 4050)
 });

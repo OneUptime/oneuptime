@@ -44,7 +44,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const projectId = req.params.projectId;
@@ -143,7 +143,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { limit, skip } = req.query;
 
@@ -167,7 +167,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
@@ -189,7 +189,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { slug } = req.params;
             const populateComponent = [

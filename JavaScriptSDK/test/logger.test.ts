@@ -11,7 +11,7 @@ const timeout = 5000;
 
 import OneUptimeLogger from '../src/logger';
 
-describe('OneUptimeLogger', function () {
+describe('OneUptimeLogger', function (): void {
     const sleep = (milliseconds: $TSFixMe): void => {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
@@ -23,14 +23,14 @@ describe('OneUptimeLogger', function () {
     // create a new user
     const component = { name: 'Our Component' };
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(60000);
         sleep(5000).then(() => {
             user.email = generateRandomBusinessEmail();
             request
                 .post('/user/signup')
                 .send(user)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     token = res.body.tokens.jwtAccessToken;
@@ -38,7 +38,7 @@ describe('OneUptimeLogger', function () {
                         .post(`/component/${projectId}`)
                         .set('Authorization', `Basic ${token}`)
                         .send(component)
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             componentId = res.body._id;
                             request
                                 .post(
@@ -46,7 +46,10 @@ describe('OneUptimeLogger', function () {
                                 )
                                 .set('Authorization', `Basic ${token}`)
                                 .send({ name: 'Application OneUptimeLogger' })
-                                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (
+                                    err: $TSFixMe,
+                                    res: $TSFixMe
+                                ): void {
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     expect(res.body).to.have.property('_id');
@@ -58,7 +61,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should request for application log key', function () {
+    it('should request for application log key', function (): void {
         const firstLog = new OneUptimeLogger(API_URL, applicationLog._id, '');
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
@@ -68,7 +71,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should request for content', function () {
+    it('should request for content', function (): void {
         const firstLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -82,7 +85,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return invalid application log', function () {
+    it('should return invalid application log', function (): void {
         const firstLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -96,7 +99,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item of type string', function () {
+    it('should return a valid logged item of type string', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -114,7 +117,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item of type object', function () {
+    it('should return a valid logged item of type object', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -145,7 +148,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item with log type of error', function () {
+    it('should return a valid logged item with log type of error', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -163,7 +166,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item with log type of warning', function () {
+    it('should return a valid logged item with log type of warning', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -181,7 +184,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item with log type of info with one tag', function () {
+    it('should return a valid logged item with log type of info with one tag', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -207,7 +210,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item with log type of warning with no tag', function () {
+    it('should return a valid logged item with log type of warning with no tag', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -225,7 +228,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should return a valid logged item with log type of error with 3 tags', function () {
+    it('should return a valid logged item with log type of error with 3 tags', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
@@ -252,7 +255,7 @@ describe('OneUptimeLogger', function () {
         });
     });
 
-    it('should reject a valid logged item with log type of error with invalid tags', function () {
+    it('should reject a valid logged item with log type of error with invalid tags', function (): void {
         const validLog = new OneUptimeLogger(
             API_URL,
             applicationLog._id,

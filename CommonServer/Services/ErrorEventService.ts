@@ -1,6 +1,6 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         // prepare error event model
         const errorEvent = new ErrorEventModel();
 
@@ -42,7 +42,7 @@ export default class Service {
 
         return savedErrorEvent;
     }
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -57,7 +57,7 @@ export default class Service {
         return result;
     }
     // get all error events that matches the specified query
-    async findBy({ query, limit, skip, select, populate, sort }: FindBy) {
+    async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -90,7 +90,7 @@ export default class Service {
         query: Query,
         limit: PositiveNumber,
         skip: PositiveNumber
-    ) {
+    ): void {
         if (!query.deleted) delete query.deleted;
         // get all unique hashes by error tracker Id
 
@@ -241,7 +241,7 @@ export default class Service {
     async findOneWithPrevAndNext(
         errorEventId: $TSFixMe,
         errorTrackerId: $TSFixMe
-    ) {
+    ): void {
         let previous, next;
         const selectErrorTracker =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt issueId';
@@ -341,7 +341,7 @@ export default class Service {
             totalEvents: totalEvents,
         };
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -351,7 +351,7 @@ export default class Service {
         return count;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -376,7 +376,7 @@ export default class Service {
         return errorEvent;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }

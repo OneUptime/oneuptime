@@ -15,7 +15,7 @@ const secondTLDs =
         '|'
     );
 
-export default function getDomain(s: $TSFixMe) {
+export default function getDomain(s: $TSFixMe): void {
     s = s.replace(/^www\./, '');
 
     const parts = s.split('.');

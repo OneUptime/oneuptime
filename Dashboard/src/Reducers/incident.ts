@@ -84,7 +84,7 @@ const initialState = {
     activeIncident: null,
 };
 
-export default function incident(state = initialState, action: Action) {
+export default function incident(state = initialState, action: Action): void {
     let incident,
         incidents,
         unresolvedincidents,

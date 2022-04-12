@@ -353,7 +353,7 @@ export function editContainerSecurity({
     containerSecurityId,
     data,
 }: $TSFixMe) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `security/${projectId}/${componentId}/container/${containerSecurityId}`,
             data
@@ -361,10 +361,10 @@ export function editContainerSecurity({
         dispatch(editContainerSecurityRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(editContainerSecuritySuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -731,7 +731,7 @@ export function editApplicationSecurity({
     applicationSecurityId,
     data,
 }: $TSFixMe) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `security/${projectId}/${componentId}/application/${applicationSecurityId}`,
             data
@@ -739,10 +739,10 @@ export function editApplicationSecurity({
         dispatch(editApplicationSecurityRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

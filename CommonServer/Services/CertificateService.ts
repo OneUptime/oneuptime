@@ -5,12 +5,12 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const certificate = await CertificateModel.create(data);
         return certificate;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -26,7 +26,7 @@ export default class Service {
         return certificate;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -52,7 +52,7 @@ export default class Service {
         return certificates;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) query = {};
 
         // if (!query['deleted']) query['deleted'] = false;
@@ -72,7 +72,7 @@ export default class Service {
         return certificate;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         const certificate = await this.updateOneBy(query, {
             deleted: true,
             deletedAt: Date.now(),
@@ -80,11 +80,11 @@ export default class Service {
         return certificate;
     }
 
-    async hardDelete(query: Query) {
+    async hardDelete(query: Query): void {
         await CertificateModel.deleteMany(query);
         return 'certificate store successfully deleted';
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

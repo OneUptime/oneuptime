@@ -150,7 +150,13 @@ class ErrorTracker {
     }
     // set up error listener
     _setUpErrorListener() {
-        window.onerror = async function (message, file, line, col, error) {
+        window.onerror = async function (
+            message,
+            file,
+            line,
+            col,
+            error
+        ): void {
             const errorEvent = { message, file, line, col, error };
 
             const string = errorEvent.message
@@ -192,7 +198,7 @@ class ErrorTracker {
                 this._manageErrorNode(err);
             });
     }
-    async _manageErrorNode(error: $TSFixMe) {
+    async _manageErrorNode(error: $TSFixMe): void {
         // construct the error object
         const errorObj = await this.utilObj._getErrorStackTrace(error);
 
@@ -225,7 +231,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    async captureException(error: $TSFixMe) {
+    async captureException(error: $TSFixMe): void {
         // construct the error object
         const errorObj = await this.utilObj._getErrorStackTrace(error);
 
@@ -275,7 +281,7 @@ class ErrorTracker {
             sdk: this.getSDKDetails(),
         };
     }
-    async sendErrorEventToServer() {
+    async sendErrorEventToServer(): void {
         let content;
         await this._makeApiRequest(this.event)
             .then(response => {

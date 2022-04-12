@@ -39,16 +39,16 @@ export function fetchSchedules(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
         );
         promise.then(
-            function (schedule) {
+            function (schedule): void {
                 dispatch(scheduleSuccess(schedule.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(scheduleError(error));
             }
         );
@@ -89,16 +89,16 @@ export const subProjectScheduleSuccess = (schedule: $TSFixMe): void => {
 // Calls the API to fetch Schedules.
 
 export const fetchSubProjectSchedules = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(`schedule/${projectId}/schedules`);
 
         dispatch(subProjectScheduleRequest());
         promise.then(
-            function (schedule) {
+            function (schedule): void {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(subProjectScheduleError(error));
             }
         );
@@ -141,18 +141,18 @@ export function fetchProjectSchedule(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
         );
         promise.then(
-            function (schedule) {
+            function (schedule): void {
                 const data = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(projectScheduleError(error));
             }
         );
@@ -186,16 +186,16 @@ export const createScheduleSuccess = (schedule: $TSFixMe): void => {
 // Calls the API to create the schedule.
 
 export const createSchedule = (projectId: string, values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`schedule/${projectId}`, values);
 
         dispatch(createScheduleRequest());
 
         promise.then(
-            function (schedule) {
+            function (schedule): void {
                 dispatch(createScheduleSuccess(schedule.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(createScheduleError(error));
             }
         );
@@ -237,7 +237,7 @@ export function renameSchedule(
     scheduleId: $TSFixMe,
     scheduleName: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
         });
@@ -246,10 +246,10 @@ export function renameSchedule(
 
         promise
             .then(
-                function (schedule) {
+                function (schedule): void {
                     dispatch(renameScheduleSuccess(schedule));
                 },
-                function (error) {
+                function (error): void {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -263,7 +263,7 @@ export function renameSchedule(
                     dispatch(renameScheduleError(error));
                 }
             )
-            .then(function () {
+            .then(function (): void {
                 dispatch(renameScheduleReset());
             });
 
@@ -307,15 +307,18 @@ export const deleteScheduleError = (error: ErrorPayload): void => {
     };
 };
 
-export const deleteSchedule = (projectId: string, scheduleId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const deleteSchedule = (
+    projectId: string,
+    scheduleId: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = delete `schedule/${projectId}/${scheduleId}`;
 
         dispatch(deleteScheduleRequest());
 
         promise
             .then(
-                function (schedule) {
+                function (schedule): void {
                     const data = Object.assign(
                         {},
                         { scheduleId },
@@ -326,7 +329,7 @@ export const deleteSchedule = (projectId: string, scheduleId: $TSFixMe): void =>
                     dispatch(fetchSchedules(projectId));
                     return dispatch(deleteScheduleSuccess({ data }));
                 },
-                function (error) {
+                function (error): void {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -340,7 +343,7 @@ export const deleteSchedule = (projectId: string, scheduleId: $TSFixMe): void =>
                     dispatch(deleteScheduleError(error));
                 }
             )
-            .then(function () {
+            .then(function (): void {
                 dispatch(deleteScheduleReset());
             });
 
@@ -382,7 +385,7 @@ export function addMonitors(
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `schedule/${projectId}/${scheduleId}`,
             data
@@ -392,10 +395,10 @@ export function addMonitors(
 
         promise
             .then(
-                function (schedule) {
+                function (schedule): void {
                     dispatch(addMonitorSuccess(schedule));
                 },
-                function (error) {
+                function (error): void {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -409,7 +412,7 @@ export function addMonitors(
                     dispatch(addMonitorError(error));
                 }
             )
-            .then(function () {
+            .then(function (): void {
                 dispatch(addMonitorReset());
             });
 
@@ -451,7 +454,7 @@ export function addUsers(
     scheduleId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addUsers`,
             data
@@ -461,10 +464,10 @@ export function addUsers(
 
         promise
             .then(
-                function (schedule) {
+                function (schedule): void {
                     dispatch(addUserSuccess(schedule));
                 },
-                function (error) {
+                function (error): void {
                     if (error && error.response && error.response.data)
                         error = error.response.data;
                     if (error && error.data) {
@@ -478,7 +481,7 @@ export function addUsers(
                     dispatch(addUserError(error));
                 }
             )
-            .then(function () {
+            .then(function (): void {
                 dispatch(addUserReset());
             });
 
@@ -522,7 +525,7 @@ export function addEscalation(
 ) {
     data = data.OnCallAlertBox;
 
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addescalation`,
             data
@@ -531,10 +534,10 @@ export function addEscalation(
         dispatch(escalationRequest());
 
         promise.then(
-            function (escalation) {
+            function (escalation): void {
                 dispatch(escalationSuccess(escalation));
             },
-            function (error) {
+            function (error): void {
                 dispatch(escalationError(error));
             }
         );
@@ -543,8 +546,11 @@ export function addEscalation(
     };
 }
 
-export const getEscalation = (projectId: string, scheduleId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const getEscalation = (
+    projectId: string,
+    scheduleId: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `schedule/${projectId}/${scheduleId}/getescalation`
         );
@@ -552,10 +558,10 @@ export const getEscalation = (projectId: string, scheduleId: $TSFixMe): void => 
         dispatch(escalationRequest());
 
         promise.then(
-            function (escalation) {
+            function (escalation): void {
                 dispatch(escalationSuccess(escalation.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(escalationError(error));
             }
         );
@@ -585,7 +591,7 @@ export const paginateReset = (): void => {
 };
 
 export const paginate = (type: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());
@@ -619,7 +625,7 @@ export const userScheduleError = (error: ErrorPayload): void => {
 };
 
 export const fetchUserSchedule = (projectId: string, userId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `schedule/${projectId}/${userId}/getescalations`
         );
@@ -627,10 +633,10 @@ export const fetchUserSchedule = (projectId: string, userId: string): void => {
         dispatch(userScheduleRequest());
 
         promise.then(
-            function (schedule) {
+            function (schedule): void {
                 dispatch(userScheduleSuccess(schedule.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(userScheduleError(error));
             }
         );

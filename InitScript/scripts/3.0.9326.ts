@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const projectCollection = 'projects';
 
-async function run() {
+async function run(): void {
     // all main projects
     const adminUser = await find('users', {
         role: 'master-admin',

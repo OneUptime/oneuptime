@@ -10,17 +10,17 @@ export function getCallRoutingNumbers(
 ) {
     if (!skip) skip = 0;
     if (!limit) limit = 10;
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `callRouting/${projectId}?skip=${skip}&limit=${limit}`
         );
         dispatch(getCallRoutingNumbersRequest());
 
         promise.then(
-            function (numbers) {
+            function (numbers): void {
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getCallRoutingNumbersFailure(error));
             }
         );
@@ -50,7 +50,7 @@ export const getCallRoutingNumbersFailure = (error: ErrorPayload): void => {
 };
 
 export const getTeamAndSchedules = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const schedules = BackendAPI.get(
             `schedule/${projectId}?skip=${0}&limit=${0}`
         );
@@ -59,7 +59,7 @@ export const getTeamAndSchedules = (projectId: string): void => {
         dispatch(getTeamAndSchedulesRequest());
 
         promise.then(
-            function ([schedule, team]) {
+            function ([schedule, team]): void {
                 const data = {
                     teams: team.data,
 
@@ -67,7 +67,7 @@ export const getTeamAndSchedules = (projectId: string): void => {
                 };
                 dispatch(getTeamAndSchedulesSuccess(data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getTeamAndSchedulesFailure(error));
             }
         );
@@ -96,8 +96,11 @@ export const getTeamAndSchedulesFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const addCallRoutingNumber = (projectId: string, values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const addCallRoutingNumber = (
+    projectId: string,
+    values: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `callRouting/${projectId}/routingNumber`,
             values
@@ -105,10 +108,10 @@ export const addCallRoutingNumber = (projectId: string, values: $TSFixMe): void 
         dispatch(addCallRoutingNumberRequest());
 
         promise.then(
-            function (number) {
+            function (number): void {
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -160,7 +163,7 @@ export function uploadCallRoutingAudio(
     values: $TSFixMe,
     audioFieldName: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `callRouting/${projectId}/${callRoutingId}/${audioFieldName}`,
             values
@@ -168,7 +171,7 @@ export function uploadCallRoutingAudio(
         dispatch(uploadCallRoutingAudioRequest(callRoutingId, audioFieldName));
 
         promise.then(
-            function (data) {
+            function (data): void {
                 dispatch(
                     uploadCallRoutingAudioSuccess(
                         callRoutingId,
@@ -178,7 +181,7 @@ export function uploadCallRoutingAudio(
                     )
                 );
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -241,7 +244,7 @@ export function addCallRoutingSchedule(
     callRoutingId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `callRouting/${projectId}/${callRoutingId}`,
             values
@@ -249,10 +252,10 @@ export function addCallRoutingSchedule(
         dispatch(addCallRoutingScheduleRequest());
 
         promise.then(
-            function (data) {
+            function (data): void {
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -297,17 +300,17 @@ export function fetchNumbers(
     countryCode: $TSFixMe,
     numberType: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `callRouting/${projectId}/routingNumbers?countryCode=${countryCode}&numberType=${numberType}`
         );
         dispatch(fetchNumbersRequest());
 
         promise.then(
-            function (numbers) {
+            function (numbers): void {
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchNumbersFailure(error));
             }
         );
@@ -342,8 +345,11 @@ export const resetFetchNumbers = (): void => {
     };
 };
 
-export const removeNumbers = (projectId: string, callRoutingId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const removeNumbers = (
+    projectId: string,
+    callRoutingId: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`callRouting/${projectId}/${callRoutingId}`,
         {
             callRoutingId,
@@ -351,10 +357,10 @@ export const removeNumbers = (projectId: string, callRoutingId: $TSFixMe): void 
         dispatch(removeNumbersRequest(callRoutingId));
 
         promise.then(
-            function (numbers) {
+            function (numbers): void {
                 dispatch(removeNumbersSuccess(numbers.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(removeNumbersFailure(error));
             }
         );
@@ -389,14 +395,14 @@ export function getCallRoutingLogs(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `callRouting/${projectId}/logs?skip=${skip}&limit=${limit}`
         );
         dispatch(getCallRoutingLogsRequest());
 
         promise.then(
-            function (logs) {
+            function (logs): void {
                 dispatch(
                     getCallRoutingLogsSuccess({
                         logs: logs.data,
@@ -407,7 +413,7 @@ export function getCallRoutingLogs(
                     })
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(getCallRoutingLogsFailure(error));
             }
         );
@@ -447,7 +453,7 @@ export function removeIntroAudio(
     callRoutingId: $TSFixMe,
     backup: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise =
             delete (`callRouting/${projectId}/${callRoutingId}/removeAudio`,
             {
@@ -457,10 +463,10 @@ export function removeIntroAudio(
         dispatch(removeIntroAudioRequest(callRoutingId, backup));
 
         promise.then(
-            function (numbers) {
+            function (numbers): void {
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
-            function (error) {
+            function (error): void {
                 dispatch(removeIntroAudioFailure(error, backup));
             }
         );

@@ -33,18 +33,18 @@ export const resetdeleteSlackLink = (): void => {
 
 // Calls the API to link slack team to project
 export const deleteSlackLink = (projectId: string, teamId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`slack/${projectId}/unLink/${teamId}`, null);
 
         dispatch(deleteSlackLinkRequest());
 
         return promise.then(
-            function (teams) {
+            function (teams): void {
                 dispatch(deleteSlackLinkSuccess(teams.data));
 
                 return teams.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteSlackLinkError(error));
             }
         );
@@ -83,7 +83,7 @@ export function getSlackTeams(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         if (skip && limit)
             promise = BackendAPI.get(
@@ -95,10 +95,10 @@ export function getSlackTeams(
         dispatch(getSlackTeamsRequest(promise));
 
         promise.then(
-            function (teams) {
+            function (teams): void {
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getSlackTeamsError(error));
             }
         );
@@ -128,7 +128,7 @@ export const paginateReset = (): void => {
 };
 
 export const paginate = (type: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

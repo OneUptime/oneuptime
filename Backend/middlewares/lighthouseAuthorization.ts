@@ -11,7 +11,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         let clusterKey;
 
         if (req.params && req.params['clusterKey']) {

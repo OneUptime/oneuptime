@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const statusPagesCollection = 'statuspages';
 
-async function run() {
+async function run(): void {
     // get all statusPages that don't have the hideProbeBar field
     const statusPages = await find(statusPagesCollection, {
         hideProbeBar: { $exists: false },

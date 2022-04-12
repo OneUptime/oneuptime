@@ -23,7 +23,7 @@ import Query from '../Types/DB/Query';
 // import RealTimeService from './realTimeService'
 
 export default class Service {
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -40,7 +40,7 @@ export default class Service {
         return result;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         if (
             !data.selectAllMonitors &&
             data.createIncident &&
@@ -144,7 +144,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async getRequestUrl(projectId: string, requestId: $TSFixMe) {
+    async getRequestUrl(projectId: string, requestId: $TSFixMe): void {
         // create a unique request url
         // update incomingRequest collection with the new url
 
@@ -157,7 +157,11 @@ export default class Service {
         return updatedIncomingRequest;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, excludeMonitors: $TSFixMe) {
+    async updateOneBy(
+        query: Query,
+        data: $TSFixMe,
+        excludeMonitors: $TSFixMe
+    ): void {
         let unsetData = {};
         if (!query) {
             query = {};
@@ -355,7 +359,7 @@ export default class Service {
         return updatedIncomingRequest;
     }
 
-    async updateCustomFieldBy(query: Query, data: $TSFixMe) {
+    async updateCustomFieldBy(query: Query, data: $TSFixMe): void {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -364,7 +368,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip || isNaN(skip)) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 0;
@@ -395,7 +399,7 @@ export default class Service {
         return result;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -404,7 +408,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         const incomingRequest = await IncomingRequestModel.findOneAndUpdate(
             query,
             {
@@ -430,7 +434,7 @@ export default class Service {
         return incomingRequest;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -468,7 +472,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe) {
+    async removeMonitor(monitorId: $TSFixMe): void {
         const allIncomingRequest = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors',
@@ -531,7 +535,7 @@ export default class Service {
         );
     }
 
-    async handleIncomingRequestAction(data: $TSFixMe) {
+    async handleIncomingRequestAction(data: $TSFixMe): void {
         const selectIncPriority =
             'projectId name color createdAt deletedAt deleted deletedById';
         const selectIncSettings =
@@ -2043,7 +2047,7 @@ export default class Service {
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-function isArrayUnique(myArray: $TSFixMe) {
+function isArrayUnique(myArray: $TSFixMe): void {
     return myArray.length === new Set(myArray).size;
 }
 
@@ -2055,7 +2059,7 @@ function isArrayUnique(myArray: $TSFixMe) {
 
 // if for example request.body.name is passed without the double curly braces,
 // it should work as expected and return the value
-function analyseVariable(variable: $TSFixMe, data: $TSFixMe) {
+function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
     try {
         const matchRegex = /[^{{]+(?=}\})/g;
         const replaceRegex = /\{\{([^}]+)\}\}/g;
@@ -2080,10 +2084,13 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe) {
         }
 
         // remove any double currly braces from variable
-        variable = variable.replace(replaceRegex, function (match: $TSFixMe) {
-            match = match.slice(2, -2);
-            return match;
-        });
+        variable = variable.replace(
+            replaceRegex,
+            function (match: $TSFixMe): void {
+                match = match.slice(2, -2);
+                return match;
+            }
+        );
 
         // replace variable with processedValues
         let currentValue = variable;

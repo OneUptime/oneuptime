@@ -104,7 +104,7 @@ class SocketApp extends Component<ComponentProps> {
             const projectId = this.props.activeProjectId;
             socket.on(
                 `incidentResolved-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -131,7 +131,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `incidentAcknowledged-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -156,77 +156,89 @@ class SocketApp extends Component<ComponentProps> {
                     }
                 }
             );
-            socket.on(`createMonitor-${projectId}`, function (data: $TSFixMe) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    if (data.createdById !== User.getUserId()) {
-                        thisObj.props.createmonitorbysocket(data);
+            socket.on(
+                `createMonitor-${projectId}`,
+                function (data: $TSFixMe): void {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
+                              (user: $TSFixMe) => user.userId === loggedInUser
+                          )
+                        : false;
+                    if (isUserInProject) {
+                        if (data.createdById !== User.getUserId()) {
+                            thisObj.props.createmonitorbysocket(data);
+                        }
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId._id
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.createmonitorbysocket(data);
                     }
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId._id
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
-                              (user: $TSFixMe) => user.userId === loggedInUser
-                          )
-                        : false;
-                    if (isUserInSubProject)
-                        thisObj.props.createmonitorbysocket(data);
                 }
-            });
-            socket.on(`updateMonitor-${projectId}`, function (data: $TSFixMe) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.updatemonitorbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId._id
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `updateMonitor-${projectId}`,
+                function (data: $TSFixMe): void {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.updatemonitorbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId._id
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.updatemonitorbysocket(data);
+                    }
                 }
-            });
-            socket.on(`deleteMonitor-${projectId}`, function (data: $TSFixMe) {
-                const isUserInProject = thisObj.props.project
-                    ? thisObj.props.project.users.some(
-                          (user: $TSFixMe) => user.userId === loggedInUser
-                      )
-                    : false;
-                if (isUserInProject) {
-                    thisObj.props.deletemonitorbysocket(data);
-                } else {
-                    const subProject = thisObj.props.subProjects.find(
-                        (subProject: $TSFixMe) =>
-                            subProject._id === data.projectId
-                    );
-                    const isUserInSubProject = subProject
-                        ? subProject.users.some(
+            );
+            socket.on(
+                `deleteMonitor-${projectId}`,
+                function (data: $TSFixMe): void {
+                    const isUserInProject = thisObj.props.project
+                        ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
                           )
                         : false;
-                    if (isUserInSubProject)
+                    if (isUserInProject) {
                         thisObj.props.deletemonitorbysocket(data);
+                    } else {
+                        const subProject = thisObj.props.subProjects.find(
+                            (subProject: $TSFixMe) =>
+                                subProject._id === data.projectId
+                        );
+                        const isUserInSubProject = subProject
+                            ? subProject.users.some(
+                                  (user: $TSFixMe) =>
+                                      user.userId === loggedInUser
+                              )
+                            : false;
+                        if (isUserInSubProject)
+                            thisObj.props.deletemonitorbysocket(data);
+                    }
                 }
-            });
+            );
             socket.on(
                 `incidentCreated-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -255,7 +267,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `updateMonitorLog-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -281,7 +293,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `updateMonitorStatus-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -315,7 +327,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `updateIncidentTimeline-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -341,7 +353,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `updateLighthouseLog-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -367,7 +379,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `updateAllLighthouseLog-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -391,7 +403,7 @@ class SocketApp extends Component<ComponentProps> {
                     }
                 }
             );
-            socket.on(`updateProbe`, function (data: $TSFixMe) {
+            socket.on(`updateProbe`, function (data: $TSFixMe): void {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           (user: $TSFixMe) => user.userId === loggedInUser
@@ -415,7 +427,7 @@ class SocketApp extends Component<ComponentProps> {
             });
             socket.on(
                 `NewNotification-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -442,7 +454,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `TeamMemberRoleUpdate-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -468,7 +480,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `TeamMemberCreate-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     const isUserInProject = thisObj.props.project
                         ? thisObj.props.project.users.some(
                               (user: $TSFixMe) => user.userId === loggedInUser
@@ -495,7 +507,7 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `TeamMemberDelete-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     if (data.projectId === thisObj.props.project._id) {
                         const projectUser = data.teamMembers.find(
                             (member: $TSFixMe) =>
@@ -554,19 +566,22 @@ class SocketApp extends Component<ComponentProps> {
             );
             socket.on(
                 `addIncidentNote-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.addIncidentNote(data);
                 }
             );
             socket.on(
                 `incidentTimeline-${projectId}`,
-                function (data: $TSFixMe) {
+                function (data: $TSFixMe): void {
                     thisObj.props.updateTimelineBySocket(data);
                 }
             );
-            socket.on(`createMonitor-${projectId}`, function (data: $TSFixMe) {
-                thisObj.props.createMonitor(data);
-            });
+            socket.on(
+                `createMonitor-${projectId}`,
+                function (data: $TSFixMe): void {
+                    thisObj.props.createMonitor(data);
+                }
+            );
 
             socket.on(`addScheduledEvent-${projectId}`, (event: $TSFixMe) =>
                 thisObj.props.createScheduledEventSuccess(event)

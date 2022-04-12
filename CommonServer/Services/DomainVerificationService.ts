@@ -12,7 +12,7 @@ import Query from '../Types/DB/Query';
 import errorService from '../Utils/error';
 
 export default class Service {
-    async create({ domain, projectId }: $TSFixMe) {
+    async create({ domain, projectId }: $TSFixMe): void {
         const parsed = psl.parse(domain);
         const token = 'oneuptime=' + randomChar();
 
@@ -27,7 +27,7 @@ export default class Service {
         return await DomainVerificationTokenModel.create(creationData);
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -74,7 +74,7 @@ export default class Service {
         return domains;
     }
 
-    async resetDomain(domain: $TSFixMe) {
+    async resetDomain(domain: $TSFixMe): void {
         const updateObj = {
             verificationToken: 'oneuptime=' + randomChar(),
             verified: false,
@@ -87,7 +87,10 @@ export default class Service {
         return updatedDomain;
     }
 
-    async doesTxtRecordExist(subDomain: $TSFixMe, verificationToken: $TSFixMe) {
+    async doesTxtRecordExist(
+        subDomain: $TSFixMe,
+        verificationToken: $TSFixMe
+    ): void {
         try {
             const parsed = psl.parse(subDomain);
             const host = 'oneuptime';
@@ -139,7 +142,10 @@ export default class Service {
         }
     }
 
-    async doesDomainBelongToProject(projectId: string, subDomain: $TSFixMe) {
+    async doesDomainBelongToProject(
+        projectId: string,
+        subDomain: $TSFixMe
+    ): void {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project
@@ -200,7 +206,7 @@ export default class Service {
         return false;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         const domainCount = await this.countBy(query);
 
         if (!domainCount || domainCount === 0) {
@@ -249,7 +255,7 @@ export default class Service {
         return domain;
     }
 
-    async findDomain(domainId: $TSFixMe, projectArr = []) {
+    async findDomain(domainId: $TSFixMe, projectArr = []): void {
         let projectId;
         for (const pId of projectArr) {
             const populateDomainVerify = [{ path: 'projectId', select: '_id' }];

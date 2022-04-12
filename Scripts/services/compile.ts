@@ -2,7 +2,7 @@ import Project from '../Utils/projects';
 import { $ } from 'zx';
 
 export default class Compile {
-    static async compileAllTypeScriptProjects() {
+    static async compileAllTypeScriptProjects(): void {
         const projects = Project.getProjects();
         for (const project of projects) {
             await $`cd ${project.path}`;

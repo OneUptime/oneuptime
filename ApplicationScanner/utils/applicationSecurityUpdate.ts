@@ -1,10 +1,14 @@
 import BackendAPI from './api';
 
 export default {
-    updateApplicationSecurityToScanning: async function (security: $TSFixMe) {
+    updateApplicationSecurityToScanning: async function (
+        security: $TSFixMe
+    ): void {
         return await BackendAPI.post(`application/scanning`, { security });
     },
-    updateApplicationSecurityToFailed: async function (security: $TSFixMe) {
+    updateApplicationSecurityToFailed: async function (
+        security: $TSFixMe
+    ): void {
         return await BackendAPI.post(`application/failed`, security);
     },
     updateApplicationSecurityLogService: async function (
@@ -12,7 +16,9 @@ export default {
     ) {
         return await BackendAPI.post(`application/log`, securityLog);
     },
-    updateApplicationSecurityScanTime: async function (scanTime: $TSFixMe) {
+    updateApplicationSecurityScanTime: async function (
+        scanTime: $TSFixMe
+    ): void {
         return await BackendAPI.post(`application/time`, scanTime);
     },
 };

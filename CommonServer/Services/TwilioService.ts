@@ -21,7 +21,7 @@ export default class TwilioService {
         return twilio(accountSid, authToken);
     }
 
-    async getSettings() {
+    async getSettings(): void {
         const document = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',
@@ -692,7 +692,7 @@ export default class TwilioService {
         }
     }
 
-    async test(data: $TSFixMe) {
+    async test(data: $TSFixMe): void {
         try {
             const options = {
                 body: 'This is a test SMS from OneUptime',
@@ -1454,7 +1454,7 @@ export default class TwilioService {
         }
     }
 
-    async getProgressText(number: $TSFixMe) {
+    async getProgressText(number: $TSFixMe): void {
         const special = [
             'zeroth',
             'first',
@@ -1494,7 +1494,7 @@ export default class TwilioService {
         return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
     }
 
-    async getTemplate(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe) {
+    async getTemplate(smsTemplate: $TSFixMe, smsTemplateType: $TSFixMe): void {
         const defaultTemplate = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
@@ -1636,7 +1636,7 @@ export default class TwilioService {
         projectId: string,
         countryCode: $TSFixMe,
         numberType: $TSFixMe
-    ) {
+    ): void {
         let accountSid = null;
         let authToken = null;
         let numbers;
@@ -1734,7 +1734,7 @@ export default class TwilioService {
         return data;
     }
 
-    async buyPhoneNumber(projectId: string, phoneNumber: $TSFixMe) {
+    async buyPhoneNumber(projectId: string, phoneNumber: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await this.findByOne({
@@ -1763,7 +1763,7 @@ export default class TwilioService {
         return numbers;
     }
 
-    async releasePhoneNumber(projectId: string, sid: $TSFixMe) {
+    async releasePhoneNumber(projectId: string, sid: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await this.findByOne({
@@ -1784,7 +1784,7 @@ export default class TwilioService {
         return numbers;
     }
 
-    async getCallDetails(projectId: string, CallSid: $TSFixMe) {
+    async getCallDetails(projectId: string, CallSid: $TSFixMe): void {
         let accountSid = null;
         let authToken = null;
         const customTwilioSettings = await this.findByOne({
@@ -1805,7 +1805,7 @@ export default class TwilioService {
         return details;
     }
 
-    async calculatePrice(currentPrice: $TSFixMe, basePrice: $TSFixMe) {
+    async calculatePrice(currentPrice: $TSFixMe, basePrice: $TSFixMe): void {
         let price =
             currentPrice && basePrice
                 ? currentPrice > basePrice
@@ -1817,7 +1817,7 @@ export default class TwilioService {
         return price;
     }
 
-    async hasCustomSettings(projectId: string) {
+    async hasCustomSettings(projectId: string): void {
         return await this.findByOne({
             query: { projectId, enabled: true },
             select: '_id',

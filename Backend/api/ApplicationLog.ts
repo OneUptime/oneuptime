@@ -113,7 +113,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {
@@ -171,7 +171,7 @@ router.delete(
 router.post(
     '/:applicationLogId/log',
     isApplicationLogValid,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const applicationLogId = req.params.applicationLogId;

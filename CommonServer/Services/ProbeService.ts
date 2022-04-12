@@ -81,7 +81,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async sendProbe(probeId, monitorId) {
+    async sendProbe(probeId, monitorId): void {
         const selectProbe =
             'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
 
@@ -96,7 +96,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         }
     }
 
-    async createMonitorDisabledStatus(data) {
+    async createMonitorDisabledStatus(data): void {
         const select =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
         let monitorStatus = await MonitorStatusService.findBy({
@@ -116,7 +116,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return monitorStatus;
     }
 
-    async saveMonitorLog(data) {
+    async saveMonitorLog(data): void {
         let monitorStatus = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId, probeId: data.probeId },
             select: 'status',
@@ -214,7 +214,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async getMonitorLog(data) {
+    async getMonitorLog(data): void {
         const date = new Date();
 
         const selectMonitorLog =
@@ -238,7 +238,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async incidentCreateOrUpdate(data) {
+    async incidentCreateOrUpdate(data): void {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -525,7 +525,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return incidentIds;
     }
 
-    async incidentResolveOrAcknowledge(data, allCriteria) {
+    async incidentResolveOrAcknowledge(data, allCriteria): void {
         const populate = [
             {
                 path: 'probes.probeId',
@@ -693,7 +693,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return {};
     }
 
-    async updateProbeStatus(probeId) {
+    async updateProbeStatus(probeId): void {
         const probe = await ProbeModel.findOneAndUpdate(
             { _id: probeId },
             { $set: { lastAlive: Date.now() } },
@@ -914,7 +914,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return null;
     }
 
-    async processHttpRequest(data) {
+    async processHttpRequest(data): void {
         const { monitor, body } = data;
         let { queryParams, headers } = data;
         queryParams = this.toArray(queryParams);
@@ -1038,7 +1038,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
         return log;
     }
 
-    async probeHttpRequest(monitor, probeId) {
+    async probeHttpRequest(monitor, probeId): void {
         let status, reason;
         let matchedCriterion;
         const lastPingTime = monitor.lastPingTime;

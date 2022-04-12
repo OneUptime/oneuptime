@@ -108,7 +108,7 @@ app.use(async function (
     req: ExpressRequest,
     _res: ExpressResponse,
     next: NextFunction
-) {
+): void {
     req = (await getUser(req)) || req;
     req = (await getProjectId(req)) || req;
     next();
@@ -316,7 +316,7 @@ mongoose.connection.on('connected', async () => {
             maintainerEmail: 'certs@oneuptime.com',
             staging: false,
 
-            notify: function (event, details) {
+            notify: function (event, details): void {
                 if ('error' === event) {
                     // `details` is an error object in this case
 

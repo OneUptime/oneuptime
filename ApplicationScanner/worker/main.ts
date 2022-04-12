@@ -3,7 +3,7 @@ import BackendAPI from '../Utils/api';
 import ApplicationSecurity from './applicationSecurity';
 
 export default {
-    runApplicationScan: async function () {
+    runApplicationScan: async function (): void {
         const securities = await BackendAPI.get(
             'application/applicationSecurities'
         );

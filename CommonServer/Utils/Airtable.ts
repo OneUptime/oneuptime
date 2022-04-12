@@ -12,7 +12,7 @@ class Airtable {
         tableName: string,
         airtableView: string,
         limit: PositiveNumber
-    ) {
+    ): void {
         return this.base(tableName)
             .select({ view: airtableView, pageSize: limit.toNumber() })
             .firstPage();
@@ -22,15 +22,18 @@ class Airtable {
         tableName: string,
         id: string,
         fields: Dictionary<string>
-    ) {
+    ): void {
         return this.base(tableName).update(id, fields);
     }
 
-    public static async create(tableName: string, fields: Dictionary<string>) {
+    public static async create(
+        tableName: string,
+        fields: Dictionary<string>
+    ): void {
         return this.base(tableName).create(fields);
     }
 
-    public static async delete(tableName: string, id: string) {
+    public static async delete(tableName: string, id: string): void {
         return this.base(tableName).destroy(id);
     }
 }

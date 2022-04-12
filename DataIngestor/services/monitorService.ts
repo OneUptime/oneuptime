@@ -7,7 +7,7 @@ export default {
     updateCriterion: async function (
         _id: $TSFixMe,
         lastMatchedCriterion: $TSFixMe
-    ) {
+    ): void {
         await monitorCollection.updateOne(
             {
                 _id: ObjectId(_id),
@@ -17,7 +17,10 @@ export default {
         );
     },
 
-    updateScanStatus: async function (monitorIds: $TSFixMe, status: $TSFixMe) {
+    updateScanStatus: async function (
+        monitorIds: $TSFixMe,
+        status: $TSFixMe
+    ): void {
         for (const id of monitorIds) {
             await monitorCollection.updateOne(
                 {
@@ -31,7 +34,10 @@ export default {
         }
     },
 
-    addProbeScanning: async function (monitorIds: $TSFixMe, probeId: $TSFixMe) {
+    addProbeScanning: async function (
+        monitorIds: $TSFixMe,
+        probeId: $TSFixMe
+    ): void {
         for (const id of monitorIds) {
             await monitorCollection.updateOne(
                 {
@@ -48,7 +54,7 @@ export default {
     removeProbeScanning: async function (
         monitorIds: $TSFixMe,
         probeId: $TSFixMe
-    ) {
+    ): void {
         for (const id of monitorIds) {
             await monitorCollection.updateOne(
                 {
@@ -66,7 +72,7 @@ export default {
         _id: $TSFixMe,
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
-    ) {
+    ): void {
         const updateData = {};
 
         if (lighthouseScanStatus !== 'scanning') {
@@ -95,7 +101,7 @@ export default {
         _id: $TSFixMe,
         scriptRunStatus: $TSFixMe,
         scriptRunBy: $TSFixMe
-    ) {
+    ): void {
         await monitorCollection.updateOne(
             {
                 _id: ObjectId(_id),
@@ -110,7 +116,7 @@ export default {
         );
     },
 
-    async findOneBy({ query }: $TSFixMe) {
+    async findOneBy({ query }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -122,7 +128,7 @@ export default {
         return monitor;
     },
 
-    async updateMonitorPingTime(id: $TSFixMe) {
+    async updateMonitorPingTime(id: $TSFixMe): void {
         await monitorCollection.updateOne(
             {
                 _id: ObjectId(id),

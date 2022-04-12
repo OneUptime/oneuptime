@@ -13,7 +13,7 @@ export default class ClusterKeyAuthorization {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         let clusterKey;
 
         if (req.params && req.params['clusterKey']) {

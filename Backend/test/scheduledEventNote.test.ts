@@ -64,29 +64,32 @@ const updatedInvestigationNote = {
     content: 'Just updated this note',
 };
 
-describe('Scheduled Event Note', function () {
+describe('Scheduled Event Note', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     userId = res.body.id;
                     projectId = project._id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -123,7 +126,7 @@ describe('Scheduled Event Note', function () {
                                                     .end(async function (
                                                         err: $TSFixMe,
                                                         res: $TSFixMe
-                                                    ) {
+                                                    ): void {
                                                         monitorId =
                                                             res.body._id;
 
@@ -145,7 +148,7 @@ describe('Scheduled Event Note', function () {
                                                                 async function (
                                                                     err: $TSFixMe,
                                                                     res: $TSFixMe
-                                                                ) {
+                                                                ): void {
                                                                     scheduledEventId =
                                                                         res.body
                                                                             ._id;
@@ -206,7 +209,7 @@ describe('Scheduled Event Note', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -227,7 +230,7 @@ describe('Scheduled Event Note', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get all scheduled event notes => internal notes', function (done: $TSFixMe) {
+    it('should get all scheduled event notes => internal notes', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -244,7 +247,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should get first 10 scheduled event notes for data length 10, skip 0, limit 10 and count 12 => internal notes', function (done: $TSFixMe) {
+    it('should get first 10 scheduled event notes for data length 10, skip 0, limit 10 and count 12 => internal notes', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -267,7 +270,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should get 2 last scheduled events notes with data length 2, skip 10, limit 10 and count 12 => internal notes', function (done: $TSFixMe) {
+    it('should get 2 last scheduled events notes with data length 2, skip 10, limit 10 and count 12 => internal notes', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -290,7 +293,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should create a scheduled event note => internal note', function (done: $TSFixMe) {
+    it('should create a scheduled event note => internal note', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -305,7 +308,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should create a scheduled event note => investigation note', function (done: $TSFixMe) {
+    it('should create a scheduled event note => investigation note', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -320,7 +323,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should not create a scheduled event note if any of the field is missing', function (done: $TSFixMe) {
+    it('should not create a scheduled event note if any of the field is missing', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -333,7 +336,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should not creat a scheduled event note if type field is not investigation or internal', function (done: $TSFixMe) {
+    it('should not creat a scheduled event note if type field is not investigation or internal', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -346,7 +349,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should update a note => internal note', function (done: $TSFixMe) {
+    it('should update a note => internal note', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -364,7 +367,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should update a note => investigation note', function (done: $TSFixMe) {
+    it('should update a note => investigation note', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -382,7 +385,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should not update a note if the scheduled event note does not exist', function (done: $TSFixMe) {
+    it('should not update a note if the scheduled event note does not exist', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const noteId = projectId;
 
@@ -398,7 +401,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should delete a scheduled event note => internal note', function (done: $TSFixMe) {
+    it('should delete a scheduled event note => internal note', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -413,7 +416,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should delete a scheduled event note => investigation note', function (done: $TSFixMe) {
+    it('should delete a scheduled event note => investigation note', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
 
         request
@@ -428,7 +431,7 @@ describe('Scheduled Event Note', function () {
             });
     });
 
-    it('should note delete a scheduled event note if it does not exist', function (done: $TSFixMe) {
+    it('should note delete a scheduled event note if it does not exist', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const noteId = projectId;
 

@@ -5,7 +5,7 @@ import { RootState } from '../../store';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-function RenderIfMember(props: $TSFixMe) {
+function RenderIfMember(props: $TSFixMe): void {
     const { currentProject, children, currentUserId } = props;
     const userId = User.getUserId();
 
@@ -30,7 +30,7 @@ function RenderIfMember(props: $TSFixMe) {
     return renderItems;
 }
 
-function mapStateToProps(state: RootState) {
+function mapStateToProps(state: RootState): void {
     return {
         currentProject: state.project.currentProject,
     };

@@ -131,7 +131,7 @@ router.put(
     '/:projectId/:monitorSlaId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, monitorSlaId } = req.params;
             const { name, handleDefault, frequency, monitorUptime } = req.body;

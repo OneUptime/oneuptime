@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
 const containerSecurityCollection = 'containersecurities';
 
-async function run() {
+async function run(): void {
     const containerSecurities = await find(containerSecurityCollection, {
         $or: [
             { slug: { $exists: false } },

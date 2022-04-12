@@ -4,13 +4,13 @@ import * as types from '../constants/notification';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import { User } from '../config';
 
-export const openNotificationMenu = function (position: $TSFixMe) {
+export const openNotificationMenu = function (position: $TSFixMe): void {
     return {
         type: types.OPEN_NOTIFICATION_MENU,
         payload: position,
     };
 };
-export const closeNotificationMenu = function (error: ErrorPayload) {
+export const closeNotificationMenu = function (error: ErrorPayload): void {
     return {
         type: types.CLOSE_NOTIFICATION_MENU,
         payload: error,
@@ -67,7 +67,7 @@ export const allNotificationReadSuccess = (userId: string): void => {
 
 // Calls the API to get all notifications.
 export const fetchNotifications = (projectId: string): void => {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             const notifications = await BackendAPI.get(
                 `notification/${projectId}`
@@ -94,8 +94,11 @@ export const fetchNotifications = (projectId: string): void => {
     };
 };
 
-export const markAsRead = (projectId: string, notificationIds: $TSFixMe): void => {
-    return async function (dispatch: Dispatch) {
+export const markAsRead = (
+    projectId: string,
+    notificationIds: $TSFixMe
+): void => {
+    return async function (dispatch: Dispatch): void {
         try {
             const userId = User.getUserId();
             notificationIds = notificationIds.map(
@@ -137,8 +140,11 @@ export const markAsRead = (projectId: string, notificationIds: $TSFixMe): void =
     };
 };
 
-export function closeNotification(projectId: string, notificationId: $TSFixMe) {
-    return async function (dispatch: Dispatch) {
+export function closeNotification(
+    projectId: string,
+    notificationId: $TSFixMe
+): void {
+    return async function (dispatch: Dispatch): void {
         try {
             const userId = User.getUserId();
 
@@ -171,7 +177,7 @@ export function closeNotification(projectId: string, notificationId: $TSFixMe) {
 }
 
 export const markAllAsRead = (projectId: string): void => {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             const userId = User.getUserId();
 
@@ -201,7 +207,7 @@ export function billingActionTaken(
     notificationId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return async function (dispatch: Dispatch) {
+    return async function (dispatch: Dispatch): void {
         try {
             const notification = BackendAPI.put(
                 `notification/${projectId}/${notificationId}`,

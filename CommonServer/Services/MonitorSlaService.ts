@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const monitorSlaCount = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -47,7 +47,7 @@ export default class Service {
         return createdMonitorSla;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -63,7 +63,7 @@ export default class Service {
         return monitorSla;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -90,7 +90,7 @@ export default class Service {
         return monitorSla;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -195,7 +195,7 @@ export default class Service {
         return updatedMonitorSla;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         const deletedSla = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
@@ -210,11 +210,11 @@ export default class Service {
         return deletedSla;
     }
 
-    async hardDelete(query: Query) {
+    async hardDelete(query: Query): void {
         await MonitorSlaModel.deleteMany(query);
         return 'Monitor SLA(s) deleted successfully';
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

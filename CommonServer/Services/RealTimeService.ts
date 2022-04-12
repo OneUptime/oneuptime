@@ -16,7 +16,11 @@ export default class Service {
         };
     }
 
-    async send(projectId: string, eventType: string, data: JSONObjectOrArray) {
+    async send(
+        projectId: string,
+        eventType: string,
+        data: JSONObjectOrArray
+    ): void {
         await this.api.post(
             new Route(`/send-created-incident`),
             {

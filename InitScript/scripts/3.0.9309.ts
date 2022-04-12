@@ -10,7 +10,7 @@ import { find, update } from '../util/db';
 const monitorCollection = 'monitors';
 const monitorStatusCollection = 'monitorstatuses';
 
-async function run() {
+async function run(): void {
     const monitors = await find(monitorCollection, {
         deleted: false,
     });

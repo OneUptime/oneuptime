@@ -14,7 +14,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const data = req.body;
         const applicationLogId = req.params.applicationLogId;
         if (!applicationLogId) {

@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 const monitorCollection = 'monitors';
 const incidentCollection = 'incidents';
 
-async function run() {
+async function run(): void {
     // fetch all monitor that is not online
     const monitors = await find(monitorCollection, {
         monitorStatus: { $ne: 'online' },

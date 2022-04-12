@@ -2,7 +2,7 @@ import { update, find } from '../util/db';
 
 const integrationsCollection = 'integrations';
 
-async function run() {
+async function run(): void {
     const integrations = await find(integrationsCollection, {
         monitors: { $exists: false },
     });

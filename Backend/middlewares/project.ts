@@ -19,7 +19,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
@@ -112,7 +112,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             const projectId = apiMiddleware.getProjectId(req);
 
@@ -184,7 +184,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
@@ -236,7 +236,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         try {
             const UserId = req.user ? req.user.id : null;
 

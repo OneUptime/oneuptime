@@ -60,23 +60,23 @@ const scheduledEvent = {
     monitorDuringEvent: false,
 };
 
-describe('Status API', function () {
+describe('Status API', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(async function () {
+        GlobalConfig.initTestConfig().then(async function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     if (err) throw err;
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe) {
+                        function (err: $TSFixMe): void {
                             if (err) throw err;
                             request
                                 .post('/user/login')
@@ -84,7 +84,10 @@ describe('Status API', function () {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                                .end(function (
+                                    err: $TSFixMe,
+                                    res: $TSFixMe
+                                ): void {
                                     if (err) throw err;
                                     token = res.body.tokens.jwtAccessToken;
                                     const authorization = `Basic ${token}`;
@@ -163,7 +166,7 @@ describe('Status API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await MonitorService.hardDeleteBy({ _id: monitorId });
         await ScheduledEventService.hardDeleteBy({ _id: scheduledEventId });
@@ -172,7 +175,7 @@ describe('Status API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should not add status page if the page name is missing', function (done: $TSFixMe) {
+    it('should not add status page if the page name is missing', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/StatusPage/${projectId}`)
@@ -184,14 +187,14 @@ describe('Status API', function () {
                 copyright: 'status copyright',
                 projectId,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should add status page', function (done: $TSFixMe) {
+    it('should add status page', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/StatusPage/${projectId}`)
@@ -217,7 +220,7 @@ describe('Status API', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -226,7 +229,7 @@ describe('Status API', function () {
             });
     });
 
-    it('should add private status page', function (done: $TSFixMe) {
+    it('should add private status page', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/StatusPage/${projectId}`)
@@ -253,7 +256,7 @@ describe('Status API', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 privateStatusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -264,12 +267,12 @@ describe('Status API', function () {
             });
     });
 
-    it('should get private status page for authorized user', function (done: $TSFixMe) {
+    it('should get private status page for authorized user', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/StatusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -277,29 +280,29 @@ describe('Status API', function () {
             });
     });
 
-    it('should get valid private status page rss for authorized user', function (done: $TSFixMe) {
+    it('should get valid private status page rss for authorized user', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/StatusPage/${privateStatusPageId}/rss`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should not get private status page for unauthorized user', function (done: $TSFixMe) {
+    it('should not get private status page for unauthorized user', function (done: $TSFixMe): void {
         request
             .get(`/StatusPage/${privateStatusPageId}`)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not update status page settings when domain is not string', function (done: $TSFixMe) {
+    it('should not update status page settings when domain is not string', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
@@ -307,14 +310,14 @@ describe('Status API', function () {
             .send({
                 domain: 5,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not update status page settings when domain is not valid', function (done: $TSFixMe) {
+    it('should not update status page settings when domain is not valid', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
@@ -322,14 +325,14 @@ describe('Status API', function () {
             .send({
                 domain: 'wwwtest',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should update status page settings', function (done: $TSFixMe) {
+    it('should update status page settings', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .put(`/StatusPage/${projectId}`)
@@ -356,20 +359,20 @@ describe('Status API', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should return monitor category with monitors in status page data', function (done: $TSFixMe) {
+    it('should return monitor category with monitors in status page data', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/StatusPage/${statusPageId}`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
@@ -387,13 +390,13 @@ describe('Status API', function () {
             });
     });
 
-    it('should get list of scheduled events', function (done: $TSFixMe) {
+    it('should get list of scheduled events', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/StatusPage/${projectId}/${statusPageId}/events`)
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
@@ -406,7 +409,7 @@ describe('Status API', function () {
             });
     });
 
-    it('should get list of scheduled events for monitor', function (done: $TSFixMe) {
+    it('should get list of scheduled events for monitor', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(
@@ -414,7 +417,7 @@ describe('Status API', function () {
             )
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res).to.be.an('object');
@@ -427,7 +430,7 @@ describe('Status API', function () {
             });
     });
 
-    it('should get list of logs for a monitor', function (done: $TSFixMe) {
+    it('should get list of logs for a monitor', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         monitorLogService
             .create({
@@ -444,7 +447,7 @@ describe('Status API', function () {
                     .send({
                         responseTime: true,
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         if (err) throw err;
                         expect(res).to.have.status(200);
                         expect(res).to.be.an('object');
@@ -455,28 +458,28 @@ describe('Status API', function () {
             });
     });
 
-    it('should create a domain', function (done: $TSFixMe) {
+    it('should create a domain', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptimeapp.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should create a domain with subdomain', function (done: $TSFixMe) {
+    it('should create a domain with subdomain', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -486,7 +489,7 @@ describe('Status API', function () {
     // The placement of this test case is very important
     // a domain needs to be created before verifying it
 
-    it('should verify a domain', function (done: $TSFixMe) {
+    it('should verify a domain', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const domain = 'oneuptimeapp.com';
         const verificationToken = 'm2ab5osUmz9Y7Ko';
@@ -494,12 +497,12 @@ describe('Status API', function () {
         DomainVerificationService.updateOneBy(
             { domain },
             { verificationToken }
-        ).then(function ({ _id: domainId, verificationToken }) {
+        ).then(function ({ _id: domainId, verificationToken }): void {
             request
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     if (err) throw err;
                     expect(res).to.have.status(200);
                     expect(res.body.verified).to.be.true;
@@ -508,14 +511,14 @@ describe('Status API', function () {
         });
     });
 
-    it('should verify a domain and fetch a status page', function (done: $TSFixMe) {
+    it('should verify a domain and fetch a status page', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.x.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 const domain = 'status.x.com';
@@ -523,11 +526,11 @@ describe('Status API', function () {
                 DomainVerificationService.updateOneBy(
                     { domain },
                     { verified: true }
-                ).then(function () {
+                ).then(function (): void {
                     request
                         .get(`/StatusPage/null?url=${domain}`)
                         .send()
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             if (err) throw err;
                             expect(res).to.have.status(200);
                             expect(res.body._id).to.be.equal(statusPageId);
@@ -537,21 +540,21 @@ describe('Status API', function () {
             });
     });
 
-    it('should NOT fetch status page of unverfied domain', function (done: $TSFixMe) {
+    it('should NOT fetch status page of unverfied domain', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.y.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 const domain = 'status.y.com';
                 request
                     .get(`/StatusPage/null?url=${domain}`)
                     .send()
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         if (err) throw err;
                         expect(res).to.have.status(400);
                         expect(res.body.message).to.be.equal(
@@ -562,7 +565,7 @@ describe('Status API', function () {
             });
     });
 
-    it('should not verify a domain if txt record is not found', function (done: $TSFixMe) {
+    it('should not verify a domain if txt record is not found', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const domain = 'oneuptimeapp.com';
         const verificationToken = 'thistokenwillnotwork';
@@ -570,12 +573,12 @@ describe('Status API', function () {
         DomainVerificationService.updateOneBy(
             { domain },
             { verificationToken, verified: false, verifiedAt: null }
-        ).then(function ({ _id: domainId, verificationToken }) {
+        ).then(function ({ _id: domainId, verificationToken }): void {
             request
                 .put(`/domainVerificationToken/${projectId}/verify/${domainId}`)
                 .set('Authorization', authorization)
                 .send({ domain, verificationToken })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     if (err) throw err;
                     expect(res).to.have.status(400);
                     done();
@@ -583,7 +586,7 @@ describe('Status API', function () {
         });
     });
 
-    it('should not verify a domain that does not exist on the web', function (done: $TSFixMe) {
+    it('should not verify a domain that does not exist on the web', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const domain = 'binoehty1234hgyt.com';
         const selectDomainVerify =
@@ -593,7 +596,7 @@ describe('Status API', function () {
         ];
 
         StatusService.createDomain(domain, projectId, statusPageId).then(
-            function () {
+            function (): void {
                 DomainVerificationService.findOneBy({
                     query: { domain },
                     select: selectDomainVerify,
@@ -609,7 +612,7 @@ describe('Status API', function () {
                         )
                         .set('Authorization', authorization)
                         .send({ domain, verificationToken })
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             if (err) throw err;
                             expect(res).to.have.status(400);
                             done();
@@ -619,14 +622,14 @@ describe('Status API', function () {
         );
     });
 
-    it('should not save domain if domain is invalid', function (done: $TSFixMe) {
+    it('should not save domain if domain is invalid', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptime.hackerbay' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -636,7 +639,7 @@ describe('Status API', function () {
     // this is no longer the case
     // array of domain are no longer used in the application
 
-    it.skip('should save an array of valid domains', function (done: $TSFixMe) {
+    it.skip('should save an array of valid domains', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [
@@ -648,7 +651,7 @@ describe('Status API', function () {
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
@@ -658,7 +661,7 @@ describe('Status API', function () {
     // this is no longer the case
     // array of domain are no longer used in the application
 
-    it.skip('should not save domains if one domain in the array is invalid', function (done: $TSFixMe) {
+    it.skip('should not save domains if one domain in the array is invalid', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = {
             domain: [
@@ -670,35 +673,35 @@ describe('Status API', function () {
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should save when domain is without subdomain', function (done: $TSFixMe) {
+    it('should save when domain is without subdomain', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptime.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should reject adding an existing domain', function (done: $TSFixMe) {
+    it('should reject adding an existing domain', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.oneuptimeapp.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
@@ -708,14 +711,14 @@ describe('Status API', function () {
     // This test will work base on the fact that a domain was previously created in another project
     // This test will try to create another domain with the same domain on another project
 
-    it('should add domain if it exist in another project and if the domain in other project is NOT verified.', function (done: $TSFixMe) {
+    it('should add domain if it exist in another project and if the domain in other project is NOT verified.', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'oneuptimeapp.com' };
         request
             .post(`/project/create`)
             .set('Authorization', authorization)
             .send(project.newProject)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
@@ -730,7 +733,7 @@ describe('Status API', function () {
                         projectId,
                         monitorIds: [monitorId],
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         if (err) throw err;
                         const newStatusPageId = res.body._id;
                         request
@@ -739,7 +742,7 @@ describe('Status API', function () {
                             )
                             .set('Authorization', authorization)
                             .send(data)
-                            .end(function (err: $TSFixMe, res: $TSFixMe) {
+                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                                 if (err) throw err;
                                 expect(res).to.have.status(200);
                                 expect(
@@ -754,14 +757,14 @@ describe('Status API', function () {
             });
     });
 
-    it('should NOT add domain if it exist in another project and domain in other project is verified', function (done: $TSFixMe) {
+    it('should NOT add domain if it exist in another project and domain in other project is verified', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'status.x.com' };
         request
             .post(`/project/create`)
             .set('Authorization', authorization)
             .send(project.newSecondProject)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 const newProjectId = res.body._id;
                 request
@@ -776,7 +779,7 @@ describe('Status API', function () {
                         projectId,
                         monitorIds: [monitorId],
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         if (err) throw err;
                         const newStatusPageId = res.body._id;
                         request
@@ -785,7 +788,7 @@ describe('Status API', function () {
                             )
                             .set('Authorization', authorization)
                             .send(data)
-                            .end(function (err: $TSFixMe, res: $TSFixMe) {
+                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                                 if (err) throw err;
                                 expect(res).to.have.status(400);
                                 expect(res.body.message).to.be.equals(
@@ -801,7 +804,7 @@ describe('Status API', function () {
     // check for when the domain in statuspage is updated
     // check for when domainverificationtoken is updated
 
-    it('should update a domain on a status page successfully', function (done: $TSFixMe) {
+    it('should update a domain on a status page successfully', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: 'app.oneuptimeapp.com' };
 
@@ -821,7 +824,7 @@ describe('Status API', function () {
         });
     });
 
-    it('should not update a domain on a status page if the domain field is empty', function (done: $TSFixMe) {
+    it('should not update a domain on a status page if the domain field is empty', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: '' };
 
@@ -841,7 +844,7 @@ describe('Status API', function () {
         });
     });
 
-    it('should not update a domain on a status page if the domain is not a string', function (done: $TSFixMe) {
+    it('should not update a domain on a status page if the domain is not a string', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: { url: 'shop.oneuptimeapp.com' } };
 
@@ -861,7 +864,7 @@ describe('Status API', function () {
         });
     });
 
-    it('should not update a domain on a status page if the status page is missing or not found', function (done: $TSFixMe) {
+    it('should not update a domain on a status page if the status page is missing or not found', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         const data = { domain: { url: 'shop.oneuptimeapp.com' } };
 
@@ -883,7 +886,7 @@ describe('Status API', function () {
         });
     });
 
-    it('should delete a domain from a status page', function (done: $TSFixMe) {
+    it('should delete a domain from a status page', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -900,7 +903,7 @@ describe('Status API', function () {
         });
     });
 
-    it('should not delete any domain if status page does not exist or not found', function (done: $TSFixMe) {
+    it('should not delete any domain if status page does not exist or not found', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -925,30 +928,30 @@ let subProjectId: string,
     anotherUserToken: $TSFixMe,
     subProjectStatusPageId: $TSFixMe;
 
-describe('StatusPage API with Sub-Projects', function () {
+describe('StatusPage API with Sub-Projects', function (): void {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(30000);
         const authorization = `Basic ${token}`;
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             // create a subproject for parent project
             request
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     if (err) throw err;
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
-                    createUser(request, userData.newUser, function () {
+                    createUser(request, userData.newUser, function (): void {
                         request
                             .post('/user/login')
                             .send({
                                 email: userData.newUser.email,
                                 password: userData.newUser.password,
                             })
-                            .end(function (err: $TSFixMe, res: $TSFixMe) {
+                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                                 if (err) throw err;
                                 newUserToken = res.body.tokens.jwtAccessToken;
                                 const authorization = `Basic ${token}`;
@@ -960,7 +963,7 @@ describe('StatusPage API with Sub-Projects', function () {
                                         emails: userData.newUser.email,
                                         role: 'Member',
                                     })
-                                    .end(function () {
+                                    .end(function (): void {
                                         done();
                                     });
                             });
@@ -969,7 +972,7 @@ describe('StatusPage API with Sub-Projects', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
         });
@@ -985,15 +988,15 @@ describe('StatusPage API with Sub-Projects', function () {
         });
     });
 
-    it('should not create a statupage for user not present in project', function (done: $TSFixMe) {
-        createUser(request, userData.anotherUser, function () {
+    it('should not create a statupage for user not present in project', function (done: $TSFixMe): void {
+        createUser(request, userData.anotherUser, function (): void {
             request
                 .post('/user/login')
                 .send({
                     email: userData.anotherUser.email,
                     password: userData.anotherUser.password,
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     if (err) throw err;
                     anotherUserToken = res.body.tokens.jwtAccessToken;
                     const authorization = `Basic ${anotherUserToken}`;
@@ -1020,7 +1023,7 @@ describe('StatusPage API with Sub-Projects', function () {
                                 },
                             ],
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             if (err) throw err;
                             expect(res).to.have.status(400);
                             expect(res.body.message).to.be.equal(
@@ -1032,19 +1035,19 @@ describe('StatusPage API with Sub-Projects', function () {
         });
     });
 
-    it('should not get private status page for authorized user that is not in project', function (done: $TSFixMe) {
+    it('should not get private status page for authorized user that is not in project', function (done: $TSFixMe): void {
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/StatusPage/${privateStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not create a statusPage for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
+    it('should not create a statusPage for user that is not `admin` in sub-project.', function (done: $TSFixMe): void {
         const authorization = `Basic ${newUserToken}`;
         request
             .post(`/StatusPage/${subProjectId}`)
@@ -1069,7 +1072,7 @@ describe('StatusPage API with Sub-Projects', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
@@ -1079,7 +1082,7 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it('should create a statusPage in parent project by valid admin.', function (done: $TSFixMe) {
+    it('should create a statusPage in parent project by valid admin.', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/StatusPage/${projectId}`)
@@ -1106,7 +1109,7 @@ describe('StatusPage API with Sub-Projects', function () {
                 ],
                 domains: [],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 statusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -1115,7 +1118,7 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it('should create a statusPage in sub-project by valid admin.', function (done: $TSFixMe) {
+    it('should create a statusPage in sub-project by valid admin.', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .post(`/StatusPage/${subProjectId}`)
@@ -1141,7 +1144,7 @@ describe('StatusPage API with Sub-Projects', function () {
                     },
                 ],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 subProjectStatusPageId = res.body._id;
                 expect(res).to.have.status(200);
@@ -1150,12 +1153,12 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it("should get only sub-project's statuspages for valid sub-project user", function (done: $TSFixMe) {
+    it("should get only sub-project's statuspages for valid sub-project user", function (done: $TSFixMe): void {
         const authorization = `Basic ${newUserToken}`;
         request
             .get(`/StatusPage/${subProjectId}/statuspage`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
@@ -1166,12 +1169,12 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it('should get both project and sub-project statuspage for valid parent project user.', function (done: $TSFixMe) {
+    it('should get both project and sub-project statuspage for valid parent project user.', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/StatusPage/${projectId}/statuspages`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
@@ -1184,7 +1187,7 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it('should get status page for viewer in sub-project', function (done: $TSFixMe) {
+    it('should get status page for viewer in sub-project', function (done: $TSFixMe): void {
         const authorization = `Basic ${anotherUserToken}`;
         request
             .post(`/team/${subProjectId}`)
@@ -1193,11 +1196,11 @@ describe('StatusPage API with Sub-Projects', function () {
                 emails: userData.anotherUser.email,
                 role: 'Viewer',
             })
-            .end(function () {
+            .end(function (): void {
                 request
                     .get(`/StatusPage/${subProjectStatusPageId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe) {
+                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
                         if (err) throw err;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');
@@ -1207,12 +1210,12 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it('should not delete a status page for user that is not `admin` in sub-project.', function (done: $TSFixMe) {
+    it('should not delete a status page for user that is not `admin` in sub-project.', function (done: $TSFixMe): void {
         const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/StatusPage/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
@@ -1222,24 +1225,24 @@ describe('StatusPage API with Sub-Projects', function () {
             });
     });
 
-    it('should delete sub-project status page', function (done: $TSFixMe) {
+    it('should delete sub-project status page', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .delete(`/StatusPage/${subProjectId}/${subProjectStatusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete parent project status page', function (done: $TSFixMe) {
+    it('should delete parent project status page', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .delete(`/StatusPage/${projectId}/${statusPageId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 if (err) throw err;
                 expect(res).to.have.status(200);
                 done();

@@ -31,19 +31,19 @@ export const resetDeleteWebHook = (): void => {
 
 // Calls the API to link webhook team to project
 export const deleteWebHook = (projectId: string, webhookId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`webhook/${projectId}/delete/${webhookId}`,
         null);
 
         dispatch(deleteWebHookRequest());
 
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(deleteWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteWebHookError(error));
             }
         );
@@ -82,7 +82,7 @@ export function getWebHook(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${limit || 10}`
@@ -90,10 +90,10 @@ export function getWebHook(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            function (webhooks) {
+            function (webhooks): void {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getWebHookError(error));
             }
         );
@@ -108,7 +108,7 @@ export function getWebHookMonitor(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
@@ -118,10 +118,10 @@ export function getWebHookMonitor(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            function (webhooks) {
+            function (webhooks): void {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getWebHookError(error));
             }
         );
@@ -158,18 +158,18 @@ export const resetCreateWebHook = (): void => {
 
 // Calls the API to add webhook to project
 export const createWebHook = (projectId: string, data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
         dispatch(createWebHookRequest());
 
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(createWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(createWebHookError(error));
             }
         );
@@ -208,7 +208,7 @@ export function updateWebHook(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `webhook/${projectId}/${webhookId}`,
             data
@@ -217,12 +217,12 @@ export function updateWebHook(
         dispatch(updateWebHookRequest());
 
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(updateWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateWebHookError(error));
             }
         );
@@ -250,7 +250,7 @@ export const paginateReset = (): void => {
 };
 
 export const paginate = (type: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

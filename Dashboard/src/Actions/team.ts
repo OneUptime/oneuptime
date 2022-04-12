@@ -24,15 +24,15 @@ export const teamLoadingError = (error: ErrorPayload): void => {
 
 // Calls the API to load team.
 export const teamLoading = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}`);
         dispatch(teamLoadingRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 const team = response.data;
                 dispatch(teamLoadingSuccess(team));
             },
-            function (error) {
+            function (error): void {
                 dispatch(teamLoadingError(error));
             }
         );
@@ -62,15 +62,15 @@ export const subProjectTeamLoadingError = (error: ErrorPayload): void => {
 };
 // Calls the API to load team.
 export const subProjectTeamLoading = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
         promise.then(
-            function (response) {
+            function (response): void {
                 const team = response.data;
                 dispatch(subProjectTeamLoadingSuccess(team));
             },
-            function (error) {
+            function (error): void {
                 dispatch(subProjectTeamLoadingError(error));
             }
         );
@@ -102,16 +102,16 @@ export const teamCreateError = (error: ErrorPayload): void => {
 
 // Calls the API to create team members.
 export const teamCreate = (projectId: string, values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 const team = response.data;
                 dispatch(teamCreateSuccess(team));
             },
-            function (error) {
+            function (error): void {
                 dispatch(teamCreateError(error));
             }
         );
@@ -148,24 +148,24 @@ export const teamDeleteReset = (): void => {
 };
 
 export const resetTeamDelete = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(teamDeleteReset());
     };
 };
 
 // Calls the API to delete team meber.
 export const teamDelete = (projectId: string, teamMemberId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
-            function (response) {
+            function (response): void {
                 const team = response.data;
                 dispatch(teamDeleteSuccess(team));
                 return { team };
             },
-            function (error) {
+            function (error): void {
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -197,16 +197,19 @@ export const teamMemberError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to get team member.
-export const getTeamMember = (projectId: string, teamMemberId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const getTeamMember = (
+    projectId: string,
+    teamMemberId: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}/${teamMemberId}`);
         dispatch(teamMemberRequest(teamMemberId));
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(teamMemberSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(teamMemberError(error));
             }
         );
@@ -238,7 +241,7 @@ export const teamUpdateRoleError = (error: ErrorPayload): void => {
 
 // Calls the API to update team member role.
 export const teamUpdateRole = (projectId: string, values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,
             values
@@ -246,11 +249,11 @@ export const teamUpdateRole = (projectId: string, values: $TSFixMe): void => {
         dispatch(teamUpdateRoleRequest(values.teamMemberId));
 
         promise.then(
-            function (response) {
+            function (response): void {
                 const team = response.data;
                 dispatch(teamUpdateRoleSuccess(team));
             },
-            function (error) {
+            function (error): void {
                 dispatch(teamUpdateRoleError(error));
             }
         );
@@ -281,7 +284,7 @@ export const paginateReset = (): void => {
 };
 
 export const paginate = (type: $TSFixMe, Id: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext(Id));
         type === 'prev' && dispatch(paginatePrev(Id));
         type === 'reset' && dispatch(paginateReset());

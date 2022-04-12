@@ -88,7 +88,9 @@ export const fetchscheduledEvents =
         }
     };
 
-export const fetchscheduledEventsSuccess = (scheduledEvents: $TSFixMe): void => {
+export const fetchscheduledEventsSuccess = (
+    scheduledEvents: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SCHEDULED_EVENTS_SUCCESS,
         payload: scheduledEvents,
@@ -114,14 +116,18 @@ export const fetchSubProjectScheduledEventsRequest = (): void => {
     };
 };
 
-export const fetchSubProjectScheduledEventsSuccess = (payload: $TSFixMe): void => {
+export const fetchSubProjectScheduledEventsSuccess = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_SUCCESS,
         payload,
     };
 };
 
-export const fetchSubProjectScheduledEventsFailure = (error: ErrorPayload): void => {
+export const fetchSubProjectScheduledEventsFailure = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_SUBPROJECT_SCHEDULED_EVENTS_FAILURE,
         payload: error,
@@ -253,7 +259,9 @@ export const createScheduledEvent =
         }
     };
 
-export const createScheduledEventSuccess = (newScheduledEvent: $TSFixMe): void => {
+export const createScheduledEventSuccess = (
+    newScheduledEvent: $TSFixMe
+): void => {
     return {
         type: types.CREATE_SCHEDULED_EVENT_SUCCESS,
         payload: newScheduledEvent,
@@ -374,7 +382,7 @@ export function updateScheduledEvent(
     scheduledEventId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
             values
@@ -382,10 +390,10 @@ export function updateScheduledEvent(
         dispatch(updateScheduledEventRequest());
 
         promise.then(
-            function (scheduledEvent) {
+            function (scheduledEvent): void {
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -733,18 +741,21 @@ export const fetchScheduledEventFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchScheduledEvent = (projectId: string, slug: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const fetchScheduledEvent = (
+    projectId: string,
+    slug: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `scheduledEvent/${projectId}/slug/${slug}`
         );
         dispatch(fetchScheduledEventRequest());
 
         promise.then(
-            function (component) {
+            function (component): void {
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

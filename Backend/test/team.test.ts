@@ -26,10 +26,10 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 // eslint-disable-next-line
 let token, userId, projectId, anotherUser;
 
-describe('Team API', function () {
+describe('Team API', function (): void {
     this.timeout(20000);
 
-    before(async function () {
+    before(async function (): void {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
@@ -50,7 +50,7 @@ describe('Team API', function () {
         token = res.body.tokens.jwtAccessToken;
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
 
         await NotificationService.hardDeleteBy({ projectId: projectId });
@@ -59,14 +59,14 @@ describe('Team API', function () {
 
     // 'post /monitor/:projectId/monitor'
 
-    it('should reject the request of an unauthenticated user', async function () {
+    it('should reject the request of an unauthenticated user', async function (): void {
         const res = await request.get(`/team/${projectId}`).send({
             name: 'New Schedule',
         });
         expect(res).to.have.status(401);
     });
 
-    it('should get an array of users', async function () {
+    it('should get an array of users', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -76,7 +76,7 @@ describe('Team API', function () {
         expect(res.body).to.be.an('array');
     });
 
-    it('should not add new users when the `emails` field is invalid', async function () {
+    it('should not add new users when the `emails` field is invalid', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -89,7 +89,7 @@ describe('Team API', function () {
         expect(res).to.have.status(400);
     });
 
-    it('should not add new users when the `role` field is invalid', async function () {
+    it('should not add new users when the `role` field is invalid', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -102,7 +102,7 @@ describe('Team API', function () {
         expect(res).to.have.status(400);
     });
 
-    it('should add new users when the `role` and `emails` field are valid', async function () {
+    it('should add new users when the `role` and `emails` field are valid', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -117,7 +117,7 @@ describe('Team API', function () {
         expect(res.body).to.be.an('array');
     });
 
-    it('should not change user roles when the `role` field is invalid', async function () {
+    it('should not change user roles when the `role` field is invalid', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -129,7 +129,7 @@ describe('Team API', function () {
         expect(res).to.have.status(400);
     });
 
-    it('should not change user roles when the `teamMemberId` field is invalid', async function () {
+    it('should not change user roles when the `teamMemberId` field is invalid', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -141,7 +141,7 @@ describe('Team API', function () {
         expect(res).to.have.status(400);
     });
 
-    it('should change user roles', async function () {
+    it('should change user roles', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -156,7 +156,7 @@ describe('Team API', function () {
         expect(res).to.have.status(200);
     });
 
-    it('should not delete users when the `teamId` is not valid', async function () {
+    it('should not delete users when the `teamId` is not valid', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -165,7 +165,7 @@ describe('Team API', function () {
         expect(res).to.have.status(400);
     });
 
-    it('should delete users', async function () {
+    it('should delete users', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -175,7 +175,7 @@ describe('Team API', function () {
         expect(res.body).to.be.an('array');
     });
 
-    it('should get unregistered user email from the token', async function () {
+    it('should get unregistered user email from the token', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -208,10 +208,10 @@ let subProjectId,
 userData.newUser.email = 'newUser@company.com'; // overide test emails to test project seats.
 userData.anotherUser.email = 'anotherUser@company.com'; // overide test emails to test project seats.
 
-describe('Team API with Sub-Projects', async function () {
+describe('Team API with Sub-Projects', async function (): void {
     this.timeout(60000);
 
-    before(async function () {
+    before(async function (): void {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
 
@@ -257,7 +257,7 @@ describe('Team API with Sub-Projects', async function () {
         newUserToken = res3.body.tokens.jwtAccessToken;
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, subProjectId] },
@@ -333,7 +333,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(parseInt(project.seats)).to.be.equal(5);
     });
 
-    it('should update existing user role in sub-project (old role -> member, new role -> administrator)', async function () {
+    it('should update existing user role in sub-project (old role -> member, new role -> administrator)', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -351,7 +351,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(subProjectTeamMembers[1].role).to.equal('Administrator');
     });
 
-    it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async function () {
+    it('should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -368,7 +368,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(projectTeamMembers[0].role).to.equal('Member');
     });
 
-    it("should get only sub-project's team members for valid sub-project user", async function () {
+    it("should get only sub-project's team members for valid sub-project user", async function (): void {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
 
@@ -379,7 +379,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(res.body.length).to.be.equal(4);
     });
 
-    it('should get both project and sub-project Team Members.', async function () {
+    it('should get both project and sub-project Team Members.', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -433,7 +433,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(parseInt(project.seats)).to.be.equal(3);
     });
 
-    it('should not add members that are more than 100 on a project (role -> `Member`)', async function () {
+    it('should not add members that are more than 100 on a project (role -> `Member`)', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -446,7 +446,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(res).to.have.status(400);
     });
 
-    it('should not add members on a project if sum of new and old members exceeds 100 (role -> `Member`)', async function () {
+    it('should not add members on a project if sum of new and old members exceeds 100 (role -> `Member`)', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -459,7 +459,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(res).to.have.status(400);
     });
 
-    it('should not add members without business emails (role -> `Member`)', async function () {
+    it('should not add members without business emails (role -> `Member`)', async function (): void {
         const authorization = `Basic ${token}`;
         const emails = 'sample.yahoo.com,sample@gmail.com';
         const res = await request
@@ -473,7 +473,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(res).to.have.status(400);
     });
 
-    it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', async function () {
+    it('should add members on a project if the number does not exceeds 100 (role -> `Member`)', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 
@@ -487,7 +487,7 @@ describe('Team API with Sub-Projects', async function () {
         expect(res.body[0].team.length).to.be.equal(100);
     });
 
-    it('should add unlimited members for the Viewer role (role -> `Viewer`)', async function () {
+    it('should add unlimited members for the Viewer role (role -> `Viewer`)', async function (): void {
         const authorization = `Basic ${token}`;
         const res = await request
 

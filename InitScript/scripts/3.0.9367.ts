@@ -3,7 +3,7 @@ import { find, update, findOne } from '../util/db';
 const monitorCollection = 'monitors';
 const componentCollection = 'components';
 
-async function run() {
+async function run(): void {
     const monitors = await find(monitorCollection, { deleted: false });
 
     for (const monitor of monitors) {

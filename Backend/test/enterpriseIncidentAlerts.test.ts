@@ -48,16 +48,16 @@ let authorization: $TSFixMe,
     monitorId: $TSFixMe,
     scheduleId;
 
-describe('Incident Alerts', function () {
+describe('Incident Alerts', function (): void {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(() => {
             createEnterpriseUser(
                 request,
                 userData.user,
-                async function (err: $TSFixMe, res: $TSFixMe) {
+                async function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -72,7 +72,10 @@ describe('Incident Alerts', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(async function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(async function (
+                            err: $TSFixMe,
+                            res: $TSFixMe
+                        ): void {
                             token = res.body.tokens.jwtAccessToken;
                             authorization = `Basic ${token}`;
 
@@ -160,7 +163,7 @@ describe('Incident Alerts', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
@@ -192,7 +195,7 @@ describe('Incident Alerts', function () {
          * Global twilio settings (SMS/Call) enable : true
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function () {
+        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function (): void {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -277,7 +280,7 @@ describe('Incident Alerts', function () {
          * Global twilio settings Call enable : false
          */
 
-        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function () {
+        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function (): void {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -370,7 +373,7 @@ describe('Incident Alerts', function () {
          * Global twilio settings Call enable : true
          */
 
-        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function () {
+        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function (): void {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -468,7 +471,7 @@ describe('Incident Alerts', function () {
          * Global twilio settings Call enable : false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function () {
+        it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function (): void {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -574,7 +577,7 @@ describe('Incident Alerts', function () {
          * Custom twilio settings: not set
          */
 
-        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function () {
+        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function (): void {
             await GlobalConfigModel.deleteMany({
                 name: 'twilio',
             });

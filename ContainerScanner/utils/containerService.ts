@@ -18,12 +18,12 @@ import {
 import flattenArray from './flattenArray';
 
 export default {
-    scan: async function (security) {
+    scan: async function (security): void {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
 
-    decryptPassword: async function (security) {
+    decryptPassword: async function (security): void {
         const values = [];
         for (let i = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
@@ -272,7 +272,7 @@ export default {
     },
 };
 
-function createDir(dirPath) {
+function createDir(dirPath): void {
     return new Promise((resolve, reject) => {
         const workPath = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {
@@ -286,20 +286,24 @@ function createDir(dirPath) {
     });
 }
 
-function readFileContent(filePath) {
+function readFileContent(filePath): void {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, function (error, data) {
-                if (error) {
-                    reject(error);
+            fs.readFile(
+                filePath,
+                { encoding: 'utf8' },
+                function (error, data): void {
+                    if (error) {
+                        reject(error);
+                    }
+                    resolve(data);
                 }
-                resolve(data);
-            });
+            );
         }
     });
 }
 
-async function deleteFile(file) {
+async function deleteFile(file): void {
     if (fs.existsSync(file)) {
         await unlink(file);
     }

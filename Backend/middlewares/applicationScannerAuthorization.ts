@@ -12,7 +12,7 @@ export default {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         let applicationScannerKey,
             applicationScannerName,
             clusterKey,

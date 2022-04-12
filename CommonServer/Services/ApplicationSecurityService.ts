@@ -13,7 +13,7 @@ import Query from '../Types/DB/Query';
 import RealTimeService from './realTimeService';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const [
             applicationNameExist,
             gitRepositoryUrlExist,
@@ -73,7 +73,7 @@ export default class Service {
         return applicationSecurity;
     }
 
-    async findOneBy({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -90,7 +90,7 @@ export default class Service {
         return applicationSecurity;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!query['deleted']) query['deleted'] = false;
 
         // won't be using lean() here because of iv cypher for password
@@ -106,7 +106,7 @@ export default class Service {
         return applicationSecurities;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -162,7 +162,7 @@ export default class Service {
         return applicationSecurity;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         let applicationSecurity = await this.countBy(query);
 
         if (!applicationSecurity) {
@@ -212,12 +212,12 @@ export default class Service {
         return applicationSecurity;
     }
 
-    async hardDelete(query: Query) {
+    async hardDelete(query: Query): void {
         await ApplicationSecurityModel.deleteMany(query);
         return 'Application Securities deleted successfully';
     }
 
-    async getSecuritiesToScan() {
+    async getSecuritiesToScan(): void {
         const oneDay = moment().subtract(1, 'days').toDate();
 
         const populateApplicationSecurity = [
@@ -247,7 +247,7 @@ export default class Service {
         return securities;
     }
 
-    async decryptPassword(security: $TSFixMe) {
+    async decryptPassword(security: $TSFixMe): void {
         const values = [];
         for (let i = 0; i <= 15; i++) values.push(security.gitCredential.iv[i]);
         const iv = Buffer.from(values);
@@ -258,7 +258,7 @@ export default class Service {
         return security;
     }
 
-    async updateScanTime(query: Query) {
+    async updateScanTime(query: Query): void {
         const newDate = new Date();
         const applicationSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -271,7 +271,7 @@ export default class Service {
         });
         return applicationSecurity;
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

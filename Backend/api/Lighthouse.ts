@@ -50,7 +50,7 @@ router.get(
 router.post(
     '/ping/:monitorId',
     isAuthorizedLighthouse,
-    async function (req, response) {
+    async function (req, response): void {
         try {
             const { monitor, resp } = req.body;
 

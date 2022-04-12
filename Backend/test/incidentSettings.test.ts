@@ -46,28 +46,31 @@ const incidentSettings = {
     name: 'Another update',
 };
 
-describe('Incident Settings API', function () {
+describe('Incident Settings API', function (): void {
     this.timeout(500000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -101,7 +104,7 @@ describe('Incident Settings API', function () {
                                                     .end(async function (
                                                         err: $TSFixMe,
                                                         res: $TSFixMe
-                                                    ) {
+                                                    ): void {
                                                         monitorId =
                                                             res.body._id;
                                                         expect(
@@ -124,7 +127,7 @@ describe('Incident Settings API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await IncidentSettings.hardDeleteBy({ projectId });

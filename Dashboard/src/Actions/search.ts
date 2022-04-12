@@ -9,12 +9,12 @@ import {
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
-export const showSearchBar = function () {
+export const showSearchBar = function (): void {
     return {
         type: SHOW_SEARCH_BAR,
     };
 };
-export const closeSearchBar = function () {
+export const closeSearchBar = function (): void {
     return {
         type: CLOSE_SEARCH_BAR,
     };
@@ -41,15 +41,15 @@ export const searchFailure = (payload: $TSFixMe): void => {
     };
 };
 export const search = (projectId: string, values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch(searchRequest());
         const promise = BackendAPI.post(`search/${projectId}`, values);
         promise.then(
-            function (result) {
+            function (result): void {
                 const search = result.data;
                 dispatch(searchSuccess(search.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(searchFailure(error));
             }
         );

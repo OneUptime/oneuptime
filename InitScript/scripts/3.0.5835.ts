@@ -10,7 +10,7 @@ const email = 'masteradmin@hackerbay.io';
 const plainPassword = '1234567890';
 const saltRounds = 10;
 
-async function run() {
+async function run(): void {
     if (IS_TESTING === 'true' && IS_SAAS_SERVICE === 'true') {
         const password = await bcrypt.hash(plainPassword, saltRounds);
         let result = await find(userCollection, { email });

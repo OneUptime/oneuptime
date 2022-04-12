@@ -1,7 +1,7 @@
 import { find, update } from '../util/db';
 const usersCollection = 'users';
 
-async function run() {
+async function run(): void {
     const items = await find(usersCollection, {
         email: { $regex: '[A-Z]' },
     });

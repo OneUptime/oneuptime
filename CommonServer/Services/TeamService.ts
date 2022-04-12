@@ -6,7 +6,7 @@ export default class Service {
     //Param 1: projectId: Project id.
     //Param 2: subProjectId: SubProject id
     //Returns: list of team members
-    async getTeamMembersBy(query: Query) {
+    async getTeamMembersBy(query: Query): void {
         let projectMembers: $TSFixMe = [];
 
         const projects = await ProjectService.findBy({
@@ -67,7 +67,7 @@ export default class Service {
         return response;
     }
 
-    async getTeamMemberBy(projectId: string, teamMemberUserId: string) {
+    async getTeamMemberBy(projectId: string, teamMemberUserId: string): void {
         let index;
         let subProject = null;
 
@@ -116,7 +116,7 @@ export default class Service {
         }
     }
 
-    async getSeats(members: $TSFixMe) {
+    async getSeats(members: $TSFixMe): void {
         let seats = members.filter(async (user: $TSFixMe) => {
             let count = 0;
             const user_member = await UserService.findOneBy({
@@ -161,7 +161,7 @@ export default class Service {
 
         //Checks if users to be added to project are not duplicate.
         let duplicateEmail = false;
-        emails.forEach(function (element: $TSFixMe, index: $TSFixMe) {
+        emails.forEach(function (element: $TSFixMe, index: $TSFixMe): void {
             // Find if there is a duplicate or not
             if (emails.indexOf(element, index + 1) > -1) {
                 duplicateEmail = true;
@@ -250,7 +250,7 @@ export default class Service {
     //Params:
     //Param 1: projectId: Project id.
     //Returns: promise
-    async getTeamMembers(projectId: string) {
+    async getTeamMembers(projectId: string): void {
         const subProject = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId',
@@ -285,7 +285,7 @@ export default class Service {
         return valid;
     }
 
-    async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe) {
+    async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
         const teamMembersEmail: $TSFixMe = [];
 
         for (let i = 0; i < teamMembers.length; i++) {
@@ -576,7 +576,7 @@ export default class Service {
         projectId: string,
         userId: string,
         teamMemberUserId: string
-    ) {
+    ): void {
         let index;
         let subProject = null;
 

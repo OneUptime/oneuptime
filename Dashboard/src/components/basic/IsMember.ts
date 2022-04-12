@@ -4,7 +4,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-export default function (currentProject: $TSFixMe) {
+export default function (currentProject: $TSFixMe): void {
     const userId = User.getUserId();
     if (
         userId &&

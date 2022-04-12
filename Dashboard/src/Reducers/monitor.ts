@@ -155,7 +155,7 @@ const INITIAL_STATE = {
     configFileInputKey: null,
 };
 
-export default function monitor(state = INITIAL_STATE, action: Action) {
+export default function monitor(state = INITIAL_STATE, action: Action): void {
     let monitors, monitorType, initialValue;
     switch (action.type) {
         case CREATE_MONITOR_FAILURE:

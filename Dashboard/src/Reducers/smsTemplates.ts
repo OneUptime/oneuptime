@@ -35,7 +35,7 @@ const initialState = {
     showSmsSmtpConfiguration: false,
 };
 
-export default function incident(state = initialState, action: Action) {
+export default function incident(state = initialState, action: Action): void {
     switch (action.type) {
         case types.SMS_TEMPLATES_SUCCESS:
             return Object.assign({}, state, {

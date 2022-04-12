@@ -31,7 +31,7 @@ export default class Service {
         );
     }
 
-    async findBy({ query, skip, limit, select, populate, sort }: FindBy) {
+    async findBy({ query, skip, limit, select, populate, sort }: FindBy): void {
         const logsQuery = LoginHistoryModel.find(query)
             .lean()
             .sort(sort)

@@ -3,7 +3,7 @@ import { find, update } from '../util/db';
 const incomingRequestCollection = 'incomingrequests';
 
 // run this script once
-async function run() {
+async function run(): void {
     const incomingRequests = await find(incomingRequestCollection, {
         deleted: false,
         selectAllMonitors: { $exists: false },

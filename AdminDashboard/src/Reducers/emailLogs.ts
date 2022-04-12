@@ -50,7 +50,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function project(state = INITIAL_STATE, action: Action) {
+export default function project(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         // Fetch emailLogs list
         case FETCH_EMAILLOGS_REQUEST:

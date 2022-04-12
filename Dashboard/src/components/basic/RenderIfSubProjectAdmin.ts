@@ -59,7 +59,7 @@ export const RenderIfSubProjectAdmin = (props: $TSFixMe): void => {
     return renderItems;
 };
 
-function mapStateToProps(state: RootState) {
+function mapStateToProps(state: RootState): void {
     return {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject: state.project.currentProject,

@@ -1,5 +1,5 @@
 export default {
-    findOneBy: async function ({ query }: $TSFixMe) {
+    findOneBy: async function ({ query }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -9,7 +9,7 @@ export default {
         const project = await projectCollection.findOne(query);
         return project;
     },
-    findBy: async function ({ query, limit, skip }: $TSFixMe) {
+    findBy: async function ({ query, limit, skip }: $TSFixMe): void {
         if (!query.deleted)
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
 

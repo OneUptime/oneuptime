@@ -2,7 +2,7 @@ import IncidentNoteTemplateModel from '../Models/incidentNoteTemplate';
 import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 export default class Service {
-    async findBy({ query = {}, limit, skip, sort }: FindBy) {
+    async findBy({ query = {}, limit, skip, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -20,13 +20,13 @@ export default class Service {
             .skip(skip.toNumber());
     }
 
-    async countBy(query = {}) {
+    async countBy(query = {}): void {
         if (!query['deleted']) query['deleted'] = false;
 
         return await IncidentNoteTemplateModel.countDocuments(query);
     }
 
-    async findOneBy(query = {}) {
+    async findOneBy(query = {}): void {
         if (!query['deleted']) query['deleted'] = false;
 
         const incidentNoteTemplate = await IncidentNoteTemplateModel.findOne(
@@ -35,7 +35,7 @@ export default class Service {
         return incidentNoteTemplate;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const { projectId, name } = data;
         let incidentNoteTemplate = await this.findOneBy({
             projectId,
@@ -54,7 +54,7 @@ export default class Service {
         return incidentNoteTemplate;
     }
 
-    async updateOneBy({ query = {}, data }: $TSFixMe) {
+    async updateOneBy({ query = {}, data }: $TSFixMe): void {
         if (!query['deleted']) query['deleted'] = false;
 
         const { projectId, _id } = query;
@@ -83,7 +83,7 @@ export default class Service {
         return incidentNoteTemplate;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         if (!query) return null;
 
         const data = {

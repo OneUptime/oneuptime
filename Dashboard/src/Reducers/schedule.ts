@@ -125,7 +125,7 @@ const initialState = {
     },
 };
 
-export default function schedule(state = initialState, action: Action) {
+export default function schedule(state = initialState, action: Action): void {
     let data, index, isExistingSchedule;
     switch (action.type) {
         case SCHEDULE_FETCH_SUCCESS:

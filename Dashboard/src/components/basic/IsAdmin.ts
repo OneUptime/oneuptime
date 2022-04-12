@@ -4,7 +4,7 @@ import { User } from '../../config';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-export default function IsAdmin(currentProject: $TSFixMe) {
+export default function IsAdmin(currentProject: $TSFixMe): void {
     const userId = User.getUserId();
     return (
         [null, undefined].every(i => i !== userId) &&

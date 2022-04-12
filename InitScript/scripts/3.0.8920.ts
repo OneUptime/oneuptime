@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const ssoCollection = 'ssos';
 
-async function run() {
+async function run(): void {
     const ssos = await find(ssoCollection, {
         entityId: { $exists: false },
     });

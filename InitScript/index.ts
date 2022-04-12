@@ -13,7 +13,7 @@ import bodyParser from 'body-parser';
 
 import cors from 'cors';
 
-async function interactWithDB(req: ExpressRequest, res: ExpressResponse) {
+async function interactWithDB(req: ExpressRequest, res: ExpressResponse): void {
     if (req.params.dbFunction === 'find') {
         res.send(await find(req.body.collection, req.body.query));
     }
@@ -37,7 +37,7 @@ if (process.env['NODE_ENV'] === 'development') {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
     app.use(bodyParser.json({ limit: '10mb' }));
 
-    app.listen(1447, function () {
+    app.listen(1447, function (): void {
         logger.info('Server running on: 1447');
     });
 
@@ -56,7 +56,7 @@ if (process.env['NODE_ENV'] === 'development') {
     );
 }
 
-async function run() {
+async function run(): void {
     const excludedScripts = ['index.ts', 'start.ts', 'end.ts'];
 
     logger.info('Connecting to MongoDB.');

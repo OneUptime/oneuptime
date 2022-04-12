@@ -13,10 +13,10 @@ import { createUser } from './utils/userSignUp';
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 
-describe('Disable Sign up test', function () {
+describe('Disable Sign up test', function (): void {
     this.timeout(200000);
     let token: $TSFixMe = null;
-    this.beforeAll(async function () {
+    this.beforeAll(async function (): void {
         this.timeout(400000);
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({});
@@ -38,11 +38,15 @@ describe('Disable Sign up test', function () {
     });
 
     it('should not sign up the user when sign up is disabled', (done: $TSFixMe) => {
-        createUser(request, data.user, function (err: $TSFixMe, res: $TSFixMe) {
-            expect(res).to.have.status(400);
-            expect(res.body.message).to.be.equal('Sign up is disabled.');
-            done();
-        });
+        createUser(
+            request,
+            data.user,
+            function (err: $TSFixMe, res: $TSFixMe): void {
+                expect(res).to.have.status(400);
+                expect(res.body.message).to.be.equal('Sign up is disabled.');
+                done();
+            }
+        );
     });
 
     it('should sign up a new user when user is admin', (done: $TSFixMe) => {
@@ -53,7 +57,7 @@ describe('Disable Sign up test', function () {
             .send({
                 ...data.anotherUser,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('email');
                 expect(res.body).to.have.property('role');

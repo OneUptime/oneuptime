@@ -135,30 +135,32 @@ export const deleteCallLogsError = (error: $TSFixMe): void => {
     };
 };
 
-export const deleteCallLogs = () => async (dispatch: Dispatch): void => {
-    dispatch(deleteCallLogsRequest());
+export const deleteCallLogs =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(deleteCallLogsRequest());
 
-    try {
-        const response = await delete `call-logs`;
+        try {
+            const response = await delete `call-logs`;
 
-        const message = response.data.message;
+            const message = response.data.message;
 
-        dispatch(deleteCallLogsSuccess(message));
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(deleteCallLogsSuccess(message));
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(deleteCallLogsError(errorMsg));
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(deleteCallLogsError(errorMsg));
-    }
-};
+    };
 
 // fetch callLogStatus
 
@@ -190,32 +192,34 @@ export const resetFetchCallLogStatus = (): void => {
 };
 
 // Calls the API to fetch callLogStatus
-export const fetchCallLogStatus = () => async (dispatch: Dispatch): void => {
-    dispatch(fetchCallLogStatusRequest());
+export const fetchCallLogStatus =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(fetchCallLogStatusRequest());
 
-    try {
-        const response = await BackendAPI.get(
-            'globalConfig/callLogMonitoringStatus'
-        );
+        try {
+            const response = await BackendAPI.get(
+                'globalConfig/callLogMonitoringStatus'
+            );
 
-        dispatch(fetchCallLogStatusSuccess(response.data));
-        return response;
-    } catch (error) {
-        let errorMsg;
-        if (error && error.response && error.response.data)
-            errorMsg = error.response.data;
-        if (error && error.data) {
-            errorMsg = error.data;
+            dispatch(fetchCallLogStatusSuccess(response.data));
+            return response;
+        } catch (error) {
+            let errorMsg;
+            if (error && error.response && error.response.data)
+                errorMsg = error.response.data;
+            if (error && error.data) {
+                errorMsg = error.data;
+            }
+            if (error && error.message) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = 'Network Error';
+            }
+            dispatch(fetchCallLogStatusError(errorMsg));
+            return 'error';
         }
-        if (error && error.message) {
-            errorMsg = error.message;
-        } else {
-            errorMsg = 'Network Error';
-        }
-        dispatch(fetchCallLogStatusError(errorMsg));
-        return 'error';
-    }
-};
+    };
 
 // change callLogStatus
 

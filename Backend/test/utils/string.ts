@@ -1,5 +1,5 @@
 export default {
-    generateRandomString: function (length: $TSFixMe) {
+    generateRandomString: function (length: $TSFixMe): void {
         if (!length) {
             length = 10;
         }
@@ -15,7 +15,7 @@ export default {
         return result;
     },
 
-    generateBulkEmails: function (numberOfEmails = 10) {
+    generateBulkEmails: function (numberOfEmails = 10): void {
         let emails = '';
         for (let i = 0; i < numberOfEmails; i++) {
             emails += this.generateRandomString(10) + '@oneuptime.com,';
@@ -25,7 +25,7 @@ export default {
         return emails;
     },
 
-    generateRandomDigits: function () {
+    generateRandomDigits: function (): void {
         return Math.random().toString().slice(2, 11);
     },
 };

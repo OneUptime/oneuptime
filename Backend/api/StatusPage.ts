@@ -377,7 +377,7 @@ router.post(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe): void {
                 let cert;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -406,7 +406,7 @@ router.post(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe): void {
                 let privateKey;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -516,7 +516,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         const data = req.body;
         const upload = multer({
             storage,
@@ -586,7 +586,7 @@ router.put(
             }
         }
 
-        upload(req, res, async function (error: $TSFixMe) {
+        upload(req, res, async function (error: $TSFixMe): void {
             const files = req.files || {};
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -790,7 +790,7 @@ router.get(
     '/:projectId/dashboard',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         const projectId = req.params.projectId;
         try {
             // Call the StatusPageService.
@@ -840,7 +840,7 @@ router.get(
     '/:projectId/StatusPages',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { data, count } =
                 await StatusPageService.getStatusPagesByProjectId({
@@ -859,7 +859,7 @@ router.get(
     '/:projectId/statuspage',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         const projectId = req.params.projectId;
 
         try {
@@ -908,7 +908,7 @@ router.get(
     '/:statusPageSlug',
     checkUser,
     ipWhitelist,
-    async function (req, res) {
+    async function (req, res): void {
         const statusPageSlug = req.params.statusPageSlug;
         const url = req.query.url;
 
@@ -1177,7 +1177,7 @@ router.get(
 router.get(
     '/:projectId/incident/:incidentSlug',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { incidentSlug } = req.params;
 
@@ -1199,7 +1199,7 @@ router.get(
 router.get(
     '/:projectId/:incidentSlug/incidentNotes',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { incidentSlug } = req.params;
 
@@ -1225,7 +1225,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/individualnotes',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         let date = req.query.date;
 
         date = new Date(date);
@@ -1407,7 +1407,7 @@ const fetchNotes = async (events: $TSFixMe, limit: PositiveNumber) => {
 router.get(
     '/:projectId/notes/:scheduledEventSlug',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         const { scheduledEventSlug } = req.params;
 
         const { skip, limit } = req.query;
@@ -1434,7 +1434,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/individualevents',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         let date = req.query.date;
 
         date = moment(date).endOf('day').format();
@@ -1509,7 +1509,7 @@ router.get(
 router.post(
     '/:projectId/:monitorId/monitorStatuses',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { startDate, endDate } = req.body;
             const monitorId = req.params.monitorId;
@@ -1528,7 +1528,7 @@ router.post(
 router.post(
     '/:projectId/:monitorId/monitorLogs',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { monitorId } = req.params;
             const endDate = moment(Date.now());
@@ -1621,7 +1621,7 @@ router.delete(
 router.get(
     '/:projectId/timeline/:incidentSlug',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { incidentSlug } = req.params;
 
@@ -1684,7 +1684,7 @@ router.get(
 router.get(
     '/:projectId/monitor/:statusPageId',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { statusPageId } = req.params;
             const skip = req.query['skip'] || 0;
@@ -2017,7 +2017,7 @@ router.post(
 router.post(
     '/:projectId/announcement/:statusPageId',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, statusPageId } = req.params;
             const { data } = req.body;
@@ -2196,7 +2196,7 @@ router.get(
 router.get(
     '/:projectId/announcement/:statusPageId',
     checkUser,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, statusPageId } = req.params;
             const { skip, limit, show } = req.query;
@@ -2318,7 +2318,7 @@ const formatNotes = (data = [], days: $TSFixMe): void => {
     return result;
 };
 
-function checkDuplicateDates(items: $TSFixMe) {
+function checkDuplicateDates(items: $TSFixMe): void {
     const track = {};
 
     const result = [];
@@ -2339,7 +2339,7 @@ function checkDuplicateDates(items: $TSFixMe) {
     return result;
 }
 
-function handleMonitorList(monitors: $TSFixMe) {
+function handleMonitorList(monitors: $TSFixMe): void {
     if (monitors.length === 1) {
         return monitors[0].monitorId.name;
     }
@@ -2634,7 +2634,10 @@ router.get(
     }
 );
 
-async function getStatusPage(req: ExpressRequest, statusPageSlug: $TSFixMe) {
+async function getStatusPage(
+    req: ExpressRequest,
+    statusPageSlug: $TSFixMe
+): void {
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
@@ -2699,7 +2702,7 @@ async function getStatusPage(req: ExpressRequest, statusPageSlug: $TSFixMe) {
 async function getOngoingScheduledEvents(
     req: ExpressRequest,
     statusPageSlug: $TSFixMe
-) {
+): void {
     const { skip = 0, limit = 5, theme = false } = req.query;
     // Call the StatusPageService.
     const response = await StatusPageService.getEvents(
@@ -2718,7 +2721,10 @@ async function getOngoingScheduledEvents(
     }
     return { events, count };
 }
-async function getFutureEvents(req: ExpressRequest, statusPageSlug: $TSFixMe) {
+async function getFutureEvents(
+    req: ExpressRequest,
+    statusPageSlug: $TSFixMe
+): void {
     const { skip = 0, limit = 5, theme = false } = req.query;
     const response = await StatusPageService.getFutureEvents(
         { slug: statusPageSlug },
@@ -2731,7 +2737,10 @@ async function getFutureEvents(req: ExpressRequest, statusPageSlug: $TSFixMe) {
     }
     return response;
 }
-async function getPastEvents(req: ExpressRequest, statusPageSlug: $TSFixMe) {
+async function getPastEvents(
+    req: ExpressRequest,
+    statusPageSlug: $TSFixMe
+): void {
     const { skip = 0, limit = 5, theme = false } = req.query;
 
     const response = await StatusPageService.getPastEvents(
@@ -2746,7 +2755,7 @@ async function getPastEvents(req: ExpressRequest, statusPageSlug: $TSFixMe) {
 
     return response;
 }
-async function getProbes(req: $TSFixMe) {
+async function getProbes(req: $TSFixMe): void {
     const skip = req.query['skip'] || 0;
     const limit = req.query['limit'] || 0;
     const selectProbe =
@@ -2761,7 +2770,7 @@ async function getProbes(req: $TSFixMe) {
     const count = await ProbeService.countBy({});
     return { probes, count };
 }
-async function getMonitorLogs(req: ExpressRequest, monitors: $TSFixMe) {
+async function getMonitorLogs(req: ExpressRequest, monitors: $TSFixMe): void {
     const logs: $TSFixMe = [];
     await Promise.all(
         monitors.map(async (monitor: $TSFixMe) => {
@@ -2818,7 +2827,7 @@ async function getAnnouncements(
     req: ExpressRequest,
     statusPageId: $TSFixMe,
     projectId: string
-) {
+): void {
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };
 
@@ -2840,7 +2849,10 @@ async function getAnnouncements(
     };
 }
 //get monitor status
-async function getMonitorStatuses(req: ExpressRequest, monitors: $TSFixMe) {
+async function getMonitorStatuses(
+    req: ExpressRequest,
+    monitors: $TSFixMe
+): void {
     const status = {};
     const endDate = moment(Date.now());
     const startDate = moment(Date.now()).subtract(90, 'days');
@@ -2858,7 +2870,7 @@ async function getMonitorStatuses(req: ExpressRequest, monitors: $TSFixMe) {
     return status;
 }
 //get timelines
-async function getMonitorTimelines(statusPageSlug: $TSFixMe) {
+async function getMonitorTimelines(statusPageSlug: $TSFixMe): void {
     const incidents = await StatusPageService.getNotes({
         slug: statusPageSlug,
     });
@@ -2872,7 +2884,7 @@ async function getStatusPageNote(
     req: ExpressRequest,
     statusPageSlug: $TSFixMe,
     theme: $TSFixMe
-) {
+): void {
     let result;
     const skip = req.query['skip'] || 0;
     const limit = req.query['limit'] || 10;
@@ -2913,7 +2925,11 @@ async function getStatusPageNote(
     return { result, count };
 }
 //get announcement logs
-async function getAnnouncementLogs(statusPage: $TSFixMe, limit = 5, skip = 0) {
+async function getAnnouncementLogs(
+    statusPage: $TSFixMe,
+    limit = 5,
+    skip = 0
+): void {
     const theme = statusPage.theme === 'Clean Theme';
     if (theme) {
         limit = statusPage.announcementLogsHistory || 14;
@@ -2954,7 +2970,7 @@ async function calculateTime(
     monitorStatus: $TSFixMe,
     probeData: $TSFixMe,
     range: $TSFixMe
-) {
+): void {
     const result = {};
     const start = Date.now();
     const theme = statusPage.theme === 'Clean Theme';

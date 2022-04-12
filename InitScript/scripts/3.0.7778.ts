@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const MONITOR_COLLECTION = 'monitors';
 
-async function run() {
+async function run(): void {
     const monitorsWithOldCriteria = await find(MONITOR_COLLECTION, {
         $or: [
             { 'criteria.up': { $not: { $type: 'array' } } },

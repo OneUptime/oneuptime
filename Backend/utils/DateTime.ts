@@ -5,7 +5,7 @@ import differenceInMonths from 'date-fns/differenceInMonths';
 
 const _this = {
     // This function will strip
-    changeDateTimezone: function (date: $TSFixMe, timezone: $TSFixMe) {
+    changeDateTimezone: function (date: $TSFixMe, timezone: $TSFixMe): void {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -61,7 +61,7 @@ const _this = {
         return false;
     },
 
-    convertToTimezone: function (date: $TSFixMe, timezone: $TSFixMe) {
+    convertToTimezone: function (date: $TSFixMe, timezone: $TSFixMe): void {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -69,7 +69,7 @@ const _this = {
         return moment(date).tz(timezone).toDate();
     },
 
-    convertToCurrentTimezone: function (date: $TSFixMe) {
+    convertToCurrentTimezone: function (date: $TSFixMe): void {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -77,7 +77,7 @@ const _this = {
         return moment(date).tz(moment.tz.guess()).toDate();
     },
 
-    format: function (date: $TSFixMe, formatString: $TSFixMe) {
+    format: function (date: $TSFixMe, formatString: $TSFixMe): void {
         if (typeof date === 'string') {
             date = new Date(date);
         }
@@ -85,11 +85,11 @@ const _this = {
         return moment(date).format(formatString);
     },
 
-    getCurrentTimezoneAbbr: function () {
+    getCurrentTimezoneAbbr: function (): void {
         return moment.tz(moment.tz.guess()).zoneAbbr();
     },
 
-    getCurrentTimezone: function () {
+    getCurrentTimezone: function (): void {
         return moment.tz.guess();
     },
 

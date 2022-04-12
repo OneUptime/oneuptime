@@ -32,19 +32,19 @@ export const resetDeleteSlack = (): void => {
 
 // Calls the API to link webhook team to project
 export const deleteSlack = (projectId: string, msTeamsId: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = delete (`webhook/${projectId}/delete/${msTeamsId}`,
         null);
 
         dispatch(deleteSlackRequest());
 
         return promise.then(
-            function (msTeams) {
+            function (msTeams): void {
                 dispatch(deleteSlackSuccess(msTeams.data));
 
                 return msTeams.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteSlackError(error));
             }
         );
@@ -83,7 +83,7 @@ export const getSlack = (
     skip: PositiveNumber,
     limit: PositiveNumber
 ) => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
@@ -93,10 +93,10 @@ export const getSlack = (
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            function (webhooks) {
+            function (webhooks): void {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getSlackError(error));
             }
         );
@@ -111,7 +111,7 @@ export function getSlackMonitor(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
@@ -121,10 +121,10 @@ export function getSlackMonitor(
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            function (webhooks) {
+            function (webhooks): void {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getSlackError(error));
             }
         );
@@ -161,17 +161,17 @@ export const resetCreateSlack = (): void => {
 
 // Calls the API to add webhook to project
 export const createSlack = (projectId: string, data: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
         dispatch(createSlackRequest());
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(createSlackSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(createSlackError(error));
             }
         );
@@ -210,7 +210,7 @@ export function updateSlack(
     webhookId: $TSFixMe,
     data: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `webhook/${projectId}/${webhookId}`,
             data
@@ -219,12 +219,12 @@ export function updateSlack(
         dispatch(updateSlackRequest());
 
         return promise.then(
-            function (webhook) {
+            function (webhook): void {
                 dispatch(updateSlackSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateSlackError(error));
             }
         );
@@ -252,7 +252,7 @@ export const paginateReset = (): void => {
 };
 
 export const paginate = (type: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
         type === 'reset' && dispatch(paginateReset());

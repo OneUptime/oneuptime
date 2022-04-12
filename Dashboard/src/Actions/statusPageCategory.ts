@@ -29,10 +29,10 @@ export const createStatusPageCategory =
         dispatch(createStatusPageCategoryRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(createStatusPageCategorySuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(createStatusPageCategoryFailure(error));
             }
         );
@@ -66,10 +66,10 @@ export const updateStatusPageCategory =
         dispatch(updateStatusPageCategoryRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(updateStatusPageCategorySuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateStatusPageCategoryFailure(error));
             }
         );
@@ -106,10 +106,10 @@ export const fetchStatusPageCategories =
         dispatch(fetchStatusPageCategoriesRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchStatusPageCategoriesSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchStatusPageCategoriesFailure(error));
             }
         );
@@ -146,10 +146,10 @@ export const fetchAllStatusPageCategories =
         dispatch(fetchAllStatusPageCategoriesRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchAllStatusPageCategoriesFailure(error));
             }
         );
@@ -179,10 +179,10 @@ export const deleteStatusPageCategory =
         dispatch(updateStatusPageCategoryRequest());
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(updateStatusPageCategorySuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateStatusPageCategoryFailure(error));
             }
         );

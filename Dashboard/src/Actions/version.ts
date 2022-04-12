@@ -31,17 +31,17 @@ export const resetGetVersion = (): void => {
 };
 
 export const getVersion = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(new Route('version'));
 
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            function (versions) {
+            function (versions): void {
                 dispatch(getVersionSuccess(versions.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(getVersionError(error));
             }
         );

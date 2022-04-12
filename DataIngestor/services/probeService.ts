@@ -20,7 +20,7 @@ import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function (data) {
+    create: async function (data): void {
         let probeKey;
         if (data.probeKey) {
             probeKey = data.probeKey;
@@ -61,7 +61,7 @@ export default {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function (query): void {
         if (!query) {
             query = {};
         }
@@ -73,7 +73,7 @@ export default {
         return probe;
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query, data): void {
         if (!query) {
             query = {};
         }
@@ -86,12 +86,12 @@ export default {
         return probe;
     },
 
-    saveLighthouseLog: async function (data) {
+    saveLighthouseLog: async function (data): void {
         const log = await LighthouseLogService.create(data);
         return log;
     },
 
-    createMonitorDisabledStatus: async function (data) {
+    createMonitorDisabledStatus: async function (data): void {
         let monitorStatus = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
@@ -113,7 +113,7 @@ export default {
         return monitorStatus;
     },
 
-    saveMonitorLog: async function (data) {
+    saveMonitorLog: async function (data): void {
         let monitorStatus = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
@@ -212,7 +212,7 @@ export default {
         return log;
     },
 
-    getMonitorLog: async function (data) {
+    getMonitorLog: async function (data): void {
         const date = new Date(moment().format());
         const log = await MonitorLogService.findOneBy({
             monitorId: data.monitorId,
@@ -222,7 +222,7 @@ export default {
         return log;
     },
 
-    incidentCreateOrUpdate: async function (data) {
+    incidentCreateOrUpdate: async function (data): void {
         const [monitor, incidents] = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },
@@ -493,7 +493,7 @@ export default {
         return incidentIds;
     },
 
-    incidentResolveOrAcknowledge: async function (data, allCriteria) {
+    incidentResolveOrAcknowledge: async function (data, allCriteria): void {
         const [incidents, monitor] = await Promise.all([
             IncidentService.findBy({
                 query: {
@@ -652,7 +652,7 @@ export default {
         return {};
     },
 
-    updateProbeStatus: async function (probeId) {
+    updateProbeStatus: async function (probeId): void {
         const now = new Date(moment().format());
         await probeCollection.updateOne(
             {
@@ -880,7 +880,7 @@ export default {
         return { eventOccurred, matchedCriterion };
     },
 
-    probeHttpRequest: async function (monitor, probeId) {
+    probeHttpRequest: async function (monitor, probeId): void {
         let status, reason;
         let matchedCriterion;
         const lastPingTime = monitor.lastPingTime;

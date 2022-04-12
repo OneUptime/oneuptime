@@ -13,7 +13,7 @@ import Query from '../Types/DB/Query';
 import RealTimeService from './realTimeService';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const [containerNameExist, imagePathExist, dockerCredentialExist] =
             await Promise.all([
                 this.findOneBy({
@@ -70,7 +70,7 @@ export default class Service {
         return containerSecurity;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -85,7 +85,7 @@ export default class Service {
         return containerSecurity;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -110,7 +110,7 @@ export default class Service {
         return containerSecurities;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -165,7 +165,7 @@ export default class Service {
         return containerSecurity;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         let containerSecurity = await this.findOneBy({
             query,
             select: '_id',
@@ -203,12 +203,12 @@ export default class Service {
         return containerSecurity;
     }
 
-    async hardDelete(query: Query) {
+    async hardDelete(query: Query): void {
         await ContainerSecurityModel.deleteMany(query);
         return 'Container Securities deleted successfully';
     }
 
-    async getSecuritiesToScan() {
+    async getSecuritiesToScan(): void {
         const oneDay = moment().subtract(1, 'days').toDate();
         const populate = [
             { path: 'componentId', select: 'name slug _id' },
@@ -231,7 +231,7 @@ export default class Service {
         return securities;
     }
 
-    async decryptPassword(security: $TSFixMe) {
+    async decryptPassword(security: $TSFixMe): void {
         const values = [];
         for (let i = 0; i <= 15; i++)
             values.push(security.dockerCredential.iv[i]);
@@ -243,7 +243,7 @@ export default class Service {
         return security;
     }
 
-    async updateScanTime(query: Query) {
+    async updateScanTime(query: Query): void {
         const newDate = new Date();
         const containerSecurity = await this.updateOneBy(query, {
             lastScan: newDate,
@@ -255,7 +255,7 @@ export default class Service {
         return containerSecurity;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

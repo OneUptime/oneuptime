@@ -148,7 +148,7 @@ router.get(
 router.post(
     '/incident/resolveLastIncident',
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const monitors = req.body.monitors || [];
             const incident = await ZapierService.resolveLastIncident(monitors);
@@ -163,7 +163,7 @@ router.post(
 router.post(
     '/incident/resolveAllIncidents',
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const monitors = req.body.monitors || [];
             const incidents = await ZapierService.resolveAllIncidents(monitors);
@@ -179,7 +179,7 @@ router.post(
 router.post(
     '/incident/resolveIncident',
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const incidents = req.body.incidents || [];
             const resolvedIncidents = await ZapierService.resolveIncident(
@@ -220,7 +220,7 @@ router.get(
 router.post(
     '/incident/acknowledgeLastIncident',
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const monitors = req.body.monitors || [];
             const incident = await ZapierService.acknowledgeLastIncident(
@@ -237,7 +237,7 @@ router.post(
 router.post(
     '/incident/acknowledgeAllIncidents',
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const monitors = req.body.monitors || [];
             const incidents = await ZapierService.acknowledgeAllIncidents(
@@ -255,7 +255,7 @@ router.post(
 router.post(
     '/incident/acknowledgeIncident',
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const incidents = req.body.incidents || [];
             const acknowledgedIncidents =

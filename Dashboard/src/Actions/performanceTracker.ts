@@ -4,7 +4,7 @@ import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 export const setStartDate = (date: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'SET_START_DATE',
             payload: date,
@@ -13,7 +13,7 @@ export const setStartDate = (date: $TSFixMe): void => {
 };
 
 export const setEndDate = (date: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         dispatch({
             type: 'SET_END_DATE',
             payload: date,
@@ -50,10 +50,10 @@ export const createPerformanceTracker =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(createPerformanceTrackerSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -97,10 +97,10 @@ export const fetchPerformanceTracker =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchPerformanceTrackerSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -151,10 +151,10 @@ export const fetchPerformanceTrackers =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchPerformanceTrackersSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -199,10 +199,10 @@ export const updatePerformanceTracker =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(updatePerformanceTrackerSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -246,10 +246,10 @@ export const deletePerformanceTracker =
             delete `performanceTracker/${projectId}/tracker/${performanceTrackerId}`;
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(deletePerformanceTrackerSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -294,10 +294,10 @@ export const resetPerformanceTrackerKey =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(resetPerformanceTrackerKeySuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -338,10 +338,10 @@ export const removeQuickStart =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(removeQuickStartSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -385,10 +385,10 @@ export const fetchLastMetrics =
         );
 
         promise.then(
-            function (response) {
+            function (response): void {
                 dispatch(fetchLastMetricsSuccess(response.data));
             },
-            function (error) {
+            function (error): void {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

@@ -12,7 +12,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const data = req.body;
         const errorTrackerId = req.params.errorTrackerId;
         if (!errorTrackerId) {

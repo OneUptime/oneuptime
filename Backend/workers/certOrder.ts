@@ -1,7 +1,7 @@
 import StatusPageService from '../Services/statusPageService';
 import CertificateStoreService from '../Services/certificateStoreService';
 
-async function handleFetchingDomains() {
+async function handleFetchingDomains(): void {
     const domainsWithoutCert = [];
 
     const statusPages = await StatusPageService.findBy({
@@ -37,7 +37,7 @@ async function handleFetchingDomains() {
     return domainsWithoutCert;
 }
 
-export default async function () {
+export default async function (): void {
     const domains = await handleFetchingDomains();
 
     const greenlock = global.greenlock;

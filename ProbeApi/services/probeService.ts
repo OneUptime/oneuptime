@@ -8,7 +8,7 @@ import { realtimeUrl } from '../Config';
 const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
-    create: async function (data) {
+    create: async function (data): void {
         let probeKey;
         if (data.probeKey) {
             probeKey = data.probeKey;
@@ -49,7 +49,7 @@ export default {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function (query): void {
         if (!query) {
             query = {};
         }
@@ -61,7 +61,7 @@ export default {
         return probe;
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function (query, data): void {
         if (!query) {
             query = {};
         }
@@ -74,7 +74,7 @@ export default {
         return probe;
     },
 
-    updateProbeStatus: async function (probeId) {
+    updateProbeStatus: async function (probeId): void {
         const now = new Date(moment().format());
         await probeCollection.updateOne(
             {

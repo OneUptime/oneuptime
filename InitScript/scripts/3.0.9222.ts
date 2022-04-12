@@ -4,7 +4,7 @@ const scheduledEventNoteCollection = 'scheduledeventnotes';
 const scheduledEventCollection = 'scheduledevents';
 
 // run this script once
-async function run() {
+async function run(): void {
     const scheduledEventNotes = await find(scheduledEventNoteCollection, {
         content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
         event_state: 'Created',

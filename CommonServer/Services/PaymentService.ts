@@ -130,7 +130,7 @@ export default class Service {
      * @returns {boolean} whether the balance is recharged to the project
      */
 
-    async fillProjectBalance(userId, project) {
+    async fillProjectBalance(userId, project): void {
         try {
             let balanceRecharged;
 
@@ -212,7 +212,7 @@ export default class Service {
     //Param 1: paymentIntent: Payment Intent
     //Returns: promise
 
-    async checkPaymentIntent(paymentIntent) {
+    async checkPaymentIntent(paymentIntent): void {
         const processedPaymentIntent = await stripe.paymentIntents.retrieve(
             paymentIntent.id
         );
@@ -225,7 +225,7 @@ export default class Service {
     //Param 2: user: User details
     //Returns: promise
 
-    async createCustomer(email: Email, companyName: string) {
+    async createCustomer(email: Email, companyName: string): void {
         const customer = await stripe.customers.create({
             email: email,
             description: companyName,
@@ -233,7 +233,7 @@ export default class Service {
         return customer.id;
     }
 
-    async addPayment(customerId: string) {
+    async addPayment(customerId: string): void {
         const card = await stripe.customers.createSource(customerId);
         return card;
     }
@@ -248,7 +248,7 @@ export default class Service {
         stripePlanId: string,
         stripeCustomerId: string,
         coupon: string
-    ) {
+    ): void {
         const items = [];
         items.push({
             plan: stripePlanId,
@@ -284,7 +284,7 @@ export default class Service {
     //Param 2: stripeCustomerId: Stripe customer id.
     //Returns : promise
 
-    async changeSeats(subscriptionId, seats) {
+    async changeSeats(subscriptionId, seats): void {
         if (subscriptionId === null) return;
 
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -341,7 +341,7 @@ export default class Service {
         }
     }
 
-    async createSubscription(stripeCustomerId, amount) {
+    async createSubscription(stripeCustomerId, amount): void {
         const productId = Plans.getReserveNumberProductId();
 
         const subscriptions = await stripe.subscriptions.create({
@@ -362,14 +362,14 @@ export default class Service {
         return subscriptions;
     }
 
-    async removeSubscription(stripeSubscriptionId) {
+    async removeSubscription(stripeSubscriptionId): void {
         const confirmations = [];
 
         confirmations[0] = await stripe.subscriptions.del(stripeSubscriptionId);
         return confirmations;
     }
 
-    async changePlan(subscriptionId, planId, seats) {
+    async changePlan(subscriptionId, planId, seats): void {
         let subscriptionObj = {};
 
         const subscription = await stripe.subscriptions.retrieve(
@@ -406,7 +406,7 @@ export default class Service {
         return subscriptions.id;
     }
 
-    async chargeAlert(userId, projectId, chargeAmount) {
+    async chargeAlert(userId, projectId, chargeAmount): void {
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',

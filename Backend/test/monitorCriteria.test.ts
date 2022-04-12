@@ -17,29 +17,32 @@ import AirtableService from '../backend/services/airtableService';
 
 let token: $TSFixMe, projectId: string, userId: string;
 
-describe('Monitor Criteria API', function () {
+describe('Monitor Criteria API', function (): void {
     this.timeout(20000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -62,7 +65,7 @@ describe('Monitor Criteria API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -78,12 +81,12 @@ describe('Monitor Criteria API', function () {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get the monitor criteria', function (done: $TSFixMe) {
+    it('should get the monitor criteria', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get('/monitorCriteria')
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

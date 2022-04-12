@@ -184,7 +184,7 @@ router.put(
     '/:projectId/:emailSmtpId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const emailSmtpId = req.params.emailSmtpId;
@@ -255,7 +255,7 @@ router.delete(
     '/:projectId/:emailSmtpId',
     getUser,
     isUserOwner,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             data.deleted = true;

@@ -78,7 +78,7 @@ const initialState = {
     },
 };
 
-export default function card(state = initialState, action: Action) {
+export default function card(state = initialState, action: Action): void {
     switch (action.type) {
         case types.GET_CALL_ROUTING_NUMBERS_REQUEST:
             return Object.assign({}, state, {

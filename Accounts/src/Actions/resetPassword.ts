@@ -35,7 +35,7 @@ export const resetResetPassword = (): void => {
 };
 
 export const resetPassword = (values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             new Route('user/forgot-password'),
             values
@@ -43,10 +43,10 @@ export const resetPassword = (values: $TSFixMe): void => {
         dispatch(resetPasswordRequest(promise));
 
         promise.then(
-            function (data) {
+            function (data): void {
                 dispatch(resetPasswordSuccess(data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(resetPasswordError(error));
             }
         );

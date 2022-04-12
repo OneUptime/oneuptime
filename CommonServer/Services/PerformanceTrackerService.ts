@@ -14,7 +14,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         // check if component exists
         const componentCount = await ComponentService.countBy({
             _id: data.componentId,
@@ -71,7 +71,7 @@ export default class Service {
         return performanceTracker;
     }
     //Description: Gets all application logs by component.
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -101,7 +101,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -132,7 +132,7 @@ export default class Service {
         componentId: $TSFixMe,
         limit: PositiveNumber,
         skip: PositiveNumber
-    ) {
+    ): void {
         // Check if component exists
         const componentCount = await ComponentService.countBy({
             _id: componentId,
@@ -164,7 +164,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -209,7 +209,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null) {
+    async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
         if (!query) {
             query = {};
         }
@@ -261,7 +261,7 @@ export default class Service {
         return performanceTracker;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

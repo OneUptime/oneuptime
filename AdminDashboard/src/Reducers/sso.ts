@@ -51,7 +51,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function sso(state = INITIAL_STATE, action: Action) {
+export default function sso(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         case FETCH_SSOS_REQUEST:
             return Object.assign({}, state, {

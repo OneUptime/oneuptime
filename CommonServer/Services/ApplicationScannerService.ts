@@ -78,7 +78,7 @@ export default class SslService extends DatabaseService<typeof Model> {
         return Promise.resolve({ data } as CreateBy);
     }
 
-    async updateStatus(applicationScannerId: string) {
+    async updateStatus(applicationScannerId: string): void {
         const data = new Document<typeof Model>();
         data.set('lastAlive', OneUptimeDate.getCurrentDate());
 

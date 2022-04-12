@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const scheduledCollection = 'scheduledevents';
 
-async function run() {
+async function run(): void {
     const events = await find(scheduledCollection, {
         recurring: { $exists: false },
         interval: { $exists: false },

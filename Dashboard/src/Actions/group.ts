@@ -101,25 +101,27 @@ export const getGroupsFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 
-export const getGroups = () => async (dispatch: Dispatch): void => {
-    dispatch(getGroupsRequest());
-    const projectId = User.getCurrentProjectId();
-    try {
-        const response = await BackendAPI.get(`group/${projectId}/groups`);
+export const getGroups =
+    () =>
+    async (dispatch: Dispatch): void => {
+        dispatch(getGroupsRequest());
+        const projectId = User.getCurrentProjectId();
+        try {
+            const response = await BackendAPI.get(`group/${projectId}/groups`);
 
-        dispatch(getGroupsSuccess(response.data));
-    } catch (error) {
-        const errorMsg =
-            error.response && error.response.data
-                ? error.response.data
-                : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(getGroupsFailure(errorMsg));
-    }
-};
+            dispatch(getGroupsSuccess(response.data));
+        } catch (error) {
+            const errorMsg =
+                error.response && error.response.data
+                    ? error.response.data
+                    : error.data
+                    ? error.data
+                    : error.message
+                    ? error.message
+                    : 'Network Error';
+            dispatch(getGroupsFailure(errorMsg));
+        }
+    };
 
 // Get project groups
 export const getProjectGroupsRequest = () => ({

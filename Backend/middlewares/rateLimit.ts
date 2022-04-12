@@ -10,7 +10,7 @@ const limiter = rateLimit({
         expiry: Number(RATE_LIMITTER_TIME_PERIOD_IN_MS) / 1000, // convert to seconds, same as windowMs
     }),
     max: Number(RATE_LIMITTER_REQUEST_LIMIT),
-    keyGenerator: function (req: $TSFixMe) {
+    keyGenerator: function (req: $TSFixMe): void {
         const accessToken = req.headers.authorization || req.query.accessToken;
         if (accessToken) {
             return accessToken;

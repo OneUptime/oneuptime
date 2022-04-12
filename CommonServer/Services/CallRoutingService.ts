@@ -71,7 +71,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         });
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -100,7 +100,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return numbers;
     }
 
-    async reserveNumber(data: $TSFixMe, projectId: string) {
+    async reserveNumber(data: $TSFixMe, projectId: string): void {
         let confirmBuy = null;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -153,7 +153,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async findTeamMember(type: $TSFixMe, id: $TSFixMe) {
+    async findTeamMember(type: $TSFixMe, id: $TSFixMe): void {
         let user;
         const selectEscalation = 'teams createdAt deleted deletedAt';
 
@@ -275,7 +275,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         }
     }
 
-    async chargeRoutedCall(projectId: string, body: $TSFixMe) {
+    async chargeRoutedCall(projectId: string, body: $TSFixMe): void {
         const callSid = body['CallSid'];
         const callStatus = body['CallStatus'] || null;
         const callDetails = await TwilioService.getCallDetails(
@@ -556,7 +556,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return response;
     }
 
-    async updateRoutingSchema(data: $TSFixMe) {
+    async updateRoutingSchema(data: $TSFixMe): void {
         const currentCallRouting = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
@@ -608,7 +608,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async updateRoutingSchemaAudio(data: $TSFixMe) {
+    async updateRoutingSchemaAudio(data: $TSFixMe): void {
         const currentCallRouting = await this.findOneBy({
             query: { _id: data.callRoutingId },
             select: 'routingSchema',
@@ -666,7 +666,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         return CallRouting;
     }
 
-    async getCallRoutingLogs(projectId: string) {
+    async getCallRoutingLogs(projectId: string): void {
         let logs: $TSFixMe = [];
         const callRouting = await this.findBy({
             query: { projectId },

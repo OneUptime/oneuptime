@@ -1,5 +1,5 @@
 export default {
-    createUser: function (request, userData, callback) {
+    createUser: function (request, userData, callback): void {
         return new Promise((resolve, reject) => {
             request
                 .post('/stripe/checkCard')
@@ -9,7 +9,7 @@ export default {
                     companyName: userData.companyName,
                 })
 
-                .end(function (err, res) {
+                .end(function (err, res): void {
                     if (err) {
                         if (callback) {
                             return callback(err, res);
@@ -39,7 +39,7 @@ export default {
                                     ...userData,
                                 })
 
-                                .end(function (err, res) {
+                                .end(function (err, res): void {
                                     if (callback) {
                                         return callback(err, res);
                                     } else {
@@ -56,12 +56,12 @@ export default {
         });
     },
 
-    createEnterpriseUser: function (request, userData, callback) {
+    createEnterpriseUser: function (request, userData, callback): void {
         request
             .post('/user/signup')
             .send(userData)
 
-            .end(function (err, res) {
+            .end(function (err, res): void {
                 return callback(err, res);
             });
     },

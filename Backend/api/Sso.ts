@@ -110,7 +110,7 @@ router.get(
     '/:projectId/ssos',
     getUser,
     isScaleOrMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const skip = req.query['skip'] || 0;
             const limit = req.query['limit'] || 10;

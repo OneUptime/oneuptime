@@ -87,7 +87,7 @@ router.put(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, templateId } = req.params;
             const { name, incidentNote, incidentState } = req.body;
@@ -129,7 +129,7 @@ router.delete(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, templateId } = req.params;
 

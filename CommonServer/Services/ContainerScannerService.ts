@@ -1,5 +1,5 @@
 export default class Service {
-    async create(data) {
+    async create(data): void {
         let containerScannerKey;
         if (data.containerScannerKey) {
             containerScannerKey = data.containerScannerKey;
@@ -27,7 +27,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query, data) {
+    async updateOneBy(query, data): void {
         if (!query) {
             query = {};
         }
@@ -43,7 +43,7 @@ export default class Service {
         return containerScanner;
     }
 
-    async findOneBy(query) {
+    async findOneBy(query): void {
         if (!query) {
             query = {};
         }
@@ -55,7 +55,7 @@ export default class Service {
         return containerScanner;
     }
 
-    async updateContainerScannerStatus(containerScannerId) {
+    async updateContainerScannerStatus(containerScannerId): void {
         const containerScanner = await ContainerScannerModel.findOneAndUpdate(
             { _id: containerScannerId },
             { $set: { lastAlive: Date.now() } },

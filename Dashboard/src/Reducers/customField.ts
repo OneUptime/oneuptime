@@ -21,7 +21,10 @@ const initialState = {
     page: 1,
 };
 
-export default function customField(state = initialState, action: Action) {
+export default function customField(
+    state = initialState,
+    action: Action
+): void {
     switch (action.type) {
         case types.CREATE_CUSTOM_FIELD_REQUEST:
             return {

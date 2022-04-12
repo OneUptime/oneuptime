@@ -11,7 +11,7 @@ export default {
     addTeamMembersToProject: async function (
         projectId: string,
         teamMembers: $TSFixMe
-    ) {
+    ): void {
         try {
             if (
                 Array.isArray(teamMembers) &&
@@ -49,7 +49,7 @@ export default {
     removeTeamMembersFromProject: async function (
         projectId: string,
         teamMembers: $TSFixMe
-    ) {
+    ): void {
         try {
             if (
                 Array.isArray(teamMembers) &&

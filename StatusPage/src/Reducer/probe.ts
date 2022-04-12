@@ -13,7 +13,7 @@ const INITIAL_STATE = {
     skip: null,
 };
 
-export default function probes(state = INITIAL_STATE, action: Action) {
+export default function probes(state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         case types.PROBE_SUCCESS:
             return Object.assign({}, state, {

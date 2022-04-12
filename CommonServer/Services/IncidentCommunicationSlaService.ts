@@ -6,7 +6,7 @@ import FindBy from '../Types/DB/FindBy';
 import Query from '../Types/DB/Query';
 
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const incidentCommunicationSla = await this.countBy({
             name: data.name,
             projectId: data.projectId,
@@ -48,7 +48,7 @@ export default class Service {
         return createdIncidentCommunicationSla;
     }
 
-    async findOneBy({ query, select, populate, sort }: FindOneBy) {
+    async findOneBy({ query, select, populate, sort }: FindOneBy): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -64,7 +64,7 @@ export default class Service {
         return incidentCommunicationSla;
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!query['deleted']) query['deleted'] = false;
 
         const incidentCommunicationSlaQuery =
@@ -82,7 +82,7 @@ export default class Service {
         return incidentCommunicationSla;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) query = {};
 
         if (!query['deleted']) query['deleted'] = false;
@@ -198,7 +198,7 @@ export default class Service {
         return updatedIncidentCommunicationSla;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         const deletedSla = await IncidentCommunicationSlaModel.findOneAndUpdate(
             query,
             {
@@ -213,11 +213,11 @@ export default class Service {
         return deletedSla;
     }
 
-    async hardDelete(query: Query) {
+    async hardDelete(query: Query): void {
         await IncidentCommunicationSlaModel.deleteMany(query);
         return 'Incident Communication SLA(s) deleted successfully';
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }

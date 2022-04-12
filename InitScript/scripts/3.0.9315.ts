@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 const incomingRequestCollection = 'incomingrequests';
 
-async function run() {
+async function run(): void {
     const incomingRequests = await find(incomingRequestCollection, {
         deleted: false,
         updateIncidentNote: true,

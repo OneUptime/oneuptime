@@ -388,7 +388,7 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
         sp.create_login_request_url(
             idp,
             {},
-            function (error: $TSFixMe, login_url: URL) {
+            function (error: $TSFixMe, login_url: URL): void {
                 if (error != null)
                     return sendErrorResponse(req, res, error as Exception);
                 return sendItemResponse(req, res, { url: login_url });
@@ -448,7 +448,7 @@ router.post(
         sp.post_assert(
             idp,
             options,
-            async function (err: $TSFixMe, saml_response: $TSFixMe) {
+            async function (err: $TSFixMe, saml_response: $TSFixMe): void {
                 if (err != null)
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -1054,7 +1054,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe): void {
                 const userId = req.user ? req.user.id : null;
                 const data = req.body;
 
@@ -1149,7 +1149,7 @@ router.put(
     '/profile/:userId',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const upload = multer({
                 storage,
@@ -1160,7 +1160,7 @@ router.put(
                 },
             ]);
 
-            upload(req, res, async function (error: $TSFixMe) {
+            upload(req, res, async function (error: $TSFixMe): void {
                 const userId = req.params.userId;
                 const data = req.body;
 
@@ -1485,7 +1485,7 @@ router.get(
     '/users/:userId',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.params.userId;
             const select =
@@ -1536,7 +1536,7 @@ router.put(
     '/:userId/restoreUser',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.params.userId;
 
@@ -1564,7 +1564,7 @@ router.put(
     '/:userId/blockUser',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.params.userId;
 
@@ -1592,7 +1592,7 @@ router.put(
     '/:userId/unblockUser',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.params.userId;
 
@@ -1684,7 +1684,7 @@ router.post(
     '/:userId/addNote',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.params.userId;
             if (Array.isArray(req.body)) {
@@ -1733,7 +1733,7 @@ router.post(
     '/users/search',
     getUser,
     isUserMasterAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const filter = req.body.filter;
             const skip = req.query['skip'] || 0;

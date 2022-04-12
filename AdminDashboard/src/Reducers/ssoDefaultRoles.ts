@@ -54,7 +54,10 @@ const INITIAL_STATE = {
     page: 1,
 };
 
-export default function ssoDefaultRoles(state = INITIAL_STATE, action: Action) {
+export default function ssoDefaultRoles(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         case FETCH_SSO_DEFAULT_ROLES_REQUEST:
             return Object.assign({}, state, {

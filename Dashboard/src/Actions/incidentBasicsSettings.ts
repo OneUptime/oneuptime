@@ -17,18 +17,18 @@ const fetchBasicIncidentSettingsVariablesFailure = (payload: $TSFixMe) => ({
 });
 
 export const fetchBasicIncidentSettingsVariables = (): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(
                     fetchBasicIncidentSettingsVariablesSuccess(
                         incidentBasicSettings.data
                     )
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchBasicIncidentSettingsVariablesFailure(error));
             }
         );
@@ -66,12 +66,12 @@ export const fetchIncidentTemplates =
         const promise = BackendAPI.get(url);
         dispatch(fetchIncidentTemplatesRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(
                     fetchIncidentTemplatesSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchIncidentTemplatesFailure(error));
             }
         );
@@ -102,12 +102,12 @@ export const createIncidentTemplate =
         const promise = BackendAPI.post(url, data);
         dispatch(createIncidentTemplateRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(
                     createIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(createIncidentTemplateFailure(error));
             }
         );
@@ -138,12 +138,12 @@ export const updateIncidentTemplate =
         const promise = BackendAPI.put(url, data);
         dispatch(updateIncidentTemplateRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(
                     updateIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(updateIncidentTemplateFailure(error));
             }
         );
@@ -174,12 +174,12 @@ export const deleteIncidentTemplate =
         const promise = BackendAPI.delete(url);
         dispatch(deleteIncidentTemplateRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(
                     deleteIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteIncidentTemplateFailure(error));
             }
         );
@@ -210,10 +210,10 @@ export const setDefaultTemplate =
         const promise = BackendAPI.put(url, {});
         dispatch(setDefaultTemplateRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(setDefaultTemplateFailure(error));
             }
         );
@@ -250,12 +250,12 @@ export const fetchDefaultTemplate =
         const promise = BackendAPI.get(url);
         dispatch(fetchDefaultTemplateRequest());
         promise.then(
-            function (incidentBasicSettings) {
+            function (incidentBasicSettings): void {
                 dispatch(
                     fetchDefaultTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchDefaultTemplateFailure(error));
             }
         );

@@ -1,5 +1,5 @@
 export default class Service {
-    async findBy({ query, limit, skip, sort, select, populate }: FindBy) {
+    async findBy({ query, limit, skip, sort, select, populate }: FindBy): void {
         if (!query['deleted']) query['deleted'] = false;
 
         const itemQuery = CallLogsModel.find(query)
@@ -40,7 +40,7 @@ export default class Service {
         return item;
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -50,7 +50,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -66,11 +66,11 @@ export default class Service {
         return items;
     }
 
-    async hardDeleteBy({ query }: $TSFixMe) {
+    async hardDeleteBy({ query }: $TSFixMe): void {
         await CallLogsModel.deleteMany(query);
     }
 
-    async search({ filter, skip, limit }: $TSFixMe) {
+    async search({ filter, skip, limit }: $TSFixMe): void {
         const query = {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };

@@ -113,7 +113,7 @@ router.put(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const { eventId, projectId } = req.params;
@@ -274,7 +274,7 @@ router.delete(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.user ? req.user.id : null;
             const { eventId } = req.params;
@@ -296,7 +296,7 @@ router.put(
     '/:projectId/:eventId/cancel',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const userId = req.user ? req.user.id : null;
             const { eventId } = req.params;
@@ -373,7 +373,7 @@ router.get(
     '/:projectId/ongoingEvent',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId } = req.params;
             const currentDate = moment();
@@ -462,7 +462,7 @@ router.get(
     '/:projectId/:eventId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { projectId, eventId } = req.params;
 
@@ -685,7 +685,7 @@ router.post(
     '/:projectId/:eventId/notes',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { eventId, projectId } = req.params;
 
@@ -782,7 +782,7 @@ router.get(
     '/:projectId/:eventId/notes',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { eventId } = req.params;
 
@@ -938,7 +938,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { slug } = req.params;
             const populate = [

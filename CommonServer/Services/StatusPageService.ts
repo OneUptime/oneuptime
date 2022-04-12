@@ -83,7 +83,14 @@ const StatusPageServiceBase = new ServiceBase({
 });
 
 export default class Service {
-    async findBy({ query, skip, limit, populate, select, sort }: $TSFixMe) {
+    async findBy({
+        query,
+        skip,
+        limit,
+        populate,
+        select,
+        sort,
+    }: $TSFixMe): void {
         return await StatusPageServiceBase.findBy({
             query,
             skip,
@@ -94,7 +101,7 @@ export default class Service {
         });
     }
 
-    async findOneBy({ query, select, populate, skip, sort }: $TSFixMe) {
+    async findOneBy({ query, select, populate, skip, sort }: $TSFixMe): void {
         return await StatusPageServiceBase.findOneBy({
             query,
             skip,
@@ -104,11 +111,11 @@ export default class Service {
         });
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         return await StatusPageServiceBase.countBy({ query });
     }
 
-    async create({ data }: $TSFixMe) {
+    async create({ data }: $TSFixMe): void {
         data.domains = data.domains || [];
         data.colors = data.colors || defaultStatusPageColors.default;
         data.monitors = Array.isArray(data.monitors) ? [...data.monitors] : [];
@@ -252,7 +259,7 @@ export default class Service {
         domainId: $TSFixMe,
         newDomain: $TSFixMe,
         oldDomain: $TSFixMe
-    ) {
+    ): void {
         const populateStatusPage = [
             {
                 path: 'domains.domainVerificationToken',
@@ -408,7 +415,7 @@ export default class Service {
         return result;
     }
 
-    async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe) {
+    async deleteDomain(statusPageId: $TSFixMe, domainId: $TSFixMe): void {
         const populateStatusPage = [
             {
                 path: 'domains.domainVerificationToken',
@@ -520,7 +527,7 @@ export default class Service {
         return this.create(data);
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -583,7 +590,7 @@ export default class Service {
         return statusPage;
     }
 
-    async removeMonitor(monitorId: $TSFixMe) {
+    async removeMonitor(monitorId: $TSFixMe): void {
         const populateStatusPage = [
             {
                 path: 'monitors.monitor',
@@ -612,7 +619,7 @@ export default class Service {
         }
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         const existingStatusPage = await this.findBy({
             query: {
                 name: data.name,
@@ -688,7 +695,7 @@ export default class Service {
         return updatedStatusPage;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -725,7 +732,11 @@ export default class Service {
         return updatedData;
     }
 
-    async getNotes(query: Query, skip: PositiveNumber, limit: PositiveNumber) {
+    async getNotes(
+        query: Query,
+        skip: PositiveNumber,
+        limit: PositiveNumber
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit || isNaN(limit)) limit = 5;
@@ -812,7 +823,7 @@ export default class Service {
         }
     }
 
-    async getIncident(query: Query) {
+    async getIncident(query: Query): void {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -848,7 +859,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -889,7 +900,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -930,7 +941,11 @@ export default class Service {
         return { investigationNotes, count };
     }
 
-    async getEvents(query: Query, skip: PositiveNumber, limit: PositiveNumber) {
+    async getEvents(
+        query: Query,
+        skip: PositiveNumber,
+        limit: PositiveNumber
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1029,7 +1044,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1130,7 +1145,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1224,7 +1239,7 @@ export default class Service {
         }
     }
 
-    async getEvent(query: Query) {
+    async getEvent(query: Query): void {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1253,7 +1268,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 5;
@@ -1297,7 +1312,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -1328,7 +1343,7 @@ export default class Service {
         return { scheduledEvents, count };
     }
 
-    async getStatusPage({ query, userId, populate, select }: $TSFixMe) {
+    async getStatusPage({ query, userId, populate, select }: $TSFixMe): void {
         const thisObj = this;
         if (!query) {
             query = {};
@@ -1420,7 +1435,7 @@ export default class Service {
         return statusPage;
     }
 
-    async getIncidents(query: Query) {
+    async getIncidents(query: Query): void {
         if (!query) query = {};
 
         const statuspages = await this.findBy({
@@ -1480,7 +1495,7 @@ export default class Service {
         }
     }
 
-    async isPermitted(userId: string, statusPage: $TSFixMe) {
+    async isPermitted(userId: string, statusPage: $TSFixMe): void {
         const fn = async (resolve: $TSFixMe) => {
             if (statusPage.isPrivate) {
                 if (userId) {
@@ -1535,7 +1550,7 @@ export default class Service {
         };
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
 
         const populateStatusPage = [
@@ -1590,7 +1605,7 @@ export default class Service {
         incidentId: $TSFixMe,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         // first get the monitor, then scan status page collection containing the monitor
         let { monitors } = await IncidentModel.findById(incidentId).select(
             'monitors.monitorId'
@@ -1621,7 +1636,7 @@ export default class Service {
         return { statusPages: statusPages || [], count };
     }
 
-    async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe) {
+    async getStatusBubble(statusPages: $TSFixMe, probes: $TSFixMe): void {
         if (statusPages && statusPages[0]) {
             statusPages = statusPages[0];
         }
@@ -1656,7 +1671,7 @@ export default class Service {
         return { bubble, statusMessage };
     }
 
-    async doesDomainExist(domain: $TSFixMe) {
+    async doesDomainExist(domain: $TSFixMe): void {
         const statusPage = await this.countBy({
             query: {
                 domains: { $elemMatch: { domain } },
@@ -1668,7 +1683,7 @@ export default class Service {
         return true;
     }
 
-    async createExternalStatusPage(data: $TSFixMe) {
+    async createExternalStatusPage(data: $TSFixMe): void {
         const externalStatusPage = new ExternalStatusPageModel();
 
         externalStatusPage.url = data.url || null;
@@ -1691,7 +1706,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1717,7 +1732,7 @@ export default class Service {
         projectId: string,
         _id: $TSFixMe,
         data: $TSFixMe
-    ) {
+    ): void {
         const query = { projectId, _id };
 
         const externalStatusPages =
@@ -1737,7 +1752,7 @@ export default class Service {
         projectId: string,
         _id: $TSFixMe,
         userId: string
-    ) {
+    ): void {
         const query = { projectId, _id };
 
         const externalStatusPages =
@@ -1757,7 +1772,7 @@ export default class Service {
         return externalStatusPages;
     }
 
-    async createAnnouncement(data: $TSFixMe) {
+    async createAnnouncement(data: $TSFixMe): void {
         // reassign data.monitors with a restructured monitor data
         data.monitors = data.monitors.map((monitor: $TSFixMe) => ({
             monitorId: monitor,
@@ -1791,7 +1806,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1818,7 +1833,7 @@ export default class Service {
         return allAnnouncements;
     }
 
-    async countAnnouncements(query: Query) {
+    async countAnnouncements(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1827,7 +1842,7 @@ export default class Service {
         return count;
     }
 
-    async getSingleAnnouncement(query: Query) {
+    async getSingleAnnouncement(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1836,7 +1851,7 @@ export default class Service {
         return response;
     }
 
-    async updateAnnouncement(query: Query, data: $TSFixMe) {
+    async updateAnnouncement(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -1877,7 +1892,7 @@ export default class Service {
         return response;
     }
 
-    async updateManyAnnouncement(query: Query) {
+    async updateManyAnnouncement(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -1894,7 +1909,7 @@ export default class Service {
         return response;
     }
 
-    async deleteAnnouncement(query: Query, userId: string) {
+    async deleteAnnouncement(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -1915,7 +1930,7 @@ export default class Service {
         return response;
     }
 
-    async createAnnouncementLog(data: $TSFixMe) {
+    async createAnnouncementLog(data: $TSFixMe): void {
         const announcementLog = new AnnouncementLogModel();
 
         announcementLog.announcementId = data.announcementId || null;
@@ -1933,7 +1948,7 @@ export default class Service {
         return newAnnouncementLog;
     }
 
-    async updateAnnouncementLog(query: Query, data: $TSFixMe) {
+    async updateAnnouncementLog(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -1954,7 +1969,7 @@ export default class Service {
         query: Query,
         skip: PositiveNumber,
         limit: PositiveNumber
-    ) {
+    ): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -1984,7 +1999,7 @@ export default class Service {
         return announcementLogs;
     }
 
-    async deleteAnnouncementLog(query: Query, userId: string) {
+    async deleteAnnouncementLog(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -2005,7 +2020,7 @@ export default class Service {
         return response;
     }
 
-    async countAnnouncementLogs(query: Query) {
+    async countAnnouncementLogs(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -2014,7 +2029,7 @@ export default class Service {
         return count;
     }
 
-    async fetchTweets(handle: $TSFixMe) {
+    async fetchTweets(handle: $TSFixMe): void {
         const userData = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {

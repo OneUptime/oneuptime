@@ -15,16 +15,16 @@ import GlobalConfig from './utils/globalConfig';
 let token: $TSFixMe,
     projectId: string;
 
-describe('Slack API', function () {
+describe('Slack API', function (): void {
     this.timeout(20000);
 
-    this.beforeAll(function (done: $TSFixMe) {
+    this.beforeAll(function (done: $TSFixMe): void {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             request
                 .post('/user/signup')
                 .send(userData.user)
-                .end(function (err: $TSFixMe, res: $TSFixMe) {
+                .end(function (err: $TSFixMe, res: $TSFixMe): void {
                     projectId = res.body.projectId;
                     request
                         .post('/user/login')
@@ -32,7 +32,7 @@ describe('Slack API', function () {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe) {
+                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -40,7 +40,7 @@ describe('Slack API', function () {
         });
     });
 
-    this.afterAll(async function () {
+    this.afterAll(async function (): void {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -55,24 +55,24 @@ describe('Slack API', function () {
 
     // 'post /slack/:projectId/monitor'
 
-    it('The purchase', function (done: $TSFixMe) {
+    it('The purchase', function (done: $TSFixMe): void {
         request
             .get(`/team/${projectId}/team`)
             .send({
                 name: 'New Schedule',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it.skip('The purchase', function (done: $TSFixMe) {
+    it.skip('The purchase', function (done: $TSFixMe): void {
         const authorization = `Basic ${token}`;
         request
             .get(`/slack/${projectId}/:teamId`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();

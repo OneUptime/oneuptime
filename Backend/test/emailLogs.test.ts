@@ -20,30 +20,33 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 let token: $TSFixMe, projectId: string, userId: string;
 let testSuiteStartTime: $TSFixMe, testCaseStartTime: $TSFixMe;
 
-describe('Email Logs API', function () {
+describe('Email Logs API', function (): void {
     this.timeout(30000);
 
-    before(function (done: $TSFixMe) {
+    before(function (done: $TSFixMe): void {
         testSuiteStartTime = new Date();
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function () {
+        GlobalConfig.initTestConfig().then(function (): void {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe) {
+                function (err: $TSFixMe, res: $TSFixMe): void {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (err: $TSFixMe, verificationToken: $TSFixMe) {
+                        function (
+                            err: $TSFixMe,
+                            verificationToken: $TSFixMe
+                        ): void {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function () {
+                                .end(function (): void {
                                     request
                                         .post('/user/login')
                                         .send({
@@ -66,7 +69,7 @@ describe('Email Logs API', function () {
         });
     });
 
-    after(async function () {
+    after(async function (): void {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -96,11 +99,11 @@ describe('Email Logs API', function () {
         await EmailLogsService.hardDeleteBy({ query: deleteQuery });
     });
 
-    beforeEach(async function () {
+    beforeEach(async function (): void {
         testCaseStartTime = new Date();
     });
 
-    afterEach(async function () {
+    afterEach(async function (): void {
         // Deleting any emailLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some email logs dont contain specific 'userId'. (Ex. /login)
         const deleteQuery = {
@@ -127,17 +130,17 @@ describe('Email Logs API', function () {
         });
     });
 
-    it('should reject get email logs request of an unauthenticated user', function (done: $TSFixMe) {
+    it('should reject get email logs request of an unauthenticated user', function (done: $TSFixMe): void {
         request
             .get('/email-logs')
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject get email logs request of NON master-admin user', async function () {
+    it('should reject get email logs request of NON master-admin user', async function (): void {
         const authorization = `Basic ${token}`;
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Assigning user role
 
@@ -149,7 +152,7 @@ describe('Email Logs API', function () {
         expect(res).to.have.status(400);
     });
 
-    it('should send get email logs data for master-admin user', async function () {
+    it('should send get email logs data for master-admin user', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -166,7 +169,7 @@ describe('Email Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when limit is provided', async function () {
+    it('should send appopriate data set when limit is provided', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -189,7 +192,7 @@ describe('Email Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when skip is provided', async function () {
+    it('should send appopriate data set when skip is provided', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -215,17 +218,17 @@ describe('Email Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should reject search request of an unauthenticated user', function (done: $TSFixMe) {
+    it('should reject search request of an unauthenticated user', function (done: $TSFixMe): void {
         request
             .post('/email-logs/search')
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe) {
+            .end(function (err: $TSFixMe, res: $TSFixMe): void {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject search request of NON master-admin user', async function () {
+    it('should reject search request of NON master-admin user', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
         const authorization = `Basic ${token}`;
 
@@ -239,7 +242,7 @@ describe('Email Logs API', function () {
         }
     });
 
-    it('should send Searched EmailLogs data for master-admin user', async function () {
+    it('should send Searched EmailLogs data for master-admin user', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 
@@ -256,7 +259,7 @@ describe('Email Logs API', function () {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send only matched result to provided search string when searched.', async function () {
+    it('should send only matched result to provided search string when searched.', async function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
         const authorization = `Basic ${token}`;
 

@@ -26,7 +26,7 @@ app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader(key, header[key] as string);
     }
 
-    setTimeout(function () {
+    setTimeout(function (): void {
         if (HTTPTestServerResponse.responseType === ResponseType.HTML) {
             res.setHeader('Content-Type', 'text/html');
             return res.send(HTTPTestServerResponse.htmlBody);

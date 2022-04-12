@@ -3,7 +3,7 @@ import getSlug from '../util/getSlug';
 
 const scheduledCollection = 'scheduledevents';
 
-async function run() {
+async function run(): void {
     const items = await find(scheduledCollection, {
         $or: [
             { slug: { $exists: false } },

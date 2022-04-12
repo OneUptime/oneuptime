@@ -2,15 +2,15 @@ import { registerService } from './serviceWorker';
 const publicVapidKey = process.env.REACT_APP_PUSHNOTIFICATION_PUBLIC_KEY; // URL Safe Base64 Encoded Public Key
 
 // Adk for permission
-export async function askUserPermission() {
+export async function askUserPermission(): void {
     return await Notification.requestPermission();
 }
 
-export async function getUserAgent() {
+export async function getUserAgent(): void {
     return await navigator.userAgent;
 }
 
-export async function getTheSubscription() {
+export async function getTheSubscription(): void {
     let subscription;
 
     if (registerService) {
@@ -22,7 +22,7 @@ export async function getTheSubscription() {
     return subscription;
 }
 
-function urlBase64ToUint8Array(base64String: $TSFixMe) {
+function urlBase64ToUint8Array(base64String: $TSFixMe): void {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
         .replace(/-/g, '+')

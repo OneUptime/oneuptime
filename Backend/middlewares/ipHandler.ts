@@ -14,7 +14,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const statusPageSlug = apiMiddleware.getStatusPageSlug(req);
         const statusPageUrl = apiMiddleware.getStatusPageUrl(req);
         let statusPage;
@@ -101,7 +101,7 @@ const _this = {
      * @description Gets the ip of the client
      * @param {Object} req Object made available by express
      */
-    getClientIp: function (req: $TSFixMe) {
+    getClientIp: function (req: $TSFixMe): void {
         // Cloudflare Connecting Ip.
         // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
         let ip =
@@ -122,7 +122,7 @@ const _this = {
     },
 
     // https://www.npmjs.com/package/ip-range-check
-    check_single_cidr: function (addr: $TSFixMe, cidr: $TSFixMe) {
+    check_single_cidr: function (addr: $TSFixMe, cidr: $TSFixMe): void {
         try {
             const parsed_addr = ipaddr.process(addr);
             if (cidr.indexOf('/') === -1) {
@@ -151,7 +151,7 @@ const _this = {
      * @description converts an ip to a normal number, for comparison purposes
      * @param {String} ip a string container an ip address
      */
-    IPtoNum: function (ip: $TSFixMe) {
+    IPtoNum: function (ip: $TSFixMe): void {
         return Number(
             ip
                 .split('.')
@@ -160,7 +160,7 @@ const _this = {
         );
     },
 
-    inRange: function (ip: $TSFixMe, range: $TSFixMe) {
+    inRange: function (ip: $TSFixMe, range: $TSFixMe): void {
         const min = this.IPtoNum(range[0]);
         const max = this.IPtoNum(range[1]);
         ip = this.IPtoNum(ip);

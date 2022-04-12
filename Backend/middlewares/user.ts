@@ -24,7 +24,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const projectId = apiMiddleware.getProjectId(req);
 
         if (projectId) {
@@ -246,7 +246,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         if (!req.user) {
             req = await this.getUser(req);
         }
@@ -273,7 +273,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const projectId = apiMiddleware.getProjectId(req);
 
         if (this.isUserMasterAdmin(req, res)) {

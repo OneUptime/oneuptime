@@ -120,7 +120,7 @@ router.get(
 router.get(
     '/:appId/key/:key/throughput',
     isValidAPIKey,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { appId } = req.params;
             let { startDate, endDate } = req.query;
@@ -350,7 +350,7 @@ router.get(
 router.delete(
     '/:appId/key/:key/:metricId',
     isValidAPIKey,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const { metricId } = req.params;
             const deletedMetric =

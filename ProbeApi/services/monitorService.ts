@@ -6,7 +6,7 @@ import OneUptimeDate from 'Common/Types/Date';
 const monitorCollection = Database.getDatabase().collection('monitors');
 
 export default {
-    async getProbeMonitors(probeId: String, limit: PositiveNumber) {
+    async getProbeMonitors(probeId: String, limit: PositiveNumber): void {
         //get monitors that have not been pinged for the last minute.
         const date = OneUptimeDate.getOneMinAgo();
 

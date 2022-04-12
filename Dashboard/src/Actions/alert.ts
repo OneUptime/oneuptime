@@ -33,16 +33,16 @@ export const alertSuccess = (alert: $TSFixMe): void => {
 // Calls the API to fetch Alerts.
 
 export const fetchAlert = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`alert/${projectId}`);
 
         dispatch(alertRequest());
 
         promise.then(
-            function (payload) {
+            function (payload): void {
                 dispatch(alertSuccess(payload.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(alertError(error));
             }
         );
@@ -85,7 +85,7 @@ export function fetchProjectAlert(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
         );
@@ -93,12 +93,12 @@ export function fetchProjectAlert(
         dispatch(projectAlertRequest());
 
         promise.then(
-            function (payload) {
+            function (payload): void {
                 const data = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(projectAlertError(error));
             }
         );
@@ -143,7 +143,7 @@ export function fetchIncidentAlert(
     skip: PositiveNumber,
     limit: PositiveNumber
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `alert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`
         );
@@ -151,10 +151,10 @@ export function fetchIncidentAlert(
         dispatch(incidentAlertRequest());
 
         promise.then(
-            function (alerts) {
+            function (alerts): void {
                 dispatch(incidentAlertSuccess(alerts.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(incidentAlertError(error));
             }
         );
@@ -202,7 +202,7 @@ export function fetchSubscriberAlert(
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         skip = skip < 0 ? 0 : skip;
         limit = limit < 0 ? 0 : limit;
         let promise = null;
@@ -219,10 +219,10 @@ export function fetchSubscriberAlert(
         dispatch(subscriberAlertRequest());
 
         promise.then(
-            function (alerts) {
+            function (alerts): void {
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(subscriberAlertError(error));
             }
         );
@@ -258,7 +258,7 @@ export function fetchAlertCharges(
     limit: PositiveNumber
 ) {
     let promise;
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         if (skip >= 0 && limit > 0) {
             promise = BackendAPI.get(
                 `alert/${projectId}/alert/charges?skip=${skip}&limit=${limit}`
@@ -270,10 +270,10 @@ export function fetchAlertCharges(
         dispatch(fetchAlertChargesRequest(promise));
 
         promise.then(
-            function (alertCharges) {
+            function (alertCharges): void {
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchAlertChargesFailed(error));
             }
         );
@@ -303,16 +303,16 @@ export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe): void => {
 };
 
 export const downloadAlertCharges = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
 
         dispatch(downloadAlertChargesRequest(promise));
 
         promise.then(
-            function (alertCharges) {
+            function (alertCharges): void {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
-            function (error) {
+            function (error): void {
                 dispatch(downloadAlertChargesFailed(error));
             }
         );

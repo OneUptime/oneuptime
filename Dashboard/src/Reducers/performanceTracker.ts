@@ -61,7 +61,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default function (state = INITIAL_STATE, action: Action) {
+export default function (state = INITIAL_STATE, action: Action): void {
     switch (action.type) {
         case 'SET_START_DATE':
             return {

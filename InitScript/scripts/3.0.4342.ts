@@ -5,7 +5,7 @@ const projectsCollection = 'projects';
 const incidentsCollection = 'incidents';
 const incidentprioritiesCollection = 'incidentpriorities';
 
-async function run() {
+async function run(): void {
     const monitors = await find(monitorCollection, {
         pollTime: { $type: 'date' },
     });

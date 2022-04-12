@@ -4,7 +4,7 @@ import { find, save, deleteDatabase } from '../util/db';
 
 import bcrypt from 'bcrypt';
 
-async function run() {
+async function run(): void {
     await updateVersion();
 
     if (process.env['NODE_ENV'] === 'ci') {
@@ -21,7 +21,7 @@ async function run() {
     }
 }
 
-async function updateVersion() {
+async function updateVersion(): void {
     const collection = 'globalconfigs';
     const name = 'version';
     const docs = await find(collection, { name });
@@ -35,7 +35,7 @@ async function updateVersion() {
     }
 }
 
-async function addMasterAdminUser() {
+async function addMasterAdminUser(): void {
     const collection = 'users';
 
     const now = new Date().toISOString();
@@ -61,7 +61,7 @@ async function addMasterAdminUser() {
     await save(collection, [masterAdminUser]);
 }
 
-async function setupTestProbes() {
+async function setupTestProbes(): void {
     const collection = 'probes';
     const docs = await find(collection, {
         probeName: { $in: ['Probe 1', 'Probe 2'] },

@@ -52,7 +52,7 @@ const initialState = {
     loginMethod: 'standard',
 };
 
-export default function register(state = initialState, action: Action) {
+export default function register(state = initialState, action: Action): void {
     switch (action.type) {
         case CHANGE_LOGIN:
             return Object.assign({}, state, {

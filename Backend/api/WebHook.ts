@@ -18,7 +18,7 @@ router.post(
     '/:projectId/create',
     getUser,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const projectId = req.params.projectId;
             const body = req.body;
@@ -150,7 +150,7 @@ router.put(
     '/:projectId/:integrationId',
     getUser,
     isUserAdmin,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const integrationId = req.params.integrationId;

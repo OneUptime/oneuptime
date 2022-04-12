@@ -1,7 +1,7 @@
 import { find, update } from '../util/db';
 
 const PROJECT_COLLECTION = 'projects';
-async function run() {
+async function run(): void {
     // get projects without disableNotification fields for sms, email or webhook
     const projectsWithoutInvestigationNoteNotificationOptionFields = await find(
         PROJECT_COLLECTION,

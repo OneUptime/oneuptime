@@ -11,7 +11,7 @@ const _this = {
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ) {
+    ): void {
         const { key } = req.params;
         if (!key) {
             return sendErrorResponse(

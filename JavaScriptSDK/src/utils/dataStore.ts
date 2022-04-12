@@ -104,7 +104,7 @@ class DataStore {
     setValue(id: $TSFixMe, value: $TSFixMe) {
         return this.store.set(id, value);
     }
-    async sendData() {
+    async sendData(): void {
         const data = {
             incoming: Object.fromEntries(this.incoming),
 
@@ -116,7 +116,7 @@ class DataStore {
         await this._makeApiRequest(data);
         this.clearData();
     }
-    async processDataOnExit() {
+    async processDataOnExit(): void {
         if (!this.sendingData) {
             this.sendingData = true;
 

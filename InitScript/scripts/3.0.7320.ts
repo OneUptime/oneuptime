@@ -2,7 +2,7 @@ import { find, update, removeField } from '../util/db';
 
 const incomingRequestCollection = 'incomingrequests';
 
-async function run() {
+async function run(): void {
     const requests = await find(incomingRequestCollection, {
         filters: { $exists: false },
     });

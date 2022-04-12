@@ -1,7 +1,7 @@
 import moment from 'moment';
 
 export default {
-    calculateHumanReadableDownTime: function (comparedTime: $TSFixMe) {
+    calculateHumanReadableDownTime: function (comparedTime: $TSFixMe): void {
         const downTime =
             (new Date().getTime() - new Date(comparedTime).getTime()) /
             (1000 * 60);

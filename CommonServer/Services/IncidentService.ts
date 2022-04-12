@@ -33,7 +33,7 @@ import Query from '../Types/DB/Query';
 import getSlug from '../Utils/getSlug';
 
 export default class Service {
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!query['deleted']) query['deleted'] = false;
 
         const incidentQuery = IncidentModel.find(query)
@@ -49,7 +49,7 @@ export default class Service {
         return incidents;
     }
 
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
                 'You need at least one monitor to create an incident'
@@ -377,7 +377,7 @@ export default class Service {
         }
     }
 
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -387,7 +387,7 @@ export default class Service {
         return count;
     }
 
-    async deleteBy(query: Query, userId: string) {
+    async deleteBy(query: Query, userId: string): void {
         if (!query) {
             query = {};
         }
@@ -452,7 +452,7 @@ export default class Service {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    async findOneBy({ query, populate, select, sort }: FindOneBy) {
+    async findOneBy({ query, populate, select, sort }: FindOneBy): void {
         if (!query) {
             query = {};
         }
@@ -468,7 +468,7 @@ export default class Service {
         return incident;
     }
 
-    async updateOneBy(query: Query, data: $TSFixMe) {
+    async updateOneBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -541,7 +541,7 @@ export default class Service {
         return updatedIncident;
     }
 
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -580,7 +580,7 @@ export default class Service {
         return updatedData;
     }
 
-    async _sendIncidentCreatedAlert(incident: $TSFixMe) {
+    async _sendIncidentCreatedAlert(incident: $TSFixMe): void {
         ZapierService.pushToZapier('incident_created', incident);
         // await RealTimeService.sendCreatedIncident(incident);
 
@@ -981,7 +981,7 @@ export default class Service {
     }
 
     //
-    async close(incidentId: $TSFixMe, userId: string) {
+    async close(incidentId: $TSFixMe, userId: string): void {
         const incident = await IncidentModel.findByIdAndUpdate(incidentId, {
             $pull: { notClosedBy: userId },
         });
@@ -993,7 +993,7 @@ export default class Service {
         subProjectIds: $TSFixMe,
         userId: string,
         isHome = false
-    ) {
+    ): void {
         let incidentsUnresolved = await this.findBy({
             query: { projectId: { $in: subProjectIds }, resolved: false },
             select: '_id notClosedBy',
@@ -1054,7 +1054,7 @@ export default class Service {
             : incidentsUnresolved.concat(incidentsResolved);
     }
 
-    async getSubProjectIncidents(projectId: string) {
+    async getSubProjectIncidents(projectId: string): void {
         const populate = [
             {
                 path: 'monitors.monitorId',
@@ -1104,7 +1104,10 @@ export default class Service {
         return [{ incidents, count, _id: projectId, skip: 0, limit: 10 }];
     }
 
-    async getComponentIncidents(projectId: string, componentId: $TSFixMe) {
+    async getComponentIncidents(
+        projectId: string,
+        componentId: $TSFixMe
+    ): void {
         const monitors = await MonitorService.findBy({
             query: { projectId, componentId },
             select: '_id',
@@ -1203,7 +1206,7 @@ export default class Service {
         incident: $TSFixMe,
         name: $TSFixMe,
         monitor: $TSFixMe
-    ) {
+    ): void {
         const populateComponent = [
             { path: 'projectId', select: 'name' },
             { path: 'componentCategoryId', select: 'name' },
@@ -1282,7 +1285,7 @@ export default class Service {
         projectId: string,
         incident: $TSFixMe,
         data: $TSFixMe
-    ) {
+    ): void {
         const monitors = incident.monitors.map(
             (monitor: $TSFixMe) => monitor.monitorId
         );
@@ -1305,7 +1308,7 @@ export default class Service {
         ZapierService.pushToZapier('incident_note', incident, data);
     }
 
-    async restoreBy(query: Query) {
+    async restoreBy(query: Query): void {
         query.deleted = true;
         let incident = await this.findBy({ query, select: '_id' });
         if (incident && incident.length > 0) {
@@ -1351,7 +1354,7 @@ export default class Service {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    async removeMonitor(monitorId: $TSFixMe, userId: string) {
+    async removeMonitor(monitorId: $TSFixMe, userId: string): void {
         const incidents = await this.findBy({
             query: { 'monitors.monitorId': monitorId },
             select: 'monitors _id',
@@ -1453,7 +1456,7 @@ export default class Service {
         projectId: string,
         monitors: $TSFixMe,
         incident: $TSFixMe
-    ) {
+    ): void {
         monitors = monitors.map((monitor: $TSFixMe) => monitor.monitorId);
         const [monitorList, currentIncident] = await Promise.all([
             MonitorService.findBy({
@@ -1578,7 +1581,7 @@ export default class Service {
         });
     }
 
-    async refreshInterval(incidentId: $TSFixMe) {
+    async refreshInterval(incidentId: $TSFixMe): void {
         for (const interval of intervals) {
             if (String(interval.incidentId) === String(incidentId)) {
                 this.clearInterval(incidentId);
@@ -1603,7 +1606,7 @@ export default class Service {
  * @param {array} myArray the array to be checked
  * @returns {boolean} true or false
  */
-function isArrayUnique(myArray: $TSFixMe) {
+function isArrayUnique(myArray: $TSFixMe): void {
     return myArray.length === new Set(myArray).size;
 }
 

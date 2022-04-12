@@ -115,7 +115,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {
@@ -336,7 +336,7 @@ router.put(
 router.post(
     '/:errorTrackerId/track',
     isErrorTrackerValid,
-    async function (req, res) {
+    async function (req, res): void {
         try {
             const data = req.body;
             const errorTrackerId = req.params.errorTrackerId;

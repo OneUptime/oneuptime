@@ -10,7 +10,7 @@ export function fetchResourceCategories(
 ) {
     skip = parseInt(skip);
     limit = parseInt(limit);
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         let promise = null;
         if (skip >= 0 && limit >= 0) {
             promise = BackendAPI.get(
@@ -24,12 +24,12 @@ export function fetchResourceCategories(
         dispatch(fetchResourceCategoriesRequest());
 
         promise.then(
-            function (resourceCategories) {
+            function (resourceCategories): void {
                 dispatch(
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchResourceCategoriesFailure(error));
             }
         );
@@ -59,8 +59,11 @@ export const fetchResourceCategoriesFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const createResourceCategory = (projectId: string, values: $TSFixMe): void => {
-    return function (dispatch: Dispatch) {
+export const createResourceCategory = (
+    projectId: string,
+    values: $TSFixMe
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `resourceCategory/${projectId}`,
             values
@@ -68,10 +71,10 @@ export const createResourceCategory = (projectId: string, values: $TSFixMe): voi
         dispatch(createResourceCategoryRequest());
 
         promise.then(
-            function (resourceCategory) {
+            function (resourceCategory): void {
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -95,7 +98,7 @@ export function updateResourceCategory(
     resourceCategoryId: $TSFixMe,
     values: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
             values
@@ -103,12 +106,12 @@ export function updateResourceCategory(
         dispatch(updateResourceCategoryRequest());
 
         promise.then(
-            function (updatedResourceCategory) {
+            function (updatedResourceCategory): void {
                 dispatch(
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
-            function (error) {
+            function (error): void {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -175,18 +178,18 @@ export function deleteResourceCategory(
     resourceCategoryId: $TSFixMe,
     projectId: string
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise =
             delete `resourceCategory/${projectId}/${resourceCategoryId}`;
         dispatch(deleteResourceCategoryRequest(resourceCategoryId));
 
         promise.then(
-            function (resourceCategory) {
+            function (resourceCategory): void {
                 dispatch(
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(deleteResourceCategoryFailure({ error: error }));
             }
         );
@@ -203,7 +206,9 @@ export function deleteResourceCategorySuccess(
     };
 }
 
-export const deleteResourceCategoryRequest = (resourceCategoryId: $TSFixMe): void => {
+export const deleteResourceCategoryRequest = (
+    resourceCategoryId: $TSFixMe
+): void => {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_REQUEST,
         payload: resourceCategoryId,
@@ -217,20 +222,22 @@ export const deleteResourceCategoryFailure = (error: ErrorPayload): void => {
     };
 };
 
-export const fetchResourceCategoriesForNewResource = (projectId: string): void => {
-    return function (dispatch: Dispatch) {
+export const fetchResourceCategoriesForNewResource = (
+    projectId: string
+): void => {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(
-            function (resourceCategories) {
+            function (resourceCategories): void {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
                         resourceCategories.data
                     )
                 );
             },
-            function (error) {
+            function (error): void {
                 dispatch(fetchResourceCategoriesForNewResourceFailure(error));
             }
         );

@@ -2,12 +2,12 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/feedback';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const openFeedbackModal = function () {
+export const openFeedbackModal = function (): void {
     return {
         type: types.OPEN_FEEDBACK_MODAL,
     };
 };
-export const closeFeedbackModal = function () {
+export const closeFeedbackModal = function (): void {
     return {
         type: types.CLOSE_FEEDBACK_MODAL,
     };
@@ -47,7 +47,7 @@ export function createFeedback(
     feedback: $TSFixMe,
     page: $TSFixMe
 ) {
-    return function (dispatch: Dispatch) {
+    return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`feedback/${projectId}`, {
             feedback,
             page,
@@ -56,11 +56,11 @@ export function createFeedback(
         dispatch(createFeedbackRequest());
 
         return promise.then(
-            function (feedback) {
+            function (feedback): void {
                 dispatch(createFeedbackSuccess(feedback));
                 return feedback;
             },
-            function (error) {
+            function (error): void {
                 dispatch(createFeedbackError(error));
             }
         );

@@ -1,5 +1,5 @@
 export default class Service {
-    async findBy({ query, skip, limit, sort, populate, select }: FindBy) {
+    async findBy({ query, skip, limit, sort, populate, select }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 10;
@@ -62,7 +62,7 @@ export default class Service {
         return item;
     }
 
-    async countBy({ query }: $TSFixMe) {
+    async countBy({ query }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -72,7 +72,7 @@ export default class Service {
         return count;
     }
 
-    async updateOneBy({ query, data }: $TSFixMe) {
+    async updateOneBy({ query, data }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -90,7 +90,7 @@ export default class Service {
         return item;
     }
 
-    async updateBy({ query, data }: $TSFixMe) {
+    async updateBy({ query, data }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -121,7 +121,7 @@ export default class Service {
         return items;
     }
 
-    async deleteBy({ query, userId }: $TSFixMe) {
+    async deleteBy({ query, userId }: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -143,7 +143,7 @@ export default class Service {
         return items;
     }
 
-    async hardDeleteBy({ query }: $TSFixMe) {
+    async hardDeleteBy({ query }: $TSFixMe): void {
         await OnCallScheduleStatusModel.deleteMany(query);
     }
 }

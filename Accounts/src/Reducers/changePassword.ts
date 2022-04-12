@@ -12,7 +12,7 @@ const initialState = {
     success: false,
 };
 
-export default function register(state = initialState, action: Action) {
+export default function register(state = initialState, action: Action): void {
     switch (action.type) {
         case types.CHANGEPASSWORD_REQUEST:
             return Object.assign({}, state, {

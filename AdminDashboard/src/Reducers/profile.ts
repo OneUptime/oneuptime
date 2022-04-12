@@ -7,7 +7,10 @@ const INITIAL_STATE = {
     menuPosition: 0,
 };
 
-export default function profileSettings(state = INITIAL_STATE, action: Action) {
+export default function profileSettings(
+    state = INITIAL_STATE,
+    action: Action
+): void {
     switch (action.type) {
         case SHOW_PROFILE_MENU:
             return Object.assign({}, state, {

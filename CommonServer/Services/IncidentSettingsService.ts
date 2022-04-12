@@ -1,6 +1,6 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
-    async create(data: $TSFixMe) {
+    async create(data: $TSFixMe): void {
         const {
             projectId,
             title,
@@ -54,7 +54,7 @@ export default class Service {
         return await incidentSettings.save();
     }
 
-    async findBy({ query, limit, skip, populate, select, sort }: FindBy) {
+    async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
         if (!skip) skip = 0;
 
         if (!limit) limit = 0;
@@ -80,7 +80,7 @@ export default class Service {
 
         return result;
     }
-    async countBy(query: Query) {
+    async countBy(query: Query): void {
         if (!query) {
             query = {};
         }
@@ -88,7 +88,7 @@ export default class Service {
         if (!query['deleted']) query['deleted'] = false;
         return await incidentSettingsModel.countDocuments(query);
     }
-    async findOne({ query, select, populate, sort }: FindOneBy) {
+    async findOne({ query, select, populate, sort }: FindOneBy): void {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
@@ -103,7 +103,7 @@ export default class Service {
         return incidentSettings;
     }
 
-    async updateOne(query: Query, data: $TSFixMe) {
+    async updateOne(query: Query, data: $TSFixMe): void {
         if (!query) query = {};
         if (!query['deleted']) query['deleted'] = false;
 
@@ -155,7 +155,7 @@ export default class Service {
         });
         return incidentSettings;
     }
-    async updateBy(query: Query, data: $TSFixMe) {
+    async updateBy(query: Query, data: $TSFixMe): void {
         if (!query) {
             query = {};
         }
@@ -172,7 +172,7 @@ export default class Service {
         return updatedData;
     }
 
-    async deleteBy(query: Query) {
+    async deleteBy(query: Query): void {
         const incidentSetting = await this.findOne({
             query,
             select: 'projectId title description incidentPriority isDefault name createdAt',

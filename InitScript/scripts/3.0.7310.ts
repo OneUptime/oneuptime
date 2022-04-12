@@ -2,7 +2,7 @@ import { find, update, removeField } from '../util/db';
 
 const monitorCollection = 'monitors';
 
-async function run() {
+async function run(): void {
     const monitors = await find(monitorCollection, {
         thirdPartyVariable: { $exists: false },
         deleted: false,
