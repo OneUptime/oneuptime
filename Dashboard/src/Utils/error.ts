@@ -1,4 +1,4 @@
-export const getErrorMessageFromResponse = (error: $TSFixMe) => {
+export const getErrorMessageFromResponse = (error: $TSFixMe): void => {
     if (error && error.response && error.response.data)
         error = error.response.data;
     if (error && error.data) {

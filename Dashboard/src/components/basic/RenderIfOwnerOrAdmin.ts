@@ -26,7 +26,7 @@ RenderIfOwnerOrAdmin.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps = (state: RootState): void => {
     return {
         currentProject: state.project.currentProject,
     };

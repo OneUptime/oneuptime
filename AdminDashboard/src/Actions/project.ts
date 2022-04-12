@@ -4,20 +4,20 @@ import * as types from '../constants/project';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Fetch Projects
 
-export const fetchProjectsRequest = () => {
+export const fetchProjectsRequest = (): void => {
     return {
         type: types.FETCH_PROJECTS_REQUEST,
     };
 };
 
-export const fetchProjectsSuccess = (projects: $TSFixMe) => {
+export const fetchProjectsSuccess = (projects: $TSFixMe): void => {
     return {
         type: types.FETCH_PROJECTS_SUCCESS,
         payload: projects,
     };
 };
 
-export const fetchProjectsError = (error: $TSFixMe) => {
+export const fetchProjectsError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_PROJECTS_FAILURE,
         payload: error,
@@ -56,20 +56,20 @@ export const fetchProjects =
         }
     };
 
-export const fetchProjectRequest = () => {
+export const fetchProjectRequest = (): void => {
     return {
         type: types.FETCH_PROJECT_REQUEST,
     };
 };
 
-export const fetchProjectSuccess = (project: $TSFixMe) => {
+export const fetchProjectSuccess = (project: $TSFixMe): void => {
     return {
         type: types.FETCH_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const fetchProjectError = (error: $TSFixMe) => {
+export const fetchProjectError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_PROJECT_FAILURE,
         payload: error,
@@ -77,7 +77,7 @@ export const fetchProjectError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch a project.
-export const fetchProject = (slug: $TSFixMe) => async (dispatch: Dispatch) => {
+export const fetchProject = (slug: $TSFixMe) => async (dispatch: Dispatch): void => {
     dispatch(fetchProjectRequest());
 
     try {
@@ -104,20 +104,20 @@ export const fetchProject = (slug: $TSFixMe) => async (dispatch: Dispatch) => {
 };
 
 // Team create
-export const userCreateRequest = () => {
+export const userCreateRequest = (): void => {
     return {
         type: types.USER_CREATE_REQUEST,
     };
 };
 
-export const userCreateSuccess = (team: $TSFixMe) => {
+export const userCreateSuccess = (team: $TSFixMe): void => {
     return {
         type: types.USER_CREATE_SUCCESS,
         payload: team,
     };
 };
 
-export const userCreateError = (error: $TSFixMe) => {
+export const userCreateError = (error: $TSFixMe): void => {
     return {
         type: types.USER_CREATE_FAILURE,
         payload: error,
@@ -125,7 +125,7 @@ export const userCreateError = (error: $TSFixMe) => {
 };
 
 // Calls the API to add users to project.
-export const userCreate = (projectId: string, values: $TSFixMe) => {
+export const userCreate = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(userCreateRequest());
@@ -146,20 +146,20 @@ export const userCreate = (projectId: string, values: $TSFixMe) => {
     };
 };
 
-export const fetchUserProjectsRequest = () => {
+export const fetchUserProjectsRequest = (): void => {
     return {
         type: types.FETCH_USER_PROJECTS_REQUEST,
     };
 };
 
-export const fetchUserProjectsSuccess = (users: $TSFixMe) => {
+export const fetchUserProjectsSuccess = (users: $TSFixMe): void => {
     return {
         type: types.FETCH_USER_PROJECTS_SUCCESS,
         payload: users,
     };
 };
 
-export const fetchUserProjectsError = (error: $TSFixMe) => {
+export const fetchUserProjectsError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_USER_PROJECTS_FAILURE,
         payload: error,
@@ -197,54 +197,54 @@ export const fetchProjectTeam =
         }
     };
 
-export const fetchProjectTeamRequest = () => {
+export const fetchProjectTeamRequest = (): void => {
     return {
         type: types.FETCH_PROJECT_TEAM_REQUEST,
     };
 };
 
-export const fetchProjectTeamSuccess = (payload: $TSFixMe) => {
+export const fetchProjectTeamSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_PROJECT_TEAM_SUCCESS,
         payload,
     };
 };
 
-export const fetchProjectTeamError = (error: $TSFixMe) => {
+export const fetchProjectTeamError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_PROJECT_TEAM_ERROR,
         payload: error,
     };
 };
-export const userUpdateRoleRequest = (id: $TSFixMe) => {
+export const userUpdateRoleRequest = (id: $TSFixMe): void => {
     return {
         type: types.USER_UPDATE_ROLE_REQUEST,
         payload: id,
     };
 };
 
-export const userUpdateRoleSuccess = (team: $TSFixMe) => {
+export const userUpdateRoleSuccess = (team: $TSFixMe): void => {
     return {
         type: types.USER_UPDATE_ROLE_SUCCESS,
         payload: team,
     };
 };
 
-export const userUpdateRoleError = (error: $TSFixMe) => {
+export const userUpdateRoleError = (error: $TSFixMe): void => {
     return {
         type: types.USER_UPDATE_ROLE_FAILURE,
         payload: error,
     };
 };
 
-export const changeUserProjectRole = (team: $TSFixMe) => {
+export const changeUserProjectRole = (team: $TSFixMe): void => {
     return {
         type: types.CHANGE_USER_PROJECT_ROLES,
         payload: team,
     };
 };
 // Calls the API to update user role.
-export const userUpdateRole = (projectId: string, values: $TSFixMe) => {
+export const userUpdateRole = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,
@@ -270,19 +270,19 @@ export const userUpdateRole = (projectId: string, values: $TSFixMe) => {
 };
 
 //userlist pagination
-export const paginateNext = () => {
+export const paginateNext = (): void => {
     return {
         type: types.PAGINATE_USERS_NEXT,
     };
 };
 
-export const paginatePrev = () => {
+export const paginatePrev = (): void => {
     return {
         type: types.PAGINATE_USERS_PREV,
     };
 };
 
-export const paginate = (type: $TSFixMe) => {
+export const paginate = (type: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());
@@ -322,27 +322,27 @@ export const updateBalance =
         }
     };
 
-export const updateProjectBalanceRequest = () => {
+export const updateProjectBalanceRequest = (): void => {
     return {
         type: types.PROJECT_BALANCE_UPDATE_REQUEST,
     };
 };
 
-export const updateProjectBalanceSuccess = (project: $TSFixMe) => {
+export const updateProjectBalanceSuccess = (project: $TSFixMe): void => {
     return {
         type: types.PROJECT_BALANCE_UPDATE_SUCCESS,
         payload: project,
     };
 };
 
-export const updateProjectBalanceError = (error: $TSFixMe) => {
+export const updateProjectBalanceError = (error: $TSFixMe): void => {
     return {
         type: types.PROJECT_BALANCE_UPDATE_FAILURE,
         payload: error,
     };
 };
 // Calls the API to delete user from project
-export const teamDelete = (projectId: string, teamMemberId: $TSFixMe) => {
+export const teamDelete = (projectId: string, teamMemberId: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = delete (`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
@@ -366,32 +366,32 @@ export const teamDelete = (projectId: string, teamMemberId: $TSFixMe) => {
     };
 };
 
-export const teamDeleteRequest = (id: $TSFixMe) => {
+export const teamDeleteRequest = (id: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_REQUEST,
         payload: id,
     };
 };
-export const teamDeleteSuccess = (team: $TSFixMe) => {
+export const teamDeleteSuccess = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamDeleteError = (error: $TSFixMe) => {
+export const teamDeleteError = (error: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
     };
 };
 
-export const teamDeleteReset = () => {
+export const teamDeleteReset = (): void => {
     return {
         type: types.TEAM_DELETE_RESET,
     };
 };
-export const resetTeamDelete = () => {
+export const resetTeamDelete = (): void => {
     return function (dispatch: Dispatch) {
         dispatch(teamDeleteReset());
     };
@@ -432,26 +432,26 @@ export const fetchUserProjects =
     };
 
 //Delete project
-export const deleteProjectRequest = () => {
+export const deleteProjectRequest = (): void => {
     return {
         type: types.DELETE_PROJECT_REQUEST,
     };
 };
 
-export const deleteProjectReset = () => {
+export const deleteProjectReset = (): void => {
     return {
         type: types.DELETE_PROJECT_RESET,
     };
 };
 
-export const deleteProjectSuccess = (project: $TSFixMe) => {
+export const deleteProjectSuccess = (project: $TSFixMe): void => {
     return {
         type: types.DELETE_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const deleteProjectError = (error: $TSFixMe) => {
+export const deleteProjectError = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_PROJECT_FAILED,
         payload: error,
@@ -487,26 +487,26 @@ export const deleteProject =
     };
 
 //Block project
-export const blockProjectRequest = () => {
+export const blockProjectRequest = (): void => {
     return {
         type: types.BLOCK_PROJECT_REQUEST,
     };
 };
 
-export const blockProjectReset = () => {
+export const blockProjectReset = (): void => {
     return {
         type: types.BLOCK_PROJECT_RESET,
     };
 };
 
-export const blockProjectSuccess = (project: $TSFixMe) => {
+export const blockProjectSuccess = (project: $TSFixMe): void => {
     return {
         type: types.BLOCK_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const blockProjectError = (error: $TSFixMe) => {
+export const blockProjectError = (error: $TSFixMe): void => {
     return {
         type: types.BLOCK_PROJECT_FAILED,
         payload: error,
@@ -544,26 +544,26 @@ export const blockProject =
     };
 
 //Renew Alert Limit
-export const renewAlertLimitRequest = () => {
+export const renewAlertLimitRequest = (): void => {
     return {
         type: types.ALERT_LIMIT_REQUEST,
     };
 };
 
-export const renewAlertLimitReset = () => {
+export const renewAlertLimitReset = (): void => {
     return {
         type: types.ALERT_LIMIT_RESET,
     };
 };
 
-export const renewAlertLimitSuccess = (project: $TSFixMe) => {
+export const renewAlertLimitSuccess = (project: $TSFixMe): void => {
     return {
         type: types.ALERT_LIMIT_SUCCESS,
         payload: project,
     };
 };
 
-export const renewAlertLimitError = (error: $TSFixMe) => {
+export const renewAlertLimitError = (error: $TSFixMe): void => {
     return {
         type: types.ALERT_LIMIT_FAILED,
         payload: error,
@@ -605,26 +605,26 @@ export const renewAlertLimit =
     };
 
 //Restore project
-export const restoreProjectRequest = () => {
+export const restoreProjectRequest = (): void => {
     return {
         type: types.RESTORE_PROJECT_REQUEST,
     };
 };
 
-export const restoreProjectReset = () => {
+export const restoreProjectReset = (): void => {
     return {
         type: types.RESTORE_PROJECT_RESET,
     };
 };
 
-export const restoreProjectSuccess = (project: $TSFixMe) => {
+export const restoreProjectSuccess = (project: $TSFixMe): void => {
     return {
         type: types.RESTORE_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const restoreProjectError = (error: $TSFixMe) => {
+export const restoreProjectError = (error: $TSFixMe): void => {
     return {
         type: types.RESTORE_PROJECT_FAILED,
         payload: error,
@@ -662,26 +662,26 @@ export const restoreProject =
     };
 
 //Unblock project
-export const unblockProjectRequest = () => {
+export const unblockProjectRequest = (): void => {
     return {
         type: types.UNBLOCK_PROJECT_REQUEST,
     };
 };
 
-export const unblockProjectReset = () => {
+export const unblockProjectReset = (): void => {
     return {
         type: types.UNBLOCK_PROJECT_RESET,
     };
 };
 
-export const unblockProjectSuccess = (project: $TSFixMe) => {
+export const unblockProjectSuccess = (project: $TSFixMe): void => {
     return {
         type: types.UNBLOCK_PROJECT_SUCCESS,
         payload: project,
     };
 };
 
-export const unblockProjectError = (error: $TSFixMe) => {
+export const unblockProjectError = (error: $TSFixMe): void => {
     return {
         type: types.UNBLOCK_PROJECT_FAILED,
         payload: error,
@@ -719,26 +719,26 @@ export const unblockProject =
     };
 
 //Add Project Notes
-export const addProjectNoteRequest = () => {
+export const addProjectNoteRequest = (): void => {
     return {
         type: types.ADD_PROJECT_NOTE_REQUEST,
     };
 };
 
-export const addProjectNoteReset = () => {
+export const addProjectNoteReset = (): void => {
     return {
         type: types.ADD_PROJECT_NOTE_RESET,
     };
 };
 
-export const addProjectNoteSuccess = (projectNote: $TSFixMe) => {
+export const addProjectNoteSuccess = (projectNote: $TSFixMe): void => {
     return {
         type: types.ADD_PROJECT_NOTE_SUCCESS,
         payload: projectNote,
     };
 };
 
-export const addProjectNoteError = (error: $TSFixMe) => {
+export const addProjectNoteError = (error: $TSFixMe): void => {
     return {
         type: types.ADD_PROJECT_NOTE_FAILURE,
         payload: error,
@@ -777,26 +777,26 @@ export const addProjectNote =
     };
 
 //Search Projects
-export const searchProjectsRequest = () => {
+export const searchProjectsRequest = (): void => {
     return {
         type: types.SEARCH_PROJECTS_REQUEST,
     };
 };
 
-export const searchProjectsReset = () => {
+export const searchProjectsReset = (): void => {
     return {
         type: types.SEARCH_PROJECTS_RESET,
     };
 };
 
-export const searchProjectsSuccess = (projects: $TSFixMe) => {
+export const searchProjectsSuccess = (projects: $TSFixMe): void => {
     return {
         type: types.SEARCH_PROJECTS_SUCCESS,
         payload: projects,
     };
 };
 
-export const searchProjectsError = (error: $TSFixMe) => {
+export const searchProjectsError = (error: $TSFixMe): void => {
     return {
         type: types.SEARCH_PROJECTS_FAILURE,
         payload: error,
@@ -840,20 +840,20 @@ export const searchProjects =
     };
 
 // Upgrade a Project
-export const changePlanRequest = () => {
+export const changePlanRequest = (): void => {
     return {
         type: types.CHANGE_PLAN_REQUEST,
     };
 };
 
-export const changePlanSuccess = (payload: $TSFixMe) => {
+export const changePlanSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.CHANGE_PLAN_SUCCESS,
         payload,
     };
 };
 
-export const changePlanFailure = (error: $TSFixMe) => {
+export const changePlanFailure = (error: $TSFixMe): void => {
     return {
         type: types.CHANGE_PLAN_FAILURE,
         payload: error,
@@ -896,20 +896,20 @@ export const changePlan =
         }
     };
 
-export const fetchProjectDomainsRequest = () => {
+export const fetchProjectDomainsRequest = (): void => {
     return {
         type: types.PROJECT_DOMAIN_REQUEST,
     };
 };
 
-export const fetchProjectDomainsSuccess = (payload: $TSFixMe) => {
+export const fetchProjectDomainsSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const fetchProjectDomainsFailure = (error: $TSFixMe) => {
+export const fetchProjectDomainsFailure = (error: $TSFixMe): void => {
     return {
         type: types.PROJECT_DOMAIN_FAILURE,
         payload: error,
@@ -946,33 +946,33 @@ export const fetchProjectDomains = (
     };
 };
 
-export const deleteProjectDomainRequest = () => {
+export const deleteProjectDomainRequest = (): void => {
     return {
         type: types.DELETE_PROJECT_DOMAIN_REQUEST,
     };
 };
 
-export const deleteProjectDomainSuccess = (payload: $TSFixMe) => {
+export const deleteProjectDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.DELETE_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const deleteProjectDomainFailure = (error: $TSFixMe) => {
+export const deleteProjectDomainFailure = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
 };
 
-export const resetDeleteProjectDomain = () => {
+export const resetDeleteProjectDomain = (): void => {
     return {
         type: types.RESET_DELETE_PROJECT_DOMAIN,
     };
 };
 
-export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
+export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe): void => {
     return async function (dispatch: Dispatch) {
         dispatch(deleteProjectDomainRequest());
 
@@ -1000,33 +1000,33 @@ export const deleteProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
     };
 };
 
-export const verifyProjectDomainRequest = () => {
+export const verifyProjectDomainRequest = (): void => {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_REQUEST,
     };
 };
 
-export const verifyProjectDomainSuccess = (payload: $TSFixMe) => {
+export const verifyProjectDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const verifyProjectDomainFailure = (error: $TSFixMe) => {
+export const verifyProjectDomainFailure = (error: $TSFixMe): void => {
     return {
         type: types.VERIFY_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
 };
 
-export const resetVerifyProjectDomain = () => {
+export const resetVerifyProjectDomain = (): void => {
     return {
         type: types.RESET_VERIFY_PROJECT_DOMAIN,
     };
 };
 
-export const verifyProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
+export const verifyProjectDomain = ({ projectId, domainId }: $TSFixMe): void => {
     return async function (dispatch: Dispatch) {
         dispatch(verifyProjectDomainRequest());
 
@@ -1052,27 +1052,27 @@ export const verifyProjectDomain = ({ projectId, domainId }: $TSFixMe) => {
     };
 };
 
-export const unVerifyProjectDomainRequest = () => {
+export const unVerifyProjectDomainRequest = (): void => {
     return {
         type: types.UNVERIFY_PROJECT_DOMAIN_REQUEST,
     };
 };
 
-export const unVerifyProjectDomainSuccess = (payload: $TSFixMe) => {
+export const unVerifyProjectDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.UNVERIFY_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const unVerifyProjectDomainFailure = (error: $TSFixMe) => {
+export const unVerifyProjectDomainFailure = (error: $TSFixMe): void => {
     return {
         type: types.UNVERIFY_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
 };
 
-export const resetUnverifyProjectDomain = () => {
+export const resetUnverifyProjectDomain = (): void => {
     return {
         type: types.RESET_UNVERIFY_PROJECT_DOMAIN,
     };
@@ -1108,33 +1108,33 @@ export const unVerifyProjectDomain = (
     };
 };
 
-export const resetProjectDomainRequest = () => {
+export const resetProjectDomainRequest = (): void => {
     return {
         type: types.RESET_PROJECT_DOMAIN_REQUEST,
     };
 };
 
-export const resetProjectDomainSuccess = (payload: $TSFixMe) => {
+export const resetProjectDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.RESET_PROJECT_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const resetProjectDomainFailure = (error: $TSFixMe) => {
+export const resetProjectDomainFailure = (error: $TSFixMe): void => {
     return {
         type: types.RESET_PROJECT_DOMAIN_FAILURE,
         payload: error,
     };
 };
 
-export const resetProjectDomainOnMount = () => {
+export const resetProjectDomainOnMount = (): void => {
     return {
         type: types.RESET_PROJECT_DOMAIN_ON_MOUNT,
     };
 };
 
-export const resetProjectDomain = (projectId: string, domainId: $TSFixMe) => {
+export const resetProjectDomain = (projectId: string, domainId: $TSFixMe): void => {
     return async function (dispatch: Dispatch) {
         dispatch(resetProjectDomainRequest());
 

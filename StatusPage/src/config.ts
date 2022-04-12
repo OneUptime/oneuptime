@@ -5,7 +5,7 @@ let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
-export const env = (value: $TSFixMe) => {
+export const env = (value: $TSFixMe): void => {
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -116,7 +116,7 @@ export const Validate = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: URL) => {
+export const getQueryVar = (variable: $TSFixMe, url: URL): void => {
     if (!url) url = window.location.href;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -126,11 +126,11 @@ export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 };
 
-export const bindRaf = (fn: $TSFixMe) => {
+export const bindRaf = (fn: $TSFixMe): void => {
     let isRunning: $TSFixMe = null;
     let args: $TSFixMe = null;
 
-    const run = () => {
+    const run = (): void => {
         isRunning = false;
         fn(...args);
     };
@@ -179,7 +179,7 @@ export const filterProbeData = (
 export const getMonitorStatus = (statuses: $TSFixMe) =>
     statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
-export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
+export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe): void => {
     const monitorsLength = monitorsData.length;
     const probesLength = probes && probes.length;
 
@@ -212,7 +212,7 @@ export const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
     }
 };
 
-export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe) => {
+export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe): void => {
     return Number(
         Math.round(parseFloat(value + 'e' + decimalPlaces)) +
             'e-' +
@@ -241,7 +241,7 @@ export const formatBytes = (
     );
 };
 
-export const capitalize = (words: $TSFixMe) => {
+export const capitalize = (words: $TSFixMe): void => {
     if (!words || !words.trim()) return '';
 
     words = words.split(' ');

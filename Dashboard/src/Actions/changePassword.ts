@@ -3,35 +3,35 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/changePassword';
 import Route from 'Common/Types/api/route';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const changePasswordRequest = (promise: $TSFixMe) => {
+export const changePasswordRequest = (promise: $TSFixMe): void => {
     return {
         type: types.CHANGEPASSWORD_REQUEST,
         payload: promise,
     };
 };
 
-export const changePasswordError = (error: ErrorPayload) => {
+export const changePasswordError = (error: ErrorPayload): void => {
     return {
         type: types.CHANGEPASSWORD_FAILED,
         payload: error,
     };
 };
 
-export const changePasswordSuccess = (values: $TSFixMe) => {
+export const changePasswordSuccess = (values: $TSFixMe): void => {
     return {
         type: types.CHANGEPASSWORD_SUCCESS,
         payload: values,
     };
 };
 
-export const resetChangePassword = () => {
+export const resetChangePassword = (): void => {
     return {
         type: types.RESET_CHANGEPASSWORD,
     };
 };
 
 // Calls the API to register a user.
-export const changePassword = (values: $TSFixMe) => {
+export const changePassword = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             new Route('user/reset-password'),

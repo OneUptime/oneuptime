@@ -1,7 +1,7 @@
 import workboxBuild from 'workbox-build';
 
 // NOTE: This should be run *AFTER* all your assets are built
-const buildSW = () => {
+const buildSW = (): void => {
     // This will return a Promise
     return workboxBuild
         .injectManifest({

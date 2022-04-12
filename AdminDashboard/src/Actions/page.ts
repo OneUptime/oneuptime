@@ -26,13 +26,13 @@ export const loadPage = function (title: $TSFixMe) {
     };
 };
 
-export const openSideNav = () => {
+export const openSideNav = (): void => {
     return {
         type: 'OPEN_SIDENAV',
     };
 };
 
-export const closeSideNav = () => {
+export const closeSideNav = (): void => {
     return {
         type: 'CLOSE_SIDENAV',
     };

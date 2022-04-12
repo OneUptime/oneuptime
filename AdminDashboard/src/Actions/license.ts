@@ -4,35 +4,35 @@ import * as types from '../constants/license';
 import Route from 'Common/Types/api/route';
 // fetch license
 
-export const fetchLicenseRequest = (promise: $TSFixMe) => {
+export const fetchLicenseRequest = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_LICENSE_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchLicenseError = (error: $TSFixMe) => {
+export const fetchLicenseError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_LICENSE_FAILED,
         payload: error,
     };
 };
 
-export const fetchLicenseSuccess = (license: $TSFixMe) => {
+export const fetchLicenseSuccess = (license: $TSFixMe): void => {
     return {
         type: types.FETCH_LICENSE_SUCCESS,
         payload: license,
     };
 };
 
-export const resetFetchLicense = () => {
+export const resetFetchLicense = (): void => {
     return {
         type: types.FETCH_LICENSE_RESET,
     };
 };
 
 // Calls the API to fetch license
-export const fetchLicense = () => async (dispatch: Dispatch) => {
+export const fetchLicense = () => async (dispatch: Dispatch): void => {
     dispatch(fetchLicenseRequest());
     dispatch(resetConfirmLicense());
 
@@ -64,28 +64,28 @@ export const fetchLicense = () => async (dispatch: Dispatch) => {
 
 // confirm license
 
-export const confirmLicenseRequest = (promise: $TSFixMe) => {
+export const confirmLicenseRequest = (promise: $TSFixMe): void => {
     return {
         type: types.CONFIRM_LICENSE_REQUEST,
         payload: promise,
     };
 };
 
-export const confirmLicenseError = (error: $TSFixMe) => {
+export const confirmLicenseError = (error: $TSFixMe): void => {
     return {
         type: types.CONFIRM_LICENSE_FAILED,
         payload: error,
     };
 };
 
-export const confirmLicenseSuccess = (license: $TSFixMe) => {
+export const confirmLicenseSuccess = (license: $TSFixMe): void => {
     return {
         type: types.CONFIRM_LICENSE_SUCCESS,
         payload: license,
     };
 };
 
-export const resetConfirmLicense = () => {
+export const resetConfirmLicense = (): void => {
     return {
         type: types.CONFIRM_LICENSE_RESET,
     };

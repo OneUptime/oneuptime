@@ -4,27 +4,27 @@ import Route from 'Common/Types/api/route';
 import * as types from '../constants/login';
 import { User } from '../config';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const loginRequired = () => {
+export const loginRequired = (): void => {
     return {
         type: types.LOGIN_REQUIRED,
     };
 };
 
-export const loginRequest = (promise: $TSFixMe) => {
+export const loginRequest = (promise: $TSFixMe): void => {
     return {
         type: types.LOGIN_REQUEST,
         payload: promise,
     };
 };
 
-export const loginError = (error: ErrorPayload) => {
+export const loginError = (error: ErrorPayload): void => {
     return {
         type: types.LOGIN_FAILED,
         payload: error,
     };
 };
 
-export const loginSuccess = (user: $TSFixMe) => {
+export const loginSuccess = (user: $TSFixMe): void => {
     //save user session details.
     User.setUserId(user.id);
     User.setAccessToken(user.tokens.jwtAccessToken);
@@ -35,14 +35,14 @@ export const loginSuccess = (user: $TSFixMe) => {
     };
 };
 
-export const resetLogin = () => {
+export const resetLogin = (): void => {
     return {
         type: types.RESET_LOGIN,
     };
 };
 
 // Calls the API to register a user.
-export const loginUser = (values: $TSFixMe) => {
+export const loginUser = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(new Route('user/login'), values);
         dispatch(loginRequest(promise));

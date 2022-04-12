@@ -1,8 +1,8 @@
-const sortByName = (data: $TSFixMe) => {
+const sortByName = (data: $TSFixMe): void => {
     return data && data.length > 0 ? data.sort(compare) : [];
 };
 
-const compare = (a: $TSFixMe, b: $TSFixMe) => {
+const compare = (a: $TSFixMe, b: $TSFixMe): void => {
     if (!a || !b || !a.name || !b.name) {
         return 0;
     }

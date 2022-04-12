@@ -1,6 +1,6 @@
 import { isNumber } from 'lodash';
 
-const format = (number: $TSFixMe) => {
+const format = (number: $TSFixMe): void => {
     if (!isNumber(number)) return null;
     let formattedValue = '';
     let index = 0;
@@ -59,7 +59,7 @@ const format = (number: $TSFixMe) => {
 };
 
 // return the provided number in a particular decimal place
-export const numDecimal = (num: $TSFixMe, decimalPlace = 2) => {
+export const numDecimal = (num: $TSFixMe, decimalPlace = 2): void => {
     decimalPlace = Number(decimalPlace);
     return Number.parseFloat(num).toFixed(decimalPlace);
 };

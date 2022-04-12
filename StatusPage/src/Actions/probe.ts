@@ -40,28 +40,28 @@ export function getProbes(
     };
 }
 
-export const probeRequest = (promise: $TSFixMe) => {
+export const probeRequest = (promise: $TSFixMe): void => {
     return {
         type: types.PROBE_REQUEST,
         payload: promise,
     };
 };
 
-export const probeError = (error: ErrorPayload) => {
+export const probeError = (error: ErrorPayload): void => {
     return {
         type: types.PROBE_FAILED,
         payload: error,
     };
 };
 
-export const probeSuccess = (probes: $TSFixMe) => {
+export const probeSuccess = (probes: $TSFixMe): void => {
     return {
         type: types.PROBE_SUCCESS,
         payload: probes,
     };
 };
 
-export const resetProbe = () => {
+export const resetProbe = (): void => {
     return {
         type: types.PROBE_RESET,
     };

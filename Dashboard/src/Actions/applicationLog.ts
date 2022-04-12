@@ -41,27 +41,27 @@ export function createApplicationLog(
     };
 }
 
-export const createApplicationLogSuccess = (newApplicationLog: $TSFixMe) => {
+export const createApplicationLogSuccess = (newApplicationLog: $TSFixMe): void => {
     return {
         type: types.CREATE_APPLICATION_LOG_SUCCESS,
         payload: newApplicationLog,
     };
 };
 
-export const createApplicationLogRequest = () => {
+export const createApplicationLogRequest = (): void => {
     return {
         type: types.CREATE_APPLICATION_LOG_REQUEST,
     };
 };
 
-export const createApplicationLogFailure = (error: ErrorPayload) => {
+export const createApplicationLogFailure = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_APPLICATION_LOG_FAILURE,
         payload: error,
     };
 };
 
-export const resetCreateApplicationLog = () => {
+export const resetCreateApplicationLog = (): void => {
     return {
         type: types.CREATE_APPLICATION_LOG_RESET,
     };
@@ -93,28 +93,28 @@ export function fetchApplicationLogs(
     };
 }
 
-export const fetchApplicationLogsSuccess = (applicationLogs: $TSFixMe) => {
+export const fetchApplicationLogsSuccess = (applicationLogs: $TSFixMe): void => {
     return {
         type: types.FETCH_APPLICATION_LOGS_SUCCESS,
         payload: applicationLogs,
     };
 };
 
-export const fetchApplicationLogsRequest = (paginated: $TSFixMe) => {
+export const fetchApplicationLogsRequest = (paginated: $TSFixMe): void => {
     return {
         type: types.FETCH_APPLICATION_LOGS_REQUEST,
         payload: paginated,
     };
 };
 
-export const fetchApplicationLogsFailure = (error: ErrorPayload) => {
+export const fetchApplicationLogsFailure = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_APPLICATION_LOGS_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchApplicationLogs = () => {
+export const resetFetchApplicationLogs = (): void => {
     return {
         type: types.FETCH_APPLICATION_LOGS_RESET,
     };
@@ -162,21 +162,21 @@ export const deleteApplicationLogSuccess = (
     };
 };
 
-export const deleteApplicationLogRequest = (applicationLogId: $TSFixMe) => {
+export const deleteApplicationLogRequest = (applicationLogId: $TSFixMe): void => {
     return {
         type: types.DELETE_APPLICATION_LOG_REQUEST,
         payload: applicationLogId,
     };
 };
 
-export const deleteApplicationLogFailure = (error: ErrorPayload) => {
+export const deleteApplicationLogFailure = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_APPLICATION_LOG_FAILURE,
         payload: error,
     };
 };
 
-export const deleteComponentApplicationLogs = (componentId: $TSFixMe) => {
+export const deleteComponentApplicationLogs = (componentId: $TSFixMe): void => {
     return {
         type: types.DELETE_COMPONENT_APPLICATION_LOGS,
         payload: componentId,
@@ -233,27 +233,27 @@ export function fetchLogs(
     };
 }
 
-export const fetchLogsSuccess = (logs: $TSFixMe) => {
+export const fetchLogsSuccess = (logs: $TSFixMe): void => {
     return {
         type: types.FETCH_LOGS_SUCCESS,
         payload: logs,
     };
 };
 
-export const fetchLogsRequest = (applicationLogId: $TSFixMe) => {
+export const fetchLogsRequest = (applicationLogId: $TSFixMe): void => {
     return {
         type: types.FETCH_LOGS_REQUEST,
         payload: applicationLogId,
     };
 };
 
-export const fetchLogsFailure = (error: ErrorPayload) => {
+export const fetchLogsFailure = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_LOGS_FAILURE,
         payload: error,
     };
 };
-export const resetFetchLogs = () => {
+export const resetFetchLogs = (): void => {
     return {
         type: types.FETCH_LOGS_RESET,
     };
@@ -283,32 +283,32 @@ export function resetApplicationLogKey(
     };
 }
 
-export const resetApplicationLogKeySuccess = (applicationLog: $TSFixMe) => {
+export const resetApplicationLogKeySuccess = (applicationLog: $TSFixMe): void => {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_SUCCESS,
         payload: applicationLog,
     };
 };
 
-export const resetApplicationLogKeyRequest = () => {
+export const resetApplicationLogKeyRequest = (): void => {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_REQUEST,
     };
 };
 
-export const resetApplicationLogKeyFailure = (error: ErrorPayload) => {
+export const resetApplicationLogKeyFailure = (error: ErrorPayload): void => {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_FAILURE,
         payload: error,
     };
 };
 
-export const resetresetApplicationLogKey = () => {
+export const resetresetApplicationLogKey = (): void => {
     return {
         type: types.RESET_APPLICATION_LOG_KEY_RESET,
     };
 };
-export const editApplicationLogSwitch = (index: $TSFixMe) => {
+export const editApplicationLogSwitch = (index: $TSFixMe): void => {
     return {
         type: types.EDIT_APPLICATION_LOG_SWITCH,
         payload: index,
@@ -352,20 +352,20 @@ export function editApplicationLog(
     };
 }
 
-export const editApplicationLogSuccess = (newApplicationLog: $TSFixMe) => {
+export const editApplicationLogSuccess = (newApplicationLog: $TSFixMe): void => {
     return {
         type: types.EDIT_APPLICATION_LOG_SUCCESS,
         payload: newApplicationLog,
     };
 };
 
-export const editApplicationLogRequest = () => {
+export const editApplicationLogRequest = (): void => {
     return {
         type: types.EDIT_APPLICATION_LOG_REQUEST,
     };
 };
 
-export const editApplicationLogFailure = (error: ErrorPayload) => {
+export const editApplicationLogFailure = (error: ErrorPayload): void => {
     return {
         type: types.EDIT_APPLICATION_LOG_FAILURE,
         payload: error,
@@ -408,32 +408,32 @@ export function fetchStats(
     };
 }
 
-export const fetchStatsSuccess = (stats: $TSFixMe) => {
+export const fetchStatsSuccess = (stats: $TSFixMe): void => {
     return {
         type: types.FETCH_LOG_STAT_SUCCESS,
         payload: stats,
     };
 };
 
-export const fetchStatsRequest = (applicationLogId: $TSFixMe) => {
+export const fetchStatsRequest = (applicationLogId: $TSFixMe): void => {
     return {
         type: types.FETCH_LOG_STAT_REQUEST,
         payload: applicationLogId,
     };
 };
 
-export const fetchStatsFailure = (error: ErrorPayload) => {
+export const fetchStatsFailure = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_LOG_STAT_FAILURE,
         payload: error,
     };
 };
-export const resetFetchStats = () => {
+export const resetFetchStats = (): void => {
     return {
         type: types.FETCH_LOG_STAT_RESET,
     };
 };
-export const getLogSuccess = (log: $TSFixMe) => {
+export const getLogSuccess = (log: $TSFixMe): void => {
     return {
         type: types.GET_LOG_SUCCESS,
         payload: log,

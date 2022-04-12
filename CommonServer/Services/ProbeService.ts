@@ -1158,7 +1158,7 @@ import _ from 'lodash';
 import CreateBy from '../Types/DB/CreateBy';
 import UUID from 'Common/Utils/UUID';
 
-const incomingCheckAnd = (payload, condition) => {
+const incomingCheckAnd = (payload, condition): void => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
@@ -1308,7 +1308,7 @@ const incomingCheckAnd = (payload, condition) => {
     return validity;
 };
 
-const incomingCheckOr = (payload, condition) => {
+const incomingCheckOr = (payload, condition): void => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
@@ -6094,7 +6094,7 @@ const checkOr = (
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-const checkScriptCondition = (condition, body) => {
+const checkScriptCondition = (condition, body): void => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6192,7 +6192,7 @@ const checkScriptCondition = (condition, body) => {
     return validity;
 };
 
-const checkScriptAnd = (con, body, successReasons, failedReasons) => {
+const checkScriptAnd = (con, body, successReasons, failedReasons): void => {
     let valid = true;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6247,7 +6247,7 @@ const checkScriptAnd = (con, body, successReasons, failedReasons) => {
     return valid;
 };
 
-const checkScriptOr = (con, body, successReasons, failedReasons) => {
+const checkScriptOr = (con, body, successReasons, failedReasons): void => {
     let valid = false;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6320,7 +6320,7 @@ const criteriaStrings = {
     ip: 'IP is',
 };
 
-const formatDecimal = (value, decimalPlaces, roundType) => {
+const formatDecimal = (value, decimalPlaces, roundType): void => {
     let formattedNumber;
     switch (roundType) {
         case 'up':
@@ -6343,7 +6343,7 @@ const formatDecimal = (value, decimalPlaces, roundType) => {
     );
 };
 
-const formatBytes = (a, b, c, d, e) => {
+const formatBytes = (a, b, c, d, e): void => {
     let value = a;
     let decimalPlaces;
     let roundType;

@@ -204,12 +204,12 @@ export const fetchDefaultMonitorSla =
             dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
         }
     };
-export const paginateNext = () => {
+export const paginateNext = (): void => {
     return {
         type: types.NEXT_MONITOR_SLA_PAGE,
     };
 };
-export const paginatePrev = () => {
+export const paginatePrev = (): void => {
     return {
         type: types.PREV_MONITOR_SLA_PAGE,
     };

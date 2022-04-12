@@ -1,4 +1,4 @@
-const resolveAllIncidents = (z: $TSFixMe, bundle: $TSFixMe) => {
+const resolveAllIncidents = (z: $TSFixMe, bundle: $TSFixMe): void => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     const data = {
         monitors: bundle.inputData.monitors,

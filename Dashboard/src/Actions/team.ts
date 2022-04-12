@@ -2,20 +2,20 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/team';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const teamLoadingRequest = () => {
+export const teamLoadingRequest = (): void => {
     return {
         type: types.TEAM_LOADING_REQUEST,
     };
 };
 
-export const teamLoadingSuccess = (team: $TSFixMe) => {
+export const teamLoadingSuccess = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_LOADING_SUCCESS,
         payload: team,
     };
 };
 
-export const teamLoadingError = (error: ErrorPayload) => {
+export const teamLoadingError = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_LOADING_FAILURE,
         payload: error,
@@ -23,7 +23,7 @@ export const teamLoadingError = (error: ErrorPayload) => {
 };
 
 // Calls the API to load team.
-export const teamLoading = (projectId: string) => {
+export const teamLoading = (projectId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`team/${projectId}`);
         dispatch(teamLoadingRequest());
@@ -41,27 +41,27 @@ export const teamLoading = (projectId: string) => {
     };
 };
 
-export const subProjectTeamLoadingRequest = () => {
+export const subProjectTeamLoadingRequest = (): void => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_REQUEST,
     };
 };
 
-export const subProjectTeamLoadingSuccess = (team: $TSFixMe) => {
+export const subProjectTeamLoadingSuccess = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_SUCCESS,
         payload: team,
     };
 };
 
-export const subProjectTeamLoadingError = (error: ErrorPayload) => {
+export const subProjectTeamLoadingError = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_FAILURE,
         payload: error,
     };
 };
 // Calls the API to load team.
-export const subProjectTeamLoading = (projectId: string) => {
+export const subProjectTeamLoading = (projectId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
@@ -80,20 +80,20 @@ export const subProjectTeamLoading = (projectId: string) => {
 };
 
 // Team create
-export const teamCreateRequest = () => {
+export const teamCreateRequest = (): void => {
     return {
         type: types.TEAM_CREATE_REQUEST,
     };
 };
 
-export const teamCreateSuccess = (team: $TSFixMe) => {
+export const teamCreateSuccess = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_CREATE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamCreateError = (error: ErrorPayload) => {
+export const teamCreateError = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_CREATE_FAILURE,
         payload: error,
@@ -101,7 +101,7 @@ export const teamCreateError = (error: ErrorPayload) => {
 };
 
 // Calls the API to create team members.
-export const teamCreate = (projectId: string, values: $TSFixMe) => {
+export const teamCreate = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
@@ -120,41 +120,41 @@ export const teamCreate = (projectId: string, values: $TSFixMe) => {
     };
 };
 
-export const teamDeleteRequest = (id: $TSFixMe) => {
+export const teamDeleteRequest = (id: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_REQUEST,
         payload: id,
     };
 };
 
-export const teamDeleteSuccess = (team: $TSFixMe) => {
+export const teamDeleteSuccess = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamDeleteError = (error: ErrorPayload) => {
+export const teamDeleteError = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
     };
 };
 
-export const teamDeleteReset = () => {
+export const teamDeleteReset = (): void => {
     return {
         type: types.TEAM_DELETE_RESET,
     };
 };
 
-export const resetTeamDelete = () => {
+export const resetTeamDelete = (): void => {
     return function (dispatch: Dispatch) {
         dispatch(teamDeleteReset());
     };
 };
 
 // Calls the API to delete team meber.
-export const teamDelete = (projectId: string, teamMemberId: $TSFixMe) => {
+export const teamDelete = (projectId: string, teamMemberId: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = delete (`team/${projectId}/${teamMemberId}`, null);
         dispatch(teamDeleteRequest(teamMemberId));
@@ -175,21 +175,21 @@ export const teamDelete = (projectId: string, teamMemberId: $TSFixMe) => {
     };
 };
 
-export const teamMemberRequest = (teamMemberId: $TSFixMe) => {
+export const teamMemberRequest = (teamMemberId: $TSFixMe): void => {
     return {
         type: types.TEAM_MEMBER_REQUEST,
         payload: teamMemberId,
     };
 };
 
-export const teamMemberSuccess = (teamMember: $TSFixMe) => {
+export const teamMemberSuccess = (teamMember: $TSFixMe): void => {
     return {
         type: types.TEAM_MEMBER_SUCCESS,
         payload: teamMember,
     };
 };
 
-export const teamMemberError = (error: ErrorPayload) => {
+export const teamMemberError = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_MEMBER_FAILURE,
         payload: error,
@@ -197,7 +197,7 @@ export const teamMemberError = (error: ErrorPayload) => {
 };
 
 // Calls the API to get team member.
-export const getTeamMember = (projectId: string, teamMemberId: $TSFixMe) => {
+export const getTeamMember = (projectId: string, teamMemberId: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`team/${projectId}/${teamMemberId}`);
         dispatch(teamMemberRequest(teamMemberId));
@@ -215,21 +215,21 @@ export const getTeamMember = (projectId: string, teamMemberId: $TSFixMe) => {
     };
 };
 
-export const teamUpdateRoleRequest = (id: $TSFixMe) => {
+export const teamUpdateRoleRequest = (id: $TSFixMe): void => {
     return {
         type: types.TEAM_UPDATE_ROLE_REQUEST,
         payload: id,
     };
 };
 
-export const teamUpdateRoleSuccess = (team: $TSFixMe) => {
+export const teamUpdateRoleSuccess = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_UPDATE_ROLE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamUpdateRoleError = (error: ErrorPayload) => {
+export const teamUpdateRoleError = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_UPDATE_ROLE_FAILURE,
         payload: error,
@@ -237,7 +237,7 @@ export const teamUpdateRoleError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update team member role.
-export const teamUpdateRole = (projectId: string, values: $TSFixMe) => {
+export const teamUpdateRole = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,
@@ -260,27 +260,27 @@ export const teamUpdateRole = (projectId: string, values: $TSFixMe) => {
 };
 
 // Implements pagination for Team Members table
-export const paginateNext = (Id: $TSFixMe) => {
+export const paginateNext = (Id: $TSFixMe): void => {
     return {
         type: types.PAGINATE_NEXT,
         payload: Id,
     };
 };
 
-export const paginatePrev = (Id: $TSFixMe) => {
+export const paginatePrev = (Id: $TSFixMe): void => {
     return {
         type: types.PAGINATE_PREV,
         payload: Id,
     };
 };
 
-export const paginateReset = () => {
+export const paginateReset = (): void => {
     return {
         type: types.PAGINATE_RESET,
     };
 };
 
-export const paginate = (type: $TSFixMe, Id: $TSFixMe) => {
+export const paginate = (type: $TSFixMe, Id: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         type === 'next' && dispatch(paginateNext(Id));
         type === 'prev' && dispatch(paginatePrev(Id));

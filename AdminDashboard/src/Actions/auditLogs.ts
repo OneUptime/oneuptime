@@ -4,20 +4,20 @@ import * as types from '../constants/auditLogs';
 import Route from 'Common/Types/api/route';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Fetch All Audit Logs
-export const fetchAuditLogsRequest = () => {
+export const fetchAuditLogsRequest = (): void => {
     return {
         type: types.FETCH_AUDITLOGS_REQUEST,
     };
 };
 
-export const fetchAuditLogsSuccess = (auditLogs: $TSFixMe) => {
+export const fetchAuditLogsSuccess = (auditLogs: $TSFixMe): void => {
     return {
         type: types.FETCH_AUDITLOGS_SUCCESS,
         payload: auditLogs,
     };
 };
 
-export const fetchAuditLogsError = (error: $TSFixMe) => {
+export const fetchAuditLogsError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_AUDITLOGS_FAILURE,
         payload: error,
@@ -59,20 +59,20 @@ export const fetchAuditLogs =
     };
 
 // Search Audit Logs.
-export const searchAuditLogsRequest = () => {
+export const searchAuditLogsRequest = (): void => {
     return {
         type: types.SEARCH_AUDITLOGS_REQUEST,
     };
 };
 
-export const searchAuditLogsSuccess = (auditLogs: $TSFixMe) => {
+export const searchAuditLogsSuccess = (auditLogs: $TSFixMe): void => {
     return {
         type: types.SEARCH_AUDITLOGS_SUCCESS,
         payload: auditLogs,
     };
 };
 
-export const searchAuditLogsError = (error: $TSFixMe) => {
+export const searchAuditLogsError = (error: $TSFixMe): void => {
     return {
         type: types.SEARCH_AUDITLOGS_FAILURE,
         payload: error,
@@ -115,27 +115,27 @@ export const searchAuditLogs =
     };
 
 // Delete All Audit Logs
-export const deleteAuditLogsRequest = () => {
+export const deleteAuditLogsRequest = (): void => {
     return {
         type: types.DELETE_ALL_AUDITLOGS_REQUEST,
     };
 };
 
-export const deleteAuditLogsSuccess = (message: $TSFixMe) => {
+export const deleteAuditLogsSuccess = (message: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_AUDITLOGS_SUCCESS,
         payload: message,
     };
 };
 
-export const deleteAuditLogsError = (error: $TSFixMe) => {
+export const deleteAuditLogsError = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_AUDITLOGS_FAILURE,
         payload: error,
     };
 };
 
-export const deleteAuditLogs = () => async (dispatch: Dispatch) => {
+export const deleteAuditLogs = () => async (dispatch: Dispatch): void => {
     dispatch(deleteAuditLogsRequest());
 
     try {
@@ -162,35 +162,35 @@ export const deleteAuditLogs = () => async (dispatch: Dispatch) => {
 
 // fetch auditLogStatus
 
-export const fetchAuditLogStatusRequest = (promise: $TSFixMe) => {
+export const fetchAuditLogStatusRequest = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchAuditLogStatusError = (error: $TSFixMe) => {
+export const fetchAuditLogStatusError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const fetchAuditLogStatusSuccess = (auditLogStatus: $TSFixMe) => {
+export const fetchAuditLogStatusSuccess = (auditLogStatus: $TSFixMe): void => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_SUCCESS,
         payload: auditLogStatus,
     };
 };
 
-export const resetFetchAuditLogStatus = () => {
+export const resetFetchAuditLogStatus = (): void => {
     return {
         type: types.FETCH_AUDITLOG_STATUS_RESET,
     };
 };
 
 // Calls the API to fetch auditLogStatus
-export const fetchAuditLogStatus = () => async (dispatch: Dispatch) => {
+export const fetchAuditLogStatus = () => async (dispatch: Dispatch): void => {
     dispatch(fetchAuditLogStatusRequest());
 
     try {
@@ -219,28 +219,28 @@ export const fetchAuditLogStatus = () => async (dispatch: Dispatch) => {
 
 // change auditLogStatus
 
-export const changeAuditLogStatusRequest = (promise: $TSFixMe) => {
+export const changeAuditLogStatusRequest = (promise: $TSFixMe): void => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const changeAuditLogStatusError = (error: $TSFixMe) => {
+export const changeAuditLogStatusError = (error: $TSFixMe): void => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const changeAuditLogStatusSuccess = (auditLogStatus: $TSFixMe) => {
+export const changeAuditLogStatusSuccess = (auditLogStatus: $TSFixMe): void => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_SUCCESS,
         payload: auditLogStatus,
     };
 };
 
-export const resetConfirmAuditLogStatus = () => {
+export const resetConfirmAuditLogStatus = (): void => {
     return {
         type: types.CHANGE_AUDITLOG_STATUS_RESET,
     };

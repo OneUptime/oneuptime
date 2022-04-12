@@ -1,8 +1,8 @@
-const acknowledgeIncident = (z: $TSFixMe, bundle: $TSFixMe) => {
+const acknowledgeIncident = (z: $TSFixMe, bundle: $TSFixMe): void => {
     return bundle.cleanedRequest;
 };
 
-const fallbackHook = (z: $TSFixMe, bundle: $TSFixMe) => {
+const fallbackHook = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // For the test poll, you should get some real data, to aid the setup process.
     const options = {
         url: `${bundle.authData.serverUrl}/zapier/incident/acknowledged`,
@@ -13,7 +13,7 @@ const fallbackHook = (z: $TSFixMe, bundle: $TSFixMe) => {
         .then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
-const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
+const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // bundle.targetUrl has the Hook URL this app should call when an incident is acknowledged.
     const data = {
         url: bundle.targetUrl,
@@ -33,7 +33,7 @@ const subscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
         .then((response: $TSFixMe) => JSON.parse(response.content));
 };
 
-const unSubscribeHook = (z: $TSFixMe, bundle: $TSFixMe) => {
+const unSubscribeHook = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // bundle.subscribeData contains the parsed response JSON from the subscribe
     // request made initially.
     const hookId = bundle.subscribeData.id;

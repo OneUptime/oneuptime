@@ -2,28 +2,28 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/card';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const addCardRequest = (promise: $TSFixMe) => {
+export const addCardRequest = (promise: $TSFixMe): void => {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
 };
 
-export const addCardFailed = (error: ErrorPayload) => {
+export const addCardFailed = (error: ErrorPayload): void => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
 };
 
-export const addCardSuccess = (card: $TSFixMe) => {
+export const addCardSuccess = (card: $TSFixMe): void => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const addCard = (userId: string, token: $TSFixMe) => {
+export const addCard = (userId: string, token: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`stripe/${userId}/creditCard/${token}`);
 
@@ -40,28 +40,28 @@ export const addCard = (userId: string, token: $TSFixMe) => {
         return promise;
     };
 };
-export const fetchCardsRequest = (promise: $TSFixMe) => {
+export const fetchCardsRequest = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_CARDS_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchCardsFailed = (error: ErrorPayload) => {
+export const fetchCardsFailed = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_CARDS_FAILED,
         payload: error,
     };
 };
 
-export const fetchCardsSuccess = (cards: $TSFixMe) => {
+export const fetchCardsSuccess = (cards: $TSFixMe): void => {
     return {
         type: types.FETCH_CARDS_SUCCESS,
         payload: cards,
     };
 };
 
-export const fetchCards = (userId: string) => {
+export const fetchCards = (userId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`stripe/${userId}/creditCard`);
 
@@ -79,28 +79,28 @@ export const fetchCards = (userId: string) => {
     };
 };
 
-export const deleteCardRequest = (promise: $TSFixMe) => {
+export const deleteCardRequest = (promise: $TSFixMe): void => {
     return {
         type: types.DELETE_CARD_REQUEST,
         payload: promise,
     };
 };
 
-export const deleteCardFailed = (error: ErrorPayload) => {
+export const deleteCardFailed = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_CARD_FAILED,
         payload: error,
     };
 };
 
-export const deleteCardSuccess = (card: $TSFixMe) => {
+export const deleteCardSuccess = (card: $TSFixMe): void => {
     return {
         type: types.DELETE_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const deleteCard = (userId: string, cardId: $TSFixMe) => {
+export const deleteCard = (userId: string, cardId: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = delete `stripe/${userId}/creditCard/${cardId}`;
 
@@ -118,7 +118,7 @@ export const deleteCard = (userId: string, cardId: $TSFixMe) => {
     };
 };
 
-export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe) => {
+export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe): void => {
     return {
         type: types.SET_DEFAULT_CARD_REQUEST,
         payload: {
@@ -128,21 +128,21 @@ export const setDefaultCardRequest = (promise: $TSFixMe, cardId: $TSFixMe) => {
     };
 };
 
-export const setDefaultCardFailed = (error: ErrorPayload) => {
+export const setDefaultCardFailed = (error: ErrorPayload): void => {
     return {
         type: types.SET_DEFAULT_CARD_FAILED,
         payload: error,
     };
 };
 
-export const setDefaultCardSuccess = (card: $TSFixMe) => {
+export const setDefaultCardSuccess = (card: $TSFixMe): void => {
     return {
         type: types.SET_DEFAULT_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const setDefaultCard = (userId: string, cardId: $TSFixMe) => {
+export const setDefaultCard = (userId: string, cardId: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`stripe/${userId}/creditCard/${cardId}`);
 

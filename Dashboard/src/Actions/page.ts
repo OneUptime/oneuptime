@@ -27,19 +27,19 @@ export const loadPage = function (title: $TSFixMe) {
     };
 };
 
-export const openSideNav = () => {
+export const openSideNav = (): void => {
     return {
         type: 'OPEN_SIDENAV',
     };
 };
 
-export const closeSideNav = () => {
+export const closeSideNav = (): void => {
     return {
         type: 'CLOSE_SIDENAV',
     };
 };
 
-export const toggleProjectSettingsMore = (payload: $TSFixMe) => {
+export const toggleProjectSettingsMore = (payload: $TSFixMe): void => {
     return {
         type: types.TOGGLE_PROJECT_SETTINGS_MORE,
         payload,

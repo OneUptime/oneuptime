@@ -7,21 +7,21 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
  * process and we need actions for each of them
  */
 
-export const validateTokenRequest = (promise: $TSFixMe) => {
+export const validateTokenRequest = (promise: $TSFixMe): void => {
     return {
         type: types.VALIDATE_TOKEN_REQUEST,
         payload: promise,
     };
 };
 
-export const validateTokenError = (error: ErrorPayload) => {
+export const validateTokenError = (error: ErrorPayload): void => {
     return {
         type: types.VALIDATE_TOKEN_FAILED,
         payload: error,
     };
 };
 
-export const validateTokenSuccess = (accessToken: $TSFixMe) => {
+export const validateTokenSuccess = (accessToken: $TSFixMe): void => {
     sessionStorage.setItem('accessToken', accessToken);
 
     return {
@@ -35,7 +35,7 @@ export const resetvalidateToken = () => ({
 });
 
 // Calls the API to register a user.
-export const validateToken = (token: $TSFixMe) => {
+export const validateToken = (token: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `user/isAuthenticated?accessToken=${token}`,

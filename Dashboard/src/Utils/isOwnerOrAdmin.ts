@@ -4,7 +4,7 @@
  * @param {object} project the project
  */
 
-const isOwnerOrAdmin = (userId: string, project: $TSFixMe) => {
+const isOwnerOrAdmin = (userId: string, project: $TSFixMe): void => {
     const currentUser =
         project &&
         project.users.filter(

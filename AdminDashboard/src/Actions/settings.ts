@@ -2,7 +2,7 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/settings';
 import Route from 'Common/Types/api/route';
-export const requestingSettings = () => {
+export const requestingSettings = (): void => {
     return {
         type: types.REQUESTING_SETTINGS,
     };
@@ -19,7 +19,7 @@ export const requestingSettingsSucceeded = (
     };
 };
 
-export const requestingSettingsFailed = (payload: $TSFixMe) => {
+export const requestingSettingsFailed = (payload: $TSFixMe): void => {
     return {
         type: types.REQUESTING_SETTINGS_FAILED,
         payload,
@@ -54,7 +54,7 @@ export const testTwilioFailure = (error: $TSFixMe) => ({
     payload: error,
 });
 
-export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
+export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch): void => {
     dispatch(testSmtpRequest());
 
     try {
@@ -79,7 +79,7 @@ export const testSmtp = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     }
 };
 
-export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
+export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch): void => {
     dispatch(testTwilioRequest());
 
     try {
@@ -104,7 +104,7 @@ export const testTwilio = (payload: $TSFixMe) => async (dispatch: Dispatch) => {
     }
 };
 
-export const fetchSettings = (type: $TSFixMe) => async (dispatch: Dispatch) => {
+export const fetchSettings = (type: $TSFixMe) => async (dispatch: Dispatch): void => {
     dispatch(requestingSettings());
     try {
         const response = await BackendAPI.get(`globalConfig/${type}`);

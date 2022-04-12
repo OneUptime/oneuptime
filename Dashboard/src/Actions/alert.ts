@@ -3,27 +3,27 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/alert';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const resetAlert = () => {
+export const resetAlert = (): void => {
     return {
         type: types.ALERT_FETCH_RESET,
     };
 };
 
-export const alertRequest = (promise: $TSFixMe) => {
+export const alertRequest = (promise: $TSFixMe): void => {
     return {
         type: types.ALERT_FETCH_REQUEST,
         payload: promise,
     };
 };
 
-export const alertError = (error: ErrorPayload) => {
+export const alertError = (error: ErrorPayload): void => {
     return {
         type: types.ALERT_FETCH_FAILED,
         payload: error,
     };
 };
 
-export const alertSuccess = (alert: $TSFixMe) => {
+export const alertSuccess = (alert: $TSFixMe): void => {
     return {
         type: types.ALERT_FETCH_SUCCESS,
         payload: alert,
@@ -32,7 +32,7 @@ export const alertSuccess = (alert: $TSFixMe) => {
 
 // Calls the API to fetch Alerts.
 
-export const fetchAlert = (projectId: string) => {
+export const fetchAlert = (projectId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`alert/${projectId}`);
 
@@ -51,27 +51,27 @@ export const fetchAlert = (projectId: string) => {
     };
 };
 
-export const resetProjectAlert = () => {
+export const resetProjectAlert = (): void => {
     return {
         type: types.PROJECT_ALERT_FETCH_RESET,
     };
 };
 
-export const projectAlertRequest = (promise: $TSFixMe) => {
+export const projectAlertRequest = (promise: $TSFixMe): void => {
     return {
         type: types.PROJECT_ALERT_FETCH_REQUEST,
         payload: promise,
     };
 };
 
-export const projectAlertError = (error: ErrorPayload) => {
+export const projectAlertError = (error: ErrorPayload): void => {
     return {
         type: types.PROJECT_ALERT_FETCH_FAILED,
         payload: error,
     };
 };
 
-export const projectAlertSuccess = (alert: $TSFixMe) => {
+export const projectAlertSuccess = (alert: $TSFixMe): void => {
     return {
         type: types.PROJECT_ALERT_FETCH_SUCCESS,
         payload: alert,
@@ -108,27 +108,27 @@ export function fetchProjectAlert(
 }
 
 // Incidents Alert
-export const incidentResetAlert = () => {
+export const incidentResetAlert = (): void => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_RESET,
     };
 };
 
-export const incidentAlertRequest = (promise: $TSFixMe) => {
+export const incidentAlertRequest = (promise: $TSFixMe): void => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_REQUEST,
         payload: promise,
     };
 };
 
-export const incidentAlertError = (error: ErrorPayload) => {
+export const incidentAlertError = (error: ErrorPayload): void => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_FAILED,
         payload: error,
     };
 };
 
-export const incidentAlertSuccess = (alert: $TSFixMe) => {
+export const incidentAlertSuccess = (alert: $TSFixMe): void => {
     return {
         type: types.INCIDENTS_ALERT_FETCH_SUCCESS,
         payload: alert,
@@ -165,27 +165,27 @@ export function fetchIncidentAlert(
 
 // Subscribers Alert
 
-export const subscriberResetAlert = () => {
+export const subscriberResetAlert = (): void => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_RESET,
     };
 };
 
-export const subscriberAlertRequest = (promise: $TSFixMe) => {
+export const subscriberAlertRequest = (promise: $TSFixMe): void => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_REQUEST,
         payload: promise,
     };
 };
 
-export const subscriberAlertError = (error: ErrorPayload) => {
+export const subscriberAlertError = (error: ErrorPayload): void => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_FAILED,
         payload: error,
     };
 };
 
-export const subscriberAlertSuccess = (alert: $TSFixMe) => {
+export const subscriberAlertSuccess = (alert: $TSFixMe): void => {
     return {
         type: types.SUBSCRIBERS_ALERT_FETCH_SUCCESS,
         payload: alert,
@@ -231,21 +231,21 @@ export function fetchSubscriberAlert(
     };
 }
 
-export const fetchAlertChargesRequest = (promise: $TSFixMe) => {
+export const fetchAlertChargesRequest = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_ALERT_CHARGES_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchAlertChargesFailed = (error: ErrorPayload) => {
+export const fetchAlertChargesFailed = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_ALERT_CHARGES_FAILED,
         payload: error,
     };
 };
 
-export const fetchAlertChargesSuccess = (alertCharges: $TSFixMe) => {
+export const fetchAlertChargesSuccess = (alertCharges: $TSFixMe): void => {
     return {
         type: types.FETCH_ALERT_CHARGES_SUCCESS,
         payload: alertCharges,
@@ -281,28 +281,28 @@ export function fetchAlertCharges(
     };
 }
 
-export const downloadAlertChargesRequest = (promise: $TSFixMe) => {
+export const downloadAlertChargesRequest = (promise: $TSFixMe): void => {
     return {
         type: types.DOWNLOAD_ALERT_CHARGES_REQUEST,
         payload: promise,
     };
 };
 
-export const downloadAlertChargesFailed = (error: ErrorPayload) => {
+export const downloadAlertChargesFailed = (error: ErrorPayload): void => {
     return {
         type: types.DOWNLOAD_ALERT_CHARGES_FAILED,
         payload: error,
     };
 };
 
-export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe) => {
+export const downloadAlertChargesSuccess = (alertCharges: $TSFixMe): void => {
     return {
         type: types.DOWNLOAD_ALERT_CHARGES_SUCCESS,
         payload: alertCharges,
     };
 };
 
-export const downloadAlertCharges = (projectId: string) => {
+export const downloadAlertCharges = (projectId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`alert/${projectId}/alert/charges`);
 

@@ -5,20 +5,20 @@ import Route from 'Common/Types/api/route';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
 // Fetch All Email Logs
-export const fetchEmailLogsRequest = () => {
+export const fetchEmailLogsRequest = (): void => {
     return {
         type: types.FETCH_EMAILLOGS_REQUEST,
     };
 };
 
-export const fetchEmailLogsSuccess = (emailLogs: $TSFixMe) => {
+export const fetchEmailLogsSuccess = (emailLogs: $TSFixMe): void => {
     return {
         type: types.FETCH_EMAILLOGS_SUCCESS,
         payload: emailLogs,
     };
 };
 
-export const fetchEmailLogsError = (error: $TSFixMe) => {
+export const fetchEmailLogsError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_EMAILLOGS_FAILURE,
         payload: error,
@@ -60,20 +60,20 @@ export const fetchEmailLogs =
     };
 
 // Search Email Logs.
-export const searchEmailLogsRequest = () => {
+export const searchEmailLogsRequest = (): void => {
     return {
         type: types.SEARCH_EMAILLOGS_REQUEST,
     };
 };
 
-export const searchEmailLogsSuccess = (emailLogs: $TSFixMe) => {
+export const searchEmailLogsSuccess = (emailLogs: $TSFixMe): void => {
     return {
         type: types.SEARCH_EMAILLOGS_SUCCESS,
         payload: emailLogs,
     };
 };
 
-export const searchEmailLogsError = (error: $TSFixMe) => {
+export const searchEmailLogsError = (error: $TSFixMe): void => {
     return {
         type: types.SEARCH_EMAILLOGS_FAILURE,
         payload: error,
@@ -116,27 +116,27 @@ export const searchEmailLogs =
     };
 
 // Delete All Email Logs
-export const deleteEmailLogsRequest = () => {
+export const deleteEmailLogsRequest = (): void => {
     return {
         type: types.DELETE_ALL_EMAILLOGS_REQUEST,
     };
 };
 
-export const deleteEmailLogsSuccess = (message: $TSFixMe) => {
+export const deleteEmailLogsSuccess = (message: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_EMAILLOGS_SUCCESS,
         payload: message,
     };
 };
 
-export const deleteEmailLogsError = (error: $TSFixMe) => {
+export const deleteEmailLogsError = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_EMAILLOGS_FAILURE,
         payload: error,
     };
 };
 
-export const deleteEmailLogs = () => async (dispatch: Dispatch) => {
+export const deleteEmailLogs = () => async (dispatch: Dispatch): void => {
     dispatch(deleteEmailLogsRequest());
 
     try {
@@ -163,35 +163,35 @@ export const deleteEmailLogs = () => async (dispatch: Dispatch) => {
 
 // fetch emailLogStatus
 
-export const fetchEmailLogStatusRequest = (promise: $TSFixMe) => {
+export const fetchEmailLogStatusRequest = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchEmailLogStatusError = (error: $TSFixMe) => {
+export const fetchEmailLogStatusError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const fetchEmailLogStatusSuccess = (emailLogStatus: $TSFixMe) => {
+export const fetchEmailLogStatusSuccess = (emailLogStatus: $TSFixMe): void => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_SUCCESS,
         payload: emailLogStatus,
     };
 };
 
-export const resetFetchEmailLogStatus = () => {
+export const resetFetchEmailLogStatus = (): void => {
     return {
         type: types.FETCH_EMAILLOG_STATUS_RESET,
     };
 };
 
 // Calls the API to fetch emailLogStatus
-export const fetchEmailLogStatus = () => async (dispatch: Dispatch) => {
+export const fetchEmailLogStatus = () => async (dispatch: Dispatch): void => {
     dispatch(fetchEmailLogStatusRequest());
 
     try {
@@ -220,28 +220,28 @@ export const fetchEmailLogStatus = () => async (dispatch: Dispatch) => {
 
 // change emailLogStatus
 
-export const changeEmailLogStatusRequest = (promise: $TSFixMe) => {
+export const changeEmailLogStatusRequest = (promise: $TSFixMe): void => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const changeEmailLogStatusError = (error: $TSFixMe) => {
+export const changeEmailLogStatusError = (error: $TSFixMe): void => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const changeEmailLogStatusSuccess = (emailLogStatus: $TSFixMe) => {
+export const changeEmailLogStatusSuccess = (emailLogStatus: $TSFixMe): void => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_SUCCESS,
         payload: emailLogStatus,
     };
 };
 
-export const resetConfirmEmailLogStatus = () => {
+export const resetConfirmEmailLogStatus = (): void => {
     return {
         type: types.CHANGE_EMAILLOG_STATUS_RESET,
     };

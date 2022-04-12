@@ -4,35 +4,35 @@ import * as types from '../constants/probe';
 import Route from 'Common/Types/api/route';
 //Array of Incidents
 
-export const probeRequest = (promise: $TSFixMe) => {
+export const probeRequest = (promise: $TSFixMe): void => {
     return {
         type: types.PROBE_REQUEST,
         payload: promise,
     };
 };
 
-export const probeError = (error: $TSFixMe) => {
+export const probeError = (error: $TSFixMe): void => {
     return {
         type: types.PROBE_FAILED,
         payload: error,
     };
 };
 
-export const probeSuccess = (probes: $TSFixMe) => {
+export const probeSuccess = (probes: $TSFixMe): void => {
     return {
         type: types.PROBE_SUCCESS,
         payload: probes,
     };
 };
 
-export const resetProbe = () => {
+export const resetProbe = (): void => {
     return {
         type: types.PROBE_RESET,
     };
 };
 
 // Gets project Probes
-export const getProbes = (skip = 0, limit = 10) => {
+export const getProbes = (skip = 0, limit = 10): void => {
     skip = parseInt(skip);
 
     limit = parseInt(limit);
@@ -59,26 +59,26 @@ export const getProbes = (skip = 0, limit = 10) => {
 };
 
 //Delete project
-export const deleteProbeRequest = () => {
+export const deleteProbeRequest = (): void => {
     return {
         type: types.DELETE_PROBE_REQUEST,
     };
 };
 
-export const deleteProbeReset = () => {
+export const deleteProbeReset = (): void => {
     return {
         type: types.DELETE_PROBE_RESET,
     };
 };
 
-export const deleteProbeSuccess = (probeId: $TSFixMe) => {
+export const deleteProbeSuccess = (probeId: $TSFixMe): void => {
     return {
         type: types.DELETE_PROBE_SUCCESS,
         payload: probeId,
     };
 };
 
-export const deleteProbeError = (error: $TSFixMe) => {
+export const deleteProbeError = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_PROBE_FAILED,
         payload: error,
@@ -111,33 +111,33 @@ export const deleteProbe =
     };
 
 //Delete project
-export const addProbeRequest = () => {
+export const addProbeRequest = (): void => {
     return {
         type: types.ADD_PROBE_REQUEST,
     };
 };
 
-export const addProbeReset = () => {
+export const addProbeReset = (): void => {
     return {
         type: types.ADD_PROBE_RESET,
     };
 };
 
-export const addProbeSuccess = (probeId: $TSFixMe) => {
+export const addProbeSuccess = (probeId: $TSFixMe): void => {
     return {
         type: types.ADD_PROBE_SUCCESS,
         payload: probeId,
     };
 };
 
-export const addProbeError = (error: $TSFixMe) => {
+export const addProbeError = (error: $TSFixMe): void => {
     return {
         type: types.ADD_PROBE_FAILED,
         payload: error,
     };
 };
 
-export const resetAddProbe = () => {
+export const resetAddProbe = (): void => {
     return function (dispatch: Dispatch) {
         dispatch(addProbeReset());
     };
@@ -175,26 +175,26 @@ export const addProbe =
     };
 
 //Update Probe
-export const updateProbeRequest = () => {
+export const updateProbeRequest = (): void => {
     return {
         type: types.UPDATE_PROBE_REQUEST,
     };
 };
 
-export const updateProbeReset = () => {
+export const updateProbeReset = (): void => {
     return {
         type: types.UPDATE_PROBE_RESET,
     };
 };
 
-export const updateProbeSuccess = (value: $TSFixMe) => {
+export const updateProbeSuccess = (value: $TSFixMe): void => {
     return {
         type: types.UPDATE_PROBE_SUCCESS,
         payload: value,
     };
 };
 
-export const updateProbeError = (error: $TSFixMe) => {
+export const updateProbeError = (error: $TSFixMe): void => {
     return {
         type: types.UPDATE_PROBE_FAILED,
         payload: error,
@@ -202,7 +202,7 @@ export const updateProbeError = (error: $TSFixMe) => {
 };
 
 // Calls the API to update a probe
-export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch) => {
+export const updateProbe = (values: $TSFixMe) => async (dispatch: Dispatch): void => {
     dispatch(updateProbeRequest());
 
     try {

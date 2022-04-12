@@ -101,7 +101,7 @@ export const getGroupsFailure = (error: ErrorPayload) => ({
     payload: error,
 });
 
-export const getGroups = () => async (dispatch: Dispatch) => {
+export const getGroups = () => async (dispatch: Dispatch): void => {
     dispatch(getGroupsRequest());
     const projectId = User.getCurrentProjectId();
     try {

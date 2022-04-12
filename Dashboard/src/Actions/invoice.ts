@@ -4,40 +4,40 @@ import * as types from '../constants/invoice';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // Array of invoices
 
-export const getInvoiceRequest = (promise: $TSFixMe) => {
+export const getInvoiceRequest = (promise: $TSFixMe): void => {
     return {
         type: types.GET_INVOICE_REQUEST,
         payload: promise,
     };
 };
 
-export const getInvoiceError = (error: ErrorPayload) => {
+export const getInvoiceError = (error: ErrorPayload): void => {
     return {
         type: types.GET_INVOICE_FAILED,
         payload: error,
     };
 };
 
-export const getInvoiceSuccess = (invoices: $TSFixMe) => {
+export const getInvoiceSuccess = (invoices: $TSFixMe): void => {
     return {
         type: types.GET_INVOICE_SUCCESS,
         payload: invoices,
     };
 };
 
-export const getInvoiceReset = () => {
+export const getInvoiceReset = (): void => {
     return {
         type: types.GET_INVOICE_RESET,
     };
 };
 
-export const incrementNextCount = () => {
+export const incrementNextCount = (): void => {
     return {
         type: types.INCREMENT_NEXT_COUNT,
     };
 };
 
-export const decrementNextCount = () => {
+export const decrementNextCount = (): void => {
     return {
         type: types.DECREMENT_NEXT_COUNT,
     };

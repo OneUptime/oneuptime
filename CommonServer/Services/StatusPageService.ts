@@ -2057,7 +2057,7 @@ function limitEvents(
     return events.slice(skip, limit);
 }
 
-const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe) => {
+const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe): void => {
     const monitorStatuses = monitor && monitor.length > 0 ? monitor : null;
 
     const probesStatus =
@@ -2082,7 +2082,7 @@ const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe) => {
     return statuses;
 };
 
-const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe) => {
+const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe): void => {
     const monitorsLength = monitorsData.length;
     const probesLength = probes && probes.length;
 

@@ -201,7 +201,7 @@ const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = {
             parentPort.postMessage({ type: 'log', payload: `[warn]: ${error}` });
         });
 
-        const scriptCompletedCallback = (err: $TSFixMe) => {
+        const scriptCompletedCallback = (err: $TSFixMe): void => {
             if (err) {
                 throw new ScriptMonitorError(err);
             }

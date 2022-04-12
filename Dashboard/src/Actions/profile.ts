@@ -7,40 +7,40 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
 import Action from 'CommonUI/src/types/action';
 //Update profile setting
 
-export const updateProfileSettingRequest = () => {
+export const updateProfileSettingRequest = (): void => {
     return {
         type: types.UPDATE_PROFILE_SETTING_REQUEST,
     };
 };
 
-export const updateProfileSettingSuccess = (profileSetting: $TSFixMe) => {
+export const updateProfileSettingSuccess = (profileSetting: $TSFixMe): void => {
     return {
         type: types.UPDATE_PROFILE_SETTING_SUCCESS,
         payload: profileSetting,
     };
 };
 
-export const updateProfileSettingError = (error: ErrorPayload) => {
+export const updateProfileSettingError = (error: ErrorPayload): void => {
     return {
         type: types.UPDATE_PROFILE_SETTING_FAILURE,
         payload: error,
     };
 };
 
-export const updatePushNotificationRequest = () => {
+export const updatePushNotificationRequest = (): void => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_REQUEST,
     };
 };
 
-export const updatePushNotificationError = (error: ErrorPayload) => {
+export const updatePushNotificationError = (error: ErrorPayload): void => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_ERROR,
         payload: error,
     };
 };
 
-export const updatePushNotificationSuccess = (data: $TSFixMe) => {
+export const updatePushNotificationSuccess = (data: $TSFixMe): void => {
     return {
         type: types.UPDATE_PUSH_NOTIFICATION_SUCCESS,
         payload: data,
@@ -49,7 +49,7 @@ export const updatePushNotificationSuccess = (data: $TSFixMe) => {
 
 // Calls the API to update setting.
 
-export const updateProfileSetting = (values: $TSFixMe) => {
+export const updateProfileSetting = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const data = new FormData();
         if (values.profilePic && values.profilePic !== 'null') {
@@ -95,7 +95,7 @@ export const updateProfileSetting = (values: $TSFixMe) => {
 };
 
 // Update push notification
-export const updatePushNotification = (data: $TSFixMe) => {
+export const updatePushNotification = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put('user/push-notification', data);
         dispatch(updatePushNotificationRequest());
@@ -115,27 +115,27 @@ export const updatePushNotification = (data: $TSFixMe) => {
 };
 
 // Update user's two factor authentication
-export const twoFactorAuthTokenRequest = () => {
+export const twoFactorAuthTokenRequest = (): void => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_REQUEST,
     };
 };
 
-export const twoFactorAuthTokenSuccess = (payload: $TSFixMe) => {
+export const twoFactorAuthTokenSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
         payload: payload,
     };
 };
 
-export const twoFactorAuthTokenError = (error: ErrorPayload) => {
+export const twoFactorAuthTokenError = (error: ErrorPayload): void => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
     };
 };
 
-export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
+export const verifyTwoFactorAuthToken = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             new Route('user/totp/verifyToken'),
@@ -158,27 +158,27 @@ export const verifyTwoFactorAuthToken = (values: $TSFixMe) => {
 };
 
 // Generate user's QR code
-export const generateTwoFactorQRCodeRequest = () => {
+export const generateTwoFactorQRCodeRequest = (): void => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_REQUEST,
     };
 };
 
-export const generateTwoFactorQRCodeSuccess = (payload: $TSFixMe) => {
+export const generateTwoFactorQRCodeSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_SUCCESS,
         payload: payload,
     };
 };
 
-export const generateTwoFactorQRCodeError = (error: ErrorPayload) => {
+export const generateTwoFactorQRCodeError = (error: ErrorPayload): void => {
     return {
         type: types.GENERATE_TWO_FACTOR_QR_FAILURE,
         payload: error,
     };
 };
 
-export const generateTwoFactorQRCode = (userId: string) => {
+export const generateTwoFactorQRCode = (userId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
@@ -199,7 +199,7 @@ export const generateTwoFactorQRCode = (userId: string) => {
 
 // Update user twoFactorAuthToken
 
-export const updateTwoFactorAuthToken = (data: $TSFixMe) => {
+export const updateTwoFactorAuthToken = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put('user/profile', data);
         dispatch(twoFactorAuthTokenRequest());
@@ -220,19 +220,19 @@ export const updateTwoFactorAuthToken = (data: $TSFixMe) => {
 
 //Update change password setting.
 
-export const updateChangePasswordSettingRequest = () => {
+export const updateChangePasswordSettingRequest = (): void => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_REQUEST,
     };
 };
 
-export const updateChangePasswordSettingSuccess = () => {
+export const updateChangePasswordSettingSuccess = (): void => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_SUCCESS,
     };
 };
 
-export const updateChangePasswordSettingError = (error: ErrorPayload) => {
+export const updateChangePasswordSettingError = (error: ErrorPayload): void => {
     return {
         type: types.UPDATE_CHANGE_PASSWORD_SETTING_FAILURE,
         payload: error,
@@ -240,7 +240,7 @@ export const updateChangePasswordSettingError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update change password setting.
-export const updateChangePasswordSetting = (data: $TSFixMe) => {
+export const updateChangePasswordSetting = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put('user/changePassword', data);
         dispatch(updateChangePasswordSettingRequest());
@@ -258,14 +258,14 @@ export const updateChangePasswordSetting = (data: $TSFixMe) => {
     };
 };
 
-export const showProfileMenu = (position: $TSFixMe) => {
+export const showProfileMenu = (position: $TSFixMe): void => {
     return {
         type: types.SHOW_PROFILE_MENU,
         payload: position,
     };
 };
 
-export const hideProfileMenu = (error: ErrorPayload) => {
+export const hideProfileMenu = (error: ErrorPayload): void => {
     return {
         type: types.HIDE_PROFILE_MENU,
         payload: error,
@@ -274,20 +274,20 @@ export const hideProfileMenu = (error: ErrorPayload) => {
 
 // Get Previous User Settings.
 
-export const userSettingsRequest = () => {
+export const userSettingsRequest = (): void => {
     return {
         type: types.USER_SETTINGS_REQUEST,
     };
 };
 
-export const userSettingsSuccess = (settings: $TSFixMe) => {
+export const userSettingsSuccess = (settings: $TSFixMe): void => {
     return {
         type: types.USER_SETTINGS_SUCCESS,
         payload: settings,
     };
 };
 
-export const userSettingsError = (error: ErrorPayload) => {
+export const userSettingsError = (error: ErrorPayload): void => {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
@@ -295,7 +295,7 @@ export const userSettingsError = (error: ErrorPayload) => {
 };
 
 // Calls the API to update on cal alert setting.
-export const userSettings = () => {
+export const userSettings = (): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(new Route('user/profile'));
         dispatch(userSettingsRequest());
@@ -315,65 +315,65 @@ export const userSettings = () => {
     };
 };
 
-export const logFile = (file: $TSFixMe) => {
+export const logFile = (file: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 };
 
-export const resetFile = () => {
+export const resetFile = (): void => {
     return function (dispatch: Dispatch) {
         dispatch({ type: 'RESET_FILE' });
     };
 };
 
-export const sendVerificationSMSRequest = () => {
+export const sendVerificationSMSRequest = (): void => {
     return {
         type: types.SEND_VERIFICATION_SMS_REQUEST,
     };
 };
 
-export const sendVerificationSMSSuccess = (verificationAction: Action) => {
+export const sendVerificationSMSSuccess = (verificationAction: Action): void => {
     return {
         type: types.SEND_VERIFICATION_SMS_SUCCESS,
         payload: verificationAction,
     };
 };
 
-export const sendVerificationSMSError = (error: ErrorPayload) => {
+export const sendVerificationSMSError = (error: ErrorPayload): void => {
     return {
         type: types.SEND_VERIFICATION_SMS_FAILURE,
         payload: error,
     };
 };
 
-export const sendVerificationSMSReset = () => {
+export const sendVerificationSMSReset = (): void => {
     return function (dispatch: Dispatch) {
         dispatch({ type: types.SEND_VERIFICATION_SMS_RESET });
     };
 };
 
-export const sendEmailVerificationRequest = () => {
+export const sendEmailVerificationRequest = (): void => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_REQUEST,
     };
 };
 
-export const sendEmailVerificationSuccess = (payload: $TSFixMe) => {
+export const sendEmailVerificationSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_SUCCESS,
         payload,
     };
 };
 
-export const sendEmailVerificationError = (error: ErrorPayload) => {
+export const sendEmailVerificationError = (error: ErrorPayload): void => {
     return {
         type: types.SEND_EMAIL_VERIFICATION_FAILURE,
         payload: error,
     };
 };
 
-export const sendEmailVerificationLink = (values: $TSFixMe) => {
+export const sendEmailVerificationLink = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(new Route('user/resend'), values);
         dispatch(sendEmailVerificationRequest());
@@ -390,7 +390,7 @@ export const sendEmailVerificationLink = (values: $TSFixMe) => {
     };
 };
 
-export const sendVerificationSMS = (projectId: string, values: $TSFixMe) => {
+export const sendVerificationSMS = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `twilio/sms/sendVerificationToken?projectId=${projectId}`,
@@ -412,33 +412,33 @@ export const sendVerificationSMS = (projectId: string, values: $TSFixMe) => {
         return promise;
     };
 };
-export const verifySMSCodeRequest = () => {
+export const verifySMSCodeRequest = (): void => {
     return {
         type: types.VERIFY_SMS_CODE_REQUEST,
     };
 };
 
-export const verifySMSCodeSuccess = (verificationResult: $TSFixMe) => {
+export const verifySMSCodeSuccess = (verificationResult: $TSFixMe): void => {
     return {
         type: types.VERIFY_SMS_CODE_SUCCESS,
         payload: verificationResult,
     };
 };
 
-export const verifySMSCodeError = (error: ErrorPayload) => {
+export const verifySMSCodeError = (error: ErrorPayload): void => {
     return {
         type: types.VERIFY_SMS_CODE_FAILURE,
         payload: error,
     };
 };
 
-export const verifySMSCodeReset = () => {
+export const verifySMSCodeReset = (): void => {
     return function (dispatch: Dispatch) {
         dispatch({ type: types.VERIFY_SMS_CODE_RESET });
     };
 };
 
-export const verifySMSCode = (projectId: string, values: $TSFixMe) => {
+export const verifySMSCode = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `twilio/sms/verify?projectId=${projectId}`,
@@ -461,91 +461,91 @@ export const verifySMSCode = (projectId: string, values: $TSFixMe) => {
     };
 };
 
-export const setAlertPhoneNumber = (number: $TSFixMe) => {
+export const setAlertPhoneNumber = (number: $TSFixMe): void => {
     return {
         type: types.SET_ALERT_PHONE_NUMBER,
         payload: number,
     };
 };
 
-export const setTwoFactorAuth = (enabled: $TSFixMe) => {
+export const setTwoFactorAuth = (enabled: $TSFixMe): void => {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
     };
 };
 
-export const setInitAlertEmail = (email: $TSFixMe) => {
+export const setInitAlertEmail = (email: $TSFixMe): void => {
     return {
         type: types.SET_INIT_ALERT_EMAIL,
         payload: email,
     };
 };
 
-export const setVerified = (value: $TSFixMe) => {
+export const setVerified = (value: $TSFixMe): void => {
     return {
         type: types.SET_VERIFIED,
         payload: value,
     };
 };
 
-export const setInitPhoneVerificationNumber = (number: $TSFixMe) => {
+export const setInitPhoneVerificationNumber = (number: $TSFixMe): void => {
     return {
         type: types.SET_INIT_PHONE_VERIFICATION_NUMBER,
         payload: number,
     };
 };
 
-export const setInitPhoneVerification = (value: $TSFixMe) => {
+export const setInitPhoneVerification = (value: $TSFixMe): void => {
     return {
         type: types.SET_INIT_PHONE_VERIFICATION,
         payload: value,
     };
 };
 
-export const setProfilePic = (value: $TSFixMe) => {
+export const setProfilePic = (value: $TSFixMe): void => {
     return {
         type: types.SET_PROFILE_PIC,
         payload: value,
     };
 };
 
-export const setRemovedPic = (value: $TSFixMe) => {
+export const setRemovedPic = (value: $TSFixMe): void => {
     return {
         type: types.SET_REMOVED_PIC,
         payload: value,
     };
 };
 
-export const setFileInputKey = (value: $TSFixMe) => {
+export const setFileInputKey = (value: $TSFixMe): void => {
     return {
         type: types.SET_FILE_INPUT_KEY,
         payload: value,
     };
 };
 
-export const setIsVerified = (value: $TSFixMe) => {
+export const setIsVerified = (value: $TSFixMe): void => {
     return {
         type: types.SET_IS_VERIFIED,
         payload: value,
     };
 };
 
-export const setInitialAlertPhoneNumber = (value: $TSFixMe) => {
+export const setInitialAlertPhoneNumber = (value: $TSFixMe): void => {
     return {
         type: types.SET_INITIAL_ALERT_PHONE_NUMBER,
         payload: value,
     };
 };
 
-export const setUserEmail = (value: $TSFixMe) => {
+export const setUserEmail = (value: $TSFixMe): void => {
     return {
         type: types.SET_USER_EMAIL,
         payload: value,
     };
 };
 
-export const setResendTimer = (value: $TSFixMe) => {
+export const setResendTimer = (value: $TSFixMe): void => {
     return {
         type: types.SET_RESEND_TIMER,
         payload: value,
@@ -553,27 +553,27 @@ export const setResendTimer = (value: $TSFixMe) => {
 };
 
 // Delete user account
-export const deleteAccountRequest = () => {
+export const deleteAccountRequest = (): void => {
     return {
         type: types.DELETE_ACCOUNT_REQUEST,
     };
 };
 
-export const deleteAccountSuccess = (promise: $TSFixMe) => {
+export const deleteAccountSuccess = (promise: $TSFixMe): void => {
     return {
         type: types.USER_SETTINGS_SUCCESS,
         payload: promise,
     };
 };
 
-export const deleteAccountFailure = (error: ErrorPayload) => {
+export const deleteAccountFailure = (error: ErrorPayload): void => {
     return {
         type: types.USER_SETTINGS_FAILURE,
         payload: error,
     };
 };
 
-export const deleteAccount = (userId: string, confirmation: $TSFixMe) => {
+export const deleteAccount = (userId: string, confirmation: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = delete (`user/${userId}/delete`, confirmation);
         dispatch(deleteAccountRequest());
@@ -607,7 +607,7 @@ const generateBackupCodesFailure = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const generateBackupCodes = () => {
+export const generateBackupCodes = (): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(`user/generate/backupCode`);
         dispatch(generateBackupCodesRequest());

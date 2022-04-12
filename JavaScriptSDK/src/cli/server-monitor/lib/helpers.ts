@@ -20,7 +20,7 @@ const headers = {
  * @param {Object} - The error object of the request.
  * @default
  */
-const defaultErrorHandler = (error: $TSFixMe) => {
+const defaultErrorHandler = (error: $TSFixMe): void => {
     logger.debug(error.config);
     if (error.response) {
         logger.debug(error.response.data);

@@ -251,7 +251,7 @@ const codes = {
     ZW: 'Zimbabwe',
 };
 
-export const countryCode = () => {
+export const countryCode = (): void => {
     const invertedObject = _.invert(codes);
     let keys = Object.keys(invertedObject);
     keys = keys.sort();

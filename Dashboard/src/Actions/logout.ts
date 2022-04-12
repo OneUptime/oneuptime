@@ -7,7 +7,7 @@ import { Dispatch } from 'redux';
 // from localStorage. These actions are more useful if we
 // were calling the API to log the user out
 
-export const requestLogout = () => {
+export const requestLogout = (): void => {
     return {
         type: types.LOGOUT_REQUEST,
         isFetching: true,
@@ -15,7 +15,7 @@ export const requestLogout = () => {
     };
 };
 
-export const receiveLogout = () => {
+export const receiveLogout = (): void => {
     return {
         type: types.LOGOUT_SUCCESS,
         isFetching: false,
@@ -24,7 +24,7 @@ export const receiveLogout = () => {
 };
 
 // Logs the user out
-export const logoutUser = () => {
+export const logoutUser = (): void => {
     return (dispatch: Dispatch) => {
         dispatch(requestLogout());
         const cookies = new Cookies();

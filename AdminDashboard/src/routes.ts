@@ -257,7 +257,7 @@ export const groups = [
     },
 ];
 
-const joinFn = (acc = [], curr: $TSFixMe) => {
+const joinFn = (acc = [], curr: $TSFixMe): void => {
     return acc.concat(curr);
 };
 

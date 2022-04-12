@@ -18,47 +18,47 @@ export const closeNotificationMenu = function (error: ErrorPayload) {
 };
 
 // Create a new project
-export const fetchNotificationsRequest = () => {
+export const fetchNotificationsRequest = (): void => {
     return {
         type: types.FETCH_NOTIFICATIONS_REQUEST,
     };
 };
 
-export const fetchNotificationsError = (error: ErrorPayload) => {
+export const fetchNotificationsError = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_NOTIFICATIONS_FAILED,
         payload: error,
     };
 };
 
-export const fetchNotificationsSuccess = (notifications: $TSFixMe) => {
+export const fetchNotificationsSuccess = (notifications: $TSFixMe): void => {
     return {
         type: types.FETCH_NOTIFICATIONS_SUCCESS,
         payload: notifications,
     };
 };
 
-export const fetchNotificationsReset = () => {
+export const fetchNotificationsReset = (): void => {
     return {
         type: types.FETCH_NOTIFICATIONS_RESET,
     };
 };
 
-export const notificationReadSuccess = (notificationId: $TSFixMe) => {
+export const notificationReadSuccess = (notificationId: $TSFixMe): void => {
     return {
         type: types.NOTIFICATION_READ_SUCCESS,
         payload: notificationId,
     };
 };
 
-export const notificationClosedSuccess = (notificationId: $TSFixMe) => {
+export const notificationClosedSuccess = (notificationId: $TSFixMe): void => {
     return {
         type: types.NOTIFICATION_CLOSED_SUCCESS,
         payload: notificationId,
     };
 };
 
-export const allNotificationReadSuccess = (userId: string) => {
+export const allNotificationReadSuccess = (userId: string): void => {
     return {
         type: types.ALL_NOTIFICATION_READ_SUCCESS,
         payload: userId,
@@ -66,7 +66,7 @@ export const allNotificationReadSuccess = (userId: string) => {
 };
 
 // Calls the API to get all notifications.
-export const fetchNotifications = (projectId: string) => {
+export const fetchNotifications = (projectId: string): void => {
     return async function (dispatch: Dispatch) {
         try {
             const notifications = await BackendAPI.get(
@@ -94,7 +94,7 @@ export const fetchNotifications = (projectId: string) => {
     };
 };
 
-export const markAsRead = (projectId: string, notificationIds: $TSFixMe) => {
+export const markAsRead = (projectId: string, notificationIds: $TSFixMe): void => {
     return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
@@ -170,7 +170,7 @@ export function closeNotification(projectId: string, notificationId: $TSFixMe) {
     };
 }
 
-export const markAllAsRead = (projectId: string) => {
+export const markAllAsRead = (projectId: string): void => {
     return async function (dispatch: Dispatch) {
         try {
             const userId = User.getUserId();
@@ -227,7 +227,7 @@ export function billingActionTaken(
     };
 }
 
-export const resetProjectNotification = (projectId: string) => {
+export const resetProjectNotification = (projectId: string): void => {
     return {
         type: types.RESET_PROJECT_NOTIFICATIONS,
         payload: projectId,

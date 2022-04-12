@@ -11,58 +11,58 @@ export const SUBSCRIBE_FAILURE = 'SUBSCRIBE_FAILURE';
 export const VALIDATION_ERROR = 'VALIDATION_ERROR';
 export const OPEN_LANGUAGE_MENU = 'OPEN_LANGUAGE_MENU';
 
-export const openSubscribeMenu = () => {
+export const openSubscribeMenu = (): void => {
     return {
         type: OPEN_SUBSCRIBE_MENU,
     };
 };
 
-export const openLanguageMenu = () => {
+export const openLanguageMenu = (): void => {
     return {
         type: OPEN_LANGUAGE_MENU,
     };
 };
 
-export const selectedMenu = (data: $TSFixMe) => {
+export const selectedMenu = (data: $TSFixMe): void => {
     return {
         type: SELECTED_MENU,
         payload: data,
     };
 };
 
-export const userData = (data: $TSFixMe) => {
+export const userData = (data: $TSFixMe): void => {
     return {
         type: USER_DATA,
         payload: data,
     };
 };
 
-export const userDataReset = () => {
+export const userDataReset = (): void => {
     return {
         type: USER_DATA_RESET,
     };
 };
 
-export const subscribeRequest = () => {
+export const subscribeRequest = (): void => {
     return {
         type: SUBSCRIBE_REQUEST,
     };
 };
 
-export const subscribeSuccess = () => {
+export const subscribeSuccess = (): void => {
     return {
         type: SUBSCRIBE_SUCCESS,
     };
 };
 
-export const subscribeFailure = (data: $TSFixMe) => {
+export const subscribeFailure = (data: $TSFixMe): void => {
     return {
         type: SUBSCRIBE_FAILURE,
         payload: data,
     };
 };
 
-export const validationError = (error: ErrorPayload) => {
+export const validationError = (error: ErrorPayload): void => {
     return {
         type: VALIDATION_ERROR,
         payload: error,

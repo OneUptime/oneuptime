@@ -7,34 +7,34 @@ import * as types from '../constants/version';
 import { Dispatch } from 'redux';
 import Route from 'Common/Types/api/route';
 
-export const getVersionRequest = (promise: $TSFixMe) => {
+export const getVersionRequest = (promise: $TSFixMe): void => {
     return {
         type: types.GET_VERSION_REQUEST,
         payload: promise,
     };
 };
 
-export const getVersionError = (error: $TSFixMe) => {
+export const getVersionError = (error: $TSFixMe): void => {
     return {
         type: types.GET_VERSION_FAILED,
         payload: error,
     };
 };
 
-export const getVersionSuccess = (versions: $TSFixMe) => {
+export const getVersionSuccess = (versions: $TSFixMe): void => {
     return {
         type: types.GET_VERSION_SUCCESS,
         payload: versions,
     };
 };
 
-export const resetGetVersion = () => {
+export const resetGetVersion = (): void => {
     return {
         type: types.GET_VERSION_RESET,
     };
 };
 
-export const getVersion = () => {
+export const getVersion = (): void => {
     return function (dispatch: Dispatch) {
         let promise = null;
         let backendPromise = null;

@@ -46,20 +46,20 @@ export const fetchResourceCategoriesSuccess = (
     };
 };
 
-export const fetchResourceCategoriesRequest = () => {
+export const fetchResourceCategoriesRequest = (): void => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_REQUEST,
     };
 };
 
-export const fetchResourceCategoriesFailure = (error: ErrorPayload) => {
+export const fetchResourceCategoriesFailure = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FAILURE,
         payload: error,
     };
 };
 
-export const createResourceCategory = (projectId: string, values: $TSFixMe) => {
+export const createResourceCategory = (projectId: string, values: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.post(
             `resourceCategory/${projectId}`,
@@ -136,20 +136,20 @@ export const createResourceCategorySuccess = (
     };
 };
 
-export const createResourceCategoryRequest = () => {
+export const createResourceCategoryRequest = (): void => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_REQUEST,
     };
 };
 
-export const createResourceCategoryFailure = (error: ErrorPayload) => {
+export const createResourceCategoryFailure = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
     };
 };
 
-export const updateResourceCategoryRequest = () => {
+export const updateResourceCategoryRequest = (): void => {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_REQUEST,
     };
@@ -164,7 +164,7 @@ export function updateResourceCategorySuccess(
     };
 }
 
-export const updateResourceCategoryFailure = (error: ErrorPayload) => {
+export const updateResourceCategoryFailure = (error: ErrorPayload): void => {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
@@ -203,21 +203,21 @@ export function deleteResourceCategorySuccess(
     };
 }
 
-export const deleteResourceCategoryRequest = (resourceCategoryId: $TSFixMe) => {
+export const deleteResourceCategoryRequest = (resourceCategoryId: $TSFixMe): void => {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_REQUEST,
         payload: resourceCategoryId,
     };
 };
 
-export const deleteResourceCategoryFailure = (error: ErrorPayload) => {
+export const deleteResourceCategoryFailure = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_FAILURE,
         payload: error,
     };
 };
 
-export const fetchResourceCategoriesForNewResource = (projectId: string) => {
+export const fetchResourceCategoriesForNewResource = (projectId: string): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`resourceCategory/${projectId}`);
         dispatch(fetchResourceCategoriesForNewResourceRequest());
@@ -247,7 +247,7 @@ export function fetchResourceCategoriesForNewResourceSuccess(
     };
 }
 
-export const fetchResourceCategoriesForNewResourceRequest = () => {
+export const fetchResourceCategoriesForNewResourceRequest = (): void => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_REQUEST,
     };

@@ -15,7 +15,7 @@ export const isApiServer = !(
     window.document.createElement
 );
 
-export const removeQuery = (removeField: string) => {
+export const removeQuery = (removeField: string): void => {
     const location = Object.assign({}, history.location);
     const query = queryString.parse(location.search);
     if (query[removeField]) delete query[removeField];

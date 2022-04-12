@@ -2287,7 +2287,7 @@ router.delete(
     }
 );
 
-const formatNotes = (data = [], days: $TSFixMe) => {
+const formatNotes = (data = [], days: $TSFixMe): void => {
     const result: $TSFixMe = [];
     const limit = days - 1;
 

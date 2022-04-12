@@ -3,7 +3,7 @@ import { Dispatch } from 'redux';
 import * as types from '../constants/performanceTracker';
 import { encode } from 'js-base64';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const setStartDate = (date: $TSFixMe) => {
+export const setStartDate = (date: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'SET_START_DATE',
@@ -12,7 +12,7 @@ export const setStartDate = (date: $TSFixMe) => {
     };
 };
 
-export const setEndDate = (date: $TSFixMe) => {
+export const setEndDate = (date: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'SET_END_DATE',

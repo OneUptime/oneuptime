@@ -110,7 +110,7 @@ const checkParams = params => {
  * @return {Promise} The cli param value promise.
  */
 
-const getParamValue = (params, name) => {
+const getParamValue = (params, name): void => {
     const options = program.opts();
     return new Promise(resolve => {
         if (options[name] === true || options[name] === undefined) {

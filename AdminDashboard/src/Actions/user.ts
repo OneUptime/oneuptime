@@ -2,20 +2,20 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/user';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const fetchUsersRequest = () => {
+export const fetchUsersRequest = (): void => {
     return {
         type: types.FETCH_USERS_REQUEST,
     };
 };
 
-export const fetchUsersSuccess = (users: $TSFixMe) => {
+export const fetchUsersSuccess = (users: $TSFixMe): void => {
     return {
         type: types.FETCH_USERS_SUCCESS,
         payload: users,
     };
 };
 
-export const fetchUsersError = (error: $TSFixMe) => {
+export const fetchUsersError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_USERS_FAILURE,
         payload: error,
@@ -55,20 +55,20 @@ export const fetchUsers =
         }
     };
 
-export const fetchUserRequest = () => {
+export const fetchUserRequest = (): void => {
     return {
         type: types.FETCH_USER_REQUEST,
     };
 };
 
-export const fetchUserSuccess = (user: $TSFixMe) => {
+export const fetchUserSuccess = (user: $TSFixMe): void => {
     return {
         type: types.FETCH_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const fetchUserError = (error: $TSFixMe) => {
+export const fetchUserError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_USER_FAILURE,
         payload: error,
@@ -76,7 +76,7 @@ export const fetchUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to fetch a user.
-export const fetchUser = (userId: string) => async (dispatch: Dispatch) => {
+export const fetchUser = (userId: string) => async (dispatch: Dispatch): void => {
     dispatch(fetchUserRequest());
 
     try {
@@ -104,34 +104,34 @@ export const fetchUser = (userId: string) => async (dispatch: Dispatch) => {
 
 // Add user
 
-export const addUserRequest = () => {
+export const addUserRequest = (): void => {
     return {
         type: types.ADD_USER_REQUEST,
     };
 };
 
-export const addUserSuccess = (user: $TSFixMe) => {
+export const addUserSuccess = (user: $TSFixMe): void => {
     return {
         type: types.ADD_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const addUserError = (error: $TSFixMe) => {
+export const addUserError = (error: $TSFixMe): void => {
     return {
         type: types.ADD_USER_FAILURE,
         payload: error,
     };
 };
 
-export const resetAddUser = () => {
+export const resetAddUser = (): void => {
     return {
         type: types.ADD_USER_RESET,
     };
 };
 
 // Calls the API to add user.
-export const addUser = (user: $TSFixMe) => async (dispatch: Dispatch) => {
+export const addUser = (user: $TSFixMe) => async (dispatch: Dispatch): void => {
     try {
         dispatch(addUserRequest());
 
@@ -161,20 +161,20 @@ export const addUser = (user: $TSFixMe) => async (dispatch: Dispatch) => {
 
 //Update user setting
 
-export const updateUserSettingRequest = () => {
+export const updateUserSettingRequest = (): void => {
     return {
         type: types.UPDATE_USER_SETTING_REQUEST,
     };
 };
 
-export const updateUserSettingSuccess = (userSetting: $TSFixMe) => {
+export const updateUserSettingSuccess = (userSetting: $TSFixMe): void => {
     return {
         type: types.UPDATE_USER_SETTING_SUCCESS,
         payload: userSetting,
     };
 };
 
-export const updateUserSettingError = (error: $TSFixMe) => {
+export const updateUserSettingError = (error: $TSFixMe): void => {
     return {
         type: types.UPDATE_USER_SETTING_FAILURE,
         payload: error,
@@ -225,39 +225,39 @@ export const updateUserSetting =
         }
     };
 
-export const logFile = (file: $TSFixMe) => {
+export const logFile = (file: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({ type: 'LOG_FILE', payload: file });
     };
 };
 
-export const resetFile = () => {
+export const resetFile = (): void => {
     return function (dispatch: Dispatch) {
         dispatch({ type: 'RESET_FILE' });
     };
 };
 
 //Delete user
-export const deleteUserRequest = () => {
+export const deleteUserRequest = (): void => {
     return {
         type: types.DELETE_USER_REQUEST,
     };
 };
 
-export const deleteUserReset = () => {
+export const deleteUserReset = (): void => {
     return {
         type: types.DELETE_USER_RESET,
     };
 };
 
-export const deleteUserSuccess = (user: $TSFixMe) => {
+export const deleteUserSuccess = (user: $TSFixMe): void => {
     return {
         type: types.DELETE_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const deleteUserError = (error: $TSFixMe) => {
+export const deleteUserError = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_USER_FAILED,
         payload: error,
@@ -265,7 +265,7 @@ export const deleteUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to delete a user.
-export const deleteUser = (userId: string) => async (dispatch: Dispatch) => {
+export const deleteUser = (userId: string) => async (dispatch: Dispatch): void => {
     dispatch(deleteUserRequest());
 
     try {
@@ -292,26 +292,26 @@ export const deleteUser = (userId: string) => async (dispatch: Dispatch) => {
 };
 
 //Restore user
-export const restoreUserRequest = () => {
+export const restoreUserRequest = (): void => {
     return {
         type: types.RESTORE_USER_REQUEST,
     };
 };
 
-export const restoreUserReset = () => {
+export const restoreUserReset = (): void => {
     return {
         type: types.RESTORE_USER_RESET,
     };
 };
 
-export const restoreUserSuccess = (user: $TSFixMe) => {
+export const restoreUserSuccess = (user: $TSFixMe): void => {
     return {
         type: types.RESTORE_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const restoreUserError = (error: $TSFixMe) => {
+export const restoreUserError = (error: $TSFixMe): void => {
     return {
         type: types.RESTORE_USER_FAILED,
         payload: error,
@@ -319,7 +319,7 @@ export const restoreUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to restore a user
-export const restoreUser = (userId: string) => async (dispatch: Dispatch) => {
+export const restoreUser = (userId: string) => async (dispatch: Dispatch): void => {
     dispatch(restoreUserRequest());
 
     try {
@@ -346,26 +346,26 @@ export const restoreUser = (userId: string) => async (dispatch: Dispatch) => {
 };
 
 //Block user
-export const blockUserRequest = () => {
+export const blockUserRequest = (): void => {
     return {
         type: types.BLOCK_USER_REQUEST,
     };
 };
 
-export const blockUserReset = () => {
+export const blockUserReset = (): void => {
     return {
         type: types.BLOCK_USER_RESET,
     };
 };
 
-export const blockUserSuccess = (user: $TSFixMe) => {
+export const blockUserSuccess = (user: $TSFixMe): void => {
     return {
         type: types.BLOCK_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const blockUserError = (error: $TSFixMe) => {
+export const blockUserError = (error: $TSFixMe): void => {
     return {
         type: types.BLOCK_USER_FAILED,
         payload: error,
@@ -373,7 +373,7 @@ export const blockUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to restore a user
-export const blockUser = (userId: string) => async (dispatch: Dispatch) => {
+export const blockUser = (userId: string) => async (dispatch: Dispatch): void => {
     dispatch(blockUserRequest());
 
     try {
@@ -400,27 +400,27 @@ export const blockUser = (userId: string) => async (dispatch: Dispatch) => {
 };
 
 //Enable Admin Mode
-export const enableAdminModeRequest = () => {
+export const enableAdminModeRequest = (): void => {
     return {
         type: types.ENABLE_ADMIN_MODE_REQUEST,
     };
 };
 
-export const enableAdminModeSuccess = (user: $TSFixMe) => {
+export const enableAdminModeSuccess = (user: $TSFixMe): void => {
     return {
         type: types.ENABLE_ADMIN_MODE_SUCCESS,
         payload: user,
     };
 };
 
-export const enableAdminModeError = (error: $TSFixMe) => {
+export const enableAdminModeError = (error: $TSFixMe): void => {
     return {
         type: types.ENABLE_ADMIN_MODE_FAILED,
         payload: error,
     };
 };
 
-export const enableAdminModeReset = () => {
+export const enableAdminModeReset = (): void => {
     return {
         type: types.ENABLE_ADMIN_MODE_RESET,
     };
@@ -458,27 +458,27 @@ export const enableAdminMode =
     };
 
 //Disable Admin Mode
-export const disableAdminModeRequest = () => {
+export const disableAdminModeRequest = (): void => {
     return {
         type: types.DISABLE_ADMIN_MODE_REQUEST,
     };
 };
 
-export const disableAdminModeSuccess = (user: $TSFixMe) => {
+export const disableAdminModeSuccess = (user: $TSFixMe): void => {
     return {
         type: types.DISABLE_ADMIN_MODE_SUCCESS,
         payload: user,
     };
 };
 
-export const disableAdminModeError = (error: $TSFixMe) => {
+export const disableAdminModeError = (error: $TSFixMe): void => {
     return {
         type: types.DISABLE_ADMIN_MODE_FAILED,
         payload: error,
     };
 };
 
-export const disableAdminModeReset = () => {
+export const disableAdminModeReset = (): void => {
     return {
         type: types.DISABLE_ADMIN_MODE_RESET,
     };
@@ -515,26 +515,26 @@ export const disableAdminMode =
     };
 
 //Unblock user
-export const unblockUserRequest = () => {
+export const unblockUserRequest = (): void => {
     return {
         type: types.UNBLOCK_USER_REQUEST,
     };
 };
 
-export const unblockUserReset = () => {
+export const unblockUserReset = (): void => {
     return {
         type: types.UNBLOCK_USER_RESET,
     };
 };
 
-export const unblockUserSuccess = (user: $TSFixMe) => {
+export const unblockUserSuccess = (user: $TSFixMe): void => {
     return {
         type: types.UNBLOCK_USER_SUCCESS,
         payload: user,
     };
 };
 
-export const unblockUserError = (error: $TSFixMe) => {
+export const unblockUserError = (error: $TSFixMe): void => {
     return {
         type: types.UNBLOCK_USER_FAILED,
         payload: error,
@@ -542,7 +542,7 @@ export const unblockUserError = (error: $TSFixMe) => {
 };
 
 // Calls the API to unblock a user
-export const unblockUser = (userId: string) => async (dispatch: Dispatch) => {
+export const unblockUser = (userId: string) => async (dispatch: Dispatch): void => {
     dispatch(unblockUserRequest());
 
     try {
@@ -569,26 +569,26 @@ export const unblockUser = (userId: string) => async (dispatch: Dispatch) => {
 };
 
 //Add Project Notes
-export const addUserNoteRequest = () => {
+export const addUserNoteRequest = (): void => {
     return {
         type: types.ADD_USER_NOTE_REQUEST,
     };
 };
 
-export const addUserNoteReset = () => {
+export const addUserNoteReset = (): void => {
     return {
         type: types.ADD_USER_NOTE_RESET,
     };
 };
 
-export const addUserNoteSuccess = (userNote: $TSFixMe) => {
+export const addUserNoteSuccess = (userNote: $TSFixMe): void => {
     return {
         type: types.ADD_USER_NOTE_SUCCESS,
         payload: userNote,
     };
 };
 
-export const addUserNoteError = (error: $TSFixMe) => {
+export const addUserNoteError = (error: $TSFixMe): void => {
     return {
         type: types.ADD_USER_NOTE_FAILURE,
         payload: error,
@@ -627,26 +627,26 @@ export const addUserNote =
     };
 
 //Search Users
-export const searchUsersRequest = () => {
+export const searchUsersRequest = (): void => {
     return {
         type: types.SEARCH_USERS_REQUEST,
     };
 };
 
-export const searchUsersReset = () => {
+export const searchUsersReset = (): void => {
     return {
         type: types.SEARCH_USERS_RESET,
     };
 };
 
-export const searchUsersSuccess = (users: $TSFixMe) => {
+export const searchUsersSuccess = (users: $TSFixMe): void => {
     return {
         type: types.SEARCH_USERS_SUCCESS,
         payload: users,
     };
 };
 
-export const searchUsersError = (error: $TSFixMe) => {
+export const searchUsersError = (error: $TSFixMe): void => {
     return {
         type: types.SEARCH_USERS_FAILURE,
         payload: error,
@@ -692,27 +692,27 @@ export const searchUsers =
     };
 
 // Update user twoFactorAuthToken
-export const twoFactorAuthTokenRequest = () => {
+export const twoFactorAuthTokenRequest = (): void => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_REQUEST,
     };
 };
 
-export const twoFactorAuthTokenSuccess = (payload: $TSFixMe) => {
+export const twoFactorAuthTokenSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_SUCCESS,
         payload: payload,
     };
 };
 
-export const twoFactorAuthTokenError = (error: $TSFixMe) => {
+export const twoFactorAuthTokenError = (error: $TSFixMe): void => {
     return {
         type: types.UPDATE_TWO_FACTOR_AUTH_FAILURE,
         payload: error,
     };
 };
 
-export const updateTwoFactorAuthToken = (userId: string, data: $TSFixMe) => {
+export const updateTwoFactorAuthToken = (userId: string, data: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
@@ -731,7 +731,7 @@ export const updateTwoFactorAuthToken = (userId: string, data: $TSFixMe) => {
     };
 };
 
-export const setTwoFactorAuth = (enabled: $TSFixMe) => {
+export const setTwoFactorAuth = (enabled: $TSFixMe): void => {
     return {
         type: types.SET_TWO_FACTOR_AUTH,
         payload: enabled,
@@ -740,20 +740,20 @@ export const setTwoFactorAuth = (enabled: $TSFixMe) => {
 
 //fetching user login history
 // Update user twoFactorAuthToken
-export const fetchUserHistoryRequest = () => {
+export const fetchUserHistoryRequest = (): void => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_REQUEST,
     };
 };
 
-export const fetchUserHistorySuccess = (payload: $TSFixMe) => {
+export const fetchUserHistorySuccess = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_SUCCESS,
         payload: payload,
     };
 };
 
-export const fetchUserHistoryError = (error: $TSFixMe) => {
+export const fetchUserHistoryError = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_USER_LOGIN_HISTORY_FAILURE,
         payload: error,

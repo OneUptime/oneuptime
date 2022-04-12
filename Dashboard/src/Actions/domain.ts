@@ -2,33 +2,33 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import * as types from '../constants/domain';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const resetDomain = () => {
+export const resetDomain = (): void => {
     return {
         type: types.RESET_VERIFY_DOMAIN,
     };
 };
 
-export const verifyDomainRequest = () => {
+export const verifyDomainRequest = (): void => {
     return {
         type: types.VERIFY_DOMAIN_REQUEST,
     };
 };
 
-export const verifyDomainSuccess = (payload: $TSFixMe) => {
+export const verifyDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.VERIFY_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const verifyDomainFailure = (error: ErrorPayload) => {
+export const verifyDomainFailure = (error: ErrorPayload): void => {
     return {
         type: types.VERIFY_DOMAIN_FAILURE,
         payload: error,
     };
 };
 
-export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe) => {
+export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe): void => {
     return async function (dispatch: Dispatch) {
         dispatch(verifyDomainRequest());
 
@@ -53,20 +53,20 @@ export const verifyDomain = ({ projectId, domainId, payload }: $TSFixMe) => {
     };
 };
 
-export const createDomainRequest = () => {
+export const createDomainRequest = (): void => {
     return {
         type: types.CREATE_DOMAIN_REQUEST,
     };
 };
 
-export const createDomainSuccess = (payload: $TSFixMe) => {
+export const createDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.CREATE_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const createDomainFailure = (payload: $TSFixMe) => {
+export const createDomainFailure = (payload: $TSFixMe): void => {
     return {
         type: types.CREATE_DOMAIN_FAILURE,
         payload,
@@ -106,20 +106,20 @@ export function createDomain({
     };
 }
 
-export const deleteDomainRequest = () => {
+export const deleteDomainRequest = (): void => {
     return {
         type: types.DELETE_DOMAIN_REQUEST,
     };
 };
 
-export const deleteDomainSuccess = (payload: $TSFixMe) => {
+export const deleteDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.DELETE_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const deleteDomainFailure = (payload: $TSFixMe) => {
+export const deleteDomainFailure = (payload: $TSFixMe): void => {
     return {
         type: types.DELETE_DOMAIN_FAILURE,
         payload,
@@ -152,20 +152,20 @@ export const deleteDomain = ({
     };
 };
 
-export const updateDomainRequest = () => {
+export const updateDomainRequest = (): void => {
     return {
         type: types.UPDATE_DOMAIN_REQUEST,
     };
 };
 
-export const updateDomainSuccess = (payload: $TSFixMe) => {
+export const updateDomainSuccess = (payload: $TSFixMe): void => {
     return {
         type: types.UPDATE_DOMAIN_SUCCESS,
         payload,
     };
 };
 
-export const updateDomainFailure = (payload: $TSFixMe) => {
+export const updateDomainFailure = (payload: $TSFixMe): void => {
     return {
         type: types.UPDATE_DOMAIN_FAILURE,
         payload,

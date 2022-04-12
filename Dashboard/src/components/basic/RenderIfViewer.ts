@@ -1,7 +1,7 @@
 import { connect } from 'react-redux';
 import { User } from '../../config';
 import { RootState } from '../../store';
-export const RenderIfViewer = (props: $TSFixMe) => {
+export const RenderIfViewer = (props: $TSFixMe): void => {
     const { currentProject, children } = props;
     const userId = User.getUserId();
     let renderItems = null;

@@ -16,7 +16,7 @@ const fetchBasicIncidentSettingsVariablesFailure = (payload: $TSFixMe) => ({
     payload,
 });
 
-export const fetchBasicIncidentSettingsVariables = () => {
+export const fetchBasicIncidentSettingsVariables = (): void => {
     return function (dispatch: Dispatch) {
         const promise = BackendAPI.get(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());

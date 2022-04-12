@@ -159,7 +159,7 @@ export const deleteCustomField =
         }
     };
 
-export const paginate = (type: $TSFixMe) => {
+export const paginate = (type: $TSFixMe): void => {
     if (type === 'next') {
         return { type: types.NEXT_PAGE };
     } else if (type === 'prev') {

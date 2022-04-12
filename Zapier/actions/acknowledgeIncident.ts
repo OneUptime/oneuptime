@@ -1,4 +1,4 @@
-const acknowledgeIncident = (z: $TSFixMe, bundle: $TSFixMe) => {
+const acknowledgeIncident = (z: $TSFixMe, bundle: $TSFixMe): void => {
     if (bundle.cleanedRequest) return bundle.cleanedRequest;
     const data = {
         incidents: bundle.inputData.incidents,

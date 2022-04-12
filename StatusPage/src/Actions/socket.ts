@@ -1,6 +1,6 @@
 import { Dispatch } from 'redux';
 
-export const updatestatuspagebysocket = (statuspage: $TSFixMe) => {
+export const updatestatuspagebysocket = (statuspage: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_STATUS_PAGE',
@@ -9,7 +9,7 @@ export const updatestatuspagebysocket = (statuspage: $TSFixMe) => {
     };
 };
 
-export const updatemonitorbysocket = (monitor: $TSFixMe) => {
+export const updatemonitorbysocket = (monitor: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_MONITOR',
@@ -18,7 +18,7 @@ export const updatemonitorbysocket = (monitor: $TSFixMe) => {
     };
 };
 
-export const deletemonitorbysocket = (monitor: $TSFixMe) => {
+export const deletemonitorbysocket = (monitor: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'DELETE_MONITOR',
@@ -39,7 +39,7 @@ export function updatemonitorstatusbysocket(
     };
 }
 
-export const addincidentnotebysocket = (note: $TSFixMe) => {
+export const addincidentnotebysocket = (note: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'ADD_INCIDENT_NOTE',
@@ -48,7 +48,7 @@ export const addincidentnotebysocket = (note: $TSFixMe) => {
     };
 };
 
-export const updateincidentnotebysocket = (note: $TSFixMe) => {
+export const updateincidentnotebysocket = (note: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_INCIDENT_NOTE',
@@ -57,7 +57,7 @@ export const updateincidentnotebysocket = (note: $TSFixMe) => {
     };
 };
 
-export const addscheduledeventbysocket = (event: $TSFixMe) => {
+export const addscheduledeventbysocket = (event: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'ADD_SCHEDULED_EVENT',
@@ -66,7 +66,7 @@ export const addscheduledeventbysocket = (event: $TSFixMe) => {
     };
 };
 
-export const deletescheduledeventbysocket = (event: $TSFixMe) => {
+export const deletescheduledeventbysocket = (event: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'DELETE_SCHEDULED_EVENT',
@@ -75,7 +75,7 @@ export const deletescheduledeventbysocket = (event: $TSFixMe) => {
     };
 };
 
-export const updatescheduledeventbysocket = (event: $TSFixMe) => {
+export const updatescheduledeventbysocket = (event: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_SCHEDULED_EVENT',
@@ -84,7 +84,7 @@ export const updatescheduledeventbysocket = (event: $TSFixMe) => {
     };
 };
 
-export const addeventnotebysocket = (note: $TSFixMe) => {
+export const addeventnotebysocket = (note: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'ADD_EVENT_NOTE',
@@ -93,7 +93,7 @@ export const addeventnotebysocket = (note: $TSFixMe) => {
     };
 };
 
-export const deleteeventnotebysocket = (note: $TSFixMe) => {
+export const deleteeventnotebysocket = (note: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'DELETE_EVENT_NOTE',
@@ -102,7 +102,7 @@ export const deleteeventnotebysocket = (note: $TSFixMe) => {
     };
 };
 
-export const updateeventnotebysocket = (note: $TSFixMe) => {
+export const updateeventnotebysocket = (note: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_EVENT_NOTE',
@@ -111,7 +111,7 @@ export const updateeventnotebysocket = (note: $TSFixMe) => {
     };
 };
 
-export const updateprobebysocket = (probe: $TSFixMe) => {
+export const updateprobebysocket = (probe: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_PROBE',
@@ -120,7 +120,7 @@ export const updateprobebysocket = (probe: $TSFixMe) => {
     };
 };
 
-export const incidentcreatedbysocket = (incident: $TSFixMe) => {
+export const incidentcreatedbysocket = (incident: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'INCIDENT_CREATED',
@@ -129,7 +129,7 @@ export const incidentcreatedbysocket = (incident: $TSFixMe) => {
     };
 };
 
-export const deleteincidentbysocket = (incident: $TSFixMe) => {
+export const deleteincidentbysocket = (incident: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'INCIDENT_DELETED',
@@ -138,7 +138,7 @@ export const deleteincidentbysocket = (incident: $TSFixMe) => {
     };
 };
 
-export const updateincidentbysocket = (incident: $TSFixMe) => {
+export const updateincidentbysocket = (incident: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'INCIDENT_UPDATED',
@@ -147,7 +147,7 @@ export const updateincidentbysocket = (incident: $TSFixMe) => {
     };
 };
 
-export const addincidenttimelinebysocket = (timeline: $TSFixMe) => {
+export const addincidenttimelinebysocket = (timeline: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'INCIDENT_TIMELINE_CREATED',
@@ -156,7 +156,7 @@ export const addincidenttimelinebysocket = (timeline: $TSFixMe) => {
     };
 };
 
-export const deleteincidentnotebysocket = (note: $TSFixMe) => {
+export const deleteincidentnotebysocket = (note: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'DELETE_INCIDENT_NOTE',
@@ -165,7 +165,7 @@ export const deleteincidentnotebysocket = (note: $TSFixMe) => {
     };
 };
 
-export const resolvescheduledeventbysocket = (event: $TSFixMe) => {
+export const resolvescheduledeventbysocket = (event: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'RESOLVE_SCHEDULED_EVENT',
@@ -173,7 +173,7 @@ export const resolvescheduledeventbysocket = (event: $TSFixMe) => {
         });
     };
 };
-export const updatestweetsbysocket = (tweets: $TSFixMe) => {
+export const updatestweetsbysocket = (tweets: $TSFixMe): void => {
     return function (dispatch: Dispatch) {
         dispatch({
             type: 'UPDATE_TWEETS',

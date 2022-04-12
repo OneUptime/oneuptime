@@ -36,7 +36,7 @@ const keyBind = (
     }
 };
 
-export const navKeyBind = (route: $TSFixMe, path: $TSFixMe) => {
+export const navKeyBind = (route: $TSFixMe, path: $TSFixMe): void => {
     let keys: $TSFixMe = [];
     const resetKeys = () => (keys = []);
     // reasons to use keydown
@@ -47,7 +47,7 @@ export const navKeyBind = (route: $TSFixMe, path: $TSFixMe) => {
     );
 };
 
-export const cleanBind = (route: $TSFixMe, path: $TSFixMe) => {
+export const cleanBind = (route: $TSFixMe, path: $TSFixMe): void => {
     let keys: $TSFixMe = [];
     const resetKeys = () => (keys = []);
     window.removeEventListener('keydown', e =>
