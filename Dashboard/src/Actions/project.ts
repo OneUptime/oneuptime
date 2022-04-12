@@ -273,7 +273,7 @@ export function switchToProjectViewerNav(
     userId: string,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.SHOW_VIEWER_MENU,
@@ -286,7 +286,7 @@ export function switchProject(
     dispatch: Dispatch,
     project: $TSFixMe,
     subProjects = []
-) {
+): void {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
 
@@ -664,7 +664,7 @@ export function upgradeToEnterpriseMail(
     projectId: string,
     projectName: $TSFixMe,
     oldPlan: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `project/${projectId}/upgradeToEnterprise`,

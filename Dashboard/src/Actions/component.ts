@@ -110,7 +110,7 @@ export const fetchPaginatedComponentsRequest = (projectId: string): void => {
 export function fetchPaginatedComponentsFailure(
     error: ErrorPayload,
     projectId: string
-) {
+): void {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_FAILURE,
         payload: { error, projectId },

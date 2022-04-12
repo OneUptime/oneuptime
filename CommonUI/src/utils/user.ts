@@ -4,7 +4,7 @@ import URL from 'Common/Types/api/URL';
 import { JSONObject } from 'Common/Types/JSON';
 
 export default class User {
-    public static getAccessToken() {
+    public static getAccessToken(): string {
         return LocalStorage.getItem('access_token');
     }
 
@@ -12,7 +12,7 @@ export default class User {
         LocalStorage.setItem('access_token', token);
     }
 
-    public static isCardRegistered() {
+    public static isCardRegistered(): boolean {
         return LocalStorage.getItem('cardRegistered');
     }
 
@@ -24,11 +24,11 @@ export default class User {
         LocalStorage.setItem('id', id);
     }
 
-    public static getUserId() {
+    public static getUserId(): string {
         return LocalStorage.getItem('id');
     }
 
-    public static getName() {
+    public static getName(): string {
         return LocalStorage.getItem('name');
     }
 
@@ -36,19 +36,19 @@ export default class User {
         LocalStorage.setItem('name', name);
     }
 
-    public static getEmail() {
+    public static getEmail(): string {
         return LocalStorage.getItem('email');
     }
 
-    public static setEmail(email: Email) {
+    public static setEmail(email: Email): void {
         LocalStorage.setItem('email', email);
     }
 
-    public static initialUrl() {
+    public static initialUrl(): string {
         return LocalStorage.getItem('initialUrl');
     }
 
-    public static setInitialUrl(url: URL) {
+    public static setInitialUrl(url: URL): void {
         LocalStorage.setItem('initialUrl', url);
     }
 
@@ -57,27 +57,27 @@ export default class User {
         LocalStorage.setItem('project', project);
     }
 
-    public static getProject() {
+    public static getProject(): JSONObject {
         return LocalStorage.getItem('project');
     }
 
-    public static clear() {
+    public static clear(): void {
         LocalStorage.clear();
     }
 
-    public static removeUserId() {
+    public static removeUserId(): void {
         LocalStorage.removeItem('id');
     }
 
-    public static removeAccessToken() {
+    public static removeAccessToken(): void {
         LocalStorage.removeItem('token');
     }
 
-    public static removeInitialUrl() {
+    public static removeInitialUrl(): void {
         return sessionStorage.removeItem('initialUrl');
     }
 
-    public static isLoggedIn() {
+    public static isLoggedIn(): boolean {
         return LocalStorage.getItem('access_token') ? true : false;
     }
 }

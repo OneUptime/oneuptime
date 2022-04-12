@@ -83,7 +83,7 @@ const questions = [
  * @return {Promise} The cli params promise.
  */
 
-const checkParams = params => {
+const checkParams = (params): void => {
     const values = [];
 
     return new Promise(resolve => {

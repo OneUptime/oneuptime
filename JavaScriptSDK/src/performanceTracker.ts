@@ -71,7 +71,7 @@ class PerformanceTracker {
     _setUpOutgoingListener(): void {
         return new OutgoingListener(this.start, this.end, this.store);
     }
-    setUpDataBaseListener() {
+    setUpDataBaseListener(): void {
         const load = Module._load;
 
         Module._load = function (request: $TSFixMe): void {

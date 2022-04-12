@@ -598,16 +598,16 @@ export const deleteAccount = (userId: string, confirmation: $TSFixMe): void => {
 };
 
 // Generate backup codes
-const generateBackupCodesRequest = () => ({
+const generateBackupCodesRequest = (): void => ({
     type: types.GENERATE_BACKUP_CODES_REQUEST,
 });
 
-const generateBackupCodesSuccess = (payload: $TSFixMe) => ({
+const generateBackupCodesSuccess = (payload: $TSFixMe): void => ({
     type: types.GENERATE_BACKUP_CODES_SUCCESS,
     payload,
 });
 
-const generateBackupCodesFailure = (payload: $TSFixMe) => ({
+const generateBackupCodesFailure = (payload: $TSFixMe): void => ({
     type: types.GENERATE_BACKUP_CODES_FAILURE,
     payload,
 });

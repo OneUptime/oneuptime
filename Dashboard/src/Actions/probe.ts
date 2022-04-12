@@ -37,7 +37,7 @@ export function getProbes(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     skip = parseInt(skip);
     limit = parseInt(limit);
 

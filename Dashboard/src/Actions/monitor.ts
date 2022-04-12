@@ -389,7 +389,7 @@ export function addSiteUrl(
     monitorId: $TSFixMe,
     projectId: string,
     siteUrl: URL
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `monitor/${projectId}/siteUrl/${monitorId}`,
@@ -427,7 +427,7 @@ export function deleteSiteUrl(
     monitorId: $TSFixMe,
     projectId: string,
     siteUrl: URL
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = delete (`monitor/${projectId}/siteUrl/${monitorId}`,
         {
@@ -615,7 +615,7 @@ export const changeMonitorComponentRequest = (monitorId: $TSFixMe): void => {
 export const changeMonitorComponentSuccess = ({
     monitorId,
     newComponentId,
-}: $TSFixMe) => {
+}: $TSFixMe): void => {
     return {
         type: types.CHANGE_MONITOR_COMPONENT_SUCCESS,
         payload: {
@@ -1223,7 +1223,7 @@ export function updateCriteriaField(
     field: $TSFixMe,
     val: $TSFixMe,
     noCriteria: $TSFixMe
-) {
+): void {
     if (noCriteria) {
         return function (dispatch: Dispatch): void {
             dispatch(change('NewMonitor', field, val));

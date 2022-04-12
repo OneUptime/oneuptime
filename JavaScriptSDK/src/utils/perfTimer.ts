@@ -26,16 +26,16 @@ class PerfTimer {
         this.obs.observe({ entryTypes: ['measure'] });
     }
 
-    start = (id: $TSFixMe, log: $TSFixMe) => {
+    start = (id: $TSFixMe, log: $TSFixMe): void => {
         this.dataStore.setValue(id, log);
         return performance.mark(`start-${id}`);
     };
 
-    end = (id: $TSFixMe, result: $TSFixMe, type: $TSFixMe) => {
+    end = (id: $TSFixMe, result: $TSFixMe, type: $TSFixMe): void => {
         performance.mark(`end-${id}`);
         return performance.measure(`${type}-${id}`, `start-${id}`, `end-${id}`);
     };
 
-    store = () => this.dataStore;
+    store = (): void => this.dataStore;
 }
 export default PerfTimer;

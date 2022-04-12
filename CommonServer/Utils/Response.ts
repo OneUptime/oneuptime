@@ -18,7 +18,7 @@ function logResponse(
     req: ExpressRequest,
     res: ExpressResponse,
     responsebody?: JSONObjectOrArray
-) {
+): void {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -68,7 +68,7 @@ export const sendFileResponse = async (
     req: ExpressRequest | ExpressRequest,
     res: ExpressResponse,
     file: File
-) => {
+): void => {
     /** create read stream */
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -114,7 +114,7 @@ export const sendListResponse = async (
     res: ExpressResponse,
     list: JSONArray,
     count: PositiveNumber
-) => {
+): void => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -169,7 +169,7 @@ export const sendItemResponse = async (
     req: ExpressRequest,
     res: ExpressResponse,
     item: JSONObject
-) => {
+): void => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 

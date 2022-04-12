@@ -12,7 +12,7 @@ export default class RealtimeService {
         projectId: string,
         eventType: string,
         data: JSONObjectOrArray
-    ) {
+    ): void {
         io.to(projectId).emit(eventType, data);
     }
 }

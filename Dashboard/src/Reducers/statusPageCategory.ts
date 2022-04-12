@@ -60,7 +60,7 @@ const INITIAL_STATE = {
 export default function resourceCategory(
     state = INITIAL_STATE,
     action: Action
-) {
+): void {
     switch (action.type) {
         case CREATE_STATUS_PAGE_CATEGORY_REQUEST:
             return {

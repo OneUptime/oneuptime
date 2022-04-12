@@ -593,7 +593,7 @@ export const updateStatusPageCustomHTMLError = (error: ErrorPayload): void => {
 export function updateStatusPageCustomHTML(
     projectId: string,
     values: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updateStatusPageCustomHTMLRequest());
@@ -700,7 +700,7 @@ export const fetchSubProjectStatusPagesError = (error: ErrorPayload): void => {
 export function fetchSubProjectStatusPages(
     projectId: string,
     refresh: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`StatusPage/${projectId}/StatusPages`);
         if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
@@ -1210,7 +1210,7 @@ export function createExternalStatusPage(
     projectId: string,
     statusPageId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/createExternalStatusPage/${statusPageId}`,
@@ -1257,7 +1257,7 @@ export function updateExternalStatusPage(
     projectId: string,
     externalStatusPageId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/updateExternalStatusPage/${externalStatusPageId}`,
@@ -1303,7 +1303,7 @@ export const fetchExternalStatusPagesFailure = (error: ErrorPayload): void => {
 export function fetchExternalStatusPages(
     projectId: string,
     statusPageId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
@@ -1348,7 +1348,7 @@ export const deleteExternalStatusPageFailure = (error: ErrorPayload): void => {
 export function deleteExternalStatusPage(
     projectId: string,
     externalStatusPageId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/deleteExternalStatusPage/${externalStatusPageId}`
@@ -1394,7 +1394,7 @@ export function createAnnouncement(
     projectId: string,
     statusPageId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/announcement/${statusPageId}`,
@@ -1549,7 +1549,7 @@ export function fetchSingleAnnouncement(
     projectId: string,
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
@@ -1615,7 +1615,7 @@ export const deleteAnnouncementFailure = (error: ErrorPayload): void => {
 export function deleteAnnouncement(
     projectId: string,
     announcementId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete `StatusPage/${projectId}/announcement/${announcementId}/delete`;
@@ -1635,7 +1635,7 @@ export function deleteAnnouncement(
 export function deleteAnnouncementLog(
     projectId: string,
     announcementLogId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete `StatusPage/${projectId}/announcementLog/${announcementLogId}/delete`;

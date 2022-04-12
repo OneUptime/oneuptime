@@ -7,7 +7,7 @@ class Util {
     constructor(options: $TSFixMe) {
         this.options = options;
     }
-    getErrorType() {
+    getErrorType(): void {
         return {
             INFO: 'info',
             WARNING: 'warning',
@@ -135,7 +135,7 @@ class Util {
                 }
             }
         }
-        frames.map((frame: $TSFixMe) => {
+        frames.map((frame: $TSFixMe): void => {
             const lines = frame.sourceFile ? frame.sourceFile.split('\n') : [];
             const localFrame = this._addCodeSnippetToFrame(lines, frame);
             frame = localFrame;
@@ -169,7 +169,7 @@ class Util {
         lines: $TSFixMe,
         frame: $TSFixMe,
         linesOfContext = 5
-    ) {
+    ): void {
         if (lines.length < 1) return;
         const lineNumber = frame.lineNumber || 0;
         const maxLines = lines.length;

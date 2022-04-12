@@ -38,7 +38,7 @@ export function fetchSchedules(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
@@ -140,7 +140,7 @@ export function fetchProjectSchedule(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
@@ -236,7 +236,7 @@ export function renameSchedule(
     projectId: string,
     scheduleId: $TSFixMe,
     scheduleName: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`schedule/${projectId}/${scheduleId}`, {
             name: scheduleName,
@@ -384,7 +384,7 @@ export function addMonitors(
     projectId: string,
     scheduleId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `schedule/${projectId}/${scheduleId}`,
@@ -453,7 +453,7 @@ export function addUsers(
     projectId: string,
     scheduleId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `schedule/${projectId}/${scheduleId}/addUsers`,
@@ -522,7 +522,7 @@ export function addEscalation(
     projectId: string,
     scheduleId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     data = data.OnCallAlertBox;
 
     return function (dispatch: Dispatch): void {

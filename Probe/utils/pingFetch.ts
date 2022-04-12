@@ -16,7 +16,7 @@ const pingfetch = async (
     method: $TSFixMe,
     body: $TSFixMe,
     headers: $TSFixMe
-) => {
+): void => {
     const now = new Date().getTime();
     let resp, res, response;
 

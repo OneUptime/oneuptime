@@ -32,7 +32,7 @@ const ping = (
     interval = '* * * * *',
     simulate: $TSFixMe,
     simulateData: $TSFixMe
-) => {
+): void => {
     return new cron.CronJob(
         interval,
         () => {
@@ -180,7 +180,7 @@ export default function (
     apiUrl: URL,
     apiKey: string,
     monitorId: $TSFixMe
-) {
+): void {
     let pingServer: $TSFixMe,
         projectId = config,
         interval: $TSFixMe,

@@ -11,12 +11,12 @@ class HrTimer {
         this.dataStore = new DataStore(this.apiUrl, this.appId, this.appKey);
     }
 
-    start = (id: $TSFixMe, log: $TSFixMe) => {
+    start = (id: $TSFixMe, log: $TSFixMe): void => {
         this.dataStore.setValue(id, log);
         return process.hrtime();
     };
 
-    end = (id: $TSFixMe, startHrTime: $TSFixMe) => {
+    end = (id: $TSFixMe, startHrTime: $TSFixMe): void => {
         let elapsedHrTime = process.hrtime(startHrTime);
 
         elapsedHrTime = elapsedHrTime[0] * 1000 + elapsedHrTime[1] / 1e6;
@@ -30,6 +30,6 @@ class HrTimer {
         return;
     };
 
-    store = () => this.dataStore;
+    store = (): void => this.dataStore;
 }
 export default HrTimer;

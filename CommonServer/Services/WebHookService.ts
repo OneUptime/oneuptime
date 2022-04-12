@@ -24,7 +24,7 @@ export default class Service {
         component: $TSFixMe,
         duration: $TSFixMe,
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
-    ) {
+    ): void {
         const [project, monitorStatus] = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -60,7 +60,7 @@ export default class Service {
         component: $TSFixMe,
         duration: $TSFixMe,
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
-    ) {
+    ): void {
         const self = this;
         let response;
 
@@ -147,7 +147,7 @@ export default class Service {
         duration: $TSFixMe,
         webHookType = PROJECT_WEBHOOK,
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
-    ) {
+    ): void {
         const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';

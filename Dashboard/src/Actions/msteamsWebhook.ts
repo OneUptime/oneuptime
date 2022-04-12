@@ -81,7 +81,7 @@ export function getMsTeams(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(
@@ -208,7 +208,7 @@ export function updateMsTeams(
     projectId: string,
     webhookId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `webhook/${projectId}/${webhookId}`,

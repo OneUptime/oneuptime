@@ -39,7 +39,7 @@ export function createSubscriber(
     projectId: string,
     monitorId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `subscriber/${projectId}/subscribe/${monitorId}`,
@@ -224,7 +224,7 @@ export function importSubscribersFromCsvFile(
     data: $TSFixMe,
     projectId: string,
     monitorId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `subscriber/${projectId}/${monitorId}/csv`,

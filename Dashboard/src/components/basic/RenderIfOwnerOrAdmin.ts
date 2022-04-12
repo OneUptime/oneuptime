@@ -16,7 +16,7 @@ interface RenderIfOwnerOrAdminProps {
 const RenderIfOwnerOrAdmin = ({
     currentProject,
     children,
-}: RenderIfOwnerOrAdminProps) => {
+}: RenderIfOwnerOrAdminProps): void => {
     const userId = User.getUserId();
 
     return isOwnerOrAdmin(userId, currentProject) ? children : null;

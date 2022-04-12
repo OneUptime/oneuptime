@@ -2,16 +2,20 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/incidentBasicSettings';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-const fetchBasicIncidentSettingsVariablesRequest = () => ({
+const fetchBasicIncidentSettingsVariablesRequest = (): void => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST,
 });
 
-const fetchBasicIncidentSettingsVariablesSuccess = (payload: $TSFixMe) => ({
+const fetchBasicIncidentSettingsVariablesSuccess = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_SUCCESS,
     payload,
 });
 
-const fetchBasicIncidentSettingsVariablesFailure = (payload: $TSFixMe) => ({
+const fetchBasicIncidentSettingsVariablesFailure = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_FAILURE,
     payload,
 });

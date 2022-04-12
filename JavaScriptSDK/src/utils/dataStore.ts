@@ -21,7 +21,7 @@ class DataStore {
         this.sendingData = false;
         this.runCron();
     }
-    runCron() {
+    runCron(): void {
         return cron.schedule('*/5 * * * *', () => {
             this.sendData();
         });
@@ -32,7 +32,7 @@ class DataStore {
         time: $TSFixMe,
         method: $TSFixMe,
         errorCount: $TSFixMe
-    ) {
+    ): void {
         if (store.has(path)) {
             const s = store.get(path);
             const avg = s.avgTime,
@@ -57,33 +57,33 @@ class DataStore {
             };
         }
     }
-    destroy(id: $TSFixMe) {
+    destroy(id: $TSFixMe): void {
         if (this.store.has(id)) {
             this.store.delete(id);
         }
     }
 
-    getValue(id: $TSFixMe) {
+    getValue(id: $TSFixMe): void {
         return this.store.get(id);
     }
 
-    getAllData() {
+    getAllData(): void {
         return {
             incoming: this.incoming,
             outgoing: this.outgoing,
             mongoose: this.mongoose,
         };
     }
-    clear() {
+    clear(): void {
         return this.store.clear();
     }
-    clearData() {
+    clearData(): void {
         this.incoming.clear();
         this.outgoing.clear();
         this.mongoose.clear();
         return {};
     }
-    setData(value: $TSFixMe) {
+    setData(value: $TSFixMe): void {
         const type = value.type;
         const path = value.path;
         const time = value.duration;
@@ -101,7 +101,7 @@ class DataStore {
             return this.mongoose.set(path, val);
         }
     }
-    setValue(id: $TSFixMe, value: $TSFixMe) {
+    setValue(id: $TSFixMe, value: $TSFixMe): void {
         return this.store.set(id, value);
     }
     async sendData(): void {

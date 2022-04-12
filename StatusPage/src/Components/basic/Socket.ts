@@ -270,13 +270,13 @@ SocketApp.propTypes = {
     ]),
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps = (state: RootState): void => ({
     project: state.status.statusPage.projectId,
     probes: state.probe.probes,
     statusPage: state.status.statusPage,
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) =>
+const mapDispatchToProps = (dispatch: Dispatch): void =>
     bindActionCreators(
         {
             updatestatuspagebysocket,

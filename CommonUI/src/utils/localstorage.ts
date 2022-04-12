@@ -3,7 +3,7 @@ import Email from 'Common/Types/email';
 import { JSONValue } from 'Common/Types/JSON';
 
 export default class LocalStorage {
-    public static setItem(key: string, value: JSONValue | Email | URL) {
+    public static setItem(key: string, value: JSONValue | Email | URL): void {
         localStorage.setItem(key, value.toString());
     }
 
@@ -15,7 +15,7 @@ export default class LocalStorage {
         return localStorage.removeItem(key);
     }
 
-    public static clear() {
+    public static clear(): void {
         localStorage.clear();
     }
 }

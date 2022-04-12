@@ -92,10 +92,10 @@ class ErrorTracker {
     _setEventId(): void {
         this.eventId = uuidv4();
     }
-    getEventId() {
+    getEventId(): void {
         return this.eventId;
     }
-    setTag(key: $TSFixMe, value: $TSFixMe) {
+    setTag(key: $TSFixMe, value: $TSFixMe): void {
         if (!(typeof key === 'string') || !(typeof value === 'string')) {
             return 'Invalid Tags type';
         }
@@ -110,7 +110,7 @@ class ErrorTracker {
         }
     }
     // pass an array of tags
-    setTags(tags: $TSFixMe) {
+    setTags(tags: $TSFixMe): void {
         if (!Array.isArray(tags)) {
             return 'Invalid Tags type';
         }
@@ -123,7 +123,7 @@ class ErrorTracker {
     _getTags(): void {
         return this.tags;
     }
-    setExtras(extras: $TSFixMe) {
+    setExtras(extras: $TSFixMe): void {
         extras.forEach((element: $TSFixMe) => {
             if (element.key && element.extra) {
                 this.setExtra(element.key, element.extra);
@@ -131,10 +131,10 @@ class ErrorTracker {
         });
     }
 
-    setExtra(key: $TSFixMe, extra: $TSFixMe) {
+    setExtra(key: $TSFixMe, extra: $TSFixMe): void {
         this.extras = { ...this.extras, [key]: extra };
     }
-    setFingerprint(keys: $TSFixMe) {
+    setFingerprint(keys: $TSFixMe): void {
         if (!(typeof keys === 'string') && !Array.isArray(keys)) {
             return 'Invalid Fingerprint Format';
         }
@@ -210,7 +210,7 @@ class ErrorTracker {
         // send to the server
         return this.sendErrorEventToServer();
     }
-    addToTimeline(category: $TSFixMe, content: $TSFixMe, type: $TSFixMe) {
+    addToTimeline(category: $TSFixMe, content: $TSFixMe, type: $TSFixMe): void {
         const timeline = {
             category,
             data: {
@@ -220,10 +220,10 @@ class ErrorTracker {
         };
         this.listenerObj.logCustomTimelineEvent(timeline);
     }
-    getTimeline() {
+    getTimeline(): void {
         return this.listenerObj.getTimeline();
     }
-    captureMessage(message: $TSFixMe) {
+    captureMessage(message: $TSFixMe): void {
         // set the a handled tag
         this.setTag('handled', 'true');
         this.prepareErrorObject('message', { message });
@@ -252,7 +252,7 @@ class ErrorTracker {
             // TODO create a way to get host on the backend
         }
     }
-    prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe) {
+    prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe): void {
         // log event
         const content = {
             message: errorStackTrace.message,
@@ -306,10 +306,10 @@ class ErrorTracker {
                 });
         });
     }
-    getCurrentEvent() {
+    getCurrentEvent(): void {
         return this.event;
     }
-    getSDKDetails() {
+    getSDKDetails(): void {
         return { name, version };
     }
     _clear(newEventId: $TSFixMe): void {

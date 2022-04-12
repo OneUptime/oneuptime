@@ -11,7 +11,7 @@ import AlertService from './AlertService';
 import { IS_TESTING } from '../config/server';
 
 export default class TwilioService {
-    getClient(accountSid: $TSFixMe, authToken: $TSFixMe) {
+    getClient(accountSid: $TSFixMe, authToken: $TSFixMe): void {
         if (!accountSid || !authToken) {
             const error = new Error('Twilio credentials not found.');
 
@@ -46,7 +46,7 @@ export default class TwilioService {
         incidentType: $TSFixMe,
         projectId: string,
         smsProgress: $TSFixMe
-    ) {
+    ): void {
         let smsBody;
         try {
             let smsMessage;
@@ -180,7 +180,7 @@ export default class TwilioService {
         componentName: $TSFixMe,
         statusPageUrl: URL,
         customFields: $TSFixMe
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -311,7 +311,7 @@ export default class TwilioService {
         statusUrl: URL,
         customFields: $TSFixMe,
         note: $TSFixMe
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -442,7 +442,7 @@ export default class TwilioService {
         statusPageUrl: URL,
         customFields: $TSFixMe,
         length: $TSFixMe
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -573,7 +573,7 @@ export default class TwilioService {
         statusPageUrl: URL,
         customFields: $TSFixMe,
         length: $TSFixMe
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -736,7 +736,7 @@ export default class TwilioService {
         schedule: $TSFixMe,
         projectName: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -859,7 +859,7 @@ export default class TwilioService {
         message: $TSFixMe,
         projectName: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -981,7 +981,7 @@ export default class TwilioService {
         schedule: $TSFixMe,
         projectName: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -1100,7 +1100,7 @@ export default class TwilioService {
         schedule: $TSFixMe,
         projectName: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -1220,7 +1220,7 @@ export default class TwilioService {
         description: $TSFixMe,
         projectName: $TSFixMe,
         projectId: string
-    ) {
+    ): void {
         let smsBody;
         try {
             let { template } = await this.getTemplate(
@@ -1342,7 +1342,7 @@ export default class TwilioService {
         projectId: string,
         incidentType: $TSFixMe,
         callProgress: $TSFixMe
-    ) {
+    ): void {
         let callBody;
         try {
             const extraInfo = callProgress

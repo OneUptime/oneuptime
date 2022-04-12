@@ -37,7 +37,7 @@ export function getProjectIncidents(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -71,7 +71,7 @@ export function getProjectComponentIncidents(
     componentId: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     skip = parseInt(skip);
     limit = parseInt(limit);
 
@@ -154,7 +154,7 @@ export const getIncidents = (projectId: string): void => {
 export function getComponentIncidents(
     projectId: string,
     componentId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `incident/${projectId}/${componentId}/incidents`
@@ -734,7 +734,7 @@ export function setInvestigationNote(
     projectId: string,
     incidentId: $TSFixMe,
     body: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
 
@@ -790,7 +790,7 @@ export function setInternalNote(
     projectId: string,
     incidentId: $TSFixMe,
     body: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.post(
@@ -920,7 +920,7 @@ export function fetchIncidentMessages(
     skip: PositiveNumber,
     limit: PositiveNumber,
     type = 'investigation'
-) {
+): void {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch: Dispatch): void {
@@ -1005,7 +1005,7 @@ export function deleteIncidentMessage(
     projectId: string,
     incidentId: $TSFixMe,
     incidentMessageId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete `incident/${projectId}/incident/${incidentId}/message/${incidentMessageId}`;

@@ -27,7 +27,7 @@ export function fetchIncidentPriorities(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `incidentPriorities/${projectId}?skip=${skip || 0}&limit=${

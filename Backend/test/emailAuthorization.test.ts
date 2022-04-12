@@ -16,7 +16,7 @@ import ProjectService from '../backend/services/projectService';
 import VerificationTokenModel from '../backend/models/verificationToken';
 import AirtableService from '../backend/services/airtableService';
 
-const sleep = (waitTimeInMs: $TSFixMe) =>
+const sleep = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let userId: string, projectId: string;

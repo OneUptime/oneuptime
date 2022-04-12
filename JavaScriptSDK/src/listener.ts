@@ -36,11 +36,11 @@ class OneUptimeListener {
         this._setUpFetchListener();
         this._setUpXhrListener();
     }
-    getTimeline() {
+    getTimeline(): void {
         // this always get the current state of the timeline array
         return this.timelineObj.getTimeline();
     }
-    clearTimeline(eventId: $TSFixMe) {
+    clearTimeline(eventId: $TSFixMe): void {
         // set a new eventId
         this.currentEventId = eventId;
         // this will reset the state of the timeline array
@@ -276,7 +276,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logErrorEvent(content: $TSFixMe, category = 'exception') {
+    logErrorEvent(content: $TSFixMe, category = 'exception'): void {
         const timelineObj = {
             category,
             data: {
@@ -288,7 +288,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logCustomTimelineEvent(timelineObj: $TSFixMe) {
+    logCustomTimelineEvent(timelineObj: $TSFixMe): void {
         timelineObj.eventId = this.currentEventId;
 
         // add timeline to the stack

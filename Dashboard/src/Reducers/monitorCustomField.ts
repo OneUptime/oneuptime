@@ -23,7 +23,7 @@ const initialState = {
 export default function monitorCustomField(
     state = initialState,
     action: Action
-) {
+): void {
     switch (action.type) {
         case types.CREATE_CUSTOM_FIELD_REQUEST:
             return {

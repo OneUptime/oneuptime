@@ -18,7 +18,7 @@ const keyBind = (
     path: $TSFixMe,
     keys: $TSFixMe,
     resetKeys: $TSFixMe
-) => {
+): void => {
     let shortcut = [];
     // ensure the target is always body and not inside any other element (input, textarea, etc)
     if (route.shortcut && event.target.localName === 'body' && event.key) {
@@ -38,7 +38,7 @@ const keyBind = (
 
 export const navKeyBind = (route: $TSFixMe, path: $TSFixMe): void => {
     let keys: $TSFixMe = [];
-    const resetKeys = () => (keys = []);
+    const resetKeys = (): void => (keys = []);
     // reasons to use keydown
     // 1 --> gives the user impression that they can press and hold two keys simultaneously
     // 2 --> accommodate users that don't like pressing and holding two keys simultaneously (which is the actual behaviour, (^-^))
@@ -49,7 +49,7 @@ export const navKeyBind = (route: $TSFixMe, path: $TSFixMe): void => {
 
 export const cleanBind = (route: $TSFixMe, path: $TSFixMe): void => {
     let keys: $TSFixMe = [];
-    const resetKeys = () => (keys = []);
+    const resetKeys = (): void => (keys = []);
     window.removeEventListener('keydown', e =>
         keyBind(e, route, path, keys, resetKeys)
     );

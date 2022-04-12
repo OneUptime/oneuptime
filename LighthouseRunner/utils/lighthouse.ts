@@ -5,7 +5,7 @@ function launchChromeAndRunLighthouse(
     url: URL,
     options = { chromeFlags: ['--headless', '--disable-gpu', '--no-sandbox'] },
     config = null
-) {
+): void {
     return chromeLauncher.launch(options).then(chrome => {
         options.port = chrome.port;
         return lighthouse(url, options, config).then((results: $TSFixMe) => {

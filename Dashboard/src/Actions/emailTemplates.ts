@@ -240,7 +240,7 @@ export function deleteSmtpConfig(
     projectId: string,
     smtpId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = delete (`emailSmtp/${projectId}/${smtpId}`, data);
         dispatch(deleteSmtpConfigRequest(promise));
@@ -272,7 +272,7 @@ export function updateSmtpConfig(
     projectId: string,
     smtpId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `emailSmtp/${projectId}/${smtpId}`,

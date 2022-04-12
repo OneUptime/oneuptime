@@ -37,7 +37,7 @@ const probeServerRequestHeader = ({
     probeName,
     probeKey,
     clusterKey,
-}: $TSFixMe) : void => ({
+}: $TSFixMe): void => ({
     'Access-Control-Allow-Origin': '*',
     Accept: 'application/json',
     'Content-Type': 'application/json;charset=UTF-8',

@@ -30,7 +30,7 @@ export const deletemonitorbysocket = (monitor: $TSFixMe): void => {
 export function updatemonitorstatusbysocket(
     status: $TSFixMe,
     probes: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: 'UPDATE_MONITOR_STATUS',

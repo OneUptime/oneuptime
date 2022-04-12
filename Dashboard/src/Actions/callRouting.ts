@@ -7,7 +7,7 @@ export function getCallRoutingNumbers(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     if (!skip) skip = 0;
     if (!limit) limit = 10;
     return function (dispatch: Dispatch): void {
@@ -211,7 +211,7 @@ export function uploadCallRoutingAudioSuccess(
     callRoutingId: $TSFixMe,
     audioFieldName: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_SUCCESS,
         payload: { callRoutingId, audioFieldName, data },
@@ -221,7 +221,7 @@ export function uploadCallRoutingAudioSuccess(
 export function uploadCallRoutingAudioRequest(
     callRoutingId: $TSFixMe,
     audioFieldName: $TSFixMe
-) {
+): void {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_REQUEST,
         payload: { callRoutingId, audioFieldName },
@@ -232,7 +232,7 @@ export function uploadCallRoutingAudioFailure(
     error: ErrorPayload,
     callRoutingId: $TSFixMe,
     audioFieldName: $TSFixMe
-) {
+): void {
     return {
         type: types.UPLOAD_CALL_ROUTING_AUDIO_FAILURE,
         payload: { callRoutingId, audioFieldName, error },
@@ -243,7 +243,7 @@ export function addCallRoutingSchedule(
     projectId: string,
     callRoutingId: $TSFixMe,
     values: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `callRouting/${projectId}/${callRoutingId}`,
@@ -299,7 +299,7 @@ export function fetchNumbers(
     projectId: string,
     countryCode: $TSFixMe,
     numberType: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `callRouting/${projectId}/routingNumbers?countryCode=${countryCode}&numberType=${numberType}`
@@ -394,7 +394,7 @@ export function getCallRoutingLogs(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `callRouting/${projectId}/logs?skip=${skip}&limit=${limit}`
@@ -452,7 +452,7 @@ export function removeIntroAudio(
     projectId: string,
     callRoutingId: $TSFixMe,
     backup: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete (`callRouting/${projectId}/${callRoutingId}/removeAudio`,
@@ -495,7 +495,7 @@ export const removeIntroAudioSuccess = (
 export function removeIntroAudioRequest(
     callRoutingId: $TSFixMe,
     backup: $TSFixMe
-) {
+): void {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_REQUEST,

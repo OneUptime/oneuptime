@@ -232,7 +232,7 @@ export const formatBytes = (
     c: $TSFixMe,
     d: $TSFixMe,
     e: $TSFixMe
-) => {
+): void => {
     return (
         formatDecimal(
             ((b = Math),

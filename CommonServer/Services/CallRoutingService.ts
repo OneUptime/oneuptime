@@ -343,7 +343,7 @@ export default class CallRoutingService extends DatabaseService<typeof Model> {
         to: $TSFixMe,
         body: $TSFixMe,
         backup: $TSFixMe
-    ) {
+    ): void {
         const fromNumber = body['From'];
         const callSid = body['CallSid'];
         const dialCallSid = body['DialCallSid'] || null;

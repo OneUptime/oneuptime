@@ -206,7 +206,7 @@ export function billingActionTaken(
     projectId: string,
     notificationId: $TSFixMe,
     values: $TSFixMe
-) {
+): void {
     return async function (dispatch: Dispatch): void {
         try {
             const notification = BackendAPI.put(

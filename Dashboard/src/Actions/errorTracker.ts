@@ -10,7 +10,7 @@ export function createErrorTracker(
     projectId: string,
     componentId: $TSFixMe,
     values: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/create`,
@@ -263,7 +263,7 @@ export const fetchErrorEventSuccess = (errorEvent: $TSFixMe): void => {
 export function fetchErrorEventRequest(
     errorTrackerId: $TSFixMe,
     errorEventId: $TSFixMe
-) {
+): void {
     return {
         type: types.FETCH_ERROR_EVENT_REQUEST,
         payload: { errorTrackerId, errorEventId },
@@ -296,7 +296,7 @@ export function deleteErrorTracker(
     projectId: string,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete `error-tracker/${projectId}/${componentId}/${errorTrackerId}`;
@@ -411,7 +411,7 @@ export function resetErrorTrackerKey(
     projectId: string,
     componentId: $TSFixMe,
     errorTrackerId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/reset-key`
@@ -499,7 +499,7 @@ export const ignoreErrorEventReset = (): void => {
 export function ignoreErrorEventRequest(
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe
-) {
+): void {
     return {
         type: types.IGNORE_ERROR_EVENT_REQUEST,
         payload: { errorTrackerId, issueId },
@@ -508,7 +508,7 @@ export function ignoreErrorEventRequest(
 export function ignoreErrorEventFailure(
     error: ErrorPayload,
     errorTrackerId: $TSFixMe
-) {
+): void {
     return {
         type: types.IGNORE_ERROR_EVENT_FAILURE,
         payload: { error, errorTrackerId },
@@ -562,7 +562,7 @@ export const unresolveErrorEventReset = (): void => {
 export function unresolveErrorEventRequest(
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe
-) {
+): void {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_REQUEST,
         payload: { errorTrackerId, issueId },
@@ -571,7 +571,7 @@ export function unresolveErrorEventRequest(
 export function unresolveErrorEventFailure(
     error: ErrorPayload,
     errorTrackerId: $TSFixMe
-) {
+): void {
     return {
         type: types.UNRESOLVE_ERROR_EVENT_FAILURE,
         payload: { error, errorTrackerId },
@@ -625,7 +625,7 @@ export const resolveErrorEventReset = (): void => {
 export function resolveErrorEventRequest(
     errorTrackerId: $TSFixMe,
     issueId: $TSFixMe
-) {
+): void {
     return {
         type: types.RESOLVE_ERROR_EVENT_REQUEST,
         payload: { errorTrackerId, issueId },
@@ -634,7 +634,7 @@ export function resolveErrorEventRequest(
 export function resolveErrorEventFailure(
     error: ErrorPayload,
     errorTrackerId: $TSFixMe
-) {
+): void {
     return {
         type: types.RESOLVE_ERROR_EVENT_FAILURE,
         payload: { error, errorTrackerId },
@@ -695,7 +695,7 @@ export const updateErrorEventMemberReset = (): void => {
 
 export function updateErrorEventMemberRequest(
     errorTrackerIssueMembers: $TSFixMe
-) {
+): void {
     return {
         type: types.UPDATE_ERROR_EVENT_MEMBER_REQUEST,
         payload: errorTrackerIssueMembers,
@@ -709,7 +709,7 @@ export const updateErrorEventMemberFailure = (error: ErrorPayload): void => {
 };
 export function updateErrorEventMemberSuccess(
     errorTrackerIssueMembers: $TSFixMe
-) {
+): void {
     return {
         type: types.UPDATE_ERROR_EVENT_MEMBER_SUCCESS,
         payload: errorTrackerIssueMembers,
@@ -753,7 +753,7 @@ export function deleteErrorTrackerIssue(
 
 export function deleteErrorTrackerIssueSuccess(
     removedErrorTrackerIssue: $TSFixMe
-) {
+): void {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_SUCCESS,
         payload: removedErrorTrackerIssue,

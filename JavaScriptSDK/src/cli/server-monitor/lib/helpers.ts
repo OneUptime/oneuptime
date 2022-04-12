@@ -52,7 +52,7 @@ const get = (
     key: $TSFixMe,
     success: $TSFixMe,
     error = defaultErrorHandler
-) => {
+): void => {
     headers['apiKey'] = key;
 
     return axios({
@@ -79,7 +79,7 @@ const post = (
     key: $TSFixMe,
     success: $TSFixMe,
     error = defaultErrorHandler
-) => {
+): void => {
     headers['apiKey'] = key;
 
     return axios({

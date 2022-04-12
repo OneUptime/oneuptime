@@ -779,7 +779,7 @@ export function fetchUserloginHistory(
     userId: string,
     skip: PositiveNumber,
     limit = 10
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `history/${userId}?skip=${skip}&limit=${limit}`

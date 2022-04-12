@@ -7,7 +7,7 @@ export function fetchResourceCategories(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch: Dispatch): void {
@@ -97,7 +97,7 @@ export function updateResourceCategory(
     projectId: string,
     resourceCategoryId: $TSFixMe,
     values: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `resourceCategory/${projectId}/${resourceCategoryId}`,
@@ -160,7 +160,7 @@ export const updateResourceCategoryRequest = (): void => {
 
 export function updateResourceCategorySuccess(
     updatedResourceCategory: $TSFixMe
-) {
+): void {
     return {
         type: types.UPDATE_RESOURCE_CATEGORY_SUCCESS,
         payload: updatedResourceCategory,
@@ -177,7 +177,7 @@ export const updateResourceCategoryFailure = (error: ErrorPayload): void => {
 export function deleteResourceCategory(
     resourceCategoryId: $TSFixMe,
     projectId: string
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete `resourceCategory/${projectId}/${resourceCategoryId}`;
@@ -199,7 +199,7 @@ export function deleteResourceCategory(
 
 export function deleteResourceCategorySuccess(
     removedResourceCategoryId: $TSFixMe
-) {
+): void {
     return {
         type: types.DELETE_RESOURCE_CATEGORY_SUCCESS,
         payload: removedResourceCategoryId,
@@ -247,7 +247,7 @@ export const fetchResourceCategoriesForNewResource = (
 
 export function fetchResourceCategoriesForNewResourceSuccess(
     resourceCategories: $TSFixMe
-) {
+): void {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_SUCCESS,
         payload: resourceCategories,

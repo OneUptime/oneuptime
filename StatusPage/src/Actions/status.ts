@@ -922,7 +922,7 @@ export function fetchMonitorLogs(
     projectId: string,
     monitorId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `StatusPage/${projectId}/${monitorId}/monitorLogs`,
@@ -1053,7 +1053,7 @@ export function fetchEventNote(
     projectId: string,
     scheduledEventSlug: $TSFixMe,
     type: $TSFixMe
-) {
+): void {
     return async function (dispatch: Dispatch): void {
         dispatch(fetchEventNoteRequest());
 
@@ -1197,7 +1197,7 @@ export function fetchIncidentNotes(
     projectId: string,
     incidentId: $TSFixMe,
     postOnStatusPage: $TSFixMe
-) {
+): void {
     return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchIncidentNotesRequest());
@@ -1293,7 +1293,7 @@ export const fetchLastIncidentTimelineFailure = (error: ErrorPayload): void => {
 export function fetchLastIncidentTimeline(
     projectId: string,
     incidentSlug: $TSFixMe
-) {
+): void {
     return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchLastIncidentTimelineRequest());
@@ -1342,7 +1342,7 @@ export const fetchLastIncidentTimelinesFailure = (
 export function fetchLastIncidentTimelines(
     projectId: string,
     statusPageSlug: $TSFixMe
-) {
+): void {
     return async function (dispatch: Dispatch): void {
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
@@ -1449,7 +1449,7 @@ export function getSingleAnnouncement(
     projectId: string,
     statusPageSlug: $TSFixMe,
     announcementSlug: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
@@ -1627,7 +1627,7 @@ export const fetchExternalStatusPagesFailure = (error: ErrorPayload): void => {
 export function fetchExternalStatusPages(
     projectId: string,
     statusPageId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`

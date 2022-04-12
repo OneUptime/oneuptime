@@ -125,7 +125,7 @@ class DatabaseService<ModelType> {
         return true;
     }
 
-    protected checkRequiredFields(data: Document) {
+    protected checkRequiredFields(data: Document): void {
         // check required fields.
         for (const requiredField of this.requiredFields) {
             if (!data.get(requiredField)) {
@@ -326,14 +326,14 @@ class DatabaseService<ModelType> {
     }
 
     private async _hardDeleteBy(query: Query): void {
-        return await this.model.remove(query);
+        await this.model.remove(query);
     }
 
     private async _deleteBy({
         query = {},
         multiple = false,
         deletedByUserId,
-    }: InternalDeleteBy) {
+    }: InternalDeleteBy): void {
         try {
             const beforeDeleteBy = await this.onBeforeDelete({
                 query,
@@ -371,7 +371,7 @@ class DatabaseService<ModelType> {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy) {
+    }: FindBy): Array<Document> {
         return await this.findBy({
             query,
             skip,
@@ -387,7 +387,7 @@ class DatabaseService<ModelType> {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy) {
+    }: FindBy): Array<Document> {
         return await this.findBy({
             query,
             skip,
@@ -403,7 +403,7 @@ class DatabaseService<ModelType> {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy) {
+    }: FindBy): Array<Document> {
         return await this.findBy({
             query,
             skip,
@@ -419,7 +419,7 @@ class DatabaseService<ModelType> {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy) {
+    }: FindBy): Array<Document> {
         return await this.findBy({
             query,
             skip,
@@ -435,7 +435,7 @@ class DatabaseService<ModelType> {
         skip = new PositiveNumber(0),
         limit = new PositiveNumber(10),
         sort,
-    }: FindBy) {
+    }: FindBy): Array<Document> {
         return await this.findBy({
             query,
             skip,

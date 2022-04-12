@@ -203,20 +203,21 @@ export const fetchSubProjectOngoingScheduledEventsRequest = (): void => ({
 
 export const fetchSubProjectOngoingScheduledEventsSuccess = (
     payload: $TSFixMe
-) => ({
+): void => ({
     type: types.FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_SUCCESS,
     payload,
 });
 
 export const fetchSubProjectOngoingScheduledEventsFailure = (
     error: ErrorPayload
-) => ({
+): void => ({
     type: types.FETCH_SUBPROJECT_ONGOING_SCHEDULED_EVENTS_FAILURE,
     payload: error,
 });
 
 export const fetchSubProjectOngoingScheduledEvents =
-    (projectId: string) => async (dispatch: Dispatch) => {
+    (projectId: string): void =>
+    async (dispatch: Dispatch): void => {
         try {
             dispatch(fetchSubProjectOngoingScheduledEventsRequest());
             const response = await BackendAPI.get(
@@ -286,7 +287,7 @@ export const createScheduledEventFailure = (error: ErrorPayload): void => {
 };
 
 export const deleteScheduledEvent =
-    (projectId: string, scheduledEventId: $TSFixMe) =>
+    (projectId: string, scheduledEventId: $TSFixMe): void =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(deleteScheduledEventRequest());
@@ -385,7 +386,7 @@ export function updateScheduledEvent(
     projectId: string,
     scheduledEventId: $TSFixMe,
     values: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `scheduledEvent/${projectId}/${scheduledEventId}`,
@@ -450,7 +451,7 @@ export const fetchScheduledEventNotesInternalSuccess = (
 
 export const fetchScheduledEventNotesInternalFailure = (
     error: ErrorPayload
-) => ({
+): void => ({
     type: types.FETCH_SCHEDULED_EVENT_NOTES_INTERNAL_FAILURE,
     payload: error,
 });
@@ -554,7 +555,7 @@ export const updateScheduledEventNoteInternalSuccess = (
 
 export const updateScheduledEventNoteInternalFailure = (
     error: ErrorPayload
-) => ({
+): void => ({
     type: types.UPDATE_SCHEDULED_EVENT_NOTE_INTERNAL_FAILURE,
     paylod: error,
 });
@@ -565,7 +566,7 @@ export const updateScheduledEventNoteInternal =
         scheduledEventId: $TSFixMe,
         scheduledEventNoteId: $TSFixMe,
         data: $TSFixMe
-    ) =>
+    ): void =>
     async (dispatch: Dispatch) => {
         try {
             dispatch(updateScheduledEventNoteInternalRequest());
@@ -601,7 +602,7 @@ export const updateScheduledEventNoteInvestigationSuccess = (
 
 export const updateScheduledEventNoteInvestigationFailure = (
     error: ErrorPayload
-) => ({
+): void => ({
     type: types.UPDATE_SCHEDULED_EVENT_NOTE_INVESTIGATION_FAILURE,
     paylod: error,
 });

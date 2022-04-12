@@ -92,7 +92,7 @@ export function updateAutomatedScript(
     projectId: string,
     automatedScriptId: $TSFixMe,
     data: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `automated-scripts/${projectId}/${automatedScriptId}`,
@@ -204,7 +204,7 @@ export function fetchAutomatedScript(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `automated-scripts/${projectId}?skip=${skip}&limit=${limit}`
@@ -289,7 +289,7 @@ const deleteAutomatedScriptFailure = (error: ErrorPayload): void => {
 export function deleteAutomatedScript(
     projectId: string,
     automatedSlug: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete `automated-scripts/${projectId}/${automatedSlug}`;

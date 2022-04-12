@@ -46,7 +46,7 @@ export function createFeedback(
     projectId: string,
     feedback: $TSFixMe,
     page: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`feedback/${projectId}`, {
             feedback,

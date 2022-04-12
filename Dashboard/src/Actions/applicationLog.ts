@@ -9,7 +9,7 @@ export function createApplicationLog(
     projectId: string,
     componentId: $TSFixMe,
     values: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/create`,
@@ -130,7 +130,7 @@ export function deleteApplicationLog(
     projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete (`application-log/${projectId}/${componentId}/${applicationLogId}`,
@@ -269,7 +269,7 @@ export function resetApplicationLogKey(
     projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/reset-key`
@@ -386,7 +386,7 @@ export function fetchStats(
     projectId: string,
     componentId: $TSFixMe,
     applicationLogId: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             `application-log/${projectId}/${componentId}/${applicationLogId}/stats`,

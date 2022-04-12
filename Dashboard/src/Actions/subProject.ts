@@ -212,7 +212,7 @@ export function renameSubProject(
     projectId: string,
     subProjectId: string,
     subProjectName: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`project/${projectId}/${subProjectId}`, {
             subProjectName,
@@ -320,7 +320,7 @@ export function exitSubProject(
     projectId: string,
     subProjectId: string,
     userId: string
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete (`subProject/${projectId}/${subProjectId}/user/${userId}/exitSubProject`,
@@ -372,7 +372,7 @@ export function markSubProjectForDelete(
     projectId: string,
     subProjectId: string,
     feedback: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise =
             delete (`subProject/${projectId}/${subProjectId}/deleteProject`,
@@ -396,7 +396,7 @@ export function markSubProjectForDelete(
 export function setActiveSubProject(
     subproject: $TSFixMe,
     updateStorage = false
-) {
+): void {
     if (updateStorage) {
         // store to localstorage
         User.setActivesubProjectId(subproject);

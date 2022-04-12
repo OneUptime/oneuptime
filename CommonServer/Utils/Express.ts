@@ -29,11 +29,11 @@ export interface OneUptimeResponse extends express.Response {
 class Express {
     private static app: express.Application;
 
-    static getRouter() {
+    static getRouter(): express.Router {
         return express.Router();
     }
 
-    static setupExpress() {
+    static setupExpress(): void {
         this.app = express();
     }
 
@@ -45,7 +45,7 @@ class Express {
         return this.app;
     }
 
-    static launchApplication() {
+    static launchApplication(): express.Application {
         if (!this.app) {
             this.setupExpress();
         }

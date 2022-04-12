@@ -150,7 +150,7 @@ export default class Service {
         projectId: string,
         emails: $TSFixMe,
         role: $TSFixMe
-    ) {
+    ): void {
         const addedBy = await UserService.findOneBy({
             query: { _id: addedByUserId },
             select: 'name _id',
@@ -322,7 +322,7 @@ export default class Service {
         role: $TSFixMe,
         addedBy: $TSFixMe,
         extraUsersToAdd: $TSFixMe
-    ) {
+    ): void {
         const invitedTeamMembers = [];
         let projectUsers = [];
 

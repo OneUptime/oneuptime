@@ -17,15 +17,15 @@ class OneUptimeTimelineManager {
         this.timeLineStack.push(item);
         return true;
     }
-    addToTimeline(item: $TSFixMe) {
+    addToTimeline(item: $TSFixMe): void {
         this._addItemToTimeline(item);
     }
     // return the timeline
-    getTimeline() {
+    getTimeline(): void {
         return this.timeLineStack;
     }
     // clear the timeline
-    clearTimeline() {
+    clearTimeline(): void {
         this.timeLineStack = [];
     }
 }

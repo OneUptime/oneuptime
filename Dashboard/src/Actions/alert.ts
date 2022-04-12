@@ -84,7 +84,7 @@ export function fetchProjectAlert(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `alert/${projectId}/alert?skip=${skip}&limit=${limit}`
@@ -199,7 +199,7 @@ export function fetchSubscriberAlert(
     incidentSlug: $TSFixMe,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch: Dispatch): void {
@@ -256,7 +256,7 @@ export function fetchAlertCharges(
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) {
+): void {
     let promise;
     return function (dispatch: Dispatch): void {
         if (skip >= 0 && limit > 0) {

@@ -48,7 +48,7 @@ export function getInvoice(
     projectId: string,
     startingAfter: $TSFixMe,
     endingBefore: $TSFixMe
-) {
+): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
         const reqFornext = Boolean(startingAfter) && !endingBefore;

@@ -43,7 +43,7 @@ class BaseAction {
         };
     }
 
-    getConstants() {
+    getConstants(): void {
         const friendlyName = this.friendlyName.replace(' ', '_').toUpperCase();
         const request =
             this.actionType.toUpperCase() + '_' + friendlyName + '_REQUEST';

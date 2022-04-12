@@ -1,7 +1,7 @@
 import { env } from './config';
 
 export default class PricingPlan {
-    public static getPlans() {
+    public static getPlans(): void {
         if (
             env('STRIPE_PUBLIC_KEY') &&
             env('STRIPE_PUBLIC_KEY').startsWith('pk_test')

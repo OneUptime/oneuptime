@@ -625,14 +625,14 @@ SocketApp.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps = (state: RootState): void => ({
     project: state.project.currentProject,
     subProjects: state.subProject.subProjects.subProjects,
     probes: state.probe.probes.data,
     activeProjectId: state.subProject.activeSubProject,
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) =>
+const mapDispatchToProps = (dispatch: Dispatch): void =>
     bindActionCreators(
         {
             incidentresolvedbysocket,
