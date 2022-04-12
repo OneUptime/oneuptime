@@ -1326,7 +1326,7 @@ const checkAnd = (
     queryParams,
 
     headers
-) => {
+): void => {
     let validity = true;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -3690,7 +3690,7 @@ const checkOr = (
     queryParams,
 
     headers
-) => {
+) : void => {
     let validity = false;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {

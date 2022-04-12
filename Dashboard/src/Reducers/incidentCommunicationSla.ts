@@ -30,7 +30,7 @@ const initialState = {
 export default function incidentCommunicationSla(
     state = initialState,
     action: Action
-) {
+): void  {
     switch (action.type) {
         case types.CREATE_COMMUNICATION_SLA_REQUEST:
             return {
