@@ -77,6 +77,12 @@
         "react/boolean-prop-naming": "error",
         "react/no-is-mounted": "error",
         "react/no-find-dom-node": "error",
+        "@typescript-eslint/explicit-function-return-type": [
+            "error",
+            {
+              "allowExpressions": true
+            }
+          ],
         "react/no-did-update-set-state": "error",
         "react/no-unknown-property": "error",
         "react/no-unused-prop-types": "error",

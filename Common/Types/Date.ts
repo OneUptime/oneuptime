@@ -42,7 +42,7 @@ export default class OneUptimeDate {
             .toDate();
     }
 
-    static momentToDate(moment: moment.Moment) {
+    static momentToDate(moment: moment.Moment): void {
         return moment.toDate();
     }
 }
