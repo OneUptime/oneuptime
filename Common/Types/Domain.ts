@@ -5,12 +5,12 @@ export default class Domain {
     public get domain(): string {
         return this._domain;
     }
-    public set domain (v: string):void {
+    public set domain(v: string) {
         this._domain = v;
     }
 
     public static isValidDomain(domain: string): boolean {
-        if (!domain.includes ('.')):void {
+        if (!domain.includes('.')) {
             return false;
         }
 
@@ -27,22 +27,22 @@ export default class Domain {
         const lastItem: string = parts[parts.length - 1] as string;
         const beforeLastItem: string = parts[parts.length - 2] as string;
 
-        if (firstTLDs.includes (lastItem)):void {
-            if (secondTLDs.includes (beforeLastItem)):void {
+        if (firstTLDs.includes(lastItem)) {
+            if (secondTLDs.includes(beforeLastItem)) {
                 return true;
             }
             return true;
-        } else if (secondTLDs.includes (lastItem)):void {
+        } else if (secondTLDs.includes(lastItem)) {
             return true;
         }
 
         return false;
     }
 
-    constructor (domain: string):void {
+    constructor(domain: string) {
         const isValid: boolean = Domain.isValidDomain(domain);
 
-        if  (!isValid):void {
+        if (!isValid) {
             throw new BadDataException('Domain is not in valid format.');
         }
         this.domain = domain;

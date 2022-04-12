@@ -15,7 +15,7 @@ import { isValidMonitor } from '../middlewares/api';
 const incomingHttpRequest = async (
     req: ExpressRequest,
     res: ExpressResponse
-) => {
+): void => {
     try {
         const monitor = req.monitor;
         const body = req.body;

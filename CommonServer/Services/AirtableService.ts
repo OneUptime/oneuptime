@@ -28,7 +28,7 @@ export default class Service {
         jobRole,
         createdAt,
         source,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         if (!base) return;
 
         return base('User').create({
@@ -53,7 +53,7 @@ export default class Service {
         type,
         volume,
         website,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         if (!base) return;
 
         return base('Leads').create({
@@ -70,7 +70,7 @@ export default class Service {
         });
     }
 
-    deleteUser(airtableId: $TSFixMe) {
+    deleteUser(airtableId: $TSFixMe): void {
         if (!base) return;
 
         return base('User').destroy(airtableId);
@@ -80,7 +80,7 @@ export default class Service {
     //Params:
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
-    logFeedback({ message, name, email, project, page }: $TSFixMe) {
+    logFeedback({ message, name, email, project, page }: $TSFixMe): void {
         if (!base) return;
 
         return base('Feedback').create({
@@ -92,7 +92,7 @@ export default class Service {
         });
     }
 
-    deleteFeedback(airtableId: $TSFixMe) {
+    deleteFeedback(airtableId: $TSFixMe): void {
         if (!base) return;
 
         if (!airtableId) {

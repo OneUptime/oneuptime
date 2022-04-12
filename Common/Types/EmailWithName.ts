@@ -5,7 +5,7 @@ export default class EmailWithName {
     public get email(): Email {
         return this._email;
     }
-    public set email (v: Email):void {
+    public set email(v: Email) {
         this._email = v;
     }
 
@@ -13,16 +13,16 @@ export default class EmailWithName {
     public get name(): string {
         return this._name;
     }
-    public set name (v: string):void {
+    public set name(v: string) {
         this._name = v;
     }
 
-    constructor (name: string, email: string | Email):void {
-        if  (typeof email === 'string'):void {
+    constructor(name: string, email: string | Email) {
+        if (typeof email === 'string') {
             this.email = new Email(email);
         }
 
-        if  (email instanceof Email):void {
+        if (email instanceof Email) {
             this.email = email;
         }
 

@@ -27,11 +27,11 @@ export default ({
     isResourceInProject,
     friendlyResourceName,
     service,
-}: $TSFixMe) => {
+}: $TSFixMe): void => {
     const getItemMiddleware = async (
         req: ExpressRequest,
         res: ExpressResponse
-    ) => {
+    ): void => {
         try {
             let item = null;
 
@@ -70,7 +70,7 @@ export default ({
     const listItemMiddleware = async (
         req: ExpressRequest,
         res: ExpressResponse
-    ) => {
+    ): void => {
         try {
             let query = req.data.query;
             let skip = req.data.skip;
@@ -152,7 +152,7 @@ export default ({
     const createItemMiddleware = async (
         req: ExpressRequest,
         res: ExpressResponse
-    ) => {
+    ): void => {
         try {
             const data = req.body;
 
@@ -171,7 +171,7 @@ export default ({
     const deleteItemMiddleware = async (
         req: ExpressRequest,
         res: ExpressResponse
-    ) => {
+    ): void => {
         try {
             if (!req.apiProps.authorizedByRole.includes(req.role)) {
                 return sendErrorResponse(req, res, {

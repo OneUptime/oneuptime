@@ -174,7 +174,7 @@ export default class Service {
         triggeredBy,
         resources,
         stackSize = 0,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         if (stackSize === 3) {
             const resource = resources[0];
             if (resource) {
@@ -231,12 +231,12 @@ export default class Service {
         return Promise.all(eventPromises);
     }
 
-    async runAutomatedScript({
+\    async runAutomatedScript({
         automatedScriptId,
         triggeredId,
         triggeredBy = 'script',
         stackSize,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         const selectScript =
             'name script scriptType slug projectId successEvent failureEvent';
         const populateScript = [{ path: 'createdById', select: 'name' }];

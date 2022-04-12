@@ -1,5 +1,5 @@
 export default class Cache {
-    public static getItem() {}
+    public static getItem(): void {}
 
-    public static setItem() {}
+    public static setItem(): void {}
 }
