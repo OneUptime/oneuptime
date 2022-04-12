@@ -190,7 +190,7 @@ export default class Service {
         errorMessage,
         eventType,
         alertProgress,
-    }: $TSFixMe) {
+    }: $TSFixMe): void {
         alertProgress =
             alertProgress && `${alertProgress.current}/${alertProgress.total}`;
         const alert = new AlertModel();

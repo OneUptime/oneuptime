@@ -6,12 +6,12 @@ export default class Port {
     public get port(): PositiveNumber {
         return this._port;
     }
-    public set port (v: PositiveNumber):void {
+    public set port (v: PositiveNumber) {
         this._port = v;
     }
 
-    constructor (port: number):void {
-        if  (port >= 0 && port <= 65535):void {
+    constructor (port: number) {
+        if  (port >= 0 && port <= 65535) {
             this.port = new PositiveNumber(port);
         } else {
             throw new BadDataException(
