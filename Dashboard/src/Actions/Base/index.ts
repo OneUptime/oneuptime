@@ -74,43 +74,43 @@ export default class Actions {
         }
     }
 
-    getCreateActions() {
+    getCreateActions(): void {
         return this.createAction.getActions();
     }
 
-    getListActions() {
+    getListActions(): void {
         return this.listAction.getActions();
     }
 
-    getGetActions() {
+    getGetActions(): void {
         return this.getAction.getActions();
     }
 
-    getUpdateActions() {
+    getUpdateActions(): void {
         return this.updateAction.getActions();
     }
 
-    getDeleteActions() {
+    getDeleteActions(): void {
         return this.deleteAction.getActions();
     }
 
-    getCreateConstants() {
+    getCreateConstants(): void {
         return this.createAction.getConstants();
     }
 
-    getListConstants() {
+    getListConstants(): void {
         return this.listAction.getConstants();
     }
 
-    getGetConstants() {
+    getGetConstants(): void {
         return this.getAction.getConstants();
     }
 
-    getUpdateConstants() {
+    getUpdateConstants(): void {
         return this.updateAction.getConstants();
     }
 
-    getDeleteConstants() {
+    getDeleteConstants(): void {
         return this.deleteAction.getConstants();
     }
 }

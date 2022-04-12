@@ -19,10 +19,12 @@ export const closeSearchBar = function (): void {
         type: CLOSE_SEARCH_BAR,
     };
 };
-export const resetSearch = () => async (dispatch: Dispatch) =>
-    dispatch({
-        type: RESET_SEARCH_FIELDS,
-    });
+export const resetSearch =
+    () =>
+    async (dispatch: Dispatch): void =>
+        dispatch({
+            type: RESET_SEARCH_FIELDS,
+        });
 export const searchRequest = (): void => {
     return {
         type: POPULATE_SEARCH_REQUEST,

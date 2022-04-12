@@ -109,7 +109,7 @@ class SocketApp extends Component<ComponentProps> {
         }
     }
 
-    override render() {
+    override render(): void {
         const thisObj = this;
 
         if (this.props.project) {

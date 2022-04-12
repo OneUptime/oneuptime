@@ -23,7 +23,7 @@ router.post(
                 body
             );
             return sendEmptyResponse(req, res);
-        } catch  (error):void {
+        } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
     }

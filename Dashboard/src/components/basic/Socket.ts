@@ -96,7 +96,7 @@ class SocketApp extends Component<ComponentProps> {
         }
     }
 
-    override render() {
+    override render(): void {
         const thisObj = this;
         const loggedInUser = User.getUserId();
 

@@ -781,7 +781,7 @@ export const allRoutes = groups
 
     .reduce(joinFn);
 
-export const getGroups = () => groups;
+export const getGroups = (): void => groups;
 
 export default {
     groups,

@@ -176,7 +176,7 @@ export const filterProbeData = (
     return statuses;
 };
 
-export const getMonitorStatus = (statuses: $TSFixMe) =>
+export const getMonitorStatus = (statuses: $TSFixMe): void =>
     statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
 export const getServiceStatus = (

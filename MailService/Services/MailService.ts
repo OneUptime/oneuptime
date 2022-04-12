@@ -23,8 +23,8 @@ import { HttpProtocol, HomeHostname, DashboardHostname } from 'CommonServer/Conf
 
 // handlebars helper function
 // checks for equality
-Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts):void {
-    if  (a == b):void {
+Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts) {
+    if  (a == b) {
         return opts.fn(this);
     } else {
         return opts.inverse(this);
@@ -33,7 +33,7 @@ Handlebars.registerHelper('if_eq', function (this: $TSFixMe, a, b, opts):void {
 
 export default class MailService {
 
-    async getProjectSmtpSettings (projectId: string):void {
+    async getProjectSmtpSettings (projectId: string) {
 
         let user,
             pass,
@@ -75,7 +75,7 @@ export default class MailService {
             secure = smtpDb.secure;
         } else {
             const globalSettings = await this.getSmtpSettings();
-            if (!isEmpty (globalSettings)):void {
+            if (!isEmpty (globalSettings)) {
                 user = globalSettings.user;
                 pass = globalSettings.pass;
                 host = globalSettings.host;
@@ -105,7 +105,7 @@ export default class MailService {
         };
     }
 
-    async getEmailBody (mailOptions: MailOptions):void {
+    async getEmailBody (mailOptions: MailOptions) {
         const data = await fsp.readFile(
             Path.resolve(
                 process.cwd(),
@@ -121,7 +121,7 @@ export default class MailService {
         return emailBody;
     }
 
-    async createMailer (mailServer: MailServer):void {
+    async createMailer (mailServer: MailServer) {
 
         const helpers = {
             year: DateTime.getCurrentYear,
@@ -140,9 +140,9 @@ export default class MailService {
         };
 
         let settings = {};
-        if  (!mailServer):void {
+        if  (!mailServer) {
             settings = await this.getSmtpSettings();
-            if (!isEmpty (settings)):void {
+            if (!isEmpty (settings)) {
                 host = settings.host;
 
                 port = settings.port;
@@ -153,7 +153,7 @@ export default class MailService {
 
                 secure = settings.secure;
 
-                if  (!settings['email-enabled']):void {
+                if  (!settings['email-enabled']) {
                     return null;
                 }
             }
@@ -162,8 +162,8 @@ export default class MailService {
         internalSmtp = internalSmtp || settings.internalSmtp;
         let privateMailer;
 
-        if  (host && user && pass):void {
-            if  (internalSmtp):void {
+        if  (host && user && pass) {
+            if  (internalSmtp) {
                 privateMailer = nodemailer.createTransport({
                     host: host,
                     port: port,
@@ -195,12 +195,12 @@ export default class MailService {
         return privateMailer;
     }
 
-    async getSmtpSettings ():void {
+    async getSmtpSettings () {
         const document = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value name',
         });
-        if  (document && document.value && !document.value.internalSmtp):void {
+        if  (document && document.value && !document.value.internalSmtp) {
             return {
                 user: document.value.email,
                 pass: document.value.password,
@@ -238,7 +238,7 @@ export default class MailService {
                     'email-enabled': document.value['email-enabled'],
                 },
             };
-        } else if  (document && document.value && document.value.internalSmtp):void {
+        } else if  (document && document.value && document.value.internalSmtp) {
             return {
                 user: Config.InternalSmtpUser,
                 pass: Config.InternalSmtpPassword,
@@ -258,7 +258,7 @@ export default class MailService {
         return {};
     }
 
-    async getTemplates (emailTemplate: $TSFixMe, emailType: $TSFixMe):void {
+    async getTemplates (emailTemplate: $TSFixMe, emailType: $TSFixMe) {
         const defaultTemplate = defaultEmailTemplates.filter(
             template => template.emailType === emailType
         );
@@ -287,7 +287,7 @@ export default class MailService {
     // Params:
     // Param 1: userEmail: Email of user
     // Returns: promise
-    async sendSignupMail (userEmail: Email, name: string):void {
+    async sendSignupMail (userEmail: Email, name: string) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
@@ -295,8 +295,8 @@ export default class MailService {
             let accountMail = await this.getSmtpSettings();
             smtpServer = 'internal';
 
-            if (!isEmpty (accountMail)):void {
-                if  (!accountMail.internalSmtp):void {
+            if (!isEmpty (accountMail)) {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -317,7 +317,7 @@ export default class MailService {
                 ]);
                 EmailBody = mailBody;
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -350,8 +350,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -380,7 +380,7 @@ export default class MailService {
                             ]);
                             EmailBody = mailBody;
 
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -421,7 +421,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -454,26 +454,26 @@ export default class MailService {
         let statusMessage;
         const os = deviceObj && deviceObj.os && deviceObj.os.name;
         const browser = deviceObj && deviceObj.client && deviceObj.client.name;
-        if  (location.city && location.country):void {
+        if  (location.city && location.country) {
             locations = `${location.city}, ${location.country}.`;
-        } else if  (!location.city && location.country):void {
+        } else if  (!location.city && location.country) {
             locations = `${location.country}.`;
-        } else if  (location.city && !location.country):void {
+        } else if  (location.city && !location.country) {
             locations = `${location.city}.`;
         } else {
             locations = 'Unknown Location';
         }
 
-        if  (os && browser):void {
+        if  (os && browser) {
             device = `${browser} on ${os}.`;
-        } else if  (!os && browser):void {
+        } else if  (!os && browser) {
             device = `${browser} on an Unknown Device.`;
-        } else if  (os && !browser):void {
+        } else if  (os && !browser) {
             device = `unknown browser on ${os}`;
         } else {
             device = 'Unknown Device';
         }
-        if  (status === 'successful'):void {
+        if  (status === 'successful') {
             statusMessage = 'a successful';
         } else {
             statusMessage = 'an unsuccessful';
@@ -482,8 +482,8 @@ export default class MailService {
         try {
             let accountMail = await this.getSmtpSettings();
             smtpServer = 'internal';
-            if (!isEmpty (accountMail)):void {
-                if  (!accountMail.internalSmtp):void {
+            if (!isEmpty (accountMail)) {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -509,7 +509,7 @@ export default class MailService {
                 ]);
                 EmailBody = mailBody;
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -542,8 +542,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -577,7 +577,7 @@ export default class MailService {
                             ]);
                             EmailBody = mailBody;
 
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -618,7 +618,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -636,17 +636,17 @@ export default class MailService {
         }
     }
     // Automated email sent when a user deletes a project
-    async sendDeleteProjectEmail ({ userEmail, name, projectName }: $TSFixMe):void {
+    async sendDeleteProjectEmail ({ userEmail, name, projectName }: $TSFixMe) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 accountMail.name = 'OneUptime Support';
                 accountMail.from = 'support@oneuptime.com';
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -669,7 +669,7 @@ export default class MailService {
                 ]);
                 EmailBody = mailBody;
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -702,8 +702,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -738,7 +738,7 @@ export default class MailService {
                             ]);
                             EmailBody = emailBody;
 
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -778,7 +778,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -800,15 +800,15 @@ export default class MailService {
         tokenVerifyUrl: URL,
         name: string,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -829,7 +829,7 @@ export default class MailService {
                 ]);
                 EmailBody = emailBody;
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -862,8 +862,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -892,7 +892,7 @@ export default class MailService {
                             ]);
                             EmailBody = emailBody;
 
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -933,7 +933,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -951,14 +951,14 @@ export default class MailService {
         }
     }
 
-    async sendLeadEmailToOneUptimeTeam (lead: $TSFixMe):void {
+    async sendLeadEmailToOneUptimeTeam (lead: $TSFixMe) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
-                if  (!accountMail.internalSmtp):void {
+            if (!isEmpty (accountMail)) {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -1002,7 +1002,7 @@ export default class MailService {
                 ]);
                 EmailBody = emailBody;
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -1035,8 +1035,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -1090,7 +1090,7 @@ export default class MailService {
                             ]);
                             EmailBody = emailBody;
 
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -1131,7 +1131,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1149,14 +1149,14 @@ export default class MailService {
         }
     }
 
-    async sendUserFeedbackResponse (userEmail: Email, name: string):void {
+    async sendUserFeedbackResponse (userEmail: Email, name: string) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
-                if  (!accountMail.internalSmtp):void {
+            if (!isEmpty (accountMail)) {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -1176,7 +1176,7 @@ export default class MailService {
                 ]);
                 EmailBody = emailBody;
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -1209,8 +1209,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -1237,7 +1237,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -1278,7 +1278,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1296,18 +1296,18 @@ export default class MailService {
         }
     }
 
-    async sendRequestDemoEmail (to: Email):void {
+    async sendRequestDemoEmail (to: Email) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            if  (!to):void {
+            if  (!to) {
                 throw new BadDataException('Email to cannot be null');
             } else {
                 let accountMail = await this.getSmtpSettings();
-                if (!isEmpty (accountMail)):void {
+                if (!isEmpty (accountMail)) {
                     smtpServer = 'internal';
-                    if  (!accountMail.internalSmtp):void {
+                    if  (!accountMail.internalSmtp) {
                         smtpServer = accountMail.host;
                     }
                     mailOptions = {
@@ -1324,7 +1324,7 @@ export default class MailService {
                     ]);
                     EmailBody = emailBody;
 
-                    if  (!mailer):void {
+                    if  (!mailer) {
                         await EmailStatusService.create({
                             from: mailOptions.from,
 
@@ -1357,8 +1357,8 @@ export default class MailService {
                             content: EmailBody,
                             smtpServer,
                         });
-                    } catch  (error):void {
-                        if  (error.code === 'ECONNECTION'):void {
+                    } catch  (error){
+                        if  (error.code === 'ECONNECTION') {
                             if (
                                 accountMail.internalSmtp &&
                                 accountMail.customSmtp &&
@@ -1381,7 +1381,7 @@ export default class MailService {
                                 ]);
                                 EmailBody = emailBody;
 
-                                if  (!mailer):void {
+                                if  (!mailer) {
                                     await EmailStatusService.create({
                                         from: mailOptions.from,
 
@@ -1423,7 +1423,7 @@ export default class MailService {
                     return info;
                 }
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1441,29 +1441,29 @@ export default class MailService {
         }
     }
 
-    async sendWhitepaperEmail (to: $TSFixMe, whitepaperName: $TSFixMe):void {
+    async sendWhitepaperEmail (to: $TSFixMe, whitepaperName: $TSFixMe) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            if  (!to || whitepaperName):void {
+            if  (!to || whitepaperName) {
                 throw new BadDataException('Email or Whitepaper found');
             } else {
                 let link = null;
 
-                for  (let i = 0; i < Whitepapers.length; i++):void {
-                    if  (Whitepapers[i].name === whitepaperName):void {
+                for  (let i = 0; i < Whitepapers.length; i++) {
+                    if  (Whitepapers[i].name === whitepaperName) {
                         link = Whitepapers[i].link;
                     }
                 }
 
-                if  (!link):void {
+                if  (!link) {
                     throw new BadDataException('Whitepaper not found.');
                 } else {
                     let accountMail = await this.getSmtpSettings();
-                    if (!isEmpty (accountMail)):void {
+                    if (!isEmpty (accountMail)) {
                         smtpServer = 'internal';
-                        if  (!accountMail.internalSmtp):void {
+                        if  (!accountMail.internalSmtp) {
                             smtpServer = accountMail.host;
                         }
                         mailOptions = {
@@ -1484,7 +1484,7 @@ export default class MailService {
                         ]);
                         EmailBody = emailBody;
 
-                        if  (!mailer):void {
+                        if  (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
 
@@ -1517,8 +1517,8 @@ export default class MailService {
                                 content: EmailBody,
                                 smtpServer,
                             });
-                        } catch  (error):void {
-                            if  (error.code === 'ECONNECTION'):void {
+                        } catch  (error){
+                            if  (error.code === 'ECONNECTION') {
                                 if (
                                     accountMail.internalSmtp &&
                                     accountMail.customSmtp &&
@@ -1548,7 +1548,7 @@ export default class MailService {
                                         ]);
                                     EmailBody = emailBody;
 
-                                    if  (!mailer):void {
+                                    if  (!mailer) {
                                         await EmailStatusService.create({
                                             from: mailOptions.from,
 
@@ -1591,8 +1591,8 @@ export default class MailService {
                     }
                 }
             }
-        } catch  (error):void {
-            if  (mailOptions):void {
+        } catch  (error){
+            if  (mailOptions) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
 
@@ -1617,15 +1617,15 @@ export default class MailService {
     // Param 2: email: Email of user
     // Param 3: token: Password reset token
     // Returns: promise
-    async sendForgotPasswordMail (forgotPasswordUrl: URL, email: Email):void {
+    async sendForgotPasswordMail (forgotPasswordUrl: URL, email: Email) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -1643,7 +1643,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -1676,8 +1676,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -1701,7 +1701,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -1742,7 +1742,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1764,15 +1764,15 @@ export default class MailService {
     // Params:
     // Param 1: email: Email of user
     // Returns: promise
-    async sendResetPasswordConfirmMail (email: Email):void {
+    async sendResetPasswordConfirmMail (email: Email) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -1791,7 +1791,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -1824,8 +1824,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -1850,7 +1850,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -1891,7 +1891,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -1924,9 +1924,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -1946,7 +1946,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -1979,8 +1979,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -2007,7 +2007,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -2048,7 +2048,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2070,15 +2070,15 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -2099,7 +2099,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -2132,8 +2132,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -2161,7 +2161,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -2202,7 +2202,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2220,13 +2220,13 @@ export default class MailService {
         }
     }
 
-    async sendLighthouseEmail (project: $TSFixMe, user: $TSFixMe):void {
+    async sendLighthouseEmail (project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if  (!accountMail.internalSmtp):void {
+            if  (!accountMail.internalSmtp) {
                 smtpServer = accountMail.host;
             }
             mailOptions = {
@@ -2258,7 +2258,7 @@ export default class MailService {
                 this.getEmailBody(mailOptions),
             ]);
             EmailBody = emailBody;
-            if  (!mailer):void {
+            if  (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
@@ -2284,8 +2284,8 @@ export default class MailService {
                     content: EmailBody,
                     smtpServer,
                 });
-            } catch  (error):void {
-                if  (error.code === 'ECONNECTION'):void {
+            } catch  (error){
+                if  (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
                         accountMail.customSmtp &&
@@ -2325,7 +2325,7 @@ export default class MailService {
                             this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
-                        if  (!mailer):void {
+                        if  (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
@@ -2358,7 +2358,7 @@ export default class MailService {
                 }
             }
             return info;
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2376,13 +2376,13 @@ export default class MailService {
         }
     }
 
-    async sendApplicationEmail (project: $TSFixMe, user: $TSFixMe):void {
+    async sendApplicationEmail (project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if  (!accountMail.internalSmtp):void {
+            if  (!accountMail.internalSmtp) {
                 smtpServer = accountMail.host;
             }
             mailOptions = {
@@ -2411,7 +2411,7 @@ export default class MailService {
                 this.getEmailBody(mailOptions),
             ]);
             EmailBody = emailBody;
-            if  (!mailer):void {
+            if  (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
@@ -2437,8 +2437,8 @@ export default class MailService {
                     content: EmailBody,
                     smtpServer,
                 });
-            } catch  (error):void {
-                if  (error.code === 'ECONNECTION'):void {
+            } catch  (error){
+                if  (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
                         accountMail.customSmtp &&
@@ -2473,7 +2473,7 @@ export default class MailService {
                             this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
-                        if  (!mailer):void {
+                        if  (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
@@ -2506,7 +2506,7 @@ export default class MailService {
                 }
             }
             return info;
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2524,13 +2524,13 @@ export default class MailService {
         }
     }
 
-    async sendContainerEmail (project: $TSFixMe, user: $TSFixMe):void {
+    async sendContainerEmail (project: $TSFixMe, user: $TSFixMe) {
         let mailOptions;
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if  (!accountMail.internalSmtp):void {
+            if  (!accountMail.internalSmtp) {
                 smtpServer = accountMail.host;
             }
             mailOptions = {
@@ -2559,7 +2559,7 @@ export default class MailService {
                 this.getEmailBody(mailOptions),
             ]);
             EmailBody = emailBody;
-            if  (!mailer):void {
+            if  (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
                     to: mailOptions.to,
@@ -2585,8 +2585,8 @@ export default class MailService {
                     content: EmailBody,
                     smtpServer,
                 });
-            } catch  (error):void {
-                if  (error.code === 'ECONNECTION'):void {
+            } catch  (error){
+                if  (error.code === 'ECONNECTION') {
                     if (
                         accountMail.internalSmtp &&
                         accountMail.customSmtp &&
@@ -2613,7 +2613,7 @@ export default class MailService {
                             this.getEmailBody(mailOptions),
                         ]);
                         EmailBody = emailBody;
-                        if  (!mailer):void {
+                        if  (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
@@ -2646,7 +2646,7 @@ export default class MailService {
                 }
             }
             return info;
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2668,15 +2668,15 @@ export default class MailService {
         subProject: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -2695,7 +2695,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -2728,8 +2728,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -2756,7 +2756,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
                                     to: mailOptions.to,
@@ -2794,7 +2794,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2816,15 +2816,15 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -2845,7 +2845,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -2878,8 +2878,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -2908,7 +2908,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -2949,7 +2949,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -2971,15 +2971,15 @@ export default class MailService {
         project: $TSFixMe,
         addedByUser: $TSFixMe,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -3000,7 +3000,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -3033,8 +3033,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -3062,7 +3062,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -3103,7 +3103,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3132,9 +3132,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -3157,7 +3157,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -3190,8 +3190,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -3220,7 +3220,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -3261,7 +3261,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3283,15 +3283,15 @@ export default class MailService {
         project: $TSFixMe,
         removedByUser: $TSFixMe,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -3313,7 +3313,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -3346,8 +3346,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -3376,7 +3376,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -3417,7 +3417,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3439,15 +3439,15 @@ export default class MailService {
         subProject: $TSFixMe,
         removedByUser: $TSFixMe,
         email: Email
-    ):void {
+    ) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -3470,7 +3470,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -3503,8 +3503,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -3533,7 +3533,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -3574,7 +3574,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3629,25 +3629,25 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 let iconColor = '#94c800';
                 let incidentShow = 'Offline';
                 let subject;
-                if  (incidentType && incidentType === 'online'):void {
+                if  (incidentType && incidentType === 'online') {
                     iconColor = '#75d380';
                     incidentShow = 'Online';
-                } else if  (incidentType && incidentType === 'offline'):void {
+                } else if  (incidentType && incidentType === 'offline') {
                     iconColor = '#e25950';
                     incidentShow = 'Offline';
-                } else if  (incidentType && incidentType === 'degraded'):void {
+                } else if  (incidentType && incidentType === 'degraded') {
                     iconColor = '#ffde24';
                     incidentShow = 'Degraded';
                 }
-                if  (emailProgress):void {
+                if  (emailProgress) {
                     subject = `Reminder ${emailProgress.current}/${emailProgress.total}: Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
                 } else {
                     subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
@@ -3687,7 +3687,7 @@ export default class MailService {
                 };
                 EmailBody = await this.getEmailBody(mailOptions);
                 const mailer = await this.createMailer(accountMail);
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -3720,8 +3720,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -3764,7 +3764,7 @@ export default class MailService {
                             };
                             EmailBody = await this.getEmailBody(mailOptions);
                             const mailer = await this.createMailer(accountMail);
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -3805,7 +3805,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -3878,13 +3878,13 @@ export default class MailService {
 
             subject = subject(data);
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -3907,7 +3907,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -3948,8 +3948,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -3960,7 +3960,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -3983,7 +3983,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -4032,7 +4032,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4079,9 +4079,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -4116,7 +4116,7 @@ export default class MailService {
                 };
                 const mailer = await this.createMailer(accountMail);
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -4149,8 +4149,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -4194,7 +4194,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -4235,7 +4235,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4279,9 +4279,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -4315,7 +4315,7 @@ export default class MailService {
                 };
                 const mailer = await this.createMailer(accountMail);
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -4348,8 +4348,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -4392,7 +4392,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -4432,7 +4432,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4506,13 +4506,13 @@ export default class MailService {
 
             subject = subject(data);
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -4535,7 +4535,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -4576,8 +4576,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -4589,7 +4589,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -4612,7 +4612,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -4660,7 +4660,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4740,9 +4740,9 @@ export default class MailService {
 
             subject = subject(data);
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
@@ -4756,7 +4756,7 @@ export default class MailService {
                     },
                 };
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -4797,8 +4797,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -4820,7 +4820,7 @@ export default class MailService {
                                 },
                             };
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -4868,7 +4868,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -4951,13 +4951,13 @@ export default class MailService {
             let smtpSettings = await this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -4980,7 +4980,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -5021,8 +5021,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -5034,7 +5034,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -5057,7 +5057,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -5105,7 +5105,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5184,13 +5184,13 @@ export default class MailService {
             let smtpSettings = await this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -5213,7 +5213,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -5254,8 +5254,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -5267,7 +5267,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -5290,7 +5290,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -5338,7 +5338,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5418,13 +5418,13 @@ export default class MailService {
             let smtpSettings = await this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -5447,7 +5447,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -5488,8 +5488,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -5501,7 +5501,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -5524,7 +5524,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -5572,7 +5572,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5650,13 +5650,13 @@ export default class MailService {
             subject = subject(data);
 
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -5679,7 +5679,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -5720,8 +5720,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -5733,7 +5733,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -5756,7 +5756,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -5804,7 +5804,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -5866,13 +5866,13 @@ export default class MailService {
             subject = subject(data);
 
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -5895,7 +5895,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -5936,8 +5936,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -5949,7 +5949,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -5972,7 +5972,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -6020,7 +6020,7 @@ export default class MailService {
                 }
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6095,13 +6095,13 @@ export default class MailService {
 
             subject = subject(data);
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 const privateMailer = await this.createMailer(smtpSettings);
-                if  (replyAddress):void {
+                if  (replyAddress) {
                     mailOptions = {
                         from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                         to: email,
@@ -6126,7 +6126,7 @@ export default class MailService {
                     };
                 }
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!privateMailer):void {
+                if  (!privateMailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -6167,8 +6167,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -6180,7 +6180,7 @@ export default class MailService {
                             const privateMailer = await this.createMailer(
                                 smtpSettings
                             );
-                            if  (replyAddress):void {
+                            if  (replyAddress) {
                                 mailOptions = {
                                     from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
                                     to: email,
@@ -6205,7 +6205,7 @@ export default class MailService {
                                 };
                             }
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!privateMailer):void {
+                            if  (!privateMailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -6254,7 +6254,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6274,11 +6274,11 @@ export default class MailService {
         }
     }
 
-    async testSmtpConfig (data: $TSFixMe):void {
+    async testSmtpConfig (data: $TSFixMe) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer = 'internal';
-        if  (!data.internalSmtp):void {
+        if  (!data.internalSmtp) {
             smtpServer = data.host;
         }
         try {
@@ -6295,7 +6295,7 @@ export default class MailService {
                 },
             };
             EmailBody = await this.getEmailBody(mailOptions);
-            if  (!privateMailer):void {
+            if  (!privateMailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
 
@@ -6326,9 +6326,9 @@ export default class MailService {
             });
 
             return info;
-        } catch  (error):void {
+        } catch  (error){
             let err;
-            if  (error.code === 'EAUTH'):void {
+            if  (error.code === 'EAUTH') {
                 err = new Error('Username and Password not accepted.');
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -6345,7 +6345,7 @@ export default class MailService {
                 });
 
                 err.code = 400;
-            } else if  (error.code === 'ECONNECTION'):void {
+            } else if  (error.code === 'ECONNECTION') {
                 err = new Error(
                     'Please check your host and port settings again.'
                 );
@@ -6411,9 +6411,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -6436,7 +6436,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -6469,8 +6469,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -6499,7 +6499,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -6540,7 +6540,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6558,15 +6558,15 @@ export default class MailService {
         }
     }
 
-    async sendCreateProjectMail (projectName: $TSFixMe, email: Email):void {
+    async sendCreateProjectMail (projectName: $TSFixMe, email: Email) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
 
@@ -6588,7 +6588,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -6621,8 +6621,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -6649,7 +6649,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -6690,7 +6690,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6708,15 +6708,15 @@ export default class MailService {
         }
     }
 
-    async sendCreateSubProjectMail (subProjectName: $TSFixMe, email: Email):void {
+    async sendCreateSubProjectMail (subProjectName: $TSFixMe, email: Email) {
         let mailOptions: MailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -6736,7 +6736,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -6769,8 +6769,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -6796,7 +6796,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -6837,7 +6837,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -6866,9 +6866,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -6889,7 +6889,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -6922,8 +6922,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -6952,7 +6952,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -6993,7 +6993,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7023,9 +7023,9 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -7048,7 +7048,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -7081,8 +7081,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -7110,7 +7110,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -7151,7 +7151,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7168,7 +7168,7 @@ export default class MailService {
             throw error;
         }
     }
-    async hasCustomSmtpSettings (projectId: string):void {
+    async hasCustomSmtpSettings (projectId: string) {
         const select =
             'projectId user pass host port from name iv secure enabled createdAt';
         const smtpConfigurations = await EmailSmtpService.findOneBy({
@@ -7200,9 +7200,9 @@ export default class MailService {
         let smtpServer;
         try {
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 mailOptions = {
@@ -7228,7 +7228,7 @@ export default class MailService {
                 const mailer = await this.createMailer(smtpSettings);
                 EmailBody = await this.getEmailBody(mailOptions);
 
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -7261,8 +7261,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -7298,7 +7298,7 @@ export default class MailService {
                             );
                             EmailBody = await this.getEmailBody(mailOptions);
 
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -7338,7 +7338,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7374,9 +7374,9 @@ export default class MailService {
         let smtpServer;
         try {
             let smtpSettings = await this.getProjectSmtpSettings(projectId);
-            if (!isEmpty (smtpSettings)):void {
+            if (!isEmpty (smtpSettings)) {
                 smtpServer = 'internal';
-                if  (!smtpSettings.internalSmtp):void {
+                if  (!smtpSettings.internalSmtp) {
                     smtpServer = smtpSettings.host;
                 }
                 mailOptions = {
@@ -7400,7 +7400,7 @@ export default class MailService {
 
                 const mailer = await this.createMailer(smtpSettings);
                 EmailBody = await this.getEmailBody(mailOptions);
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -7433,8 +7433,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             smtpSettings.internalSmtp &&
                             smtpSettings.customSmtp &&
@@ -7468,7 +7468,7 @@ export default class MailService {
                                 smtpSettings
                             );
                             EmailBody = await this.getEmailBody(mailOptions);
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -7509,7 +7509,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7539,11 +7539,11 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 accountMail.name = 'OneUptime Support';
                 accountMail.from = 'support@oneuptime.com';
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -7567,7 +7567,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -7600,8 +7600,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -7635,7 +7635,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -7676,7 +7676,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
@@ -7705,11 +7705,11 @@ export default class MailService {
         let smtpServer;
         try {
             let accountMail = await this.getSmtpSettings();
-            if (!isEmpty (accountMail)):void {
+            if (!isEmpty (accountMail)) {
                 accountMail.name = 'OneUptime Support';
                 accountMail.from = 'support@oneuptime.com';
                 smtpServer = 'internal';
-                if  (!accountMail.internalSmtp):void {
+                if  (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
@@ -7733,7 +7733,7 @@ export default class MailService {
                     this.getEmailBody(mailOptions),
                 ]);
                 EmailBody = emailBody;
-                if  (!mailer):void {
+                if  (!mailer) {
                     await EmailStatusService.create({
                         from: mailOptions.from,
 
@@ -7766,8 +7766,8 @@ export default class MailService {
                         content: EmailBody,
                         smtpServer,
                     });
-                } catch  (error):void {
-                    if  (error.code === 'ECONNECTION'):void {
+                } catch  (error){
+                    if  (error.code === 'ECONNECTION') {
                         if (
                             accountMail.internalSmtp &&
                             accountMail.customSmtp &&
@@ -7801,7 +7801,7 @@ export default class MailService {
                                 this.getEmailBody(mailOptions),
                             ]);
                             EmailBody = emailBody;
-                            if  (!mailer):void {
+                            if  (!mailer) {
                                 await EmailStatusService.create({
                                     from: mailOptions.from,
 
@@ -7842,7 +7842,7 @@ export default class MailService {
 
                 return info;
             }
-        } catch  (error):void {
+        } catch  (error){
             await EmailStatusService.create({
                 from: mailOptions.from,
 
