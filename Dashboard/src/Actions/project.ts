@@ -1184,7 +1184,7 @@ export const fetchProjectDomains = (
     projectId: string,
     skip = 0,
     limit = 10
-) => {
+): void => {
     return async function (dispatch: Dispatch): void {
         dispatch(fetchProjectDomainsRequest());
 

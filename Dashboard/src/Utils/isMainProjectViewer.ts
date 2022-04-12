@@ -8,7 +8,7 @@ const isMainProjectViewer = (
     userId: string,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
-) => {
+): void => {
     let user = currentProject
         ? currentProject.users.find((user: $TSFixMe) => user.userId === userId)
         : null;

@@ -241,7 +241,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: Action) => {
+export default (state = INITIAL_STATE, action: Action): void => {
     let monitorTimeRequest: $TSFixMe;
     let monitorTimeSuccess: $TSFixMe;
     switch (action.type) {

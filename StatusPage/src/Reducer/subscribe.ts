@@ -29,7 +29,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: Action) => {
+export default (state = INITIAL_STATE, action: Action): void => {
     switch (action.type) {
         case OPEN_SUBSCRIBE_MENU:
             return Object.assign({}, state, {

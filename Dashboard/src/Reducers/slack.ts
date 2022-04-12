@@ -31,7 +31,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     let teams, index, count;
     switch (action.type) {
         case GET_SLACK_TEAM_FAILED:

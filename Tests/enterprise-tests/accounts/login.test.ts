@@ -8,7 +8,7 @@ const operationTimeOut = init.timeout;
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
-const moveToSsoPage = async (page: $TSFixMe) => {
+const moveToSsoPage = async (page: $TSFixMe): void => {
     await init.pageWaitForSelector(page, '#settings', {
         visible: true,
         timeout: init.timeout,
@@ -21,7 +21,7 @@ const moveToSsoPage = async (page: $TSFixMe) => {
     await init.pageClick(page, '#sso');
 };
 
-const createSso = async (page: $TSFixMe, data: $TSFixMe) => {
+const createSso = async (page: $TSFixMe, data: $TSFixMe): void => {
     await init.pageWaitForSelector(page, '#add-sso', {
         visible: true,
         timeout: init.timeout,

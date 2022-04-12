@@ -52,7 +52,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     let msTeams, index, count;
     switch (action.type) {
         case GET_MS_TEAMS_FAILED:

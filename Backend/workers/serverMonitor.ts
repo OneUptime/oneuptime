@@ -38,7 +38,7 @@ export default {
     },
 };
 
-const job = async (monitor: $TSFixMe) => {
+const job = async (monitor: $TSFixMe): void => {
     const { stat: validUp, successReasons } =
         monitor && monitor.criteria && monitor.criteria.up
             ? ProbeService.conditions(monitor.type, monitor.criteria.up)

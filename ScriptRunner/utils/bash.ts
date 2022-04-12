@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { performance } from 'perf_hooks';
 
-const run = async (script: $TSFixMe) => {
+const run = async (script: $TSFixMe): void => {
     const start = performance.now();
     return new Promise(resolve => {
         exec(script, (err, stdout) => {

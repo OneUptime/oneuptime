@@ -261,7 +261,7 @@ export const updatePrivateStatusPageError = (error: ErrorPayload): void => {
 export const updatePrivateStatusPage = (
     projectId: string,
     values: $TSFixMe
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`StatusPage/${projectId}`, values);
         dispatch(updatePrivateStatusPageRequest());
@@ -733,7 +733,7 @@ export const resetIncidentFetchStatusPages = (): void => {
 
 export const fetchIncidentStatusPagesSuccess = (
     incidentStatusPages: $TSFixMe
-) => {
+): void => {
     return {
         type: types.FETCH_INCIDENT_STATUSPAGE_SUCCESS,
         payload: incidentStatusPages,

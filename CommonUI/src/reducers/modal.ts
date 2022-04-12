@@ -13,7 +13,7 @@ const initialState: initialStateType = {
     modals: [],
 };
 
-export default (state = initialState, action: ModalAction) => {
+export default (state = initialState, action: ModalAction): void => {
     switch (action.type) {
         case ModalConstant.OPEN_MODAL: {
             return Object.assign({}, state, {

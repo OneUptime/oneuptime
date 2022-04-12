@@ -13,7 +13,7 @@ const monitorName1 = 'testoneuptime';
 const customDomain = utils.generateRandomString();
 
 let browser: $TSFixMe, page: $TSFixMe;
-const gotoTheFirstStatusPage = async (page: $TSFixMe) => {
+const gotoTheFirstStatusPage = async (page: $TSFixMe): void => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
         timeout: init.timeout,

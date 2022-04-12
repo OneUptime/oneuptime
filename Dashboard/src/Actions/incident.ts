@@ -706,7 +706,7 @@ export const deleteProjectIncidents = (projectId: string): void => {
 export const investigationNoteRequest = (
     promise: $TSFixMe,
     updated: $TSFixMe
-) => {
+): void => {
     return {
         type: types.INVESTIGATION_NOTE_REQUEST,
         payload: { promise, updated },
@@ -716,7 +716,7 @@ export const investigationNoteRequest = (
 export const investigationNoteError = (
     error: ErrorPayload,
     updated: $TSFixMe
-) => {
+): void => {
     return {
         type: types.INVESTIGATION_NOTE_FAILED,
         payload: { error, updated },
@@ -1049,7 +1049,7 @@ export function deleteIncidentMessage(
 
 export const deleteIncidentMessageSuccess = (
     removedIncidentMessage: $TSFixMe
-) => {
+): void => {
     return {
         type: types.DELETE_INCIDENT_MESSAGE_SUCCESS,
         payload: removedIncidentMessage,

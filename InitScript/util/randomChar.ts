@@ -4,7 +4,7 @@
  * @returns { string } a string of random characters
  */
 
-export default (num = 15) => {
+export default (num = 15): void => {
     const input =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let output = '';

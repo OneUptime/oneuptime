@@ -72,7 +72,7 @@ export const getAllStatusPageResource = (
     statusPageSlug: $TSFixMe,
     url: URL,
     range: $TSFixMe
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         const promises = [];
 
@@ -640,7 +640,7 @@ export const notmonitoredDays = (
     date: $TSFixMe,
     name: $TSFixMe,
     message: $TSFixMe
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         dispatch(statusPageNoteReset());
         dispatch(
@@ -680,7 +680,7 @@ export const getMoreNote = (
     projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}`
@@ -733,7 +733,7 @@ export const getMoreEvent = (
     projectId: string,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/${statusPageSlug}/events?skip=${skip}`

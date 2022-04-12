@@ -236,7 +236,7 @@ export default ({
             req: ExpressRequest,
             res: ExpressResponse,
             next: NextFunction
-        ) => {
+        ): void => {
             req.apiProps = props;
             return next();
         };

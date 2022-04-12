@@ -159,7 +159,7 @@ export function deleteApplicationLog(
 
 export const deleteApplicationLogSuccess = (
     removedApplicationLogId: $TSFixMe
-) => {
+): void => {
     return {
         type: types.DELETE_APPLICATION_LOG_SUCCESS,
         payload: removedApplicationLogId,

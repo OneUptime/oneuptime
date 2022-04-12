@@ -20,7 +20,7 @@ const router = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-const callForward = async (req: ExpressRequest, res: ExpressResponse) => {
+const callForward = async (req: ExpressRequest, res: ExpressResponse): void => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -43,7 +43,10 @@ const callForward = async (req: ExpressRequest, res: ExpressResponse) => {
     }
 };
 
-const backupCallForward = async (req: ExpressRequest, res: ExpressResponse) => {
+const backupCallForward = async (
+    req: ExpressRequest,
+    res: ExpressResponse
+): void => {
     try {
         const body = req.body;
         const to = body['To'];
@@ -66,7 +69,7 @@ const backupCallForward = async (req: ExpressRequest, res: ExpressResponse) => {
     }
 };
 
-const callStatus = async (req: ExpressRequest, res: ExpressResponse) => {
+const callStatus = async (req: ExpressRequest, res: ExpressResponse): void => {
     try {
         const body = req.body;
         const to = body['To'];

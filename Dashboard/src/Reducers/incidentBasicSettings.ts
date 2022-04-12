@@ -72,7 +72,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: Action) => {
+export default (state = INITIAL_STATE, action: Action): void => {
     switch (action.type) {
         case FETCH_INCIDENT_BASIC_SETTINGS_VARIABLES_REQUEST:
             return Object.assign({}, state, {

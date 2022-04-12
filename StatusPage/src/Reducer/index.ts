@@ -9,7 +9,7 @@ import subscribe from './subscribe';
 
 const appReducer = combineReducers({ form, login, status, probe, subscribe });
 
-export default (state: RootState, action: Action) => {
+export default (state: RootState, action: Action): void => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }

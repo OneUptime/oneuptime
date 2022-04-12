@@ -64,7 +64,7 @@ const initialState = {
     pages: {},
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case TEAM_LOADING_REQUEST:
             return {

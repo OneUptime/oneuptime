@@ -1384,7 +1384,7 @@ router.get(
     }
 );
 
-const fetchNotes = async (events: $TSFixMe, limit: PositiveNumber) => {
+const fetchNotes = async (events: $TSFixMe, limit: PositiveNumber): void => {
     const updatedEvents = [];
     if (events.length > 0) {
         for (const event of events) {
@@ -3007,7 +3007,7 @@ const filterProbeData = (
     monitor: $TSFixMe,
     probe: $TSFixMe,
     backupStatus: $TSFixMe
-) => {
+): void => {
     const monitorStatuses = monitor?.statuses || backupStatus;
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0

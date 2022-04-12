@@ -15,7 +15,7 @@ const INITIAL_STATE = {
     error: false,
 };
 
-export default (state = INITIAL_STATE, action: Action) => {
+export default (state = INITIAL_STATE, action: Action): void => {
     switch (action.type) {
         case LOGIN_REQUIRED:
             return Object.assign({}, state, {

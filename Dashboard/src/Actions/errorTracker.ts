@@ -762,7 +762,7 @@ export function deleteErrorTrackerIssueSuccess(
 
 export const deleteErrorTrackerIssueRequest = (
     errorTrackerIssueId: $TSFixMe
-) => {
+): void => {
     return {
         type: types.DELETE_ERROR_TRACKER_ISSUE_REQUEST,
         payload: errorTrackerIssueId,

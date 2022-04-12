@@ -151,7 +151,7 @@ export const filterProbeData = (
     monitor: $TSFixMe,
     probe: $TSFixMe,
     backupStatus: $TSFixMe
-) => {
+): void => {
     const monitorStatuses = monitor.statuses || backupStatus;
 
     const probesStatus =
@@ -262,7 +262,7 @@ export const capitalize = (words: $TSFixMe): void => {
 export const handleResources = (
     monitorState: $TSFixMe,
     announcement: $TSFixMe
-) => {
+): void => {
     const affectedMonitors: $TSFixMe = [];
     let monitorCount = 0;
 

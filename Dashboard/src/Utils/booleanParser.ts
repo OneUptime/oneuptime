@@ -4,7 +4,7 @@
  * @returns Boolean true or false
  */
 
-export default (val: $TSFixMe) => {
+export default (val: $TSFixMe): void => {
     const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
     return !falsy.test(val) && !!val;
 };

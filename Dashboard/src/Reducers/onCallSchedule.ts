@@ -9,7 +9,7 @@ const initialState = {
     onCallScheduleModalVisble: false,
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case OPEN_ONCALLSCHEDULE_MODAL:
             return Object.assign({}, state, {

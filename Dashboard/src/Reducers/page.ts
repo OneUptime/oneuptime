@@ -14,7 +14,7 @@ const initialState = {
     toggleProjectSettingsMore: false,
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case PAGE_LOAD_REQUEST:
             return Object.assign({}, state, {

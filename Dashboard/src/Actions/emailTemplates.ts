@@ -119,7 +119,7 @@ export const resetEmailTemplatesSuccess = (emailTemplates: $TSFixMe): void => {
 export const resetEmailTemplates = (
     projectId: string,
     templateId: $TSFixMe
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `emailTemplate/${projectId}/${templateId}/reset`

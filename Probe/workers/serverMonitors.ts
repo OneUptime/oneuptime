@@ -90,7 +90,7 @@ export default {
     },
 };
 
-const execCommands = async (exec: $TSFixMe, os: $TSFixMe) => {
+const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
     const isSSH = exec instanceof NodeSSH;
 
     // TODO: complete commands and make platform specific

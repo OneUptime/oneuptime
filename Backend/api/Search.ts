@@ -249,7 +249,7 @@ const getStatusPages = async (
     return null;
 };
 
-const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe) => {
+const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe): void => {
     //get project users id so as to search for only users in a project and its subproject
     const projectUsers: $TSFixMe = [];
 

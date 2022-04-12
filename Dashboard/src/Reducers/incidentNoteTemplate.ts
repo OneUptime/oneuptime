@@ -29,7 +29,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case types.FETCH_INCIDENT_NOTE_TEMPLATES_REQUEST:
             return {

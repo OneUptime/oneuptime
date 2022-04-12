@@ -478,7 +478,7 @@ export function removeIntroAudio(
 export const removeIntroAudioSuccess = (
     numbers: $TSFixMe,
     backup: $TSFixMe
-) => {
+): void => {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_SUCCESS,
@@ -512,7 +512,7 @@ export function removeIntroAudioRequest(
 export const removeIntroAudioFailure = (
     error: ErrorPayload,
     backup: $TSFixMe
-) => {
+): void => {
     if (backup) {
         return {
             type: types.REMOVE_BACKUP_INTRO_AUDIO_FAILURE,

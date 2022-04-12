@@ -13,7 +13,7 @@ const initialState = {
     success: false,
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case DASHBOARD_LOAD_REQUEST:
             return Object.assign({}, state, {

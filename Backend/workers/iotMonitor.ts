@@ -25,7 +25,7 @@ export default {
     },
 };
 
-const job = async (monitor: $TSFixMe, res: $TSFixMe) => {
+const job = async (monitor: $TSFixMe, res: $TSFixMe): void => {
     const populate = [
         {
             path: 'monitors.monitorId',

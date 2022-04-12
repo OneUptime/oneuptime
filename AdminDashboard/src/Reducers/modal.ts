@@ -7,7 +7,7 @@ const initialState = {
     feedbackModalVisble: false,
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case OPEN_MODAL:
             return Object.assign({}, state, {

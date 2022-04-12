@@ -6,7 +6,7 @@ const HasProjectOwner = (
     project: $TSFixMe,
     projectId: string,
     subProjects: $TSFixMe
-) => {
+): void => {
     if (project._id === projectId) {
         return (
             project &&

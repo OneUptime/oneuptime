@@ -39,7 +39,7 @@ export function fetchResourceCategories(
 
 export const fetchResourceCategoriesSuccess = (
     resourceCategories: $TSFixMe
-) => {
+): void => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_SUCCESS,
         payload: resourceCategories,
@@ -132,7 +132,7 @@ export function updateResourceCategory(
 
 export const createResourceCategorySuccess = (
     newResourceCategory: $TSFixMe
-) => {
+): void => {
     return {
         type: types.CREATE_RESOURCE_CATEGORY_SUCCESS,
         payload: newResourceCategory,
@@ -262,7 +262,7 @@ export const fetchResourceCategoriesForNewResourceRequest = (): void => {
 
 export const fetchResourceCategoriesForNewResourceFailure = (
     error: ErrorPayload
-) => {
+): void => {
     return {
         type: types.FETCH_RESOURCE_CATEGORIES_FOR_NEW_RESOURCE_FAILURE,
         payload: error,

@@ -922,7 +922,7 @@ export const fetchProjectDomains = (
     projectId: string,
     skip = 0,
     limit = 10
-) => {
+): void => {
     return async function (dispatch: Dispatch): void {
         dispatch(fetchProjectDomainsRequest());
 
@@ -1089,7 +1089,7 @@ export const resetUnverifyProjectDomain = (): void => {
 export const unVerifyProjectDomain = (
     projectId: string,
     domainId: $TSFixMe
-) => {
+): void => {
     return async function (dispatch: Dispatch): void {
         dispatch(unVerifyProjectDomainRequest());
 

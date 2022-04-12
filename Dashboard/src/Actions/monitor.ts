@@ -566,7 +566,7 @@ export const changeMonitorComponent = (
     projectId: string,
     monitorId: $TSFixMe,
     newComponentId: $TSFixMe
-) => {
+): void => {
     return async (dispatch: Dispatch) => {
         try {
             dispatch(changeMonitorComponentRequest(monitorId));

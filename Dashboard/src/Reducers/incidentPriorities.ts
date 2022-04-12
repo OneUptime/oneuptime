@@ -46,7 +46,7 @@ const INITIAL_STATE = {
     },
 };
 
-export default (state = INITIAL_STATE, action: Action) => {
+export default (state = INITIAL_STATE, action: Action): void => {
     let incidentPriorities, count, index;
     switch (action.type) {
         case FETCH_INCIDENT_PRIORITIES_SUCCESS:

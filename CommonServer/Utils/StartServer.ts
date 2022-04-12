@@ -22,7 +22,7 @@ const logRequest = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction
-) => {
+): void => {
     const current_datetime = new Date();
     const formatted_date =
         current_datetime.getFullYear() +
@@ -50,7 +50,7 @@ const setDefaultHeaders = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction
-) => {
+): void => {
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

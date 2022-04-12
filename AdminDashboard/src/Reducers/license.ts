@@ -25,7 +25,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case FETCH_LICENSE_REQUEST:
             return Object.assign({}, state, {

@@ -118,7 +118,7 @@ const appReducer = combineReducers({
 
 // Global Actions.
 
-export default (state: RootState, action: Action) => {
+export default (state: RootState, action: Action): void => {
     if (action.type === 'CLEAR_STORE') {
         state = undefined;
     }

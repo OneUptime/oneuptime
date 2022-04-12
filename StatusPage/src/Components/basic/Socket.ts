@@ -43,7 +43,7 @@ class SocketApp extends Component<ComponentProps> {
     public static displayName = '';
     public static propTypes = {};
 
-    override shouldComponentUpdate(nextProps: ComponentProps) {
+    override shouldComponentUpdate(nextProps: ComponentProps): boolean {
         if (this.props.project !== nextProps.project) {
             if (this.props.project) {
                 socket.removeListener(

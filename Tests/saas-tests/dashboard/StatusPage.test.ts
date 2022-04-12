@@ -12,7 +12,7 @@ const monitorName = 'oneuptime';
 const monitorName1 = 'testoneuptime';
 
 let browser: $TSFixMe, page: $TSFixMe;
-const gotoTheFirstStatusPage = async (page: $TSFixMe) => {
+const gotoTheFirstStatusPage = async (page: $TSFixMe): void => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
     });

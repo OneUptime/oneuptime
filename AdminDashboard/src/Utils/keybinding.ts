@@ -16,7 +16,7 @@ const keyBind = (
     route: $TSFixMe,
     keys: $TSFixMe,
     resetKeys: $TSFixMe
-) => {
+): void => {
     let shortcut = [];
     // ensure the target is always body and not inside any other element (input, textarea, etc)
     if (route.shortcut && event.target.localName === 'body' && event.key) {

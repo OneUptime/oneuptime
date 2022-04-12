@@ -21,7 +21,7 @@ const initialState = {
     notificationsPosition: 0,
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case OPEN_NOTIFICATION_MENU:
             return Object.assign({}, state, {

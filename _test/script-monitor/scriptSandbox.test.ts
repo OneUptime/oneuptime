@@ -28,7 +28,7 @@ describe('ScriptMonitor V2', function ():void {
 
 
     it("should return success for a valid script", async function ():void {
-      const someFunction = async (done: $TSFixMe) => {
+      const someFunction = async (done: $TSFixMe): void => {
 
 
 
@@ -52,7 +52,7 @@ describe('ScriptMonitor V2', function ():void {
 
 
     it("should return false for error thrown in script", async function ():void {
-      const someFunction = async (done: $TSFixMe) => {
+      const someFunction = async (done: $TSFixMe): void => {
         console.log('Error log');
         logger.error('Bad Error');
         throw new Error("Bad error");
@@ -73,7 +73,7 @@ describe('ScriptMonitor V2', function ():void {
 
 
     it("should return scriptMonitor error when script returns a value in cb", async function ():void {
-      const someFunction = async (done: $TSFixMe) => {
+      const someFunction = async (done: $TSFixMe): void => {
         done("Some Error");
       }
       const result = await runScript(someFunction.toString(), true);
@@ -89,7 +89,7 @@ describe('ScriptMonitor V2', function ():void {
 
 
     it("should return timeout error when script takes too long", async function ():void {
-      const someFunction = async (done: $TSFixMe) => {
+      const someFunction = async (done: $TSFixMe): void => {
         return new Promise((resolve) => {
           setTimeout(() => "All timed out", 7000);
         })
@@ -106,7 +106,7 @@ describe('ScriptMonitor V2', function ():void {
 
 
     it("should return timeout error when statement takes too long", async function ():void {
-      const someFunction = async (done: $TSFixMe) => {
+      const someFunction = async (done: $TSFixMe): void => {
         while (true) {
           // statement stuck in loop or too busy
         }

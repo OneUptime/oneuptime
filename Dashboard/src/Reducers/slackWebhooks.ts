@@ -52,7 +52,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     let slacks, index, count;
     switch (action.type) {
         case GET_SLACK_WEBHOOK_FAILED:

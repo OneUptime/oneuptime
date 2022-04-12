@@ -52,7 +52,7 @@ function logResponse(
 export const sendEmptyResponse = (
     req: ExpressRequest,
     res: ExpressResponse
-) => {
+): void => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -92,7 +92,7 @@ export const sendErrorResponse = (
     req: ExpressRequest,
     res: ExpressResponse,
     error: Exception
-) => {
+): void => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 

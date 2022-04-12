@@ -6,7 +6,7 @@ const initialState = {
     animateSidebar: false,
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case ANIMATE_SIDEBAR:
             return Object.assign({}, state, {

@@ -415,7 +415,7 @@ export function updateScheduledEvent(
 
 export const updateScheduledEventSuccess = (
     updatedScheduledEvent: $TSFixMe
-) => {
+): void => {
     return {
         type: types.UPDATE_SCHEDULED_EVENT_SUCCESS,
         payload: updatedScheduledEvent,

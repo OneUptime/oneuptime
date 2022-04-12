@@ -52,7 +52,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     let webHooks, index, count;
     switch (action.type) {
         case GET_WEB_HOOK_FAILED:

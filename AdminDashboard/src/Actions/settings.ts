@@ -11,7 +11,7 @@ export const requestingSettings = (): void => {
 export const requestingSettingsSucceeded = (
     payload: $TSFixMe,
     payloadType: $TSFixMe
-) => {
+): void => {
     return {
         type: types.REQUESTING_SETTINGS_SUCCEEDED,
         payload,

@@ -82,7 +82,7 @@ export const getSlack = (
     projectId: string,
     skip: PositiveNumber,
     limit: PositiveNumber
-) => {
+): void => {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(

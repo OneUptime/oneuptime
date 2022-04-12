@@ -1496,7 +1496,7 @@ export default class Service {
     }
 
     async isPermitted(userId: string, statusPage: $TSFixMe): void {
-        const fn = async (resolve: $TSFixMe) => {
+        const fn = async (resolve: $TSFixMe): void => {
             if (statusPage.isPrivate) {
                 if (userId) {
                     const project = await ProjectService.findOneBy({

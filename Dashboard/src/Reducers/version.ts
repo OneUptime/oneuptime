@@ -19,7 +19,7 @@ const initialState = {
     },
 };
 
-export default (state = initialState, action: Action) => {
+export default (state = initialState, action: Action): void => {
     switch (action.type) {
         case GET_VERSION_FAILED:
             return Object.assign({}, state, {

@@ -9,7 +9,7 @@ import 'should';
 const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
-const moveToSsoPage = async (page: $TSFixMe) => {
+const moveToSsoPage = async (page: $TSFixMe): void => {
     await init.pageWaitForSelector(page, '#settings');
 
     await init.pageClick(page, '#settings');
@@ -19,7 +19,7 @@ const moveToSsoPage = async (page: $TSFixMe) => {
     await init.pageClick(page, '#sso');
 };
 
-const createSso = async (page: $TSFixMe, data: $TSFixMe) => {
+const createSso = async (page: $TSFixMe, data: $TSFixMe): void => {
     await init.pageClick(page, '#add-sso');
 
     await init.pageWaitForSelector(page, '#save-button');

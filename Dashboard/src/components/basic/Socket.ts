@@ -56,7 +56,7 @@ interface ComponentProps {
 }
 
 class SocketApp extends Component<ComponentProps> {
-    override shouldComponentUpdate(nextProps: ComponentProps) {
+    override shouldComponentUpdate(nextProps: ComponentProps): boolean {
         if (
             this.props.project !== nextProps.project ||
             this.props.activeProjectId !== nextProps.activeProjectId

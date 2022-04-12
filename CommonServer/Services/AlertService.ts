@@ -3053,7 +3053,7 @@ export default class Service {
 
         let webhookNotificationSent = true;
 
-        const sendAlerts = async () => {
+        const sendAlerts = async (): void => {
             if (subscriber.alertVia === AlertType.Webhook) {
                 const investigationNoteNotificationWebhookDisabled =
                     isStatusPageNoteAlert &&
@@ -4587,7 +4587,7 @@ export default class Service {
                 ? 'Scheduled maintenance resolved'
                 : 'Scheduled maintenance cancelled';
 
-        const sendAlerts = async () => {
+        const sendAlerts = async (): void => {
             if (subscriber.alertVia === AlertType.Email) {
                 const [
                     hasGlobalSmtpSettings,
