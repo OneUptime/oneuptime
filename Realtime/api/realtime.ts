@@ -8,8 +8,9 @@ import {
     sendEmptyResponse,
 } from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
-import ClusterKeyAuthorization from 'CommonServer/middlewares/ClusterKeyAuthorization';
-import RealtimeService from '../Services/RealtimeService';
+import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
+import RealtimeService from '../aservices/arealtimeService';
+import ObjectID from 'Common/Types/ObjectID';
 
 router.post(
     ':project-id/:event-type',
@@ -18,7 +19,7 @@ router.post(
         try {
             const body = req.body;
             RealtimeService.send(
-                req.params['projectId'] as string,
+                new ObjectID(req.params['projectId'] as string),
                 req.params['eventType'] as string,
                 body
             );
