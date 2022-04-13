@@ -3,9 +3,12 @@ import Email from 'Common/Types/Email';
 import URL from 'Common/Types/api/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
+import Name from 'Common/Types/Name';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+
 export default class User {
     public static getAccessToken(): string {
-        return LocalStorage.getItem('access_token');
+        return LocalStorage.getItem('access_token') as string;
     }
 
     public static setAccessToken(token: string): void {
@@ -13,7 +16,7 @@ export default class User {
     }
 
     public static isCardRegistered(): boolean {
-        return LocalStorage.getItem('cardRegistered');
+        return !!LocalStorage.getItem('cardRegistered');
     }
 
     public static setCardRegistered(value: boolean): void {
@@ -21,31 +24,35 @@ export default class User {
     }
 
     public static setUserId(id: ObjectID): void {
-        LocalStorage.setItem('id', id);
+        LocalStorage.setItem('id', id.toString());
     }
 
-    public static getUserId(): string {
-        return LocalStorage.getItem('id');
+    public static getUserId(): ObjectID {
+        return new ObjectID((LocalStorage.getItem('id') as string) || '');
     }
 
-    public static getName(): string {
-        return LocalStorage.getItem('name');
+    public static getName(): Name {
+        return new Name((LocalStorage.getItem('name') as string) || '');
     }
 
     public static setName(name: string): void {
         LocalStorage.setItem('name', name);
     }
 
-    public static getEmail(): string {
-        return LocalStorage.getItem('email');
+    public static getEmail(): Email {
+        return new Email(LocalStorage.getItem('email') as string);
     }
 
     public static setEmail(email: Email): void {
         LocalStorage.setItem('email', email);
     }
 
-    public static initialUrl(): string {
-        return LocalStorage.getItem('initialUrl');
+    public static initialUrl(): URL {
+        if (LocalStorage.getItem('initialUrl')) {
+            return URL.fromString(LocalStorage.getItem('initialUrl') as string);
+        }
+
+        throw new BadDataException('Initial URL not found');
     }
 
     public static setInitialUrl(url: URL): void {
@@ -58,7 +65,7 @@ export default class User {
     }
 
     public static getProject(): JSONObject {
-        return LocalStorage.getItem('project');
+        return LocalStorage.getItem('project') as JSONObject;
     }
 
     public static clear(): void {

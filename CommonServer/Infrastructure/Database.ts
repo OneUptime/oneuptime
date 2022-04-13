@@ -26,11 +26,12 @@ export default class Database {
         return this.fileClient;
     }
 
-    public static async connect(): void {
+    public static async connect(): Promise<MongoDB.MongoClient> {
         if (!this.databaseClient) {
             await this.getClient();
         }
         await this.databaseClient.connect();
+        return this.databaseClient;
     }
 
     public static async getDatabase(): Promise<MongoDB.Db> {

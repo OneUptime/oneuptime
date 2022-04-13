@@ -3,7 +3,7 @@ import io, { Socket } from 'CommonServer/infrastructure/SocketIO';
 import ObjectID from 'Common/Types/ObjectID';
 io.sockets.on('connection', (socket: Socket) => {
     socket.on('project', (projectId: ObjectID) => {
-        socket.join(projectId);
+        socket.join(projectId.toString());
     });
 });
 
@@ -13,6 +13,6 @@ export default class RealtimeService {
         eventType: string,
         data: JSONObjectOrArray
     ): void {
-        io.to(projectId).emit(eventType, data);
+        io.to(projectId.toString()).emit(eventType, data);
     }
 }

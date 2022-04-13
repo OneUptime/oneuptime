@@ -56,7 +56,7 @@ export const sendEmptyResponse = (
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
     oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     oneUptimeResponse.status(200).send();
@@ -68,7 +68,7 @@ export const sendFileResponse = async (
     req: ExpressRequest | ExpressRequest,
     res: ExpressResponse,
     file: File
-): void => {
+): Promise<void> => {
     /** create read stream */
 
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -85,7 +85,7 @@ export const sendFileResponse = async (
     /** return response */
     readstream.pipe(res);
 
-    return logResponse(req, res);
+    logResponse(req, res);
 };
 
 export const sendErrorResponse = (
@@ -102,7 +102,7 @@ export const sendErrorResponse = (
 
     logger.error(error);
 
-    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
     oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     oneUptimeResponse.status(status).send({ message });
@@ -114,11 +114,11 @@ export const sendListResponse = async (
     res: ExpressResponse,
     list: JSONArray,
     count: PositiveNumber
-): void => {
+): Promise<void> => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
     oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     const listData: ListData = new ListData({
@@ -161,7 +161,7 @@ export const sendListResponse = async (
         oneUptimeResponse.status(200).send(listData);
         oneUptimeResponse.logBody = listData.toJSON(); // To be used in 'auditLog' middleware to log reponse data;
         oneUptimeResponse.status(200).send(listData);
-        return logResponse(req, res, listData.toJSON());
+        logResponse(req, res, listData.toJSON());
     }
 };
 
@@ -169,20 +169,21 @@ export const sendItemResponse = async (
     req: ExpressRequest,
     res: ExpressResponse,
     item: JSONObject
-): void => {
+): Promise<void> => {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id);
+    oneUptimeResponse.set('ExpressRequest-Id', oneUptimeRequest.id.toString());
     oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
     if (oneUptimeRequest.query['output-type'] === 'csv') {
         const csv = JsonToCsv.ToCsv([item]);
         oneUptimeResponse.status(200).send(csv);
-        return logResponse(req, res);
+        logResponse(req, res);
+        return;
     }
 
     oneUptimeResponse.logBody = item;
     oneUptimeResponse.status(200).send(item);
-    return logResponse(req, res, item);
+    logResponse(req, res, item);
 };

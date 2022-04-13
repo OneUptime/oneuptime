@@ -20,15 +20,23 @@ export default class Name {
     }
 
     getFirstName(): string {
-        return this.name.split(' ')[0];
+        return this.name.split(' ')[0] || '';
     }
 
     getLastName(): string {
-        return this.name.split(' ')[this.name.split(' ').length - 1];
+        if (this.name.split(' ').length > 1) {
+            return this.name.split(' ')[this.name.split(' ').length - 1] || '';
+        } else {
+            return '';
+        }
     }
 
     getMiddleName(): string {
-        return this.name.split(' ')[0];
+        if (this.name.split(' ').length > 2) {
+            return this.name.split(' ')[1] || '';
+        } else {
+            return '';
+        }
     }
 
     toString(): string {

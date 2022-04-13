@@ -5,15 +5,18 @@ import {
     OpenModalActionPayload,
 } from '../payload-types/modal';
 
-interface initialStateType {
+export interface InitialStateType {
     modals: Array<OpenModalActionPayload>;
 }
 
-const initialState: initialStateType = {
+const initialState: InitialStateType = {
     modals: [],
 };
 
-export default (state = initialState, action: ModalAction): void => {
+export default (
+    state = initialState,
+    action: ModalAction
+): InitialStateType => {
     switch (action.type) {
         case ModalConstant.OPEN_MODAL: {
             return Object.assign({}, state, {

@@ -1,3 +1,5 @@
+import ObjectID from './ObjectID';
+
 export type JSONValue =
     | Array<string>
     | string
@@ -8,7 +10,9 @@ export type JSONValue =
     | JSONObject
     | JSONArray
     | Date
-    | Array<Date>;
+    | Array<Date>
+    | ObjectID
+    | Array<ObjectID>;
 
 export interface JSONObject {
     [x: string]: JSONValue;

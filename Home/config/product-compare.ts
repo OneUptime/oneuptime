@@ -1,6 +1,6 @@
 import { JSONObject } from 'Common/Types/JSON';
 
-export default (product: string): void => {
+export default (product: string): JSONObject => {
     const products: JSONObject = {
         pagerduty: {
             productName: 'PagerDuty',
@@ -477,5 +477,5 @@ export default (product: string): void => {
         },
     };
 
-    return products[product];
+    return products[product] as JSONObject;
 };

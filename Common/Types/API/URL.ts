@@ -44,4 +44,45 @@ export default class URL {
     toString(): string {
         return `${this.protocol}${this.hostname}${this.route}`;
     }
+
+    static fromString(url: string): URL {
+        let protocol = Protocol.HTTPS;
+
+        if (url.startsWith('https://')) {
+            protocol = Protocol.HTTPS;
+            url = url.replace('https://', '');
+        }
+
+        if (url.startsWith('http://')) {
+            protocol = Protocol.HTTP;
+            url = url.replace('http://', '');
+        }
+
+        if (url.startsWith('wss://')) {
+            protocol = Protocol.WSS;
+            url = url.replace('wss://', '');
+        }
+
+        if (url.startsWith('ws://')) {
+            protocol = Protocol.WS;
+            url = url.replace('ws://', '');
+        }
+
+        if (url.startsWith('mongodb://')) {
+            protocol = Protocol.MONGO_DB;
+            url = url.replace('mongodb://', '');
+        }
+
+        const hostname = new Hostname(url.split('/')[0] || '');
+
+        let route;
+
+        if (url.split('/').length > 1) {
+            const paths = url.split('/');
+            paths.shift();
+            route = new Route(paths.join('/'));
+        }
+
+        return new URL(protocol, hostname, route);
+    }
 }

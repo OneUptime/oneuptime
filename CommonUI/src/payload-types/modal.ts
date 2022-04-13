@@ -1,5 +1,6 @@
 import ActionPayload from '../types/action-payload';
 import ObjectID from 'Common/Types/ObjectID';
+
 export interface OpenModalActionPayload extends ActionPayload {
     id: ObjectID;
     onClose: Function;

@@ -5,6 +5,8 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Headers from 'Common/Types/API/Headers';
 import ObjectID from 'Common/Types/ObjectID';
+import HTTPResponse from 'Common/Types/API/Response';
+
 export default class Service {
     private api: API;
     private headers: Headers;
@@ -20,8 +22,8 @@ export default class Service {
         projectId: ObjectID,
         eventType: string,
         data: JSONObjectOrArray
-    ): void {
-        await this.api.post(
+    ): Promise<HTTPResponse> {
+        return await this.api.post(
             new Route(`/send-created-incident`),
             {
                 projectId,

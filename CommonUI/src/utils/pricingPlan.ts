@@ -1,7 +1,9 @@
 import { env } from './config';
-import ObjectID from 'Common/Types/ObjectID';
+import PricingPlanType from 'Common/Types/PricingPlan';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+
 export default class PricingPlan {
-    public static getPlans(): void {
+    public static getPlans(): Array<PricingPlanType> {
         if (
             env('STRIPE_PUBLIC_KEY') &&
             env('STRIPE_PUBLIC_KEY').startsWith('pk_test')
@@ -98,9 +100,14 @@ export default class PricingPlan {
         }
     }
 
-    public static getPlanById(id: ObjectID): void {
+    public static getPlanById(id: string): PricingPlanType {
         const plans = this.getPlans();
-        if (id) return plans.find(plan => plan.planId === id);
-        else return plans[0];
+        const plan = plans.find(plan => plan.planId === id);
+
+        if (plan) {
+            return plan;
+        } else {
+            throw new BadDataException(`Plan with id ${id} not found`);
+        }
     }
 }
