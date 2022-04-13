@@ -1,4 +1,4 @@
-import ProjectType from '../types/project';
+import ProjectType from '../Types/Project';
 
 class Project {
     static getProjects(): Array<ProjectType> {

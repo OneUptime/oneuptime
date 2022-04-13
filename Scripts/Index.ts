@@ -1,7 +1,7 @@
 import { question } from 'zx';
-import ScriptOptions from './types/script-options';
+import ScriptOptions from './Types/ScriptOptions';
 
-import Compile from './services/compile';
+import Compile from './Services/Compile';
 
 (async (): Promise<void> => {
     const token = await question('Choose Option: ', {
