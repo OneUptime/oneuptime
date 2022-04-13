@@ -16,7 +16,7 @@ export default {
             id: ObjectID;
             expiryDate: Date;
         } = {
-            id: '',
+            id: new ObjectID(''),
             expiryDate: new Date(),
         };
 
@@ -25,7 +25,7 @@ export default {
         for (const record of records) {
             const fetchedLicense = record.get('License Key');
             if (license === fetchedLicense) {
-                userRecord['id'] = record.id;
+                userRecord['id'] = new ObjectID(record.id.toString());
                 userRecord['expiryDate'] = new Date(
                     record.get('Expires') as string
                 );
@@ -45,7 +45,7 @@ export default {
             throw new BadDataException('License Expired');
         }
 
-        await AirtableService.update('License', userRecord.id, {
+        await AirtableService.update('License', userRecord.id.toString(), {
             'Contact Email': email.toString(),
         });
 

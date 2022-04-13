@@ -1,8 +1,8 @@
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import AirtableLib from 'airtable';
+import AirtableLib, { FieldSet, Records } from 'airtable';
 import Dictionary from 'Common/Types/Dictionary';
 import { AirtableApiKey, AirtableBaseId } from '../Config';
-import ObjectID from 'Common/Types/ObjectID';
+
 class Airtable {
     private static base = new AirtableLib({ apiKey: AirtableApiKey }).base(
         AirtableBaseId
@@ -12,7 +12,7 @@ class Airtable {
         tableName: string,
         airtableView: string,
         limit: PositiveNumber
-    ): void {
+    ): Promise<Records<FieldSet>> {
         return this.base(tableName)
             .select({ view: airtableView, pageSize: limit.toNumber() })
             .firstPage();
@@ -20,21 +20,21 @@ class Airtable {
 
     public static async update(
         tableName: string,
-        id: ObjectID,
+        id: string,
         fields: Dictionary<string>
-    ): void {
-        return this.base(tableName).update(id, fields);
+    ): Promise<void> {
+        await this.base(tableName).update(id, fields);
     }
 
     public static async create(
         tableName: string,
         fields: Dictionary<string>
-    ): void {
-        return this.base(tableName).create(fields);
+    ): Promise<void> {
+        await this.base(tableName).create(fields);
     }
 
-    public static async delete(tableName: string, id: ObjectID): void {
-        return this.base(tableName).destroy(id);
+    public static async delete(tableName: string, id: string): Promise<void> {
+        await this.base(tableName).destroy(id);
     }
 }
 
