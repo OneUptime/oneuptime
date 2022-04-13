@@ -9,7 +9,7 @@ import {
 } from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
-import RealtimeService from '../aservices/arealtimeService';
+import RealtimeService from '../Services/RealtimeService';
 import ObjectID from 'Common/Types/ObjectID';
 
 router.post(
