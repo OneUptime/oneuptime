@@ -26,13 +26,13 @@ app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
         res.setHeader(key, header[key] as string);
     }
 
-    setTimeout(function (): void {
+    setTimeout((): void => {
         if (HTTPTestServerResponse.responseType === ResponseType.HTML) {
             res.setHeader('Content-Type', 'text/html');
-            return res.send(HTTPTestServerResponse.htmlBody);
+            res.send(HTTPTestServerResponse.htmlBody);
         } else {
             res.setHeader('Content-Type', 'application/json');
-            return res.send(HTTPTestServerResponse.jsonBody);
+            res.send(HTTPTestServerResponse.jsonBody);
         }
     }, HTTPTestServerResponse.responseTime.toNumber());
 });

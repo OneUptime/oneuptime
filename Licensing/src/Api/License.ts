@@ -11,7 +11,7 @@ import {
 import Email from 'Common/Types/email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-import LicenseService from '../Services/licenseService';
+import LicenseService from '../Services/LicenseService';
 import Exception from 'Common/Types/Exception/Exception';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
