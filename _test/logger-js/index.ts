@@ -12,7 +12,7 @@ const logger = new Logger(
                 
 // Sending a JSON object log to the server    
                 
-const item = {
+const item: $TSFixMe = {
     user: 'Test User',
     page: {
         title: 'Landing Page',

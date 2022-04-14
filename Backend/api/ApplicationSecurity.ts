@@ -104,7 +104,7 @@ router.put(
             const { componentId, applicationSecurityId } = req.params;
             const { name, gitRepositoryUrl, gitCredential, resourceCategory } =
                 req.body;
-            const data = {};
+            const data: $TSFixMe = {};
 
             if (name) {
                 data.name = name;

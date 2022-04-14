@@ -9,7 +9,7 @@ import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import { FlatLoader } from '../basic/Loader.js';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: 'red',
 };
 
@@ -173,7 +173,7 @@ class CompanyForm extends Component<ComponentProps> {
 CompanyForm.displayName = 'CompanyForm';
 
 const validate = function (values: $TSFixMe) {
-    const error = {};
+    const error: $TSFixMe = {};
 
     if (!Validate.text(values.companyName)) {
 

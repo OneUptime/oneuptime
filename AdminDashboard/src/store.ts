@@ -17,7 +17,7 @@ export const history = isApiServer
     ? createMemoryHistory({ initialEntries: [url] })
     : createBrowserHistory();
 
-const initialState = {};
+const initialState: $TSFixMe = {};
 const enhancers = [];
 const logger = createLogger();
 const middleware = [thunk, routerMiddleware(history)];

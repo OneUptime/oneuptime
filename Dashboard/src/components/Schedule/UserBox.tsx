@@ -227,7 +227,7 @@ const AddUsersForm = new reduxForm({
 })(UserBox);
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
     const schedules = state.schedule.schedules.data;
     const users =
         state.teams.teamMembers.filter((user: $TSFixMe) => user.name && user.name !== '') ||

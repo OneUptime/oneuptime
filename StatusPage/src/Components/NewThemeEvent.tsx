@@ -101,7 +101,7 @@ interface NewThemeEventProps {
 class NewThemeEvent extends Component<ComponentProps> {
     override render() {
         const checkDuplicateDates: Function = (items: $TSFixMe) => {
-            const track = {};
+            const track: $TSFixMe = {};
 
             const result = [];
 

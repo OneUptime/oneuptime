@@ -24,7 +24,7 @@ describe('StatusPage API With SubProjects', () => {
         await page.setUserAgent(utils.agent);
 
         // Register user
-        const user = {
+        const user: $TSFixMe = {
             email,
             password,
         };
@@ -74,7 +74,7 @@ describe('StatusPage API With SubProjects', () => {
     test(
         'should not display create status page button for subproject `member` role.',
         async (done: $TSFixMe) => {
-            const user = {
+            const user: $TSFixMe = {
                 email: newEmail,
                 password: newPassword,
             };
@@ -104,7 +104,7 @@ describe('StatusPage API With SubProjects', () => {
         async (done: $TSFixMe) => {
             const statuspageName = utils.generateRandomString();
 
-            const user = {
+            const user: $TSFixMe = {
                 email: email,
                 password: password,
             };

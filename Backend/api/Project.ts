@@ -109,7 +109,7 @@ router.post(
                         });
                     }
 
-                    const paymentIntent = {
+                    const paymentIntent: $TSFixMe = {
                         id: data.paymentIntent,
                     };
                     const checkedPaymentIntent =
@@ -259,7 +259,7 @@ router.get(
             }
 
             // query data
-            const query = {
+            const query: $TSFixMe = {
                 $or: [
                     { _id: { $in: parentProjectIds } },
                     { _id: { $in: projectIds } },
@@ -905,7 +905,7 @@ router.post(
                     message: 'You already have a sub-project with same name.',
                 });
             }
-            const data = {
+            const data: $TSFixMe = {
                 name: subProjectName,
                 userId,
                 parentProjectId,

@@ -5,7 +5,7 @@ const Manager = module.exports;
 
 //eslint-disable-next-line @typescript-eslint/no-unused-vars
 Manager.create = function (_opts: $TSFixMe): void {
-    const manager = {};
+    const manager: $TSFixMe = {};
 
     //
     // REQUIRED (basic issuance)

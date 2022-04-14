@@ -130,7 +130,7 @@ describe('Container Security API', function (): void {
             projectId,
         }).then((credential): void => {
             credentialId = credential._id;
-            const data = {
+            const data: $TSFixMe = {
                 name: 'Test Container',
                 dockerCredential: credential._id,
                 imagePath: dockerCredential.imagePath,
@@ -155,7 +155,7 @@ describe('Container Security API', function (): void {
 
     it('should update a container security', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const update = { name: 'Container Test' };
+        const update: $TSFixMe = { name: 'Container Test' };
 
         request
             .put(
@@ -234,7 +234,7 @@ describe('Container Security API', function (): void {
     it('should throw error if scanning with an invalid docker credentials or invalid image path', function (done: $TSFixMe): void {
         this.timeout(500000);
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             name: 'Wrong Container',
             dockerCredential: credentialId,
             imagePath: 'invalid/image',
@@ -264,7 +264,7 @@ describe('Container Security API', function (): void {
 
     it('should not create a container security if name already exist in the component', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             name: 'Container Test',
             dockerCredential: credentialId,
             imagePath: dockerCredential.imagePath,
@@ -286,7 +286,7 @@ describe('Container Security API', function (): void {
 
     it('should not create a container security if image path already exist in the component', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             name: 'Another Container',
             dockerCredential: credentialId,
             imagePath: dockerCredential.imagePath,
@@ -308,7 +308,7 @@ describe('Container Security API', function (): void {
 
     it('should not create a container security if name is missing or undefined in the request body', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             dockerCredential: credentialId,
             imagePath: dockerCredential.imagePath,
             imageTags: dockerCredential.imageTags,
@@ -329,7 +329,7 @@ describe('Container Security API', function (): void {
 
     it('should not create a container security if image path is missing or undefined in the request body', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             name: 'Another Container',
             dockerCredential: credentialId,
             imageTags: dockerCredential.imageTags,
@@ -348,7 +348,7 @@ describe('Container Security API', function (): void {
 
     it('should not create a container security if dockerCredential is missing or undefined in the request body', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             name: 'Another Container',
             imagePath: dockerCredential.imagePath,
             imageTags: dockerCredential.imageTags,
@@ -438,7 +438,7 @@ describe('Container Security API', function (): void {
 
     it('should not create a container security if dockerCredential does not exist', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             name: 'Another Container',
             imagePath: dockerCredential.imagePath,
             imageTags: dockerCredential.imageTags,

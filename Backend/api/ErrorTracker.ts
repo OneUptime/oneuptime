@@ -198,7 +198,7 @@ router.post(
         }
 
         // error tracker is valid
-        const data = {
+        const data: $TSFixMe = {
             key: uuid.v4(), // set new error tracker key
         };
 
@@ -258,7 +258,7 @@ router.put(
         }
 
         // try to find in the application log if the name already exist for that component
-        const existingQuery = {
+        const existingQuery: $TSFixMe = {
             name: data.name,
             componentId: componentId,
         };
@@ -294,7 +294,7 @@ router.put(
         }
 
         // Error Tracker is valid
-        const errorTrackerUpdate = {};
+        const errorTrackerUpdate: $TSFixMe = {};
         if (data.name) {
             errorTrackerUpdate.name = data.name;
         }
@@ -354,12 +354,12 @@ router.post(
             } else {
                 // issue exist but checked if it is resolved so to uresolve it
                 if (issue.resolved) {
-                    const updateData = {
+                    const updateData: $TSFixMe = {
                         resolved: false,
                         resolvedAt: '',
                         resolvedById: null,
                     };
-                    const query = {
+                    const query: $TSFixMe = {
                         _id: issue._id,
                         errorTrackerId,
                     };
@@ -426,7 +426,7 @@ router.post(
                 });
             }
 
-            const query = {};
+            const query: $TSFixMe = {};
 
             if (errorTrackerId) {
                 query.errorTrackerId = errorTrackerId;
@@ -681,7 +681,7 @@ router.post(
             const issues = [];
             for (let index = 0; index < issueId.length; index++) {
                 const currentIssueId = issueId[index];
-                const query = {
+                const query: $TSFixMe = {
                     _id: currentIssueId,
                     errorTrackerId,
                 };
@@ -689,7 +689,7 @@ router.post(
 
                 if (currentIssue && currentIssue > 0) {
                     // add action to timeline for this particular issue
-                    const timelineData = {
+                    const timelineData: $TSFixMe = {
                         issueId: currentIssueId,
 
                         createdById: req.user ? req.user.id : null,
@@ -772,7 +772,7 @@ router.post(
                 });
             }
 
-            const query = {};
+            const query: $TSFixMe = {};
 
             query.fingerprintHash = fingerprintHash;
 
@@ -971,7 +971,7 @@ router.post(
 
                     if (member) {
                         // set up the data
-                        const data = {
+                        const data: $TSFixMe = {
                             issueId,
                             userId: teamMemberUserId,
 
@@ -987,7 +987,7 @@ router.post(
                             issueMember = await IssueMemberService.create(data);
                         } else {
                             // set up the data
-                            const data = {
+                            const data: $TSFixMe = {
                                 removed: false,
                                 removedAt: '',
                                 removedById: '',
@@ -1119,7 +1119,7 @@ router.post(
 
                     if (member) {
                         // set up the data
-                        const data = {
+                        const data: $TSFixMe = {
                             removed: true,
                             removedAt: new Date(),
 

@@ -23,7 +23,7 @@ import OneUptime from 'oneuptime';
 import OneUptime from 'oneuptime';
 
 // set up tracking configurations
-const options = {
+const options: $TSFixMe = {
     maxTimeline: 10,
     captureCodeSnippet: true,
 };

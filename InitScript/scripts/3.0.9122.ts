@@ -10,7 +10,7 @@ async function run(): void {
     });
 
     for (const incomingRequest of incomingRequests) {
-        const data = {
+        const data: $TSFixMe = {
             selectAllMonitors: incomingRequest.isDefault,
         };
 

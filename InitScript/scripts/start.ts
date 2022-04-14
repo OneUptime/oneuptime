@@ -27,7 +27,7 @@ async function updateVersion(): void {
     const docs = await find(collection, { name });
 
     if (docs.length === 0) {
-        const doc = {
+        const doc: $TSFixMe = {
             name,
             value: PKG_VERSION,
         };
@@ -40,7 +40,7 @@ async function addMasterAdminUser(): void {
 
     const now = new Date().toISOString();
 
-    const masterAdminUser = {
+    const masterAdminUser: $TSFixMe = {
         name: 'Master Admin',
         email: 'masteradmin@hackerbay.io',
         password: await bcrypt.hash(

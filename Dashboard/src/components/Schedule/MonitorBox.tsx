@@ -330,7 +330,7 @@ const AddMonitorsForm = new reduxForm({
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
     let schedule = state.schedule.subProjectSchedules.map(
         (subProjectSchedule: $TSFixMe) => {
             return subProjectSchedule.schedules.find(

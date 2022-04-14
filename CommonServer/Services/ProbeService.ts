@@ -1109,7 +1109,7 @@ class Service extends DatabaseService<typeof Model> {
                 );
             }
         }
-        const logData = {};
+        const logData: $TSFixMe = {};
 
         logData.responseTime = 0;
 
@@ -6110,7 +6110,7 @@ const checkScriptCondition: Function = (condition, body): void => {
     /**
      * @type { {valid : boolean, reason : string}}
      */
-    const validity = {};
+    const validity: $TSFixMe = {};
 
     if (!condition.filter || !body || !condition.responseType) {
         return;
@@ -6321,7 +6321,7 @@ const checkScriptOr: Function = (
     return valid;
 };
 
-const criteriaStrings = {
+const criteriaStrings: $TSFixMe = {
     responseTime: 'Response Time is',
     sslCertificate: 'SSL Certificate',
     statusCode: 'Status Code is',

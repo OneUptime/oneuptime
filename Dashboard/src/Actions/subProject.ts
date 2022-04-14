@@ -45,7 +45,7 @@ export const getSubProjects: Function = (
 
         promise.then(
             (subProjects): void => {
-                const subData = {
+                const subData: $TSFixMe = {
                     subProjects: subProjects.data.data,
 
                     count: subProjects.data.count,

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { API_URL, User } from './config';
 
-const headers = {
+const headers: $TSFixMe = {
     'Access-Control-Allow-Origin': '*',
     Accept: 'application/json',
     'Content-Type': 'application/json;charset=UTF-8',

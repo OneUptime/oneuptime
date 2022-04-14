@@ -10,7 +10,7 @@ import {
 
 
 // TODO - make this configurable from AdminDashboard
-const runConfig = {
+const runConfig: $TSFixMe = {
     availableImports: ['axios'], // init allowed modules
     maxSyncStatementDuration: 3000,
     maxScriptRunTime: 5000,
@@ -36,7 +36,7 @@ const {
     maxSyncStatementDuration,
 } = runConfig;
 
-const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options = { maxScriptRunTime, maxSyncStatementDuration }): void => {
+const runScript = async (functionCode: $TSFixMe, isCalled: $TSFixMe, options: $TSFixMe = { maxScriptRunTime, maxSyncStatementDuration }): void => {
 
 
     if (isMainThread) {

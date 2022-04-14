@@ -17,7 +17,7 @@ const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
-        const Log = {};
+        const Log: $TSFixMe = {};
         let responseBody = '';
         if (data.resp && data.resp.body) {
             if (typeof data.resp.body === 'object') {

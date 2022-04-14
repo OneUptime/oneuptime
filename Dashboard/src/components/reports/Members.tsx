@@ -466,7 +466,7 @@ class MembersList extends Component<ComponentProps> {
     }
 }
 
-const actionCreators = {
+const actionCreators: $TSFixMe = {
     getActiveMembers,
     getActiveMembersError,
     getActiveMembersRequest,

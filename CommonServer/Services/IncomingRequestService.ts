@@ -646,7 +646,7 @@ export default class Service {
                 // update the values for filterText
                 const updatedFilters = filters.map((filter: $TSFixMe) => {
                     if (filter.filterText) {
-                        const dataConfig = {
+                        const dataConfig: $TSFixMe = {
                             request: data.request,
                         };
                         filter.filterText = analyseVariable(
@@ -743,7 +743,7 @@ export default class Service {
 
             if (incomingRequest.createSeparateIncident) {
                 for (const monitor of monitors) {
-                    const dataConfig = {
+                    const dataConfig: $TSFixMe = {
                         monitorName: monitor.name,
                         projectName: monitor.projectId.name,
                         componentName: monitor.componentId.name,
@@ -799,7 +799,7 @@ export default class Service {
                         String(data.incidentPriority),
                         dataConfig
                     ).toLowerCase();
-                    const priorityObj = {};
+                    const priorityObj: $TSFixMe = {};
                     incidentPriorities.forEach(
                         (priority: $TSFixMe) =>
                             (priorityObj[priority.name.toLowerCase()] =
@@ -848,7 +848,7 @@ export default class Service {
                             componentNames.push(monitor.componentId.name);
                         }
                     });
-                    const dataConfig = {
+                    const dataConfig: $TSFixMe = {
                         monitorName: joinNames(monitorNames),
                         projectName: incomingRequest.projectId.name,
                         componentName: joinNames(componentNames),
@@ -902,7 +902,7 @@ export default class Service {
                         String(data.incidentPriority),
                         dataConfig
                     ).toLowerCase();
-                    const priorityObj = {};
+                    const priorityObj: $TSFixMe = {};
                     incidentPriorities.forEach(
                         (priority: $TSFixMe) =>
                             (priorityObj[priority.name.toLowerCase()] =
@@ -1019,7 +1019,7 @@ export default class Service {
             } else {
                 updatedFilters = filters.map((filter: $TSFixMe) => {
                     if (filter.filterText) {
-                        const dataConfig = {
+                        const dataConfig: $TSFixMe = {
                             request: data.request,
                         };
                         filter.filterText = analyseVariable(
@@ -1418,7 +1418,7 @@ export default class Service {
                             componentNames.push(monitor.componentId.name);
                         }
                     });
-                    const dataConfig = {
+                    const dataConfig: $TSFixMe = {
                         monitorName: joinNames(monitorNames),
                         projectName: incomingRequest.projectId.name,
                         componentName: joinNames(componentNames),
@@ -1559,7 +1559,7 @@ export default class Service {
             } else {
                 updatedFilters = filters.map((filter: $TSFixMe) => {
                     if (filter.filterText) {
-                        const dataConfig = {
+                        const dataConfig: $TSFixMe = {
                             request: data.request,
                         };
                         filter.filterText = analyseVariable(

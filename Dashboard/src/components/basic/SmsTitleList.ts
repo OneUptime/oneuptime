@@ -1,4 +1,4 @@
-export const smsTemplateTitles = {
+export const smsTemplateTitles: $TSFixMe = {
     'Subscriber Incident Created': 'Subscriber Incident Created SMS Template',
     'Subscriber Incident Acknowledged':
         'Subscriber Incident Acknowledged SMS Template',
@@ -6,7 +6,7 @@ export const smsTemplateTitles = {
     'Team Member Incident': 'User Incident SMS Template',
 };
 
-export const smsTemplateDescriptions = {
+export const smsTemplateDescriptions: $TSFixMe = {
     'Subscriber Incident Created':
         'This SMS is sent to a subscriber when an incident is created.',
     'Subscriber Incident Acknowledged':

@@ -11,7 +11,7 @@ import { fetchSettings, saveSettings } from '../../actions/settings';
 
 // Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values['account-sid'])) {
 

@@ -302,7 +302,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
             : false
         );
 
-        const routeStyle = {
+        const routeStyle: $TSFixMe = {
             position: 'relative',
             marginBottom: route.title === 'Back to Dashboard' ? '10px' : '',
             marginTop:

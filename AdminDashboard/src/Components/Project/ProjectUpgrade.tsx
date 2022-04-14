@@ -11,7 +11,7 @@ import RadioInput from './RadioInput';
 import { changePlan } from '../../actions/project';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.planId)) {
 

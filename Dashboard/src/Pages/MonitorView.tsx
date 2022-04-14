@@ -1160,7 +1160,7 @@ const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
         });
     });
 
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
     let currentMonitorCriteria = [];
 
     if (monitor && monitor._id) {

@@ -2,7 +2,7 @@ import { SHOW_PROFILE_MENU, HIDE_PROFILE_MENU } from '../constants/profile';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     menuVisible: false,
     menuPosition: 0,
 };

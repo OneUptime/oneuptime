@@ -91,7 +91,7 @@ describe('Feedback API', function (): void {
 
     it('should create feedback and check the sent emails to oneuptime team and user', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const testFeedback = {
+        const testFeedback: $TSFixMe = {
             feedback: 'test feedback',
             page: 'test page',
         };

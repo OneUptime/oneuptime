@@ -86,7 +86,7 @@ interface WebHookBadgeTableBodyProps {
 function WebHookBadgeTableBody({
     text
 }: WebHookBadgeTableBodyProps) {
-    const color = {
+    const color: $TSFixMe = {
         get: 'blue',
         post: 'green',
         delete: 'red',

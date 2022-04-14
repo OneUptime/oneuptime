@@ -249,7 +249,7 @@ AddExternalStatusPagesModal.displayName = 'AddExternalStatusPagesModal';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.name)) {
 
         errors.name = 'Name is not in text format.';

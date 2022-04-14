@@ -285,7 +285,7 @@ class Service extends DatabaseService<typeof Model> {
                 }
 
                 const projectName: string = 'Unnamed Project';
-                const projectData = {
+                const projectData: $TSFixMe = {
                     name: projectName,
                     userId: user._id,
                     stripePlanId: stripePlanId,
@@ -392,7 +392,7 @@ class Service extends DatabaseService<typeof Model> {
             secretCode.base32,
             8
         );
-        const data = {
+        const data: $TSFixMe = {
             twoFactorSecretCode: secretCode.base32,
             otpauth_url: secretCode.otpauth_url,
             backupCodes,
@@ -753,7 +753,7 @@ class Service extends DatabaseService<typeof Model> {
         if (!user) {
             throw new BadDataException('Invalid Refresh Token');
         } else {
-            const userObj = { id: user._id };
+            const userObj: $TSFixMe = { id: user._id };
 
             const accessToken: string = `${jwt.sign(userObj, jwtSecretKey, {
                 expiresIn: 86400,
@@ -765,7 +765,7 @@ class Service extends DatabaseService<typeof Model> {
                 { jwtRefreshToken: jwtRefreshToken }
             );
 
-            const token = {
+            const token: $TSFixMe = {
                 accessToken: accessToken,
                 refreshToken: refreshToken,
             };

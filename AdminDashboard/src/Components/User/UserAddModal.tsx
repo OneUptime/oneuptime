@@ -339,7 +339,7 @@ class UserAddModal extends Component<ComponentProps> {
 UserAddModal.displayName = 'UserAddModalForm';
 
 const validate = function (values: $TSFixMe) {
-    const error = {};
+    const error: $TSFixMe = {};
 
 
     if (!Validate.text(values.name)) error.name = 'Name is required.';

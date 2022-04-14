@@ -41,14 +41,14 @@ const DropDownMenu: Function = ({
         updateState(val);
     };
 
-    const sectionStyle = {
+    const sectionStyle: $TSFixMe = {
         display: 'inline-block',
         padding: '10px 15px 0px',
         fontWeight: 500,
         color: '#6b7c93',
     };
 
-    const menuStyle = {
+    const menuStyle: $TSFixMe = {
         padding: '10px 25px',
     };
 

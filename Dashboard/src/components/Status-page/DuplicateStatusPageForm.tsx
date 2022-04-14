@@ -15,7 +15,7 @@ import DuplicateStatusPageConfirmation from './DuplicateStatusPageConfirmation';
 import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.name)) {
 

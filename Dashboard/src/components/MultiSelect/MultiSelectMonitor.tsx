@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import Multiselect from 'react-widgets/lib/Multiselect';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: 'red',
     topMargin: '5px',
 };

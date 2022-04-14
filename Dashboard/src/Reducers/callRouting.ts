@@ -2,7 +2,7 @@ import * as types from '../constants/callRouting';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     allNumbers: {
         requesting: false,
         error: null,

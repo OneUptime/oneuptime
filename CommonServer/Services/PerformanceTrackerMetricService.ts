@@ -93,7 +93,7 @@ export default class Service {
 
         // restructure performance metrics
         // same path and method should be merged together
-        const ptm = {};
+        const ptm: $TSFixMe = {};
         for (const metric of performanceTrackerMetrics) {
             const key: string = `${metric.callIdentifier}__${metric.method}`;
             if (!(key in ptm)) {
@@ -109,7 +109,7 @@ export default class Service {
             if (valueLength > 0) {
                 const { type, callIdentifier, performanceTrackerId, method } =
                     value[0];
-                const result = {
+                const result: $TSFixMe = {
                     type,
                     callIdentifier,
                     performanceTrackerId,
@@ -263,7 +263,7 @@ export default class Service {
         const select: string = 'metrics createdAt';
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
-        const dataBank = {};
+        const dataBank: $TSFixMe = {};
         const timeMetrics = await this.findBy({
             query: {
                 performanceTrackerId: appId,
@@ -289,7 +289,7 @@ export default class Service {
         // [{createdAt: '2021-04-21T17:15:00+01:00', avgTime: 2134.34, avgMaxTime: 5674.11}]
         const finalOutput = [];
         for (const [key, value] of Object.entries(dataBank)) {
-            const result = { createdAt: key };
+            const result: $TSFixMe = { createdAt: key };
             const { avgTime, avgMaxTime } = calcAvgTime(value);
 
             result.avgTime = avgTime;
@@ -314,7 +314,7 @@ export default class Service {
         endDate = moment(endDate).format();
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
-        const dataBank = {};
+        const dataBank: $TSFixMe = {};
         const select: string = 'createdAt metrics';
         const timeMetrics = await this.findBy({
             query: {
@@ -342,7 +342,7 @@ export default class Service {
         // [{createdAt: '2021-04-21T17:15:00+01:00', avgThroughput: 20}]
         const finalOutput = [];
         for (const [key, value] of Object.entries(dataBank)) {
-            const result = { createdAt: key };
+            const result: $TSFixMe = { createdAt: key };
             const { avgThroughput } = calcAvgThroughput(value);
 
             result.avgThroughput = avgThroughput;
@@ -364,7 +364,7 @@ export default class Service {
         endDate = moment(endDate).format();
         // store the metrics according to createdAt
         // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
-        const dataBank = {};
+        const dataBank: $TSFixMe = {};
         const select: string = 'createdAt metrics';
         const timeMetrics = await this.findBy({
             query: {
@@ -392,7 +392,7 @@ export default class Service {
         // [{createdAt: '2021-04-21T17:15:00+01:00', errorCount: 20, value: errorCount}]
         const finalOutput = [];
         for (const [key, value] of Object.entries(dataBank)) {
-            const result = { createdAt: key };
+            const result: $TSFixMe = { createdAt: key };
             const { avgErrorCount } = calcAvgError(value);
 
             result.avgErrorCount = avgErrorCount;

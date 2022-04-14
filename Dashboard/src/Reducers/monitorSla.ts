@@ -2,7 +2,7 @@ import * as types from '../constants/monitorSla';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     monitorSla: {
         requesting: false,
         success: false,

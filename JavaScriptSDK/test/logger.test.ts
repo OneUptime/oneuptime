@@ -22,7 +22,7 @@ describe('OneUptimeLogger', function (): void {
         componentId,
         applicationLog: $TSFixMe;
     // create a new user
-    const component = { name: 'Our Component' };
+    const component: $TSFixMe = { name: 'Our Component' };
 
     before(function (done: $TSFixMe): void {
         this.timeout(60000);
@@ -121,7 +121,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage = {
+        const logMessage: $TSFixMe = {
             message: 'This is a simple log',
             user: { name: 'Jon', email: 'accurate@y.co.uk' },
         };
@@ -260,7 +260,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog.key
         );
         const logMessage: string = 'This is a simple log';
-        const tags = { type: 'trying things' };
+        const tags: $TSFixMe = { type: 'trying things' };
 
         validLog.error(logMessage, tags).then(response => {
             expect(response).to.equal('Invalid Content Tags to be logged');

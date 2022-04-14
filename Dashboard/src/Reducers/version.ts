@@ -9,7 +9,7 @@ import { version } from '../../package.json';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     versions: {
         error: null,
         requesting: false,

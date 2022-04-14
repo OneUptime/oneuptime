@@ -20,7 +20,7 @@ export default class ListData {
     public limit: PositiveNumber;
 
     public toJSON(): JSONObject {
-        const json: JSONObject = {
+        const json: JSONObject: $TSFixMe = {
             data: this.data,
             count: this.count.toNumber(),
             skip: this.skip.toNumber(),

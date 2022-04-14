@@ -148,11 +148,11 @@ export default {
                 });
 
                 clearCache.on('close', async () => {
-                    const auditData = {
+                    const auditData: $TSFixMe = {
                         vulnerabilityInfo: {},
                         vulnerabilityData: [],
                     };
-                    const counter = {
+                    const counter: $TSFixMe = {
                         low: 0,
                         moderate: 0,
                         high: 0,
@@ -160,7 +160,7 @@ export default {
                     };
 
                     auditLogs.map(auditLog => {
-                        const log = {
+                        const log: $TSFixMe = {
                             type: auditLog.Type,
                             vulnerabilities: [],
                         };
@@ -188,7 +188,7 @@ export default {
                                     severity = 'critical';
                                 }
 
-                                const vulObj = {
+                                const vulObj: $TSFixMe = {
                                     vulnerabilityId:
                                         vulnerability.VulnerabilityID,
                                     library: vulnerability.PkgName,

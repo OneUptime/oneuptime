@@ -683,7 +683,7 @@ export const searchUsersError: Function = (error: $TSFixMe): void => {
 export const searchUsers =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
-        const values = {
+        const values: $TSFixMe = {
             filter,
         };
         skip = skip ? parseInt(skip) : 0;

@@ -211,7 +211,7 @@ class StatusPage extends Component<ComponentProps> {
 
     validateMonitors = (monitors: $TSFixMe) => {
         let monitorError;
-        const selectedMonitor = {};
+        const selectedMonitor: $TSFixMe = {};
         for (let i = 0; i < monitors.length; i++) {
             const monitor = monitors[i];
             if (!monitor.monitor) monitorError = 'Please select a monitor.';
@@ -237,7 +237,7 @@ class StatusPage extends Component<ComponentProps> {
         const { projectId } = status;
 
         const monitors: $TSFixMe = [];
-        const groupedMonitors = {};
+        const groupedMonitors: $TSFixMe = {};
         allStatusPageCategories.forEach((category: $TSFixMe) => {
             const form = formState[category.name];
             const values = form?.values;
@@ -302,7 +302,7 @@ class StatusPage extends Component<ComponentProps> {
             activeProjectId,
         } = this.props;
         const pageName = status ? status.name : null;
-        const data = {
+        const data: $TSFixMe = {
             statusPageId: status._id,
             projectId:
                 status.projectId && (status.projectId._id || status.projectId),

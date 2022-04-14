@@ -46,7 +46,7 @@ export class Setting extends Component<ComponentProps>{
         const { projectId } = this.props.statusPage.status;
         const token = domainVerificationToken.verificationToken; // get the verification token
 
-        const data = {
+        const data: $TSFixMe = {
             projectId: projectId._id || projectId,
             domainId: domainVerificationToken._id,
             payload: {
@@ -91,7 +91,7 @@ export class Setting extends Component<ComponentProps>{
 
         const { _id, projectId } = this.props.statusPage.status;
 
-        const data = {
+        const data: $TSFixMe = {
             projectId: projectId._id || projectId,
             statusPageId: _id,
             domainId: domain._id,

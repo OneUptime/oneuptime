@@ -20,13 +20,13 @@ import GlobalConfig from './utils/globalConfig';
 
 // eslint-disable-next-line
 let token: $TSFixMe, userId, projectId: ObjectID, monitorId: $TSFixMe, msTeamsId: $TSFixMe, msTeamsId1: $TSFixMe, slackId: $TSFixMe, slackId1: $TSFixMe;
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
 
-const msTeamsPayload = {
+const msTeamsPayload: $TSFixMe = {
     monitorId: null,
     endpoint: 'http://hackerbay.io',
     incidentCreated: true,
@@ -35,7 +35,7 @@ const msTeamsPayload = {
     type: 'msteams',
 };
 
-const slackPayload = {
+const slackPayload: $TSFixMe = {
     monitorId: null,
     endpoint: 'http://hackerbay.io',
     incidentCreated: true,
@@ -150,7 +150,7 @@ describe('Webhook API', function (): void {
 
     it('should reject requests missing the endpoint.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...msTeamsPayload };
+        const payload: $TSFixMe = { ...msTeamsPayload };
 
         delete payload.endpoint;
         request
@@ -165,7 +165,7 @@ describe('Webhook API', function (): void {
 
     it('should reject requests missing the monitorId.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...msTeamsPayload };
+        const payload: $TSFixMe = { ...msTeamsPayload };
 
         delete payload.monitorId;
         request
@@ -180,7 +180,7 @@ describe('Webhook API', function (): void {
 
     it('should reject requests missing the integration type.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...msTeamsPayload };
+        const payload: $TSFixMe = { ...msTeamsPayload };
 
         delete payload.type;
         request
@@ -225,7 +225,7 @@ describe('Webhook API', function (): void {
 
     it('should create msteams webhook with a different endpoint.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...msTeamsPayload };
+        const payload: $TSFixMe = { ...msTeamsPayload };
         payload.endpoint = 'http://test1.hackerbay.io';
         request
             .post(`/webhook/${projectId}/create`)
@@ -245,7 +245,7 @@ describe('Webhook API', function (): void {
 
     it('should update the msteams webhook.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...msTeamsPayload };
+        const payload: $TSFixMe = { ...msTeamsPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
         request
             .put(`/webhook/${projectId}/${msTeamsId}`)
@@ -327,7 +327,7 @@ describe('Webhook API', function (): void {
 
     it('should create slack webhook with a different endpoint.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...slackPayload };
+        const payload: $TSFixMe = { ...slackPayload };
         payload.endpoint = 'http://test1.slack.hackerbay.io';
         request
             .post(`/webhook/${projectId}/create`)
@@ -347,7 +347,7 @@ describe('Webhook API', function (): void {
 
     it('should update the slack webhook.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const payload = { ...slackPayload };
+        const payload: $TSFixMe = { ...slackPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
         request
             .put(`/webhook/${projectId}/${slackId}`)

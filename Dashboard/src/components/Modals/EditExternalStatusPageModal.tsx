@@ -248,7 +248,7 @@ EditExternalStatusPagesModal.displayName = 'EditExternalStatusPagesModal';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.name)) {
 

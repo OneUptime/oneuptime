@@ -196,14 +196,14 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             // request object for use in variables
-            const request = {
+            const request: $TSFixMe = {
                 body: { ...req.body },
                 query: { ...req.query },
                 headers: { ...req.headers },
             };
 
             const { projectId, requestId } = req.params;
-            const data = { projectId, requestId, request };
+            const data: $TSFixMe = { projectId, requestId, request };
 
             const response =
                 await IncomingRequestService.handleIncomingRequestAction(data);
@@ -221,13 +221,13 @@ router.get(
         try {
             // request object for use in variables
             // request body won't be available for a get request
-            const request = {
+            const request: $TSFixMe = {
                 query: { ...req.query },
                 headers: { ...req.headers },
             };
 
             const { projectId, requestId } = req.params;
-            const data = { projectId, requestId, request };
+            const data: $TSFixMe = { projectId, requestId, request };
 
             const response =
                 await IncomingRequestService.handleIncomingRequestAction(data);

@@ -21,7 +21,7 @@ describe('SMTP Settings API', () => {
 
         // Register user
 
-        const user = {
+        const user: $TSFixMe = {
             email: email,
             password: password,
         };

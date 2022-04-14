@@ -58,7 +58,7 @@ class NewErrorTracker extends Component<ComponentProps> {
     };
     submitForm = (values: $TSFixMe) => {
         const thisObj = this;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         postObj.name = values[`name`];
         if (values[`resourceCategory`]) {
@@ -399,7 +399,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         ? state.errorTracker.editErrorTracker.requesting
         : state.errorTracker.newErrorTracker.requesting;
     const currentProject = state.project.currentProject;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         name: ownProps.errorTracker ? ownProps.errorTracker.name : '',
         resourceCategory: ownProps.errorTracker
             ? ownProps.errorTracker.resourceCategory

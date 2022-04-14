@@ -10,7 +10,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     notifications: {
         error: null,
         requesting: false,

@@ -73,7 +73,7 @@ export default {
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
     ): void {
-        const updateData = {};
+        const updateData: $TSFixMe = {};
 
         if (lighthouseScanStatus !== 'scanning') {
             updateData.lighthouseScannedAt = new Date(moment().format());

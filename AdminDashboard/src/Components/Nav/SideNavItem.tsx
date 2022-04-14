@@ -101,7 +101,7 @@ export class SidebarNavItem extends Component<ComponentProps>{
             return link.path === match.url ? true : false;
         });
 
-        const routeStyle = {
+        const routeStyle: $TSFixMe = {
             position: 'relative',
         };
 

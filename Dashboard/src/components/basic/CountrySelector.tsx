@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { countries } from './CountryList';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: 'red',
     topMargin: '5px',
 };

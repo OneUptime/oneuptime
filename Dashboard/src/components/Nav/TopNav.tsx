@@ -132,7 +132,7 @@ class TopContent extends Component<ComponentProps> {
             );
         }
         if (Object.keys(user).length > 0) {
-            const userData = {
+            const userData: $TSFixMe = {
                 ...user,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             };
@@ -497,7 +497,7 @@ class TopContent extends Component<ComponentProps> {
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
 
-                const tempObj = { ...userSchedule, isOnDutyAllTheTime };
+                const tempObj: $TSFixMe = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
                 if (isUserActive) {

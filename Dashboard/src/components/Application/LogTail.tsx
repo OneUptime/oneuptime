@@ -67,7 +67,7 @@ class LogTail extends Component<ComponentProps> {
                 stringifiedContent: '',
             },
         ];
-        const noItem = {
+        const noItem: $TSFixMe = {
             type: logName,
             createdAt: newDate,
             stringifiedContent: `You've no logs yet`,

@@ -315,7 +315,7 @@ router.get(
                 endDate = Number(endDate);
             }
 
-            const query = {
+            const query: $TSFixMe = {
                 performanceTrackerId: appId,
                 type,
                 createdAt: { $gte: startDate, $lte: endDate },

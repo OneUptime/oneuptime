@@ -16,11 +16,11 @@ import { RenderField } from './RenderField';
 import Tooltip from './Tooltip';
 import ShouldRender from './ShouldRender';
 
-const flexStyle = {
+const flexStyle: $TSFixMe = {
     display: 'inline-block',
     padding: '10px 4px',
 };
-const flexStylehidden = {
+const flexStylehidden: $TSFixMe = {
     display: 'none',
     padding: '10px 4px',
     visibility: 'hidden',
@@ -59,7 +59,7 @@ const placeholderfilter = [
     'emptyCallback',
     'nonEmptyCallback',
 ];
-const mapValue = {
+const mapValue: $TSFixMe = {
     greaterThan: 'Greater Than',
     lessThan: 'Less Than',
     inBetween: 'Start Value',
@@ -77,7 +77,7 @@ const mapValue = {
     doesNotThrowError: 'Does not throw error',
 };
 
-const placeholders = {
+const placeholders: $TSFixMe = {
     greaterThan: {
         responseTime: '2000',
         statusCode: '200',

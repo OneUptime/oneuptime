@@ -9,7 +9,7 @@ const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let defaultSubject: $TSFixMe;
 
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

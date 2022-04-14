@@ -2,7 +2,7 @@ import * as types from '../constants/incident';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     incidents: {
         requesting: false,
         error: null,
@@ -102,7 +102,10 @@ export default function incident(state = initialState, action: Action): void {
                 state.incident.incident &&
                 String(incidentData._id) === String(state.incident.incident._id)
             ) {
-                const incident = { ...state.incident.incident, countDown };
+                const incident: $TSFixMe = {
+                    ...state.incident.incident,
+                    countDown,
+                };
                 return {
                     ...state,
                     incident: {

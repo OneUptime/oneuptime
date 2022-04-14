@@ -2,7 +2,7 @@ import Query from 'CommonServer/types/db/Query';
 
 export default {
     create: async function (data: $TSFixMe): void {
-        const LogDay = {};
+        const LogDay: $TSFixMe = {};
 
         LogDay.monitorId = data.monitorId;
 

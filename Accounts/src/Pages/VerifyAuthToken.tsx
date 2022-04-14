@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 
 import { ACCOUNTS_URL } from '../config';
 
-const errorStyle = { color: '#c23d4b' };
+const errorStyle: $TSFixMe = { color: '#c23d4b' };
 
 interface VerifyAuthTokenProps {
     handleSubmit: Function;
@@ -156,7 +156,7 @@ export class VerifyAuthToken extends Component<VerifyAuthTokenProps>{
 VerifyAuthToken.displayName = 'VerifyAuthToken';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!values.token) {
 
         errors.token = 'Please provide token.';

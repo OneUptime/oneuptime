@@ -73,7 +73,7 @@ class Util {
                 fileName,
             });
         }
-        const stacktrace = {
+        const stacktrace: $TSFixMe = {
             frames,
         };
 
@@ -88,7 +88,7 @@ class Util {
         return obj;
     }
     _getUserDeviceDetails(): void {
-        const deviceDetails = { device: null, browser: null };
+        const deviceDetails: $TSFixMe = { device: null, browser: null };
         if (typeof window !== 'undefined') {
             const details = window.navigator.appVersion;
             // get string between first parenthesis
@@ -103,7 +103,7 @@ class Util {
                 .trim()
                 .split(' ');
             const browser = deviceBrowser[0];
-            const browserDetails = {
+            const browserDetails: $TSFixMe = {
                 name: browser.substring(0, browser.indexOf('/')),
                 version: browser.substring(browser.indexOf('/') + 1),
             };

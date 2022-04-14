@@ -11,7 +11,7 @@ import {
     getIncidentsSuccess,
 } from '../../actions/reports';
 
-const noDataStyle = {
+const noDataStyle: $TSFixMe = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -90,7 +90,7 @@ class Incidents extends Component<ComponentProps> {
 
         const chartData: $TSFixMe = [];
         incidents.map((element: $TSFixMe) => {
-            const value = {};
+            const value: $TSFixMe = {};
 
             value.resolveTime = element.incidents;
 
@@ -240,7 +240,7 @@ class Incidents extends Component<ComponentProps> {
 
 Incidents.displayName = 'Incidents';
 
-const actionCreators = {
+const actionCreators: $TSFixMe = {
     getIncidents,
     getIncidentsError,
     getIncidentsRequest,

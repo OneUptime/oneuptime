@@ -14,7 +14,7 @@ async function run(): void {
     });
 
     projects.forEach(async (project: $TSFixMe) => {
-        const data = {
+        const data: $TSFixMe = {
             sendCreatedIncidentNotificationSms: true,
             sendAcknowledgedIncidentNotificationSms: true,
             sendResolvedIncidentNotificationSms: true,

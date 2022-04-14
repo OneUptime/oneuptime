@@ -9,7 +9,7 @@ let page: $TSFixMe;
 
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
@@ -35,7 +35,7 @@ describe('Enterprise Admin Dashboard API', () => {
             await init.registerEnterpriseUser(user, page);
 
             const localStorageData = await page.evaluate(() => {
-                const json = {};
+                const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
 

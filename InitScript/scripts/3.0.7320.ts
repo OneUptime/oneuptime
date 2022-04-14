@@ -8,7 +8,7 @@ async function run(): void {
     });
 
     for (const request of requests) {
-        const data = {
+        const data: $TSFixMe = {
             filters: [
                 {
                     filterCriteria: request.filterCriteria,

@@ -23,7 +23,7 @@ import { ValidateField } from '../../config';
 import { history, RootState } from '../../store';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name) {
 
@@ -85,7 +85,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
         const projectId = this.props.currentProject._id;
 
         const scheduledEventId = this.props.initialValues._id;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         let selectedMonitors = this.state.selectedMonitors;
 
         if (
@@ -215,7 +215,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
     formatData = () => {
 
         const monitors = this.props.monitors;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -248,7 +248,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -266,7 +266,7 @@ class UpdateSchedule extends React.Component<UpdateScheduleProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [
@@ -1285,7 +1285,7 @@ const mapStateToProps: Function = (state: RootState) => {
         monitorObj.monitors.forEach((monitor: $TSFixMe) => monitors.push(monitor));
     });
 
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
     const startDate = selector(state, 'startDate');
 
     const monitorIds =

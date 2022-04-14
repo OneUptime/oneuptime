@@ -8,7 +8,7 @@ async function run(): void {
     });
 
     statusPages.forEach(async (statusPage: $TSFixMe) => {
-        const data = {
+        const data: $TSFixMe = {
             ipWhitelist: [],
         };
 

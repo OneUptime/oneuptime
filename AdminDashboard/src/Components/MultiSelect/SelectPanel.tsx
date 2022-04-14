@@ -108,7 +108,7 @@ class SelectPanel extends Component<ComponentProps> {
         } = this.props;
         const { focusIndex, searchHasFocus } = this.state;
 
-        const selectAllOption = {
+        const selectAllOption: $TSFixMe = {
             label: selectAllLabel || 'Select All',
             value: '',
         };

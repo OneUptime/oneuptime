@@ -12,7 +12,7 @@ async function run(): void {
     for (const template of templates) {
         // default values used when templates is created automatically
         // when projects are created
-        const data = {
+        const data: $TSFixMe = {
             isDefault: true,
             name: 'Default',
         };

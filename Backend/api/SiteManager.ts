@@ -88,7 +88,7 @@ router.post(
 router.post('/site/opts', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { issuedBefore, expiresBefore, renewBefore } = req.body;
-        const query = { $or: [] };
+        const query: $TSFixMe = { $or: [] };
 
         if (issuedBefore) {
             query.$or.push({

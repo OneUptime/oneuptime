@@ -82,7 +82,7 @@ class CreateIncidentNoteTemplate extends React.Component<CreateIncidentNoteTempl
             customIncidentState,
         } = values;
 
-        const data = {
+        const data: $TSFixMe = {
             name,
             incidentState,
         };

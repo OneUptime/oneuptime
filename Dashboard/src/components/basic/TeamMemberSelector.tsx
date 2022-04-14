@@ -5,7 +5,7 @@ import { formValueSelector } from 'redux-form';
 import PropTypes from 'prop-types';
 import Select from './Select';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: 'red',
     topMargin: '5px',
 };

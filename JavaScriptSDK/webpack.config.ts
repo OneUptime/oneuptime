@@ -1,6 +1,6 @@
 import path from 'path';
 
-const serverBuild = {
+const serverBuild: $TSFixMe = {
     mode: 'production',
     entry: './src/index.ts',
     target: 'node',
@@ -30,7 +30,7 @@ const serverBuild = {
         extensions: ['.js'],
     },
 };
-/*const webBuild = {
+/*const webBuild: $TSFixMe = {
     ...serverBuild,
     target: 'web',
     output: { ...serverBuild.output, filename: 'oneuptime.min.js' },

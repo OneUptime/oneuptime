@@ -2,7 +2,7 @@ const createIncidentNote: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     if (bundle.cleanedRequest) {
         return bundle.cleanedRequest;
     }
-    const data = {
+    const data: $TSFixMe = {
         data: bundle.inputData,
     };
     const responsePromise = z.request({

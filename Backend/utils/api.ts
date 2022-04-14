@@ -3,7 +3,7 @@ const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 
 export default {
     headers: async (val: $TSFixMe, type: $TSFixMe) => {
-        const header = {};
+        const header: $TSFixMe = {};
         if (type && type.length) {
             header['Content-Type'] = type;
         }

@@ -2,7 +2,7 @@ import * as types from '../constants/security';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     addContainer: { requesting: false, success: false, error: null },
     getContainer: { requesting: false, success: false, error: null },
     deleteContainer: { requesting: false, success: false, error: null },

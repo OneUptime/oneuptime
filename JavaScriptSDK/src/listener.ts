@@ -119,7 +119,7 @@ class OneUptimeListener {
             method: $TSFixMe,
             url: URL
         ): void {
-            const obj = {
+            const obj: $TSFixMe = {
                 method,
                 url,
                 status_code: '',
@@ -151,7 +151,7 @@ class OneUptimeListener {
         const currentFetch = global.fetch;
 
         global.fetch = function (url, options): void {
-            const obj = {
+            const obj: $TSFixMe = {
                 url,
                 method: options ? options.method : 'GET', // get request doesnt have a method on fetch, so its set as default
                 status_code: '',
@@ -212,7 +212,7 @@ class OneUptimeListener {
             module.request = wrapper;
         }
         function requestDetails(req: $TSFixMe): void {
-            const log = {
+            const log: $TSFixMe = {
                 method: req.method || 'GET',
                 host: req.host || req.hostname || '<no host>',
                 port: req.port || '',
@@ -229,7 +229,7 @@ class OneUptimeListener {
         }
     }
     _logConsoleEvent(content: $TSFixMe, type: $TSFixMe): void {
-        const timelineObj = {
+        const timelineObj: $TSFixMe = {
             category: 'console',
             data: {
                 content,
@@ -241,7 +241,7 @@ class OneUptimeListener {
         this.timelineObj.addToTimeline(timelineObj);
     }
     _logXHREvent(content: $TSFixMe, type: $TSFixMe): void {
-        const timelineObj = {
+        const timelineObj: $TSFixMe = {
             category: 'xhr',
             data: {
                 content,
@@ -253,7 +253,7 @@ class OneUptimeListener {
         this.timelineObj.addToTimeline(timelineObj);
     }
     _logFetchEvent(content: $TSFixMe, type: $TSFixMe): void {
-        const timelineObj = {
+        const timelineObj: $TSFixMe = {
             category: 'fetch',
             data: {
                 content,
@@ -265,7 +265,7 @@ class OneUptimeListener {
         this.timelineObj.addToTimeline(timelineObj);
     }
     _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe): void {
-        const timelineObj = {
+        const timelineObj: $TSFixMe = {
             category: type, // HTTP
             data: {
                 content,
@@ -277,7 +277,7 @@ class OneUptimeListener {
         this.timelineObj.addToTimeline(timelineObj);
     }
     logErrorEvent(content: $TSFixMe, category = 'exception'): void {
-        const timelineObj = {
+        const timelineObj: $TSFixMe = {
             category,
             data: {
                 content,
@@ -297,7 +297,7 @@ class OneUptimeListener {
     _logClickEvent(event: $TSFixMe, type: $TSFixMe): void {
         // preepare the event tree
         const content = this._getEventTree(event);
-        const timelineObj = {
+        const timelineObj: $TSFixMe = {
             category: `ui.${event.type}`,
             data: {
                 content,

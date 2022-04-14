@@ -53,7 +53,7 @@ async function run(): void {
                 if (up.or && up.or.length > 0) {
                     or = [...up.or];
                 }
-                const cr = { and: [], or: [] };
+                const cr: $TSFixMe = { and: [], or: [] };
                 if (and && and.length > 0) {
                     and[0].match = 'all';
                 } else if (or && or.length > 0) {
@@ -90,7 +90,7 @@ async function run(): void {
                 if (down.or && down.or.length > 0) {
                     or = [...down.or];
                 }
-                const cr = { and: [], or: [] };
+                const cr: $TSFixMe = { and: [], or: [] };
                 if (and && and.length > 0) {
                     and[0].match = 'all';
                 } else if (or && or.length > 0) {
@@ -127,7 +127,7 @@ async function run(): void {
                 if (degraded.or && degraded.or.length > 0) {
                     or = [...degraded.or];
                 }
-                const cr = { and: [], or: [] };
+                const cr: $TSFixMe = { and: [], or: [] };
                 if (and && and.length > 0) {
                     and[0].match = 'all';
                 } else if (or && or.length > 0) {

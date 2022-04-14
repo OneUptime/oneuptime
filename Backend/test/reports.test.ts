@@ -24,7 +24,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import ComponentModel from '../backend/models/component';
 
 let token: $TSFixMe, userId, projectId: ObjectID, monitorId: $TSFixMe;
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },

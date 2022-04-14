@@ -38,14 +38,14 @@ let adminId: $TSFixMe,
  *  ssoId2 <-> ssoDefaultRole2  <-> projectId1
  */
 
-const sso1CreationPayload = {
+const sso1CreationPayload: $TSFixMe = {
     'saml-enabled': true,
     domain: 'tests.hackerbay.io',
     samlSsoUrl: 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
     remoteLogoutUrl: 'http://localhost:9876/logout',
 };
 
-const sso2CreationPayload = {
+const sso2CreationPayload: $TSFixMe = {
     'saml-enabled': true,
     domain: 'tests1.hackerbay.io',
     samlSsoUrl: 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
@@ -151,7 +151,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     it("should not create an 'Owner' role as default SSO role for a domain, in a project", async () => {
-        const payload = {
+        const payload: $TSFixMe = {
             domain: ssoId1,
             project: projectId1,
             role: 'Owner',
@@ -164,7 +164,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     it('should create a default SSO role for a domain, in a project', async () => {
-        const payload = {
+        const payload: $TSFixMe = {
             domain: ssoId1,
             project: projectId1,
             role: 'Member',
@@ -180,7 +180,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     it('should not create a default SSO role for a domain that already has a default role for a specific project', async () => {
-        const payload = {
+        const payload: $TSFixMe = {
             domain: ssoId1,
             project: projectId1,
         };
@@ -192,7 +192,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     it('should create a new default SSO role for a different SSO domain, in the same project', async () => {
-        const payload = {
+        const payload: $TSFixMe = {
             domain: ssoId2,
             project: projectId1,
             role: 'Member',
@@ -216,7 +216,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     it('should update the existing default SSO role', async () => {
-        const payload = {
+        const payload: $TSFixMe = {
             domain: ssoId1,
             project: projectId1,
             role: 'Administrator',
@@ -284,7 +284,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
         });
         projectId2 = project.body._id;
 
-        const payload = {
+        const payload: $TSFixMe = {
             domain: ssoId1,
             project: projectId2,
             role: 'Member',

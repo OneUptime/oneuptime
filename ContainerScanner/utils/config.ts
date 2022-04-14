@@ -1,6 +1,6 @@
 import packageJson from '../package.json';
 
-const COMMAND = {
+const COMMAND: $TSFixMe = {
     linux: {
         load: "top -b -n 2 | egrep --color 'load average|%Cpu'",
         cpu: "egrep --color 'processor|cores' /proc/cpuinfo",

@@ -12,7 +12,7 @@ const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const scheduledEventName = utils.generateRandomString();
 
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
@@ -249,7 +249,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         await page.setUserAgent(utils.agent);
 
         // Register user
-        const user = {
+        const user: $TSFixMe = {
             email: anotherEmail,
             password,
         };

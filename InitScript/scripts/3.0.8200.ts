@@ -63,7 +63,9 @@ async function run(): void {
                                         obj.collection.and &&
                                         obj.collection.and.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
@@ -75,7 +77,9 @@ async function run(): void {
                                         obj.collection.or &&
                                         obj.collection.or.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
@@ -92,7 +96,7 @@ async function run(): void {
                     if (up.and.or && up.and.or.length > 0) {
                         if (up.criteria.condition) {
                             up.and.or.forEach((or: $TSFixMe) => {
-                                const nested = {
+                                const nested: $TSFixMe = {
                                     condition: 'or',
                                     criteria: [],
                                 };
@@ -114,7 +118,9 @@ async function run(): void {
                                             obj.collection.and &&
                                             obj.collection.and.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
@@ -126,7 +132,9 @@ async function run(): void {
                                             obj.collection.or &&
                                             obj.collection.or.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
@@ -159,7 +167,9 @@ async function run(): void {
                                         obj.collection.or &&
                                         obj.collection.or.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
@@ -171,7 +181,9 @@ async function run(): void {
                                         obj.collection.and &&
                                         obj.collection.and.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
@@ -188,7 +200,7 @@ async function run(): void {
                     if (up.or.and && up.or.and.length > 0) {
                         if (up.criteria.condition) {
                             up.or.and.forEach((and: $TSFixMe) => {
-                                const nested = {
+                                const nested: $TSFixMe = {
                                     condition: 'and',
                                     criteria: [],
                                 };
@@ -210,7 +222,9 @@ async function run(): void {
                                             obj.collection.and &&
                                             obj.collection.and.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
@@ -222,7 +236,9 @@ async function run(): void {
                                             obj.collection.or &&
                                             obj.collection.or.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
@@ -268,7 +284,9 @@ async function run(): void {
                                         obj.collection.and &&
                                         obj.collection.and.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
@@ -280,7 +298,9 @@ async function run(): void {
                                         obj.collection.or &&
                                         obj.collection.or.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
@@ -297,7 +317,7 @@ async function run(): void {
                     if (down.and.or && down.and.or.length > 0) {
                         if (down.criteria.condition) {
                             down.and.or.forEach((or: $TSFixMe) => {
-                                const nested = {
+                                const nested: $TSFixMe = {
                                     condition: 'or',
                                     criteria: [],
                                 };
@@ -319,7 +339,9 @@ async function run(): void {
                                             obj.collection.and &&
                                             obj.collection.and.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
@@ -333,7 +355,9 @@ async function run(): void {
                                             obj.collection.or &&
                                             obj.collection.or.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
@@ -368,7 +392,9 @@ async function run(): void {
                                         obj.collection.or &&
                                         obj.collection.or.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
@@ -380,7 +406,9 @@ async function run(): void {
                                         obj.collection.and &&
                                         obj.collection.and.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
@@ -397,7 +425,7 @@ async function run(): void {
                     if (down.or.and && down.or.and.length > 0) {
                         if (down.criteria.condition) {
                             down.or.and.forEach((and: $TSFixMe) => {
-                                const nested = {
+                                const nested: $TSFixMe = {
                                     condition: 'and',
                                     criteria: [],
                                 };
@@ -419,7 +447,9 @@ async function run(): void {
                                             obj.collection.and &&
                                             obj.collection.and.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
@@ -433,7 +463,9 @@ async function run(): void {
                                             obj.collection.or &&
                                             obj.collection.or.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
@@ -481,7 +513,9 @@ async function run(): void {
                                         obj.collection.and &&
                                         obj.collection.and.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
@@ -495,7 +529,9 @@ async function run(): void {
                                         obj.collection.or &&
                                         obj.collection.or.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
@@ -514,7 +550,7 @@ async function run(): void {
                     if (degraded.and.or && degraded.and.or.length > 0) {
                         if (degraded.criteria.condition) {
                             degraded.and.or.forEach((or: $TSFixMe) => {
-                                const nested = {
+                                const nested: $TSFixMe = {
                                     condition: 'or',
                                     criteria: [],
                                 };
@@ -536,7 +572,9 @@ async function run(): void {
                                             obj.collection.and &&
                                             obj.collection.and.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
@@ -550,7 +588,9 @@ async function run(): void {
                                             obj.collection.or &&
                                             obj.collection.or.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(
@@ -585,7 +625,9 @@ async function run(): void {
                                         obj.collection.or &&
                                         obj.collection.or.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'or';
                                         nestVal.criteria.push(
@@ -599,7 +641,9 @@ async function run(): void {
                                         obj.collection.and &&
                                         obj.collection.and.length > 0
                                     ) {
-                                        const nestVal = { criteria: [] };
+                                        const nestVal: $TSFixMe = {
+                                            criteria: [],
+                                        };
 
                                         nestVal.condition = 'and';
                                         nestVal.criteria.push(
@@ -618,7 +662,7 @@ async function run(): void {
                     if (degraded.or.and && degraded.or.and.length > 0) {
                         if (degraded.criteria.condition) {
                             degraded.or.and.forEach((and: $TSFixMe) => {
-                                const nested = {
+                                const nested: $TSFixMe = {
                                     condition: 'and',
                                     criteria: [],
                                 };
@@ -640,7 +684,9 @@ async function run(): void {
                                             obj.collection.and &&
                                             obj.collection.and.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'and';
                                             nestVal.criteria.push(
@@ -654,7 +700,9 @@ async function run(): void {
                                             obj.collection.or &&
                                             obj.collection.or.length > 0
                                         ) {
-                                            const nestVal = { criteria: [] };
+                                            const nestVal: $TSFixMe = {
+                                                criteria: [],
+                                            };
 
                                             nestVal.condition = 'or';
                                             nestVal.criteria.push(

@@ -94,7 +94,7 @@ import moment from 'moment';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     error: null,
     statusPage: {},
     monitorStatuses: {},

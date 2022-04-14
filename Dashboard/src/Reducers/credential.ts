@@ -2,7 +2,7 @@ import * as types from '../constants/credential';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     addCredential: { requesting: false, success: false, error: null },
     getCredential: { requesting: false, success: false, error: null },
     deleteCredential: { requesting: false, success: false, error: null },

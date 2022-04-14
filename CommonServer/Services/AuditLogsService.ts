@@ -36,7 +36,7 @@ export default class Service {
     }
 
     async search({ filter, skip, limit }: $TSFixMe): void {
-        const query = {
+        const query: $TSFixMe = {
             'request.apiSection': {
                 $regex: new RegExp(filter),
                 $options: 'i',

@@ -1526,7 +1526,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
     const { currentProject } = state.project;
     const {
         statusPage,

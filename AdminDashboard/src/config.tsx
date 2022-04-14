@@ -73,7 +73,7 @@ export const LICENSING_URL = licensingUrl;
 
 export const VERSION = process.env.VERSION || env('VERSION');
 
-export const User = {
+export const User: $TSFixMe = {
     getAccessToken() {
         return localStorage.getItem('access_token');
     },
@@ -142,7 +142,7 @@ export const User = {
 };
 
 //Data validation Util goes in here.
-export const Validate = {
+export const Validate: $TSFixMe = {
     isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
@@ -260,7 +260,7 @@ export const Validate = {
     },
 };
 
-export const ValidateField = {
+export const ValidateField: $TSFixMe = {
     required: (value: $TSFixMe) => value && value.length ? undefined : 'This field is required',
 
     select: (value: $TSFixMe) => value && value.length && value.trim() !== ''
@@ -298,7 +298,7 @@ export const ValidateField = {
             : undefined,
 };
 
-export const PricingPlan = {
+export const PricingPlan: $TSFixMe = {
     getPlans() {
         if (
             env('STRIPE_PUBLIC_KEY') &&
@@ -403,7 +403,7 @@ export const PricingPlan = {
     },
 };
 
-export const tutorials = {
+export const tutorials: $TSFixMe = {
     getMonitorTutorials() {
         return [
             {
@@ -491,12 +491,12 @@ export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
 }
 
 export const makeCriteria: Function = (val: $TSFixMe) => {
-    const val2 = {};
+    const val2: $TSFixMe = {};
     const and = [];
     const or = [];
 
     for (let i = 0; i < val.length; i++) {
-        const val3 = {};
+        const val3: $TSFixMe = {};
         if (val[i].responseType && val[i].responseType.length) {
 
             val3.responseType = val[i].responseType;
@@ -535,7 +535,7 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
     const val2 = [];
     if (val && val.and && val.and.length) {
         for (let i = 0; i < val.and.length; i++) {
-            const val3 = {};
+            const val3: $TSFixMe = {};
             if (val.and[i].responseType && val.and[i].responseType.length) {
 
                 val3.responseType = val.and[i].responseType;
@@ -573,7 +573,7 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
         return val2;
     } else if (val && val.or && val.or.length) {
         for (let i = 0; i < val.or.length; i++) {
-            const val3 = {};
+            const val3: $TSFixMe = {};
             if (val.or[i].responseType && val.or[i].responseType.length) {
 
                 val3.responseType = val.or[i].responseType;

@@ -23,7 +23,7 @@ router.get(
         try {
             const selectSmsCount =
                 'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
-            const query = {};
+            const query: $TSFixMe = {};
             const skip = req.query['skip'];
             const limit = req.query['limit'];
             const [smsLogs, count] = await Promise.all([
@@ -129,7 +129,7 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const query = {};
+            const query: $TSFixMe = {};
 
             const msg = await SmsLogsService.hardDeleteBy({ query });
 

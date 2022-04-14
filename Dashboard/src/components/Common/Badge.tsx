@@ -18,7 +18,7 @@ function Badge({
     fontSize,
     ...props
 }: BadgeProps) {
-    const fontStyle = {
+    const fontStyle: $TSFixMe = {
         color: fontColor || '#fff',
         fontSize: fontSize || '12px',
     };

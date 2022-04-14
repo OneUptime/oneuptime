@@ -47,7 +47,7 @@ import Collapsible from './Collapsible/Collapsible';
 import Twitter from './Twitter';
 import ExternalStatusPages from './ExternalStatusPages';
 
-const greenBackground = {
+const greenBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '100px',
     height: '8px',
@@ -55,7 +55,7 @@ const greenBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: 'rgb(117, 211, 128)',
 };
-const yellowBackground = {
+const yellowBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '100px',
     height: '8px',
@@ -63,7 +63,7 @@ const yellowBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: 'rgb(255, 222, 36)',
 };
-const redBackground = {
+const redBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '100px',
     height: '8px',
@@ -71,7 +71,7 @@ const redBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: 'rgb(250, 117, 90)',
 };
-const greyBackground = {
+const greyBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '100px',
     height: '8px',
@@ -334,7 +334,7 @@ class Main extends Component<ComponentProps> {
                 ? 'rgba(255, 222, 36, 1)'
                 : 'rgba(108, 219, 86, 1)';
 
-        const collapsibleStyle = {
+        const collapsibleStyle: $TSFixMe = {
             backgroundColor: 'rgb(246 246 246)',
             width: '100%',
             padding: '7px 10px',
@@ -650,7 +650,7 @@ class Main extends Component<ComponentProps> {
 
         const availableMonitors = this.props.statusData.monitors;
 
-        const defaultLayout = {
+        const defaultLayout: $TSFixMe = {
             visible: [
                 { name: 'Header', key: 'header' },
 
@@ -697,7 +697,7 @@ class Main extends Component<ComponentProps> {
             range = 90;
         }
 
-        const layoutObj = {
+        const layoutObj: $TSFixMe = {
             header: (
                 <>
                     <HelemtCard
@@ -1160,7 +1160,7 @@ class Main extends Component<ComponentProps> {
             ),
         };
 
-        const theme2Obj = {
+        const theme2Obj: $TSFixMe = {
             anouncement: (
                 <Announcement
 
@@ -1606,7 +1606,7 @@ class Main extends Component<ComponentProps> {
                 />
             ),
         };
-        const langObj = {
+        const langObj: $TSFixMe = {
             dutch: 'nl',
             spanish: 'es',
             french: 'fr',

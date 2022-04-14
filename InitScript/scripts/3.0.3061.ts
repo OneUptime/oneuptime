@@ -22,7 +22,7 @@ async function run(): void {
                 runtime: false,
             });
         }
-        const colors = {
+        const colors: $TSFixMe = {
             ...statusPage.colors,
             ...{
                 strokeChart: { r: 0, g: 0, b: 0, a: 1 },

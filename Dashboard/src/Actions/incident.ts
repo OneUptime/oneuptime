@@ -415,7 +415,7 @@ export function acknowledgeIncident(
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch): void {
         let promise = null;
-        const data = {
+        const data: $TSFixMe = {
             decoded: userId,
             projectId,
             incidentId,
@@ -513,7 +513,7 @@ export function resolveIncident(
     //This function will switch to incidentId of the params being passed.
     return function (dispatch: Dispatch): void {
         let promise = null;
-        const data = {
+        const data: $TSFixMe = {
             decoded: userId,
             projectId,
             incidentId,

@@ -21,7 +21,7 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const query = {};
+            const query: $TSFixMe = {};
             const skip = req.query['skip'];
             const limit = req.query['limit'];
 
@@ -81,7 +81,7 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const query = {};
+            const query: $TSFixMe = {};
 
             const msg = await AuditLogsService.hardDeleteBy({ query });
 

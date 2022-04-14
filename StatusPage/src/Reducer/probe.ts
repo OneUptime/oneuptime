@@ -3,7 +3,7 @@ import { FETCH_ALL_RESOURCES_SUCCESS } from '../constants/status';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     requesting: false,
     error: null,
     success: false,

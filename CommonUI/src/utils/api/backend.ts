@@ -15,7 +15,7 @@ class BackendAPI extends API {
     protected static override getHeaders(): Headers {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
-        const headers: Headers = {};
+        const headers: Headers: $TSFixMe = {};
         if (User.isLoggedIn()) {
             headers['Authorization'] = 'Basic ' + User.getAccessToken();
         }

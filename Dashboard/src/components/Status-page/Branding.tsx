@@ -36,7 +36,7 @@ import DataPathHoC from '../DataPathHoC';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (values.title) {
         if (!Validate.text(values.title)) {
 
@@ -160,7 +160,7 @@ export class Branding extends Component<BrandingProps>{
         }
     };
     removeImageHandler = (e: $TSFixMe) => {
-        const values = {};
+        const values: $TSFixMe = {};
 
         const { _id } = this.props.statusPage.status;
 

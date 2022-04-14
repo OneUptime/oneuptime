@@ -7,7 +7,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
@@ -71,7 +71,7 @@ describe('Project API', () => {
             ]);
 
             const localStorageData = await page.evaluate(() => {
-                const json = {};
+                const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
 
@@ -113,7 +113,7 @@ describe('Project API', () => {
             await page.waitForNavigation();
 
             const localStorageData = await page.evaluate(() => {
-                const json = {};
+                const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
 

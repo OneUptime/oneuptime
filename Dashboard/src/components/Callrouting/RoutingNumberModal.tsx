@@ -95,7 +95,7 @@ class RoutingNumberModal extends React.Component<RoutingNumberModalProps> {
         } = fetchNumber.numbers;
 
         const { countryCode, numberType } = this.state;
-        const postObj = {
+        const postObj: $TSFixMe = {
             projectId: currentProject._id,
             phoneNumber,
             locality,

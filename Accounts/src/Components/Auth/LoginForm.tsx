@@ -18,7 +18,7 @@ import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import { removeQuery, RootState } from '../../store';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: '#c23d4b',
 };
 
@@ -179,7 +179,7 @@ export class LoginForm extends Component<LoginFormProps>{
 LoginForm.displayName = 'LoginForm';
 
 const validate = function (values: $TSFixMe, props: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.email)) {
 
         errors.email = 'Email is required.';

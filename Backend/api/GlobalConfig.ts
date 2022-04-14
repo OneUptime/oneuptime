@@ -67,7 +67,7 @@ router.post(
                     });
                 }
                 if (name === 'twilio') {
-                    const data = {
+                    const data: $TSFixMe = {
                         accountSid: value['account-sid'],
                         authToken: value['authentication-token'],
                         phoneNumber: value['phone'],
@@ -157,7 +157,7 @@ router.get(
             });
             // If audit logs status was fetched and it doesn't exist, we need to create it
             if (!globalConfig && name === 'auditLogMonitoringStatus') {
-                const auditLogConfig = {
+                const auditLogConfig: $TSFixMe = {
                     name: 'auditLogMonitoringStatus',
                     value: true,
                 };
@@ -166,7 +166,7 @@ router.get(
 
             // If email logs status was fetched and it doesn't exist, we need to create it
             if (!globalConfig && name === 'emailLogMonitoringStatus') {
-                const emailLogConfig = {
+                const emailLogConfig: $TSFixMe = {
                     name: 'emailLogMonitoringStatus',
                     value: true,
                 };
@@ -175,7 +175,7 @@ router.get(
 
             // If SMS logs status was fetched and it doesnt exist, we need to create it
             if (!globalConfig && name === 'smsLogMonitoringStatus') {
-                const smsLogConfig = {
+                const smsLogConfig: $TSFixMe = {
                     name: 'smsLogMonitoringStatus',
                     value: true,
                 };
@@ -184,7 +184,7 @@ router.get(
 
             // If Call logs status was fetched and it doesnt exist, we need to create it
             if (!globalConfig && name === 'callLogMonitoringStatus') {
-                const callLogConfig = {
+                const callLogConfig: $TSFixMe = {
                     name: 'callLogMonitoringStatus',
                     value: true,
                 };

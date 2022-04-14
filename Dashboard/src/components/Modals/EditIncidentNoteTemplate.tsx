@@ -80,7 +80,7 @@ class EditIncidentNoteTemplate extends React.Component<EditIncidentNoteTemplateP
             incidentNote,
         } = values;
 
-        const updateData = {
+        const updateData: $TSFixMe = {
             name,
             incidentState,
         };
@@ -504,7 +504,7 @@ const EditIncidentNoteTemplateForm = reduxForm({
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { data } = ownProps;
     const { template } = data;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         ...template,
     };
     if (!['Investigation', 'Update'].includes(template.incidentState)) {

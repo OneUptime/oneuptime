@@ -7,7 +7,7 @@ import mongoose, {
 const Schema = mongoose.Schema;
 
 // a schema definition for a criterion event, i.e up, down, or degraded
-const criterionEventSchema = {
+const criterionEventSchema: $TSFixMe = {
     scheduleIds: [String],
     createAlert: { type: Boolean, default: false },
     autoAcknowledge: { type: Boolean, default: false },

@@ -14,7 +14,7 @@ import { RenderField } from '../basic/RenderField';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.url(values.endpoint)) {
 
@@ -65,7 +65,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
 
             data: { monitorId },
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         const { selectAllMonitors } = values;
         let monitors = [];
         const allMonitors = monitor.monitorsList.monitors
@@ -158,7 +158,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -191,7 +191,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -209,7 +209,7 @@ class CreateSlack extends React.Component<CreateSlackProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [

@@ -360,7 +360,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
         const activeTeamRotationEndTime = moment(
             activeTeamRotationStartTime
         ).add(rotationInterval, rotateBy);
-        const activeTeam = {
+        const activeTeam: $TSFixMe = {
             _id: teams[activeTeamIndex]._id,
             teamMembers: teams[activeTeamIndex].teamMembers,
             rotationStartTime: activeTeamRotationStartTime,
@@ -377,7 +377,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
         const nextActiveTeamRotationEndTime = moment(
             nextActiveTeamRotationStartTime
         ).add(rotationInterval, rotateBy);
-        const nextActiveTeam = {
+        const nextActiveTeam: $TSFixMe = {
             _id: teams[nextActiveTeamIndex]._id,
             teamMembers: teams[nextActiveTeamIndex].teamMembers,
             rotationStartTime: nextActiveTeamRotationStartTime,

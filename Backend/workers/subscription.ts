@@ -24,7 +24,7 @@ const handleFetchingUnpaidSubscriptions = async (startAfter): void => {
 };
 
 let data = [];
-const _this = {
+const _this: $TSFixMe = {
     /**
      * use stripe sdk to check for unpaid subscriptions (saas mode)
      * send email notification once every 24th hour to project owners about the unpaid subscription

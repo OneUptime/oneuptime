@@ -1,4 +1,4 @@
-const _this = {
+const _this: $TSFixMe = {
     getExceptionColor: function (type: $TSFixMe): void {
         let indicator = '#ff0000';
         if (type === 'exception') {
@@ -10,7 +10,7 @@ const _this = {
         return indicator;
     },
     generateFilterOption: function (unformattedFilters: $TSFixMe): void {
-        const option = {};
+        const option: $TSFixMe = {};
         if (!unformattedFilters) {
             return option;
         }

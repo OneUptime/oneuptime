@@ -14,7 +14,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 // Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.domain)) {
 

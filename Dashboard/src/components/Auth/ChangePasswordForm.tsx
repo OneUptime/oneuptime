@@ -155,7 +155,7 @@ export class ChangePasswordForm extends Component<ChangePasswordFormProps>{
 ChangePasswordForm.displayName = 'ChangePasswordForm';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.password)) {
 
         errors.password = 'Password is required.';

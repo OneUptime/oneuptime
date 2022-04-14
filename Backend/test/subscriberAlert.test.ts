@@ -32,7 +32,7 @@ let token: $TSFixMe,
     incidentId: $TSFixMe,
     subscriberId: $TSFixMe,
     idNumber: $TSFixMe;
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },

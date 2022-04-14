@@ -24,7 +24,7 @@ let token: $TSFixMe,
     errorEventTwo,
     issueCount = 0,
     errorEventMembers = 0;
-const sampleErrorEvent = {};
+const sampleErrorEvent: $TSFixMe = {};
 
 describe('Error Tracker API', function (): void {
     this.timeout(80000);

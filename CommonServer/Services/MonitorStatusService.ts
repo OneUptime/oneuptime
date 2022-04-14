@@ -1,6 +1,6 @@
 export default class Service {
     async create(data: $TSFixMe): void {
-        const query = {};
+        const query: $TSFixMe = {};
 
         if (data.monitorId) {
             query.monitorId = data.monitorId;
@@ -72,7 +72,7 @@ export default class Service {
     async createMany(allData: $TSFixMe): void {
         const dataList = [];
         for (const data of allData) {
-            const query = {};
+            const query: $TSFixMe = {};
 
             if (data.monitorId) {
                 query.monitorId = data.monitorId;

@@ -54,7 +54,7 @@ const createOptions: Function = () => {
     };
 };
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: '#c23d4b',
 };
 
@@ -564,7 +564,7 @@ class CardForm extends Component<ComponentProps> {
 CardForm.displayName = 'CardForm';
 
 const validate = function (values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.cardName)) {
 

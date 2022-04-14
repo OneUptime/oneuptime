@@ -213,7 +213,7 @@ router.put(
             });
         }
 
-        const data = {
+        const data: $TSFixMe = {
             key: uuid.v4(), // set new app log key
         };
 
@@ -250,7 +250,7 @@ router.put(
             });
         }
 
-        const data = {
+        const data: $TSFixMe = {
             showQuickStart: false,
         };
 
@@ -325,7 +325,7 @@ router.put(
             );
         }
 
-        const performanceTrackerData = {};
+        const performanceTrackerData: $TSFixMe = {};
         if (data.name) {
             performanceTrackerData.name = data.name;
         }
@@ -381,7 +381,7 @@ router.get(
                 ),
             ]);
 
-            const result = {
+            const result: $TSFixMe = {
                 performanceTrackerId,
 
                 time: time.length > 0 ? time[time.length - 1].value : 0,

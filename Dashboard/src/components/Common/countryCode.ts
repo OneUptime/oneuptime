@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-const codes = {
+const codes: $TSFixMe = {
     AD: 'Andorra',
     AE: 'United Arab Emirates',
     AF: 'Afghanistan',

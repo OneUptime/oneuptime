@@ -8,7 +8,7 @@ async function run(): void {
     });
 
     monitors.forEach(async (monitor: $TSFixMe) => {
-        const data = {
+        const data: $TSFixMe = {
             variables: [monitor.name],
         };
 

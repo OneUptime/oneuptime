@@ -216,7 +216,7 @@ class NotesMain extends Component<ComponentProps> {
             uptimeColor,
             degradedColor,
             noteBackgroundColor: $TSFixMe;
-        const subheading = {};
+        const subheading: $TSFixMe = {};
 
         if (this.props.statusPage) {
 
@@ -287,7 +287,7 @@ class NotesMain extends Component<ComponentProps> {
             emailNotification;
 
         const checkDuplicateDates: Function = (items: $TSFixMe) => {
-            const track = {};
+            const track: $TSFixMe = {};
 
             const result = [];
 

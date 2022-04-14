@@ -3,7 +3,7 @@ import { performance } from 'perf_hooks';
 import { isMainThread, Worker, parentPort, workerData } from 'worker_threads';
 
 // TODO - make this configurable from AdminDashboard
-const runConfig = {
+const runConfig: $TSFixMe = {
     availableImports: ['axios', 'request'], // init allowed modules
     maxSyncStatementDuration: 3000,
     maxScriptRunTime: 5000,

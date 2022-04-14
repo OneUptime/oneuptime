@@ -159,7 +159,7 @@ export class AddScheduleModal extends Component<AddScheduleModalProps>{
             );
         }
 
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         postObj.showAdvance = this.state.showAdvance;
 

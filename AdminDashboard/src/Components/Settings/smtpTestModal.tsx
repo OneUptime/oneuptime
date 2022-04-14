@@ -268,7 +268,7 @@ SmtpTestModal.propTypes = {
 
 // Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.email(values['test-email'])) {
 

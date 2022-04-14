@@ -2,7 +2,7 @@ import { ANIMATE_SIDEBAR } from '../constants/animateSidebar';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     animateSidebar: false,
 };
 

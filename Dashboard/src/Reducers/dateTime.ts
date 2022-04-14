@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     dates: {
         startDate: moment().subtract(1, 'd'),
         endDate: moment(),

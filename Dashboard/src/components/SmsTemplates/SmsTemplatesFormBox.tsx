@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import ResetSmsTemplate from '../modals/ResetSmsTemplate';
 
-const style = {
+const style: $TSFixMe = {
     backgroundColor: '#fff',
     borderRadius: '4px',
     width: '600px',
@@ -28,14 +28,14 @@ const style = {
         '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
 };
 
-const bulletpoints = {
+const bulletpoints: $TSFixMe = {
     display: 'listItem',
     listStyleType: 'disc',
     listStylePosition: 'inside',
 };
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.body)) {
 
         errors.body = 'Please enter sms body';
@@ -416,7 +416,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 
 function mapStateToProps(state: RootState) {
     const template = state.smsTemplates.showingTemplate;
-    const val = {
+    const val: $TSFixMe = {
         body: template.body,
         sms_type: template.smsType,
     };

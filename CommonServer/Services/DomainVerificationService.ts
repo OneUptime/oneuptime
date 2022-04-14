@@ -17,7 +17,7 @@ export default class Service {
         const parsed = psl.parse(domain);
         const token: string = 'oneuptime=' + randomChar();
 
-        const creationData = {
+        const creationData: $TSFixMe = {
             domain: parsed.domain,
             verificationToken: token,
             verifiedAt: null,
@@ -80,7 +80,7 @@ export default class Service {
     }
 
     async resetDomain(domain: $TSFixMe): void {
-        const updateObj = {
+        const updateObj: $TSFixMe = {
             verificationToken: 'oneuptime=' + randomChar(),
             verified: false,
             updatedAt: new Date(),

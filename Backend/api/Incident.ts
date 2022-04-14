@@ -412,7 +412,7 @@ router.get(
             });
             const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-            const query = {
+            const query: $TSFixMe = {
                 'monitors.monitorId': { $in: monitorIds },
             };
 
@@ -694,7 +694,7 @@ router.post(
                     a.status !== 'internal notes added' &&
                     a.status !== 'internal notes updated'
             );
-            const result = {
+            const result: $TSFixMe = {
                 data: await Services.rearrangeDuty(filteredMsg),
                 incident,
                 type: 'internal',
@@ -860,7 +860,7 @@ router.post(
                     a.status !== 'internal notes added' &&
                     a.status !== 'internal notes updated'
             );
-            const result = {
+            const result: $TSFixMe = {
                 data: await Services.rearrangeDuty(filteredMsg),
                 incident,
                 type: 'internal',
@@ -901,7 +901,7 @@ router.put(
         const incidentId = req.params.incidentId;
         const { title, description, incidentPriority } = req.body;
 
-        const query = {
+        const query: $TSFixMe = {
             title,
             description,
             incidentPriority,
@@ -1059,7 +1059,7 @@ router.post(
                 const monitors = incident.monitors.map(
                     (monitor: $TSFixMe) => monitor.monitorId.name
                 );
-                const templateInput = {
+                const templateInput: $TSFixMe = {
                     time: moment(incident.createdAt).format('h:mm:ss a'),
                     date: moment(incident.createdAt).format('MMM Do YYYY'),
                     projectName: incident.projectId.name,
@@ -1095,7 +1095,7 @@ router.post(
                         });
                     }
                 } else {
-                    const updatedMessage = {
+                    const updatedMessage: $TSFixMe = {
                         content: data.content,
                         incident_state: data.incident_state,
                     };
@@ -1735,7 +1735,7 @@ router.put(
                 },
                 { hideIncident }
             );
-            const incident = {
+            const incident: $TSFixMe = {
                 hideIncident: result.hideIncident,
             };
             return sendItemResponse(req, res, incident);

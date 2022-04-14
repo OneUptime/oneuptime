@@ -75,7 +75,7 @@ class VerifyDomain extends Component<ComponentProps> {
             currentProject,
         } = this.props;
 
-        const data = { domain, verificationToken };
+        const data: $TSFixMe = { domain, verificationToken };
         verifyProjectDomain({ projectId, domainId, data }).then(() => {
 
             if (!this.props.verifyError) {

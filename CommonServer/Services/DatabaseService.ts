@@ -275,7 +275,7 @@ class DatabaseService<ModelType> {
             const item = new this.model();
 
             if (this.uniqueFields && this.uniqueFields.length > 0) {
-                const countQuery: Query = {};
+                const countQuery: Query: $TSFixMe = {};
 
                 if (this.isResourceByProject) {
                     countQuery['projectId'] = data.get('projectId');
@@ -685,7 +685,7 @@ class DatabaseService<ModelType> {
         select,
         populate,
     }: SearchBy): Promise<SearchResult> {
-        const query: Query = {
+        const query: Query: $TSFixMe = {
             [column]: { $regex: new RegExp(text), $options: 'i' },
         };
 

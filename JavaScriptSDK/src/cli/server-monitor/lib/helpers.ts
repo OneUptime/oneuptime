@@ -12,7 +12,7 @@ import { API_URL } from './config';
 import logger from './logger';
 
 /** The request headers. */
-const headers = {
+const headers: $TSFixMe = {
     'Content-Type': 'application/json',
 };
 

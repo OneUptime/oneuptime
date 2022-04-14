@@ -37,7 +37,7 @@ router.post(
                 throw new BadDataException('Incident note must be present');
             }
 
-            const data = {
+            const data: $TSFixMe = {
                 projectId,
                 name,
                 incidentState,
@@ -66,7 +66,7 @@ router.get(
                 throw new BadDataException('Project Id must be present');
             }
 
-            const query = { projectId };
+            const query: $TSFixMe = { projectId };
             const [incidentNoteTemplates, count] = await Promise.all([
                 IncidentNoteTemplateService.findBy({
                     query,
@@ -113,8 +113,13 @@ router.put(
                 throw new BadDataException('Incident note must be present');
             }
 
-            const query = { projectId, _id: templateId };
-            const data = { projectId, name, incidentState, incidentNote };
+            const query: $TSFixMe = { projectId, _id: templateId };
+            const data: $TSFixMe = {
+                projectId,
+                name,
+                incidentState,
+                incidentNote,
+            };
 
             const incidentNoteTemplate =
                 await IncidentNoteTemplateService.updateOneBy({ query, data });

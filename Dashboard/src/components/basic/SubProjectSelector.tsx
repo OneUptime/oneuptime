@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import Select from './Select';
 import { renderIfSubProjectAdmin } from '../../config';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: 'red',
     topMargin: '5px',
 };

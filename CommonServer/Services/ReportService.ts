@@ -68,7 +68,7 @@ export default class Service {
         ]).option({ allowDiskUse: true });
 
         const arr = [];
-        const wrapper = {};
+        const wrapper: $TSFixMe = {};
         const filterMembers = result[0].members.filter(
             (member: $TSFixMe) => member._id !== null
         );
@@ -78,7 +78,7 @@ export default class Service {
                 select: 'name',
             });
 
-            const result = {
+            const result: $TSFixMe = {
                 memberId: member._id,
                 memberName: response.name,
                 incidents: member.incidents,
@@ -161,7 +161,7 @@ export default class Service {
         ]).option({ allowDiskUse: true });
 
         const arr = [];
-        const wrapper = {};
+        const wrapper: $TSFixMe = {};
         for (const monitor of result[0].monitors) {
             let response = await MonitorService.findOneBy({
                 query: { _id: monitor._id },
@@ -171,7 +171,7 @@ export default class Service {
             if (!response) {
                 response = {};
             }
-            const monitorObj = {
+            const monitorObj: $TSFixMe = {
                 monitorId: monitor._id,
                 monitorName: response.name,
                 incidents: monitor.incidents,
@@ -295,7 +295,7 @@ export default class Service {
         const formarted = [];
 
         for (const period of result) {
-            const data = {
+            const data: $TSFixMe = {
                 incidents: period.count,
                 averageResolved: parseInt(
                     moment
@@ -409,7 +409,7 @@ export default class Service {
         const formarted = [];
 
         for (const period of result) {
-            const data = {
+            const data: $TSFixMe = {
                 incidents: period.count,
             };
 

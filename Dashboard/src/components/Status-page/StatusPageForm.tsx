@@ -14,7 +14,7 @@ import { closeModal } from 'CommonUI/actions/modal';
 import { createStatusPage } from '../../actions/statusPage';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.name)) {
 

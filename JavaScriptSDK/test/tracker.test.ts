@@ -12,7 +12,7 @@ const request = chai.request.agent(API_URL);
 const timeout = 5000;
 
 import OneUptimeTracker from '../src/tracker';
-const customTimeline = {
+const customTimeline: $TSFixMe = {
     category: 'cart',
     content: {
         message: 'test-content',
@@ -28,7 +28,7 @@ describe('Tracker Timeline', function (): void {
     this.timeout(timeout + 1000);
     let projectId: ObjectID, token: $TSFixMe, componentId;
     // create a new user
-    const component = { name: 'Our Component' };
+    const component: $TSFixMe = { name: 'Our Component' };
 
     before(function (done: $TSFixMe): void {
         this.timeout(60000);
@@ -120,7 +120,7 @@ describe('Tracker Timeline', function (): void {
     });
 
     it('should ensure max timline cant be set as a negative number', (): void => {
-        const options = { maxTimeline: -5 };
+        const options: $TSFixMe = { maxTimeline: -5 };
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -142,14 +142,14 @@ describe('Tracker Timeline', function (): void {
     });
 
     it('should ensure new timeline event after max timeline are discarded', (): void => {
-        const options = { maxTimeline: 2 };
+        const options: $TSFixMe = { maxTimeline: 2 };
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
             errorTracker.key,
             options
         );
-        const customTimeline2 = {
+        const customTimeline2: $TSFixMe = {
             category: 'logout',
             content: {
                 message: 'test-content',
@@ -186,7 +186,7 @@ describe('Tags', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const tag = { key: 'location', value: 'Atlanta' };
+        const tag: $TSFixMe = { key: 'location', value: 'Atlanta' };
         tracker.setTag(tag.key, tag.value);
         const availableTags = tracker._getTags();
         expect(availableTags).to.be.an('array');
@@ -451,7 +451,7 @@ describe('SDK Version', (): void => {
 
 describe('Code Capture Snippet', (): void => {
     it('should add code capture to stack trace when flag is passed in options', async (): void => {
-        const options = { captureCodeSnippet: true };
+        const options: $TSFixMe = { captureCodeSnippet: true };
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -471,7 +471,7 @@ describe('Code Capture Snippet', (): void => {
     });
 
     it('should add code capture and confirm data type of fields added to frame', async (): void => {
-        const options = { captureCodeSnippet: true };
+        const options: $TSFixMe = { captureCodeSnippet: true };
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -491,7 +491,7 @@ describe('Code Capture Snippet', (): void => {
     });
 
     it('should not add code capture to stack trace when flag is passed in options', async (): void => {
-        const options = { captureCodeSnippet: false };
+        const options: $TSFixMe = { captureCodeSnippet: false };
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -511,7 +511,7 @@ describe('Code Capture Snippet', (): void => {
     });
 
     it('should add code capture to stack trace by default when unwanted flag is passed in options', async (): void => {
-        const options = { captureCodeSnippet: 'heyy' }; // expects a true or false but it defaults to true
+        const options: $TSFixMe = { captureCodeSnippet: 'heyy' }; // expects a true or false but it defaults to true
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,

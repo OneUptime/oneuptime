@@ -15,7 +15,7 @@ app.use(compression());
 app.get(
     ['/env.js', '/accounts/env.js'],
     (req: ExpressRequest, res: ExpressResponse) => {
-        const env = {
+        const env: $TSFixMe = {
             REACT_APP_IS_SAAS_SERVICE: process.env['IS_SAAS_SERVICE'],
             REACT_APP_DISABLE_SIGNUP: process.env['DISABLE_SIGNUP'],
             REACT_APP_HOST: req.host,

@@ -18,7 +18,7 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: email,
             password: password,
         };

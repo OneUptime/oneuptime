@@ -14,7 +14,7 @@ import apiMiddleware from '../middlewares/api';
 
 import { getPlanById } from '../config/plans';
 
-const _this = {
+const _this: $TSFixMe = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
     // Param 1: req.headers-> {token}

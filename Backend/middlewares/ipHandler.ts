@@ -9,7 +9,7 @@ import {
 import apiMiddleware from './api';
 import ipaddr from 'ipaddr.js';
 
-const _this = {
+const _this: $TSFixMe = {
     ipWhitelist: async function (
         req: ExpressRequest,
         res: ExpressResponse,

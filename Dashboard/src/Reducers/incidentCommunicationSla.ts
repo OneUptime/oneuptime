@@ -2,7 +2,7 @@ import * as types from '../constants/incidentCommunicationSla';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     incidentCommunicationSla: {
         requesting: false,
         success: false,

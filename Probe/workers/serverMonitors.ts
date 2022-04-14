@@ -24,7 +24,7 @@ export default {
             } = monitor.agentlessConfig;
             const ssh = new NodeSSH();
 
-            const config = {
+            const config: $TSFixMe = {
                 host,
                 port,
                 username,

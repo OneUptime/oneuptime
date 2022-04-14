@@ -283,7 +283,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 
 function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     const incident = ownProps.data.incident;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         title: incident.title,
         description: incident.description,
         incidentPriority: incident.incidentPriority

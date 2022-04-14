@@ -21,7 +21,7 @@ if (
     slomo = parseInt(process.env.SLOMO);
 }
 
-const puppeteerLaunchConfig = {
+const puppeteerLaunchConfig: $TSFixMe = {
     headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: null,
     slowMo: slomo,
@@ -130,7 +130,7 @@ const updatedScheduledEventDescription: string = 'event description updated';
 
 const updatedScheduledEventName: string = 'event name updated';
 
-const dockerCredential = {
+const dockerCredential: $TSFixMe = {
     dockerUsername: process.env.DOCKER_UNMASKED_USERNAME || 'oneuptimetest',
     dockerPassword: process.env.DOCKER_UNMASKED_PASSWORD || '4G76c2aavPHa',
     dockerRegistryUrl:
@@ -141,7 +141,7 @@ const dockerCredential = {
     imageTags: process.env.DOCKER_SECURITY_SCAN_IMAGE_TAGS || 'latest',
 };
 
-const gitCredential = {
+const gitCredential: $TSFixMe = {
     gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'oneuptimetest',
     gitPassword:
         process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
@@ -150,7 +150,7 @@ const gitCredential = {
         'https://github.com/twbs/bootstrap',
 };
 
-const smtpCredential = {
+const smtpCredential: $TSFixMe = {
     user: process.env.TEST_EMAIL || 'noreply@oneuptime.com',
     pass:
         process.env.TEST_EMAIL_PASSWORD || 'qZzsbeYJAxJccf9FwgdZvip3nr9mhmofD',
@@ -160,7 +160,7 @@ const smtpCredential = {
     secure: true,
 };
 
-const twilioCredentials = {
+const twilioCredentials: $TSFixMe = {
     accountSid:
         process.env.TEST_TWILIO_ACCOUNT_SID ||
         'AC4b957669470069d68cd5a09d7f91d7c6',
@@ -170,13 +170,13 @@ const twilioCredentials = {
     phoneNumber: process.env.TEST_TWILIO_PHONE || '+15005550006',
 };
 
-const monitorTabIndexes = {
+const monitorTabIndexes: $TSFixMe = {
     BASIC: 0,
     SUBSCRIBERS: 2,
     INTEGRATION: 4,
     ADVANCE: 6,
 };
-const incidentTabIndexes = {
+const incidentTabIndexes: $TSFixMe = {
     BASIC: 0,
     MONITOR_LOGS: 2,
     ALERT_LOGS: 4,
@@ -184,7 +184,7 @@ const incidentTabIndexes = {
     INCIDENT_NOTES: 8,
     ADVANCE: 6, // Now in react-tab-6 id
 };
-const scheduleEventTabIndexes = {
+const scheduleEventTabIndexes: $TSFixMe = {
     BASIC: 0,
     NOTES: 2,
     ADVANCE: 4,

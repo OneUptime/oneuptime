@@ -30,7 +30,7 @@ router.put('/default', async (req: ExpressRequest, res: ExpressResponse) => {
             return sendItemResponse(req, res, {});
         }
 
-        const data = {};
+        const data: $TSFixMe = {};
 
         if (store) {
             data.store = store;

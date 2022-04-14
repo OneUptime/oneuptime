@@ -18,7 +18,7 @@ import {
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name) {
 
@@ -71,7 +71,7 @@ class EditAnnouncement extends Component<ComponentProps> {
 
             formValues,
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         if (values.monitors && values.monitors.length > 0) {
             const monitors = values.monitors.filter(
                 (monitorId: $TSFixMe) => typeof monitorId === 'string'
@@ -592,7 +592,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
             ? announcement.monitors.map((monitor: $TSFixMe) => monitor.monitorId._id)
             : [];
 
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
 
     initialValues.name = announcement.name;
 

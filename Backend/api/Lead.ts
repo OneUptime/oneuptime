@@ -14,7 +14,7 @@ import Exception from 'Common/Types/Exception/Exception';
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const body = req.body;
-        const data = {};
+        const data: $TSFixMe = {};
         if (body.volume) {
             if (typeof body.volume === 'string') {
                 body.volume = JSON.parse(body.volume);

@@ -85,7 +85,7 @@ router.get(
                 projectId,
                 teamMemberUserId
             );
-            const teamMemberObj = {
+            const teamMemberObj: $TSFixMe = {
                 id: teamMember._id,
                 name: teamMember.name ? teamMember.name : '',
                 email: teamMember.email ? teamMember.email : '',

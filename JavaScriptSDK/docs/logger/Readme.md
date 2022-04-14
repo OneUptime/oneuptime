@@ -26,7 +26,7 @@ import OneUptime from 'oneuptime';
 import OneUptime from 'oneuptime';
 
 // set up tracking configurations
-const options = {
+const options: $TSFixMe = {
     maxTimeline: 10,
     captureCodeSnippet: true,
 };
@@ -44,7 +44,7 @@ const  item: string = 'This is a simple log';
 logger.log(item); // returns a promise
 
 // Sending a JSON object log to the server
-const item = {
+const item: $TSFixMe = {
     user: 'Test User',
     page: {
         title: 'Landing Page',

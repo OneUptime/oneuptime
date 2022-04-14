@@ -129,7 +129,7 @@ describe('Application Security API', function (): void {
             projectId,
         }).then((credential): void => {
             credentialId = credential._id;
-            const data = {
+            const data: $TSFixMe = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
 
@@ -158,7 +158,7 @@ describe('Application Security API', function (): void {
 
     it('should update an application security', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const update = { name: 'newname' };
+        const update: $TSFixMe = { name: 'newname' };
 
         request
             .put(
@@ -237,7 +237,7 @@ describe('Application Security API', function (): void {
     it('should not create an application security if name already exist in the component', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        const data = {
+        const data: $TSFixMe = {
             name: 'newname',
             gitRepositoryUrl: 'https://github.com',
             gitCredential: credentialId,
@@ -259,7 +259,7 @@ describe('Application Security API', function (): void {
     it('should not create an application security if git repository url already exist in the component', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        const data = {
+        const data: $TSFixMe = {
             name: 'anothername',
             gitRepositoryUrl: gitCredential.gitRepositoryUrl,
             gitCredential: credentialId,
@@ -296,7 +296,7 @@ describe('Application Security API', function (): void {
     it('should not create an application security if name is missing', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        const data = {
+        const data: $TSFixMe = {
             name: '',
             gitRepositoryUrl: gitCredential.gitRepositoryUrl,
             gitCredential: credentialId,
@@ -318,7 +318,7 @@ describe('Application Security API', function (): void {
     it('should not create an application security if git repository url is missing', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        const data = {
+        const data: $TSFixMe = {
             name: 'AnotherTest',
             gitRepositoryUrl: '',
             gitCredential: credentialId,
@@ -340,7 +340,7 @@ describe('Application Security API', function (): void {
     it('should not create an application security if git credential is missing', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        const data = {
+        const data: $TSFixMe = {
             name: 'AnotherTest',
             gitRepositoryUrl: gitCredential.gitRepositoryUrl,
             gitCredential: '',
@@ -416,7 +416,7 @@ describe('Application Security API', function (): void {
     it('should not create an application security if git credential does not exist', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
 
-        const data = {
+        const data: $TSFixMe = {
             name: 'AnotherTest',
             gitRepositoryUrl: gitCredential.gitRepositoryUrl,
             gitCredential: '5e8db9752cc46e3a229ebc51',

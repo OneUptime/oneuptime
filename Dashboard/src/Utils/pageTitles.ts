@@ -1,7 +1,7 @@
 import { allRoutes } from '../routes';
 
 const pageTitles: Function = (): void => {
-    const map = {};
+    const map: $TSFixMe = {};
     allRoutes.forEach(route => {
         map[route.title] = route.icon;
     });

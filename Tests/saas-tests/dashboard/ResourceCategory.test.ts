@@ -11,7 +11,7 @@ const secondEmail = utils.generateRandomBusinessEmail();
 const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName: string = 'Test';
 const resourceCategory: string = 'stat';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

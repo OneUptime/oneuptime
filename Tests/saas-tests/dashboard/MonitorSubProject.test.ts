@@ -25,7 +25,7 @@ describe('Monitor API With SubProjects', () => {
         await page.setUserAgent(utils.agent);
 
         // Register user
-        const user = {
+        const user: $TSFixMe = {
             email,
             password,
         };
@@ -70,7 +70,7 @@ describe('Monitor API With SubProjects', () => {
     test(
         'should not display new monitor form for user that is not `admin` in sub-project.',
         async (done: $TSFixMe) => {
-            const user = { email: newEmail, password: newPassword };
+            const user: $TSFixMe = { email: newEmail, password: newPassword };
             // await init.loginUser(user, page);
             await init.saasLogout(page);
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
@@ -105,7 +105,7 @@ describe('Monitor API With SubProjects', () => {
     test(
         'should create a monitor in sub-project for valid `admin`',
         async (done: $TSFixMe) => {
-            const user = { email: email, password };
+            const user: $TSFixMe = { email: email, password };
             await init.loginUser(user, page);
             // Navigate to details page of component created
 

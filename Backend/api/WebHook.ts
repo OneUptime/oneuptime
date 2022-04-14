@@ -80,7 +80,7 @@ router.post(
                         message: 'name missing in body, must be present',
                     });
                 }
-                const query = {
+                const query: $TSFixMe = {
                     webHookName,
                     integrationType,
                     deleted: { $ne: null },
@@ -117,14 +117,14 @@ router.post(
                 });
             }
 
-            const data = {
+            const data: $TSFixMe = {
                 userId,
                 endpoint,
                 endpointType,
                 monitors,
                 webHookName,
             };
-            const notificationOptions = {
+            const notificationOptions: $TSFixMe = {
                 incidentCreated,
                 incidentAcknowledged,
                 incidentResolved,

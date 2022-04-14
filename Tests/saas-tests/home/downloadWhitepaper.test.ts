@@ -82,11 +82,11 @@ describe('Download Whitepaper form', () => {
     test(
         'redirected query string should be save as source in the leads schema',
         async (done: $TSFixMe) => {
-            const data = {
+            const data: $TSFixMe = {
                 collection: 'leads',
                 query: { email: email },
             };
-            const config = {
+            const config: $TSFixMe = {
                 method: 'post',
                 url: utils.INIT_SCRIPT_URL + '/find',
                 headers: {

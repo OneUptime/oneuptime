@@ -1,4 +1,4 @@
-const CRITERIA_TYPES = {
+const CRITERIA_TYPES: $TSFixMe = {
     UP: {
         type: 'up',
         head: 'Monitor Up Criteria',

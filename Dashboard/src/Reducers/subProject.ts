@@ -2,7 +2,7 @@ import * as types from '../constants/subProject';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     subProjects: {
         requesting: false,
         error: null,

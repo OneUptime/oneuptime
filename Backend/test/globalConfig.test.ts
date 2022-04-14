@@ -81,7 +81,7 @@ describe('Global Config API', function (): void {
 
     it('should create global config when name and value are valid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const globalConfig = {
+        const globalConfig: $TSFixMe = {
             name: 'TestName',
             value: 'TestValue',
         };
@@ -132,7 +132,7 @@ describe('Global Config API', function (): void {
 
     it('should not create global config when name and value are not valid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const globalConfig = { name: null };
+        const globalConfig: $TSFixMe = { name: null };
         request
             .post('/globalConfig')
             .set('Authorization', authorization)

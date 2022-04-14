@@ -32,7 +32,7 @@ router.post('/new', async (req: ExpressRequest, res: ExpressResponse) => {
             );
         }
         const token = await UserService.getNewToken(jwtRefreshToken);
-        const tokenData = {
+        const tokenData: $TSFixMe = {
             jwtAccessToken: token.accessToken,
             jwtRefreshToken: token.refreshToken,
         };

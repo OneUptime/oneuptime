@@ -17,14 +17,14 @@ import { setRevealVariable } from '../../actions/emailTemplates';
 import RenderIfAdmin from '../basic/RenderIfAdmin';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
-const bulletpoints = {
+const bulletpoints: $TSFixMe = {
     display: 'listItem',
     listStyleType: 'disc',
     listStylePosition: 'inside',
 };
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.subject)) {
 
         errors.subject = 'Please enter email subject';
@@ -385,7 +385,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => {
 
 function mapStateToProps(state: RootState) {
     const template = state.emailTemplates.showingTemplate;
-    const val = {
+    const val: $TSFixMe = {
         subject: template.subject,
         body: template.body,
         email_type: template.emailType,

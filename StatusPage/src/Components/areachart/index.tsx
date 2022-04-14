@@ -15,7 +15,7 @@ import * as _ from 'lodash';
 import { connect } from 'react-redux';
 import { formatDecimal, formatBytes } from '../../config';
 
-const noDataStyle = {
+const noDataStyle: $TSFixMe = {
     textAlign: 'center',
     flexBasis: 1,
 };

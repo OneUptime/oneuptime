@@ -775,7 +775,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const projectCustomTutorial = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
-    const tutorialStat = {
+    const tutorialStat: $TSFixMe = {
         monitorCustom: { show: true },
         monitor: { show: true },
     };

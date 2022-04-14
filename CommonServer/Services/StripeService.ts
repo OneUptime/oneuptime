@@ -180,7 +180,7 @@ export default class StripeService {
             const card = await stripe.customers.createSource(stripeCustomerId, {
                 source: tok,
             });
-            const metadata = {
+            const metadata: $TSFixMe = {
                 description,
             };
             const source = card.id;
@@ -315,7 +315,7 @@ export default class StripeService {
                         paymentIntent.metadata.billingRiskCountries &&
                         JSON.parse(paymentIntent.metadata.billingRiskCountries);
 
-                const alertOptions = {
+                const alertOptions: $TSFixMe = {
                     minimumBalance,
                     rechargeToBalance,
                     billingUS,
@@ -369,7 +369,7 @@ export default class StripeService {
             select: 'stripeCustomerId',
         });
         const stripeCustomerId = user.stripeCustomerId;
-        const metadata = {
+        const metadata: $TSFixMe = {
             projectId,
         };
 
@@ -444,7 +444,7 @@ export default class StripeService {
         const card = await stripe.customers.createSource(stripeCustomerId, {
             source: tokenId,
         });
-        const metadata = {
+        const metadata: $TSFixMe = {
             description,
         };
         const source = card.id;

@@ -1,4 +1,4 @@
-export const user = {
+export const user: $TSFixMe = {
     name: 'John Smith',
     password: '1234567890',
     confirmPassword: '1234567890',

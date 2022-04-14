@@ -100,7 +100,7 @@ class AnnouncementLog extends Component<ComponentProps> {
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;
 
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                 <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">

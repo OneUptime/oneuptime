@@ -9,7 +9,7 @@ let page: $TSFixMe, otherPage: $TSFixMe;
 
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
@@ -36,7 +36,7 @@ describe('Enterprise Registration API', () => {
             await init.registerEnterpriseUser(user, page);
 
             const localStorageData = await page.evaluate(() => {
-                const json = {};
+                const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
 
@@ -79,7 +79,7 @@ describe('Enterprise Registration API', () => {
             await init.loginAdminUser(user, otherPage);
 
             const localStorageData = await otherPage.evaluate(() => {
-                const json = {};
+                const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
 

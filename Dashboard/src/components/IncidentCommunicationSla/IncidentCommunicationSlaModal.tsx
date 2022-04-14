@@ -19,7 +19,7 @@ import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 import { fetchMonitors } from '../../actions/monitor';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name || !values.name.trim()) {
 
@@ -100,7 +100,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
         } = this.props;
         const { setCustom } = this.state;
         const projectId = data.projectId;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         if (
             this.state.selectedMonitors &&
@@ -175,7 +175,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -208,7 +208,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -226,7 +226,7 @@ class IncidentCommunicationSlaModal extends React.Component<IncidentCommunicatio
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [

@@ -30,7 +30,7 @@ let token: $TSFixMe,
     internalNoteId: $TSFixMe,
     investigationNoteId: $TSFixMe;
 
-const scheduledEvent = {
+const scheduledEvent: $TSFixMe = {
     name: 'New scheduled Event',
     startDate: '2019-06-11 11:01:52.178',
     endDate: '2019-06-26 11:31:53.302',
@@ -41,25 +41,25 @@ const scheduledEvent = {
     monitorDuringEvent: false,
 };
 
-const internalNote = {
+const internalNote: $TSFixMe = {
     type: 'internal',
     event_state: 'update',
     content: 'This is an update for internal',
 };
 
-const updatedInternalNote = {
+const updatedInternalNote: $TSFixMe = {
     type: 'internal',
     event_state: 'something new',
     content: 'Something new for new',
 };
 
-const investigationNote = {
+const investigationNote: $TSFixMe = {
     type: 'investigation',
     event_state: 'investigating',
     content: 'This is an investigation note',
 };
 
-const updatedInvestigationNote = {
+const updatedInvestigationNote: $TSFixMe = {
     type: 'investigation',
     event_state: 'test',
     content: 'Just updated this note',

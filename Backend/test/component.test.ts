@@ -236,7 +236,7 @@ describe('Component API', function (): void {
                 expect(res).to.have.status(200);
                 resourceCount++; // Increment Resource Count
                 expect(res.body.name).to.be.equal('New Application Log II');
-                const log = {
+                const log: $TSFixMe = {
                     applicationLogKey: res.body.key,
                     content: 'this is a log',
                     type: 'info',
@@ -281,7 +281,7 @@ describe('Component API', function (): void {
             gitPassword: gitCredential.gitPassword,
             projectId,
         }).then((credential): void => {
-            const data = {
+            const data: $TSFixMe = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
 
@@ -327,7 +327,7 @@ describe('Component API', function (): void {
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
         }).then((credential): void => {
-            const data = {
+            const data: $TSFixMe = {
                 name: 'Test Container',
                 dockerCredential: credential._id,
                 imagePath: dockerCredential.imagePath,

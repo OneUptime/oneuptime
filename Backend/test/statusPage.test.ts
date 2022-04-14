@@ -37,20 +37,20 @@ let token: $TSFixMe,
     userId,
     componentId;
 
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
 
-const resourceCategory = {
+const resourceCategory: $TSFixMe = {
     resourceCategoryName: 'New Monitor Category',
 };
 
 const now = new Date();
 const today = now.toISOString();
 const tomorrow = new Date(now.setDate(now.getDate() + 1)).toISOString();
-const scheduledEvent = {
+const scheduledEvent: $TSFixMe = {
     name: 'New scheduled Event',
     startDate: today,
     endDate: tomorrow,
@@ -499,7 +499,7 @@ describe('Status API', function (): void {
 
     it('should create a domain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'oneuptimeapp.com' };
+        const data: $TSFixMe = { domain: 'oneuptimeapp.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -515,7 +515,7 @@ describe('Status API', function (): void {
 
     it('should create a domain with subdomain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'status.oneuptimeapp.com' };
+        const data: $TSFixMe = { domain: 'status.oneuptimeapp.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -558,7 +558,7 @@ describe('Status API', function (): void {
 
     it('should verify a domain and fetch a status page', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'status.x.com' };
+        const data: $TSFixMe = { domain: 'status.x.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -591,7 +591,7 @@ describe('Status API', function (): void {
 
     it('should NOT fetch status page of unverfied domain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'status.y.com' };
+        const data: $TSFixMe = { domain: 'status.y.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -677,7 +677,7 @@ describe('Status API', function (): void {
 
     it('should not save domain if domain is invalid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'status.oneuptime.hackerbay' };
+        const data: $TSFixMe = { domain: 'status.oneuptime.hackerbay' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -696,7 +696,7 @@ describe('Status API', function (): void {
 
     it.skip('should save an array of valid domains', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             domain: [
                 { domain: 'oneuptime.z.com' },
                 { domain: 'oneuptime1.z.com' },
@@ -720,7 +720,7 @@ describe('Status API', function (): void {
 
     it.skip('should not save domains if one domain in the array is invalid', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = {
+        const data: $TSFixMe = {
             domain: [
                 { domain: 'oneuptime.z1.com' },
                 { domain: 'oneuptime.z1.hackerbay' },
@@ -741,7 +741,7 @@ describe('Status API', function (): void {
 
     it('should save when domain is without subdomain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'oneuptime.com' };
+        const data: $TSFixMe = { domain: 'oneuptime.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -757,7 +757,7 @@ describe('Status API', function (): void {
 
     it('should reject adding an existing domain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'status.oneuptimeapp.com' };
+        const data: $TSFixMe = { domain: 'status.oneuptimeapp.com' };
         request
             .put(`/StatusPage/${projectId}/${statusPageId}/domain`)
             .set('Authorization', authorization)
@@ -776,7 +776,7 @@ describe('Status API', function (): void {
 
     it('should add domain if it exist in another project and if the domain in other project is NOT verified.', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'oneuptimeapp.com' };
+        const data: $TSFixMe = { domain: 'oneuptimeapp.com' };
         request
             .post(`/project/create`)
             .set('Authorization', authorization)
@@ -828,7 +828,7 @@ describe('Status API', function (): void {
 
     it('should NOT add domain if it exist in another project and domain in other project is verified', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'status.x.com' };
+        const data: $TSFixMe = { domain: 'status.x.com' };
         request
             .post(`/project/create`)
             .set('Authorization', authorization)
@@ -881,7 +881,7 @@ describe('Status API', function (): void {
 
     it('should update a domain on a status page successfully', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: 'app.oneuptimeapp.com' };
+        const data: $TSFixMe = { domain: 'app.oneuptimeapp.com' };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -903,7 +903,7 @@ describe('Status API', function (): void {
 
     it('should not update a domain on a status page if the domain field is empty', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: '' };
+        const data: $TSFixMe = { domain: '' };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -925,7 +925,7 @@ describe('Status API', function (): void {
 
     it('should not update a domain on a status page if the domain is not a string', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: { url: 'shop.oneuptimeapp.com' } };
+        const data: $TSFixMe = { domain: { url: 'shop.oneuptimeapp.com' } };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain
@@ -947,7 +947,7 @@ describe('Status API', function (): void {
 
     it('should not update a domain on a status page if the status page is missing or not found', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const data = { domain: { url: 'shop.oneuptimeapp.com' } };
+        const data: $TSFixMe = { domain: { url: 'shop.oneuptimeapp.com' } };
 
         StatusService.findOneBy({ _id: statusPageId }).then(statusPage => {
             // select the first domain

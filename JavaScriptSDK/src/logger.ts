@@ -72,7 +72,7 @@ class Logger {
     }
 
     _makeApiRequest(data: $TSFixMe, logType: $TSFixMe, tags = null): void {
-        const requestData = {
+        const requestData: $TSFixMe = {
             content: data,
             applicationLogKey: this.applicationLogKey,
             type: logType,

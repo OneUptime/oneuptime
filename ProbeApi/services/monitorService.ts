@@ -12,7 +12,7 @@ export default {
 
         const key: string = `${probeId}_pingtime`;
 
-        const emptyQuery = {
+        const emptyQuery: $TSFixMe = {
             deleted: false,
             disabled: false,
             type: {
@@ -21,7 +21,7 @@ export default {
             [key]: { $exists: false },
         };
 
-        const query = {
+        const query: $TSFixMe = {
             deleted: false,
             disabled: false,
             type: {

@@ -91,7 +91,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
     }: $TSFixMe) => {
 
         const { updateCommunicationSla, setActiveSla } = this.props;
-        const data = { isDefault: true };
+        const data: $TSFixMe = { isDefault: true };
         setActiveSla(incidentSlaId);
         updateCommunicationSla(projectId, incidentSlaId, data, true);
     };
@@ -345,7 +345,7 @@ class IncidentCommunicationSla extends Component<ComponentProps> {
 
             incidentSlas,
         } = this.props;
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;

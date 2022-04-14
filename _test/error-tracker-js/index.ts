@@ -4,7 +4,7 @@ import oneuptime from 'oneuptime-staging'
 // constructor
 
 // set up tracking configurations
-const options = {
+const options: $TSFixMe = {
     maxTimeline: 10,
 };
 

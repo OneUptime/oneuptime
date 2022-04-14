@@ -31,7 +31,7 @@ export const removeQuery: Function = (removeField: string): void => {
     history.push(location);
 };
 
-const initialState = {};
+const initialState: $TSFixMe = {};
 const enhancers = [];
 const logger = createLogger();
 const middleware = [thunk, routerMiddleware(history)];

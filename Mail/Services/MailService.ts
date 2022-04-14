@@ -160,11 +160,11 @@ export default class MailService {
     }
 
     private static createMailer(mailServer: MailServer): Transporter {
-        const helpers = {
+        const helpers: $TSFixMe = {
             year: OneUptimeDate.getCurrentYear(),
         };
 
-        const options = {
+        const options: $TSFixMe = {
             viewEngine: {
                 extname: '.hbs',
                 layoutsDir: 'Templates',

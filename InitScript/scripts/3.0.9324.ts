@@ -13,7 +13,7 @@ async function run(): void {
 
     for (const monitor of monitors) {
         // check if there's no unresolved incident
-        const query = {
+        const query: $TSFixMe = {
             deleted: false,
 
             'monitors.monitorId': { $in: [ObjectId(monitor._id)] },

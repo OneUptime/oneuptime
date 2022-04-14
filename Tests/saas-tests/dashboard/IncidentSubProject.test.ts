@@ -3,13 +3,13 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 // parent user credentials
-const user = {
+const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
 
 // sub-project user credentials
-const newUser = {
+const newUser: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };

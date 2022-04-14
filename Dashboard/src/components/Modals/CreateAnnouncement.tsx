@@ -18,7 +18,7 @@ import {
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name) {
 
@@ -94,7 +94,7 @@ class CreateAnnouncement extends Component<ComponentProps> {
 
             mergeMonitors,
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         if (values.monitors && values.monitors.length > 0) {
             const monitors = values.monitors.filter(
                 (monitorId: $TSFixMe) => typeof monitorId === 'string'

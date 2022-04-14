@@ -898,7 +898,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             this.timeout(180 * 1000);
             // first add a team member
-            const userData = {
+            const userData: $TSFixMe = {
                 email: `${generateRandomString()}@oneuptime.com`,
             };
             const newUser = await UserService.create(userData);
@@ -1049,7 +1049,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             this.timeout(180 * 1000);
             // first add a team member
-            const userData = {
+            const userData: $TSFixMe = {
                 email: `${generateRandomString()}@oneuptime.com`,
             };
             const newUser = await UserService.create(userData);
@@ -1220,7 +1220,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
              */
             this.timeout(180 * 1000);
             // first add a team member
-            const userData = {
+            const userData: $TSFixMe = {
                 email: `${generateRandomString}@oneuptime.com`,
             };
             const newUser = await UserService.create(userData);
@@ -1879,7 +1879,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const incidentId = newIncident.body._id;
 
             // create a status page note (investiagation note)
-            const statusPageNotePayload = {
+            const statusPageNotePayload: $TSFixMe = {
                 content: 'this is a test page note',
                 incident_state: 'update',
                 type: 'investigation',
@@ -3068,7 +3068,7 @@ describe('Email Incident Alerts', (): void => {
         const incidentId = newIncident.body._id;
 
         // create a status page note (investigation note)
-        const statusPageNotePayload = {
+        const statusPageNotePayload: $TSFixMe = {
             content: 'this is a test investigation note',
             incident_state: 'update',
             type: 'investigation',
@@ -3470,7 +3470,7 @@ describe('Webhook Incident Alerts', function (): void {
         const incidentId = newIncident.body._id;
 
         // create a status page note (investigation note)
-        const statusPageNotePayload = {
+        const statusPageNotePayload: $TSFixMe = {
             content: 'this is a test investigation note',
             incident_state: 'update',
             type: 'investigation',

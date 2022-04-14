@@ -17,7 +17,7 @@ import {
 } from '../../actions/monitorCustomField';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.fieldName) {
 
@@ -60,7 +60,7 @@ class CreateMonitorCustomField extends React.Component<CreateMonitorCustomFieldP
             fetchCustomFields,
         } = this.props;
         const projectId = data.projectId;
-        const postObj = {
+        const postObj: $TSFixMe = {
             fieldName: values.fieldName,
             fieldType: values.fieldType,
             uniqueField: values.uniqueField,

@@ -80,7 +80,7 @@ describe('Audit Logs API', function (): void {
 
         // Deleting any auditLogs created between this test suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
-        const deleteQuery = {
+        const deleteQuery: $TSFixMe = {
             $or: [
                 { userId: userId },
                 {
@@ -101,7 +101,7 @@ describe('Audit Logs API', function (): void {
     afterEach(async (): void => {
         // Deleting any auditLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
-        const deleteQuery = {
+        const deleteQuery: $TSFixMe = {
             $or: [
                 { userId: userId },
                 {

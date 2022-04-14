@@ -193,7 +193,7 @@ export default {
                                             : 0,
                                 });
                             });
-                            const podData = {
+                            const podData: $TSFixMe = {
                                 podStat: {
                                     healthy: healthyPods.length,
                                     unhealthy: unhealthyPods.length,
@@ -318,7 +318,7 @@ export default {
                                     });
                                 }
                             });
-                            const jobData = {
+                            const jobData: $TSFixMe = {
                                 jobStat: {
                                     runningJobs: runningJobs.length,
                                     succeededJobs: succeededJobs.length,
@@ -365,7 +365,7 @@ export default {
                             };
 
                             // handle services output
-                            const serviceData = {
+                            const serviceData: $TSFixMe = {
                                 runningServices: serviceOutput.items.length,
                             };
 
@@ -477,7 +477,7 @@ export default {
                                     desiredDeployment: item.status.replicas,
                                 });
                             });
-                            const deploymentData = {
+                            const deploymentData: $TSFixMe = {
                                 desiredDeployment,
                                 readyDeployment,
 
@@ -602,7 +602,7 @@ export default {
                                     desiredStatefulsets: item.status.replicas,
                                 });
                             });
-                            const statefulsetData = {
+                            const statefulsetData: $TSFixMe = {
                                 readyStatefulsets,
                                 desiredStatefulsets,
 
@@ -621,7 +621,7 @@ export default {
                                 allStatefulsetData,
                             };
 
-                            const data = {
+                            const data: $TSFixMe = {
                                 podData,
                                 jobData,
                                 serviceData,

@@ -10,7 +10,7 @@ import moment from 'moment';
 
 export default {
     createLog: async function (id: $TSFixMe, data: $TSFixMe): void {
-        const scriptLog = {};
+        const scriptLog: $TSFixMe = {};
 
         scriptLog.automationScriptId = id ? ObjectId(id) : null;
 
@@ -87,7 +87,7 @@ export default {
                 } else if (resource.callSchedule) {
                     type = 'callSchedule';
                 }
-                const data = {
+                const data: $TSFixMe = {
                     status: 'failed',
                     success: false,
                     executionTime: 1,

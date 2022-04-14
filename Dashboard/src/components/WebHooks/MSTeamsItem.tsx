@@ -48,7 +48,7 @@ class MSTeamsItem extends React.Component<MSTeamsItemProps> {
                 }));
 
             if (newMonitors.length > 0) {
-                const postObj = {};
+                const postObj: $TSFixMe = {};
 
                 postObj.endpoint = data && data.data.endpoint;
 

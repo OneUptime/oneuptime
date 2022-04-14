@@ -18,7 +18,7 @@ import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import MonitorSlaService from '../backend/services/monitorSlaService';
 
-const monitorSlaPayload = {
+const monitorSlaPayload: $TSFixMe = {
     name: 'fxPro',
     frequency: '30',
     monitorUptime: '99.95',

@@ -4,7 +4,7 @@ const triggerIncidentNote: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 
 const fallbackHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // For the test poll, you should get some real data, to aid the setup process.
-    const options = {
+    const options: $TSFixMe = {
         url: `${bundle.authData.serverUrl}/zapier/incident-note`,
     };
 
@@ -14,13 +14,13 @@ const fallbackHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 };
 const subscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     // bundle.targetUrl has the Hook URL this app should call when an incident is acknowledged.
-    const data = {
+    const data: $TSFixMe = {
         url: bundle.targetUrl,
         type: 'incident_note',
         input: bundle.inputData,
     };
 
-    const options = {
+    const options: $TSFixMe = {
         url: `${bundle.authData.serverUrl}/zapier/subscribe`,
         method: 'POST',
         body: data,
@@ -39,7 +39,7 @@ const unSubscribeHook: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
 
     // You can build requests and our client will helpfully inject all the variables
     // you need to complete. You can also register middleware to control this.
-    const options = {
+    const options: $TSFixMe = {
         url: `${bundle.authData.serverUrl}/zapier/unSubscribe/${hookId}`,
         method: 'DELETE',
     };

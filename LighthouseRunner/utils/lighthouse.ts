@@ -17,7 +17,7 @@ function launchChromeAndRunLighthouse(
 process.on('message', url => {
     launchChromeAndRunLighthouse(url)
         .then(results => {
-            const issues = {};
+            const issues: $TSFixMe = {};
             const categories = results.categories;
             const audits = results.audits;
             for (const category in categories) {
@@ -36,7 +36,7 @@ process.on('message', url => {
                     .filter((id: $TSFixMe) => typeof id !== 'string');
             }
 
-            const result = {
+            const result: $TSFixMe = {
                 lighthouseData: { url, issues },
                 performance: Math.ceil(
                     results.categories.performance.score * 100

@@ -24,7 +24,7 @@ import { history, RootState } from '../../store';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (values.name) {
         if (!Validate.text(values.name)) {
 

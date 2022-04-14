@@ -7,7 +7,7 @@ import WebHookHooks from '../types/WebhookHooks';
 
 const router = express.getRouter();
 
-const hook: WebHookHooks = {};
+const hook: WebHookHooks: $TSFixMe = {};
 
 router.post(
     '/api/webhooks/:id',

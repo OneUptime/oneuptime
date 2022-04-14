@@ -83,7 +83,7 @@ export const searchSmsLogsError: Function = (error: $TSFixMe): void => {
 export const searchSmsLogs =
     (filter: $TSFixMe, skip: PositiveNumber, limit: PositiveNumber) =>
     async (dispatch: Dispatch) => {
-        const values = {
+        const values: $TSFixMe = {
             filter,
         };
 

@@ -11,7 +11,7 @@ import { RenderField } from '../components/basic/RenderField';
 import { Link } from 'react-router-dom';
 import { ACCOUNTS_URL } from '../config';
 
-const errorStyle = { color: '#c23d4b' };
+const errorStyle: $TSFixMe = { color: '#c23d4b' };
 
 interface ComponentProps {
     handleSubmit: Function;
@@ -147,7 +147,7 @@ export class VerifyBackupCode extends Component<ComponentProps>{
 VerifyBackupCode.displayName = 'VerifyBackupCode';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!values.code) {
         errors.code = 'Please provide a backup code.';
     }

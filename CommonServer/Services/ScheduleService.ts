@@ -465,7 +465,7 @@ export default class Service {
                 const select =
                     '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault  userIds';
 
-                const query = { projectId: id };
+                const query: $TSFixMe = { projectId: id };
                 const schedules = await this.findBy({
                     query,
                     limit: 10,

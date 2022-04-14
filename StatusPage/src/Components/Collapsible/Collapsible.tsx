@@ -243,7 +243,7 @@ class Collapsible extends Component<ComponentProps> {
     setInnerRef = (ref: $TSFixMe) => this.innerRef = ref;
 
     override render() {
-        const dropdownStyle = {
+        const dropdownStyle: $TSFixMe = {
 
             height: this.state.height,
 

@@ -9,7 +9,7 @@ let page: $TSFixMe;
 
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
@@ -37,7 +37,7 @@ describe('Login API', () => {
             await init.loginUser(user, page); // Items required are only available when 'loginUser' is initiated.
 
             const localStorageData = await page.evaluate(() => {
-                const json = {};
+                const json: $TSFixMe = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
 

@@ -2,7 +2,7 @@ import * as types from '../constants/incidentNoteTemplate';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     noteTemplates: {
         requesting: false,
         success: false,

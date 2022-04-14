@@ -93,7 +93,7 @@ const MultiSelectDropDown: Function = ({
         updateState(val, key);
     };
 
-    const menuStyle = {
+    const menuStyle: $TSFixMe = {
         padding: '10px 15px',
     };
 

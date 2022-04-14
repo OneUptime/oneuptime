@@ -24,7 +24,7 @@ class HideIncidentBox extends Component<ComponentProps> {
         const { incident, currentProject, hideIncident } = this.props;
         const checked = e.target.checked;
         this.setState({ checked });
-        const data = {
+        const data: $TSFixMe = {
             hideIncident: checked,
             incidentId: incident._id,
             projectId: currentProject._id,

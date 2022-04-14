@@ -51,7 +51,7 @@ class Monitors extends Component<ComponentProps> {
         });
     };
     override componentDidMount() {
-        const monitors = {};
+        const monitors: $TSFixMe = {};
 
         this.props.monitors &&
 

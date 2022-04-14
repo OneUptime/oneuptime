@@ -62,7 +62,7 @@ export class TeamMember extends Component<ComponentProps>{
     }
 
     updateTeamMemberRole(values: $TSFixMe, to: $TSFixMe) {
-        const data = {};
+        const data: $TSFixMe = {};
 
         data.teamMemberId = values.userId;
         if (values.role === to) {

@@ -235,7 +235,7 @@ export default class Service {
             projectId = project.parentProjectId._id || project.parentProjectId;
         }
 
-        const query = {
+        const query: $TSFixMe = {
             projectId: projectId,
             integrationType: 'slack',
             monitorId: monitor._id,
@@ -282,7 +282,7 @@ export default class Service {
     ): void {
         const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
 
-        const payload = {
+        const payload: $TSFixMe = {
             attachments: [
                 {
                     color: '#fedc56',

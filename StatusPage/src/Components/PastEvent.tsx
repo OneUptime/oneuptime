@@ -69,7 +69,7 @@ class PastEvent extends Component<ComponentProps> {
             primaryTextColor,
             secondaryTextColor,
             noteBackgroundColor;
-        const subheading = {};
+        const subheading: $TSFixMe = {};
 
         if (this.props.statusPage) {
 

@@ -62,7 +62,7 @@ class DeleteApplicationSecurity extends Component<ComponentProps> {
             applicationSecurityId,
             componentSlug,
         } = propArr[0];
-        const data = { projectId, componentId, applicationSecurityId };
+        const data: $TSFixMe = { projectId, componentId, applicationSecurityId };
 
         deleteApplicationSecurity(data).then(() => {
             history.push(

@@ -17,7 +17,7 @@ import { openModal } from 'CommonUI/actions/modal';
 import moment from 'moment';
 
 function Validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
 
     if (!Validate.text(values.planId)) {

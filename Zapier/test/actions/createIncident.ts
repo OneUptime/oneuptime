@@ -9,7 +9,7 @@ const appTester = zapier.createAppTester(App);
 describe('Create Incident Action', () => {
     it('passes authentication and create new incident', (done: $TSFixMe) => {
         zapier.tools.env.inject();
-        const bundle = {
+        const bundle: $TSFixMe = {
             authData: {
                 apiKey: process.env.DEV_API_KEY,
                 projectId: process.env.DEV_PROJECT_ID,

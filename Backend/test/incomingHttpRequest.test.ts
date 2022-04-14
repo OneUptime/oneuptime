@@ -262,7 +262,7 @@ describe('Incoming HTTP Request API', function (): void {
     });
 
     it('should update an incoming http request', (done: $TSFixMe): void => {
-        const update = {
+        const update: $TSFixMe = {
             name: 'updateName',
         };
 

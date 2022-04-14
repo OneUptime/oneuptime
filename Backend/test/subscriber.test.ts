@@ -31,12 +31,12 @@ let projectId: ObjectID,
     subscriberId: $TSFixMe,
     statusPageId: $TSFixMe,
     componentId: $TSFixMe;
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
-const csvData = {
+const csvData: $TSFixMe = {
     data: [
         {
             alertVia: 'sms',

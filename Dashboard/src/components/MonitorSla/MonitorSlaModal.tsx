@@ -16,7 +16,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name || !values.name.trim()) {
 
@@ -100,7 +100,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
         } = this.props;
         const { setCustomFrequency, setCustomMonitorUptime } = this.state;
         const projectId = data.projectId;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         if (
             this.state.selectedMonitors &&
@@ -181,7 +181,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -214,7 +214,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -232,7 +232,7 @@ class MonitorSlaModal extends React.Component<MonitorSlaModalProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [

@@ -118,7 +118,7 @@ const SearchInput: Function = (props: SearchInputProps) => {
                     ? log_from[1].split('h').join('')
                     : 0;
                 const extendTo = log_to[1] ? log_to[1].split('h').join('') : 0;
-                const payload = {};
+                const payload: $TSFixMe = {};
 
                 payload.log_from = new Date(
                     nowDate.getTime() - extendFrom * 60 * 60000

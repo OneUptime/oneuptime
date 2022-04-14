@@ -8,7 +8,7 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 
 //Data validation Util goes in here.
-export const Validate = {
+export const Validate: $TSFixMe = {
     isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
@@ -111,7 +111,7 @@ export const Validate = {
 
 
 
-export const tutorials = {
+export const tutorials: $TSFixMe = {
     getMonitorTutorials() {
         return [
             {

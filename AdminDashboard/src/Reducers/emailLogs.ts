@@ -20,7 +20,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     emailLogs: {
         error: null,
         requesting: false,

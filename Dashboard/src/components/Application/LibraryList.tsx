@@ -254,7 +254,7 @@ LibraryList.propTypes = {
 };
 
 const mapStateToProps: Function = (state: RootState) => {
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         library: 'js',
     };
     return {

@@ -87,7 +87,7 @@ router.put(
             const { gitUsername, gitPassword, sshTitle, sshPrivateKey } =
                 req.body;
 
-            const data = {};
+            const data: $TSFixMe = {};
 
             if (gitUsername) {
                 data.gitUsername = gitUsername;

@@ -80,7 +80,7 @@ router.get(
                     automationScriptId: details._id,
                 }),
             ]);
-            const response = {
+            const response: $TSFixMe = {
                 details,
                 logs,
             };
@@ -255,7 +255,7 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, automatedSlug } = req.params;
-            const query = {
+            const query: $TSFixMe = {
                 slug: automatedSlug,
             };
             const populate = [{ path: 'createdById', select: 'name' }];

@@ -54,7 +54,7 @@ class BaseAction {
         const reset =
             this.actionType.toUpperCase() + '_' + friendlyName + '_RESET';
 
-        const constants = {
+        const constants: $TSFixMe = {
             request: request,
             success: success,
             failure: failure,
@@ -89,7 +89,7 @@ class BaseAction {
     getActions(): void {
         const constants = this.getConstants();
 
-        const actions = {};
+        const actions: $TSFixMe = {};
 
         actions[this.actionKeys.request] = function (): void {
             return {

@@ -7,7 +7,7 @@ import 'should';
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const { twilioCredentials } = { ...utils };
+const { twilioCredentials }: $TSFixMe = { ...utils };
 
 const projectName: string = 'project';
 const componentName: string = 'component1';
@@ -26,7 +26,7 @@ describe('Custom Twilio Settings', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: email,
             password: password,
         };

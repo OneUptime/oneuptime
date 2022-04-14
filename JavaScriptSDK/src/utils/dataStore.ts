@@ -105,7 +105,7 @@ class DataStore {
         return this.store.set(id, value);
     }
     async sendData(): void {
-        const data = {
+        const data: $TSFixMe = {
             incoming: Object.fromEntries(this.incoming),
 
             outgoing: Object.fromEntries(this.outgoing),
@@ -120,7 +120,7 @@ class DataStore {
         if (!this.sendingData) {
             this.sendingData = true;
 
-            const data = {
+            const data: $TSFixMe = {
                 incoming: Object.fromEntries(this.incoming),
 
                 outgoing: Object.fromEntries(this.outgoing),

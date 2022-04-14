@@ -16,7 +16,7 @@ import {
 import * as _ from 'lodash';
 import moment from 'moment';
 
-const noDataStyle = {
+const noDataStyle: $TSFixMe = {
     textAlign: 'center',
     flexBasis: 1,
 };

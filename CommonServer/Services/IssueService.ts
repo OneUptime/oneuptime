@@ -106,7 +106,7 @@ export default class Service {
         fingerprint: $TSFixMe,
         errorTrackerId: $TSFixMe
     ): void {
-        const query = {};
+        const query: $TSFixMe = {};
         const hash = sha256(fingerprint.join('')).toString();
 
         if (!query['deleted']) {

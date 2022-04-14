@@ -23,12 +23,12 @@ import MessageBox from '../modals/MessageBox';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     const linksArrayErrors = [];
 
     if (values.links) {
         for (let i = 0; i < values.links.length; i++) {
-            const linkErrors = {};
+            const linkErrors: $TSFixMe = {};
             if (values.links[i].name) {
                 if (!Validate.text(values.links[i].name)) {
 

@@ -16,7 +16,7 @@ async function run(): void {
         const newDegradedCriteria = [];
         const newDownCriteria = [];
 
-        const newFields = {
+        const newFields: $TSFixMe = {
             scheduleIds: [],
             title: '',
             description: '',

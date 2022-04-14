@@ -15,7 +15,7 @@ import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 import { fetchMonitors } from '../../actions/monitor';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name || !values.name.trim()) {
 
@@ -106,7 +106,7 @@ class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
         } = this.props;
         const projectId = currentProject._id;
         const monitorSlaId = initialValues._id;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         if (
             this.state.selectedMonitors &&
@@ -174,7 +174,7 @@ class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -207,7 +207,7 @@ class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -225,7 +225,7 @@ class EditMonitorSlaModal extends React.Component<EditMonitorSlaModalProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [
@@ -808,7 +808,7 @@ const mapStateToProps: Function = (state: RootState) => {
     const monitorSlaToBeUpdated = state.modal.modals[0].sla;
     const projectId = state.modal.modals[0].projectId;
 
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
 
     if (monitorSlaToBeUpdated) {
 

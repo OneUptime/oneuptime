@@ -27,7 +27,7 @@ describe('Home redirect', () => {
             waitUntil: 'networkidle2',
         });
         // Register user
-        const user = {
+        const user: $TSFixMe = {
             email,
             password,
         };
@@ -50,11 +50,11 @@ describe('Home redirect', () => {
     test(
         'redirected query string should be save as source in the user schema',
         async () => {
-            const data = {
+            const data: $TSFixMe = {
                 collection: 'users',
                 query: { email: email },
             };
-            const config = {
+            const config: $TSFixMe = {
                 method: 'post',
                 url: utils.INIT_SCRIPT_URL + '/find',
                 headers: {

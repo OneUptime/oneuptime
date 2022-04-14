@@ -400,7 +400,7 @@ interface TD8Props {
 function TD8({
     text
 }: TD8Props) {
-    const incidentStatusColor = {
+    const incidentStatusColor: $TSFixMe = {
         identified: 'red',
         acknowledged: 'yellow',
         resolved: 'green',

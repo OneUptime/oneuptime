@@ -12,7 +12,7 @@ const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
-        const query = {};
+        const query: $TSFixMe = {};
 
         if (data.monitorId) {
             query.monitorId = data.monitorId;
@@ -55,7 +55,7 @@ export default {
                 );
             }
 
-            const monitorStatusData = {
+            const monitorStatusData: $TSFixMe = {
                 monitorId: data.monitorId,
                 probeId: data.probeId || null,
                 incidentId: data.incidentId || null,

@@ -137,7 +137,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
     };
 
     override render() {
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
         let canNext =
 
             this.props.count >

@@ -9,7 +9,7 @@ let page: $TSFixMe;
 
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
@@ -89,7 +89,7 @@ describe('Registration API', () => {
         'User cannot register with personal email',
         async () => {
             const personalEmail: string = 'personalEmail@gmail.com';
-            const user = {
+            const user: $TSFixMe = {
                 email: personalEmail,
                 password: '1234567890',
             };

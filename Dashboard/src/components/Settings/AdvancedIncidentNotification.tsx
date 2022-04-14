@@ -17,7 +17,7 @@ import Checkbox from '../../components/Checkbox';
 import CheckboxHeader from './CheckboxHeader';
 
 const validate: Function = (values: $TSFixMe) => {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (values.replyAddress) {
         if (!Validate.email(values.replyAddress)) {
 

@@ -9,7 +9,7 @@ import 'should';
 // user credentials
 const email: string = 'masteradmin@hackerbay.io';
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password,
 };
@@ -28,7 +28,7 @@ describe('Project', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const adminUser = {
+        const adminUser: $TSFixMe = {
             email: email,
             password: password,
         };

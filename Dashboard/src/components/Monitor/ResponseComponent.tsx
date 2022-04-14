@@ -23,7 +23,7 @@ import MultiSelectField from '../multiSelect/MultiSelectField';
 
 const newSelector = formValueSelector('NewMonitor');
 
-const responsestyle = {
+const responsestyle: $TSFixMe = {
     marginTop: '10px',
     marginBottom: '-13px',
     borderRadius: '0px',
@@ -133,7 +133,7 @@ export class ResponseComponent extends Component<ResponseComponentProps>{
             criterionBodyField,
         } = this.props;
 
-        const status = {
+        const status: $TSFixMe = {
             display: 'inline-block',
             borderRadius: '2px',
             height: '8px',
@@ -777,7 +777,7 @@ function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps = {
+const mapDispatchToProps: $TSFixMe = {
     change,
     arrayPush,
 };

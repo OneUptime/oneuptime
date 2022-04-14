@@ -163,7 +163,7 @@ router.post(
                                 : data.formData,
                             data.text && data.text.length ? 'text' : 'formData'
                         );
-                        const payload = {
+                        const payload: $TSFixMe = {
                             method: data.method,
                             url: data.data.url,
                             httpsAgent,
@@ -372,7 +372,7 @@ router.put(
                             : data.formData,
                         data.text && data.text.length ? 'text' : 'formData'
                     );
-                    const payload = {
+                    const payload: $TSFixMe = {
                         method: data.method,
                         url: data.data.url,
                         httpsAgent,
@@ -614,7 +614,7 @@ router.post(
                 type,
             } = req.body;
             const monitorId = req.params.monitorId;
-            const query = {};
+            const query: $TSFixMe = {};
             const selectMonitorLog =
                 'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
 

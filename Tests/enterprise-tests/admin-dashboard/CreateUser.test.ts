@@ -7,7 +7,7 @@ import 'should';
 const userEmail = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page;
-const masterAdmin = {
+const masterAdmin: $TSFixMe = {
     email: 'masteradmin@hackerbay.io',
     password: '1234567890',
 };
@@ -22,7 +22,7 @@ describe('Enterprise User API', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: userEmail,
             password: password,
         };

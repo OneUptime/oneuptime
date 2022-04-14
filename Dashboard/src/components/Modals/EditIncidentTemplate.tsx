@@ -548,7 +548,7 @@ const EditIncidentTemplateForm = reduxForm({
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { data } = ownProps;
     const { template } = data;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         ...template,
         incidentPriority: template.incidentPriority
             ? template.incidentPriority._id || template.incidentPriority

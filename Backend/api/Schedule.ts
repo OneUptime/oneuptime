@@ -263,7 +263,7 @@ router.post(
             let escalationPolicyCount = 0;
             for (const value of req.body) {
                 escalationPolicyCount++;
-                const storagevalue = {};
+                const storagevalue: $TSFixMe = {};
                 const tempTeam = [];
 
                 if (!value.email && !value.call && !value.sms && !value.push) {
@@ -453,7 +453,7 @@ router.post(
                 }
 
                 for (const team of value.teams) {
-                    const rotationData = {};
+                    const rotationData: $TSFixMe = {};
                     const teamMembers = [];
                     if (!team.teamMembers || team.teamMembers.length === 0) {
                         return sendErrorResponse(req, res, {
@@ -472,7 +472,7 @@ router.post(
                         .filter((team: $TSFixMe) => team !== undefined);
 
                     for (const teamMember of team.teamMembers) {
-                        const data = {};
+                        const data: $TSFixMe = {};
                         if (!teamMember.userId && !teamMember.groupId) {
                             return sendErrorResponse(req, res, {
                                 code: 400,

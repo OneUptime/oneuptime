@@ -5,7 +5,7 @@ import { Field } from 'redux-form';
 import { RenderField } from './RenderField';
 import { ValidateField } from '../../config';
 
-const flexStyle = {
+const flexStyle: $TSFixMe = {
     display: 'inline-block',
     padding: '10px 20px',
 };

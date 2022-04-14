@@ -20,7 +20,7 @@ interface ConsultingProps {
 
 class Consulting extends Component<ComponentProps> {
     override render() {
-        const settings = {
+        const settings: $TSFixMe = {
             infinite: true,
             speed: 1000,
             slidesToShow: 1.5,

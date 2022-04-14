@@ -44,7 +44,7 @@ class EditNoteModal extends Component<ComponentProps> {
     }
 
     validate = (values: $TSFixMe) => {
-        const errors = {};
+        const errors: $TSFixMe = {};
         if (!ValidateField.text(values[`content`])) {
 
             errors.name = 'Note content is required.';
@@ -76,7 +76,7 @@ class EditNoteModal extends Component<ComponentProps> {
 
             updateInternalError,
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         postObj.content = values[`content`];
 
@@ -440,7 +440,7 @@ const mapStateToProps: Function = (state: RootState) => {
         state.form.EditNote.values &&
         state.form.EditNote.values.event_state;
 
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         event_state:
             note.event_state === 'investigating' ||
                 note.event_state === 'update'

@@ -2,7 +2,7 @@ import React from 'react';
 
 import { PropTypes } from 'prop-types';
 
-const loaderStyle = {
+const loaderStyle: $TSFixMe = {
     backgroundColor: '#96d8ff',
 };
 

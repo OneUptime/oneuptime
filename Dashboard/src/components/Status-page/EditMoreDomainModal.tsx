@@ -98,7 +98,7 @@ class EditMoreDomainModal extends React.Component<EditMoreDomainModalProps> {
             });
         }
 
-        const data = {
+        const data: $TSFixMe = {
             projectId,
             statusPageId,
             domain: values.domain,
@@ -737,7 +737,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 
 const mapStateToProps: Function = (state: RootState) => {
     const domainObj = state.modal.modals[0].domain;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         domain: domainObj.domain,
         autoProvisioning: domainObj.autoProvisioning,
         enableHttps: domainObj.enableHttps,

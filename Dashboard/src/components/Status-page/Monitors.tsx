@@ -37,12 +37,12 @@ const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
 });
 
 const validate: Function = (values: $TSFixMe) => {
-    const errors = {};
+    const errors: $TSFixMe = {};
     const { monitors = [] } = values;
-    const monitorsArrayErrors = {};
-    const selectedMonitor = {};
+    const monitorsArrayErrors: $TSFixMe = {};
+    const selectedMonitor: $TSFixMe = {};
     for (let i = 0; i < monitors.length; i++) {
-        const monitorErrors = {};
+        const monitorErrors: $TSFixMe = {};
         const monitor = monitors[i];
         if (!monitor.monitor)
 
@@ -436,7 +436,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
             status: { monitors: selectedMonitors },
         },
     } = state;
-    const initialValues = { monitors: selectedMonitors || [] };
+    const initialValues: $TSFixMe = { monitors: selectedMonitors || [] };
     //Description field rendering becomes slow if the array is assigned to monitorsInForm instead of the array's lenght.
     const monitorsInForm =
         selector(state, 'monitors') && selector(state, 'monitors').length;

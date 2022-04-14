@@ -236,7 +236,7 @@ export default class Service {
             projectId = project.parentProjectId._id || project.parentProjectId;
         }
 
-        const query = {
+        const query: $TSFixMe = {
             projectId: projectId,
             integrationType: 'msteams',
             monitorId: monitor._id,
@@ -283,7 +283,7 @@ export default class Service {
     ): void {
         const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow: string = '#fedc56';
-        const payload = {
+        const payload: $TSFixMe = {
             '@context': 'https://schema.org/extensions',
             '@type': 'MessageCard',
             themeColor: yellow,

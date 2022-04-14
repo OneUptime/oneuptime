@@ -68,7 +68,7 @@ class HideAnnouncement extends Component<ComponentProps> {
 
         this.props.resetDeleteAnnouncement();
         closeModal({ id: modalId });
-        const data = {
+        const data: $TSFixMe = {
             hideAnnouncement: announcement.hideAnnouncement ? false : true,
             announcementToggle: true,
         };

@@ -75,7 +75,7 @@ describe('SSO login', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = { email, password };
+        const user: $TSFixMe = { email, password };
         await init.registerEnterpriseUser(user, page);
         await moveToSsoPage(page);
         await createSso(page, {

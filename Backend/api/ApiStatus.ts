@@ -15,12 +15,12 @@ const router = express.getRouter();
 // store account details to the db
 router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
-        const data = {
+        const data: $TSFixMe = {
             status: 'online',
             lastOperation: 'create',
         };
 
-        const response = {
+        const response: $TSFixMe = {
             backend: {
                 status: 200,
                 message: 'Service Status - OK',

@@ -13,7 +13,7 @@ import { getTeamMember } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../Utils/getParentRoute';
 
-const noDataStyle = {
+const noDataStyle: $TSFixMe = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

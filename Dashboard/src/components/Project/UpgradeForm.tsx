@@ -10,7 +10,7 @@ import UpgradePlanFields from './UpgradePlanFields';
 import { Spinner } from '../basic/Loader';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.planId)) {
 

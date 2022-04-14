@@ -98,7 +98,7 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
         const { _id } = statusPage.status;
         let { projectId } = statusPage.status;
         projectId = projectId._id ?? projectId;
-        const layout = {
+        const layout: $TSFixMe = {
             visible: this.state.visible,
             invisible: this.state.invisible,
         };
@@ -197,7 +197,7 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
         const { _id } = statusPage.status;
         let { projectId } = statusPage.status;
         projectId = projectId._id ?? projectId;
-        const layout = {
+        const layout: $TSFixMe = {
             visible: [
                 { name: 'Header', key: 'header' },
                 {

@@ -3,7 +3,7 @@ import * as types from '../constants/performanceTracker';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     dates: {
         startDate: moment().subtract(30, 'd'),
         endDate: moment(),

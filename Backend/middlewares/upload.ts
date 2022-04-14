@@ -18,7 +18,7 @@ export default new GridFsStorage({
                     return reject(err);
                 }
                 const id = random.toString('hex');
-                const fileInfo = {
+                const fileInfo: $TSFixMe = {
                     _id: id,
                     bucketName: 'uploads',
                 };

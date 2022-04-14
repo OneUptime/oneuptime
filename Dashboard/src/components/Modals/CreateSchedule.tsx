@@ -24,7 +24,7 @@ import { ValidateField } from '../../config';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name) {
 
@@ -85,7 +85,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
             monitors,
         } = this.props;
         const projectId = data.projectId;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         if (
             this.state.selectedMonitors &&
@@ -203,7 +203,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
     formatData = () => {
 
         const monitors = this.props.monitors;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -236,7 +236,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -254,7 +254,7 @@ class CreateSchedule extends React.Component<CreateScheduleProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [

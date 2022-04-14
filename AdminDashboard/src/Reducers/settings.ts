@@ -12,7 +12,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     requesting: false,
     testing: false,
     errored: false,
@@ -27,7 +27,7 @@ export default function profileSettings(
     state = INITIAL_STATE,
     action: Action
 ): void {
-    const settings = {};
+    const settings: $TSFixMe = {};
     switch (action.type) {
         case REQUESTING_SETTINGS:
             return {

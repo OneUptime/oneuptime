@@ -10,7 +10,7 @@ import GlobalConfig from './utils/globalConfig';
 import leadService from '../backend/services/leadService';
 import EmailStatusService from '../backend/services/emailStatusService';
 
-const leadData = {
+const leadData: $TSFixMe = {
     'csrf-token': '1',
     analytics_event_id: '',
     fullname: 'John Smith',

@@ -23,7 +23,7 @@ import MessageBox from '../modals/MessageBox';
 import formatEmails from '../../utils/formatEmails';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     // remove white spaces
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';
     const emails = values.emails ? values.emails.split(',') : [];

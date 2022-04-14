@@ -148,7 +148,7 @@ export default {
                                     ...lowArr,
                                 ];
 
-                                const auditData = {
+                                const auditData: $TSFixMe = {
                                     dependencies:
                                         auditOutput.metadata.dependencies,
                                     devDependencies:
@@ -286,7 +286,7 @@ export default {
                                 ...lowArr,
                             ];
 
-                            const auditData = {
+                            const auditData: $TSFixMe = {
                                 dependencies: auditOutput.metadata.dependencies,
                                 devDependencies:
                                     auditOutput.metadata.devDependencies,

@@ -92,7 +92,7 @@ export default {
                         );
                     }
 
-                    const apiRequestDetails = {
+                    const apiRequestDetails: $TSFixMe = {
                         apiSection: parsedUrl.pathname, // url path without any query strings.
                         apiUrl: modifiedReq.originalUrl,
                         protocol: modifiedReq.protocol,
@@ -105,7 +105,7 @@ export default {
                         headers: modifiedReq.headers,
                     };
 
-                    const apiResponseDetails = {
+                    const apiResponseDetails: $TSFixMe = {
                         statusCode: modifiedRes.statusCode,
                         statusMessage: modifiedRes.statusMessage,
                         resBody: modifiedRes.logBody || {},

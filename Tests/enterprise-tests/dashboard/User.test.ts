@@ -7,12 +7,12 @@ let browser: $TSFixMe,
     browser2: $TSFixMe,
     page: $TSFixMe,
     browserPage: $TSFixMe;
-const admin = {
+const admin: $TSFixMe = {
     email: 'masteradmin@hackerbay.io',
     password: '1234567890',
 };
 // user credentials
-const user = {
+const user: $TSFixMe = {
     email: `test${utils.generateRandomBusinessEmail()}`,
     password: '1234567890',
 };

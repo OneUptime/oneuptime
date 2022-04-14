@@ -25,7 +25,7 @@ async function run(): void {
     projectsWithoutInvestigationNoteNotificationOptionFields.forEach(
         (project: $TSFixMe) => {
             // add a default value only if the field is missing
-            const updateValues = {};
+            const updateValues: $TSFixMe = {};
             if (
                 !Object.prototype.hasOwnProperty.call(
                     project,

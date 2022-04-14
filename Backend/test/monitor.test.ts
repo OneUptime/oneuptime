@@ -34,13 +34,13 @@ let token: $TSFixMe,
     monitor2Id: $TSFixMe;
 const httpMonitorId = uuid.v4();
 const httpMonitor2Id = uuid.v4();
-const resourceCategory = {
+const resourceCategory: $TSFixMe = {
     resourceCategoryName: 'New Monitor Category',
 };
 
 let componentId: $TSFixMe;
 
-const httpMonitorCriteria = {
+const httpMonitorCriteria: $TSFixMe = {
     up: {
         and: [
             {
@@ -830,7 +830,7 @@ describe('IncomingHttpRequest Monitor', function (): void {
 
     it('should create a new IncomingHttpRequest monitor with query params and request headers', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const criteria = { ...httpMonitorCriteria };
+        const criteria: $TSFixMe = { ...httpMonitorCriteria };
         criteria.up.and.push({
             responseType: 'queryString',
             filter: 'contains',

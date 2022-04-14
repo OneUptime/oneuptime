@@ -50,7 +50,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
     }
 
     validate = (values: $TSFixMe) => {
-        const errors = {};
+        const errors: $TSFixMe = {};
         if (!ValidateField.text(values[`content`])) {
 
             errors.name = 'Incident Message is required.';
@@ -78,7 +78,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
     };
     submitForm = (values: $TSFixMe) => {
         const thisObj = this;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         if (values.post_statuspage) {
 
             postObj.post_statuspage = values['post_statuspage'];

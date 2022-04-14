@@ -18,7 +18,7 @@ import GlobalConfig from './utils/globalConfig';
 import VerificationTokenModel from '../backend/models/verificationToken';
 
 let token, userId, projectId, resourceCategoryId, apiKey;
-const resourceCategory = {
+const resourceCategory: $TSFixMe = {
     resourceCategoryName: 'New Resource Category',
 };
 import payment from '../backend/config/payment';

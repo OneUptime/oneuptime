@@ -1,4 +1,4 @@
-const MonitorCriteriaService = {
+const MonitorCriteriaService: $TSFixMe = {
     getCriteria() {
         return {
             url: {
@@ -415,7 +415,7 @@ const MonitorCriteriaService = {
 
     create(monitorType: $TSFixMe) {
         const criteria = this.getCriteria()[monitorType];
-        const criteriaObj = {};
+        const criteriaObj: $TSFixMe = {};
         if (criteria) {
             if (criteria.up_1000 && criteria.up_1000.length) {
                 const upCriteria = this.makeCriteria(criteria.up_1000);
@@ -470,7 +470,7 @@ const MonitorCriteriaService = {
                     ? true
                     : false;
 
-                const defaultCriterion = {
+                const defaultCriterion: $TSFixMe = {
                     ...downCriteria,
                     default: true,
                 };
@@ -483,11 +483,11 @@ const MonitorCriteriaService = {
     },
 
     makeCriteria(val: $TSFixMe) {
-        const val2 = {};
+        const val2: $TSFixMe = {};
         const criteria = [];
 
         for (let i = 0; i < val.length; i++) {
-            const val3 = {};
+            const val3: $TSFixMe = {};
             if (val[i].responseType && val[i].responseType.length) {
                 val3.responseType = val[i].responseType;
             }
@@ -533,7 +533,7 @@ const MonitorCriteriaService = {
         nestVal = [...nestVal];
         if (val.criteria && val.criteria.length) {
             for (let j = 0; j < val.criteria.length; j++) {
-                const innerVal = {};
+                const innerVal: $TSFixMe = {};
                 if (
                     val.criteria[j].responseType &&
                     val.criteria[j].responseType.length
@@ -582,7 +582,7 @@ const MonitorCriteriaService = {
         const val2 = [];
         if (val && val.criteria && val.criteria.condition === 'and') {
             for (let i = 0; i < val.criteria.criteria.length; i++) {
-                const val3 = {};
+                const val3: $TSFixMe = {};
                 if (
                     val.criteria.criteria[i].responseType &&
                     val.criteria.criteria[i].responseType.length
@@ -633,7 +633,7 @@ const MonitorCriteriaService = {
             return val2;
         } else if (val && val.criteria && val.criteria.condition === 'or') {
             for (let i = 0; i < val.criteria.criteria.length; i++) {
-                const val3 = {};
+                const val3: $TSFixMe = {};
                 if (
                     val.criteria.criteria[i].responseType &&
                     val.criteria.criteria[i].responseType.length
@@ -692,7 +692,7 @@ const MonitorCriteriaService = {
     ) {
         innerContainer = [...innerContainer];
         for (let j = 0; j < criteriaObj.criteria.length; j++) {
-            const innerVal = {};
+            const innerVal: $TSFixMe = {};
             if (
                 criteriaObj.criteria[j].responseType &&
                 criteriaObj.criteria[j].responseType.length

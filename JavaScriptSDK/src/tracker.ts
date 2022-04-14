@@ -157,7 +157,7 @@ class ErrorTracker {
             col,
             error
         ): void {
-            const errorEvent = { message, file, line, col, error };
+            const errorEvent: $TSFixMe = { message, file, line, col, error };
 
             const string = errorEvent.message
                 ? errorEvent.message.toLowerCase()
@@ -211,7 +211,7 @@ class ErrorTracker {
         return this.sendErrorEventToServer();
     }
     addToTimeline(category: $TSFixMe, content: $TSFixMe, type: $TSFixMe): void {
-        const timeline = {
+        const timeline: $TSFixMe = {
             category,
             data: {
                 content,
@@ -254,7 +254,7 @@ class ErrorTracker {
     }
     prepareErrorObject(type: $TSFixMe, errorStackTrace: $TSFixMe): void {
         // log event
-        const content = {
+        const content: $TSFixMe = {
             message: errorStackTrace.message,
         };
         this.listenerObj.logErrorEvent(content, type);

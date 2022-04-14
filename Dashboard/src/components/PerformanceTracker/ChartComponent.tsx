@@ -300,7 +300,7 @@ export class ChartComponent extends Component<ChartComponentProps>{
 
             errorMetrics,
         } = this.props;
-        const status = {
+        const status: $TSFixMe = {
             display: 'inline-block',
             borderRadius: '2px',
             height: '8px',

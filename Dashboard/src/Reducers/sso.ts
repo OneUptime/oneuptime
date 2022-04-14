@@ -2,7 +2,7 @@ import * as types from '../constants/sso';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     fetchSsos: {
         requesting: false,
         success: false,

@@ -42,7 +42,7 @@ class ThirdPartyVariables extends Component<ComponentProps> {
 
         const { currentProject, monitor, customFields } = this.props;
         const projectId = monitor.projectId._id || monitor.projectId;
-        const postObj = {
+        const postObj: $TSFixMe = {
             _id: monitor._id,
             projectId,
         };
@@ -311,7 +311,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { monitor } = ownProps;
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
     if (monitor && monitor.customFields && monitor.customFields.length > 0) {
         monitor.customFields.forEach(
 

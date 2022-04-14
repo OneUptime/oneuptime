@@ -10,7 +10,7 @@ describe('Resolve Trigger', () => {
     it('passes authentication and returns a resolved incident object', (done: $TSFixMe) => {
         zapier.tools.env.inject();
 
-        const bundle = {
+        const bundle: $TSFixMe = {
             authData: {
                 apiKey: process.env.DEV_API_KEY,
             },

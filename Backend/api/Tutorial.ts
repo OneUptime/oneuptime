@@ -20,7 +20,7 @@ router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
             query: { _id: userId },
             select: '_id tutorial',
         });
-        const tutorialObj = {
+        const tutorialObj: $TSFixMe = {
             _id: user._id,
             data: { ...user.tutorial },
         };
@@ -53,7 +53,7 @@ router.put('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
             projectId // project ID is always needed
         );
 
-        const tutorialObj = {
+        const tutorialObj: $TSFixMe = {
             _id: user._id,
             data: { ...user.tutorial },
         };

@@ -16,7 +16,7 @@ import { openModal, closeModal } from 'CommonUI/actions/modal';
 import Unauthorised from '../modals/Unauthorised';
 
 function validate(value: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(value.project_name)) {
 

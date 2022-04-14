@@ -328,7 +328,7 @@ router.post(
             if (monitors && monitors.length) {
                 monitors = await Promise.all(
                     monitors.map(async (monitor: $TSFixMe) => {
-                        const stat = {
+                        const stat: $TSFixMe = {
                             _id: monitor._id,
                             name: monitor.name,
                             monitorUptime: 100,
@@ -501,7 +501,7 @@ router.get(
             ]);
 
             monitors.map((elem: $TSFixMe) => {
-                const newElement = {
+                const newElement: $TSFixMe = {
                     _id: elem._id,
                     name: elem.name,
                     type: `${
@@ -534,7 +534,7 @@ router.get(
                             select: selectContainerLog,
                             populate: populateContainerLog,
                         });
-                    const newElement = {
+                    const newElement: $TSFixMe = {
                         _id: elem._id,
                         name: elem.name,
                         type: 'container security',
@@ -575,7 +575,7 @@ router.get(
                             select: selectApplicationSecurityLog,
                             populate: populateApplicationSecurityLog,
                         });
-                    const newElement = {
+                    const newElement: $TSFixMe = {
                         _id: elem._id,
                         name: elem.name,
                         type: 'application security',
@@ -603,7 +603,7 @@ router.get(
                         if (logs.length > 0) {
                             logStatus = 'Collecting Logs';
                         }
-                        const newElement = {
+                        const newElement: $TSFixMe = {
                             _id: elem._id,
                             name: elem.name,
                             type: 'log container',
@@ -644,7 +644,7 @@ router.get(
                         if (issues.length > 0) {
                             errorStatus = 'Listening for Errors';
                         }
-                        const newElement = {
+                        const newElement: $TSFixMe = {
                             _id: errorTracker._id,
                             name: errorTracker.name,
                             type: 'error tracker',
@@ -677,7 +677,7 @@ router.get(
                         if (metrics.length > 0) {
                             trackerStatus = 'Monitoring performance';
                         }
-                        const newElement = {
+                        const newElement: $TSFixMe = {
                             _id: performanceTracker._id,
                             name: performanceTracker.name,
                             type: 'performance tracker',

@@ -28,7 +28,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const response = {};
+        const response: $TSFixMe = {};
         const [groups, count] = await Promise.all([
             GroupModel.find(query)
                 .lean()

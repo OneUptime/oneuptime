@@ -12,7 +12,7 @@ const monitorName = utils.generateRandomString();
 const scheduleMaintenanceName = utils.generateRandomString();
 const newScheduledMaintenanceName = utils.generateRandomString();
 
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

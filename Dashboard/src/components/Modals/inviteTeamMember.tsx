@@ -29,7 +29,7 @@ import Badge from '../common/Badge';
 import { IS_SAAS_SERVICE } from '../../config';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     // remove white spaces
     values.emails = values.emails ? values.emails.replace(/\s/g, '') : '';

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import config from './config';
 
-const _this = {
+const _this: $TSFixMe = {
     getHeaders: () => {
         return {
             'Access-Control-Allow-Origin': '*',

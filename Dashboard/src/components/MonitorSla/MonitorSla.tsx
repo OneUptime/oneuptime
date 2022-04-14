@@ -101,7 +101,7 @@ class MonitorSla extends Component<ComponentProps> {
     }: $TSFixMe) => {
 
         const { updateMonitorSla, setActiveMonitorSla } = this.props;
-        const data = { isDefault: true };
+        const data: $TSFixMe = { isDefault: true };
         setActiveMonitorSla(monitorSlaId);
         updateMonitorSla(projectId, monitorSlaId, data, true);
     };
@@ -370,7 +370,7 @@ class MonitorSla extends Component<ComponentProps> {
 
             monitorSlas,
         } = this.props;
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;

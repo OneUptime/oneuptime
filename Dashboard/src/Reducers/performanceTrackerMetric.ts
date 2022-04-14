@@ -2,7 +2,7 @@ import * as types from '../constants/performanceTrackerMetric';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     timeStartDate: null,
     timeEndDate: null,
     throughputStartDate: null,

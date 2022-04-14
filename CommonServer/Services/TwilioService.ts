@@ -56,7 +56,7 @@ export default class TwilioService {
             } else {
                 smsMessage = '';
             }
-            const options = {
+            const options: $TSFixMe = {
                 body: `${smsMessage} OneUptime Alert: Monitor ${monitorName} is ${incidentType}. Please acknowledge or resolve this incident on OneUptime Dashboard.`,
                 to: number,
             };
@@ -188,7 +188,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Incident Created'
             );
-            const data = {
+            const data: $TSFixMe = {
                 projectName,
                 monitorName: monitorName,
                 incidentTime: incidentTime,
@@ -207,7 +207,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -244,7 +244,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -319,7 +319,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Investigation note is created'
             );
-            const data = {
+            const data: $TSFixMe = {
                 projectName,
                 monitorName: monitorName,
                 incidentTime: incidentTime,
@@ -338,7 +338,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -375,7 +375,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -450,7 +450,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Incident Acknowledged'
             );
-            const data = {
+            const data: $TSFixMe = {
                 projectName,
                 monitorName: monitorName,
                 incidentTime: incidentTime,
@@ -470,7 +470,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -506,7 +506,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -581,7 +581,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Incident Resolved'
             );
-            const data = {
+            const data: $TSFixMe = {
                 projectName,
                 monitorName: monitorName,
                 incidentTime: incidentTime,
@@ -600,7 +600,7 @@ export default class TwilioService {
                 populate: [{ path: 'projectId', select: 'name' }],
             });
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -637,7 +637,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -695,7 +695,7 @@ export default class TwilioService {
 
     async test(data: $TSFixMe): void {
         try {
-            const options = {
+            const options: $TSFixMe = {
                 body: 'This is a test SMS from OneUptime',
                 from: data.phoneNumber,
                 to: '+19173976235',
@@ -744,7 +744,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Created'
             );
-            const data = {
+            const data: $TSFixMe = {
                 eventName: schedule.name,
                 eventDescription: schedule.description,
                 eventCreateTime: schedule.createdAt,
@@ -761,7 +761,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -797,7 +797,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -868,7 +868,7 @@ export default class TwilioService {
                 'Subscriber Scheduled Maintenance Note'
             );
 
-            const data = {
+            const data: $TSFixMe = {
                 eventName: scheduleName,
                 eventNoteContent: message.content,
                 eventNoteState: message.event_state,
@@ -884,7 +884,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -920,7 +920,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -989,7 +989,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Resolved'
             );
-            const data = {
+            const data: $TSFixMe = {
                 eventName: schedule.name,
                 eventResolveTime: schedule.resolvedAt,
                 projectName,
@@ -1003,7 +1003,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -1039,7 +1039,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -1108,7 +1108,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Cancelled'
             );
-            const data = {
+            const data: $TSFixMe = {
                 eventName: schedule.name,
                 eventCancelTime: schedule.cancelledAt,
                 projectName,
@@ -1122,7 +1122,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -1158,7 +1158,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -1228,7 +1228,7 @@ export default class TwilioService {
                 smsTemplate,
                 'Subscriber Announcement Notification Created'
             );
-            const data = {
+            const data: $TSFixMe = {
                 announcementTitle: title,
                 announcementDescription: description,
                 projectName,
@@ -1242,7 +1242,7 @@ export default class TwilioService {
             });
 
             if (customTwilioSettings) {
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to: number,
@@ -1278,7 +1278,7 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: creds.phone,
                     to: number,
@@ -1364,7 +1364,7 @@ export default class TwilioService {
             const twiml: string =
                 '<Response> ' + message + hangUp + '</Response>';
             callBody = twiml;
-            const options = {
+            const options: $TSFixMe = {
                 twiml: twiml,
                 to: number,
             };
@@ -1536,7 +1536,7 @@ export default class TwilioService {
             if (customTwilioSettings) {
                 const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
                 smsBody = template;
-                const options = {
+                const options: $TSFixMe = {
                     body: template,
                     from: customTwilioSettings.phoneNumber,
                     to,
@@ -1579,7 +1579,7 @@ export default class TwilioService {
                     }
                     const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
                     smsBody = template;
-                    const options = {
+                    const options: $TSFixMe = {
                         body: template,
                         from: creds.phone,
                         to,
@@ -1645,7 +1645,7 @@ export default class TwilioService {
         let accountSid = null;
         let authToken = null;
         let numbers;
-        const data = {
+        const data: $TSFixMe = {
             phoneNumber: '',
             locality: '',
             region: '',
@@ -1670,9 +1670,9 @@ export default class TwilioService {
         const priceList = await twilioClient.pricing.v1.phoneNumbers
             .countries(countryCode)
             .fetch();
-        const localPrice = {};
-        const mobilePrice = {};
-        const tollFreePrice = {};
+        const localPrice: $TSFixMe = {};
+        const mobilePrice: $TSFixMe = {};
+        const tollFreePrice: $TSFixMe = {};
         priceList &&
             priceList.phoneNumberPrices &&
             priceList.phoneNumberPrices.map((p: $TSFixMe) => {

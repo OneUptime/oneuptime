@@ -8,7 +8,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const pageName = utils.generateRandomString();
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

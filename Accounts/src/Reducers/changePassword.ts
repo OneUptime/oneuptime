@@ -6,7 +6,7 @@ import * as types from '../constants/changePassword';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     requesting: false,
     error: null,
     success: false,

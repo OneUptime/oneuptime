@@ -9,7 +9,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     requesting: false,
     success: false,
     error: null,

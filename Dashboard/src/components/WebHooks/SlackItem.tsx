@@ -48,7 +48,7 @@ class SlackItem extends React.Component<SlackItemProps> {
                 }));
 
             if (newMonitors.length > 0) {
-                const postObj = {};
+                const postObj: $TSFixMe = {};
 
                 postObj.endpoint = data && data.data.endpoint;
 

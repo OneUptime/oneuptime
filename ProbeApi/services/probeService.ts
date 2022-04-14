@@ -25,7 +25,7 @@ export default {
 
             throw error;
         } else {
-            const probe = {};
+            const probe: $TSFixMe = {};
 
             probe.probeKey = probeKey;
 

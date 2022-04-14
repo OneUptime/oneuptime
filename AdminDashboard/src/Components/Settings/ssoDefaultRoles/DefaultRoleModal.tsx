@@ -39,7 +39,7 @@ const fields = [
 
 // Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.domain)) {
 
@@ -253,7 +253,7 @@ export const CreateDefaultRoleModal = connect(
 
 export const UpdateDefaultRoleModal = connect(
     state => {
-        const initialValues = {
+        const initialValues: $TSFixMe = {
 
             ...state.ssoDefaultRoles.ssoDefaultRole.ssoDefaultRole,
 

@@ -8,15 +8,15 @@ const teamEmail = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const newProjectName: string = 'Test';
 
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
-const user2 = {
+const user2: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password,
 };
-const memberUser = {
+const memberUser: $TSFixMe = {
     email: teamEmail,
     password: password,
 };

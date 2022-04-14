@@ -45,7 +45,7 @@ export default class Service {
             logsQuery,
             LoginHistoryModel.countDocuments(query),
         ]);
-        const response = { logs, skip, limit, count };
+        const response: $TSFixMe = { logs, skip, limit, count };
         return response;
     }
 }

@@ -230,7 +230,7 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const data = {};
+            const data: $TSFixMe = {};
 
             data.resolvedBy = req.user ? req.user.id : null;
             const { eventId } = req.params;
@@ -405,7 +405,7 @@ router.get(
             const select =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const query = {
+            const query: $TSFixMe = {
                 projectId,
                 startDate: { $lte: currentDate },
                 endDate: { $gt: currentDate },
@@ -656,7 +656,7 @@ router.get(
             const select =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const query = {
+            const query: $TSFixMe = {
                 projectId,
                 monitorId,
                 showEventOnStatusPage: true,

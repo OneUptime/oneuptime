@@ -35,7 +35,7 @@ export class Themes extends Component<ThemesProps>{
     submitForm = (value: $TSFixMe) => {
 
         const { statusPageId, projectId } = this.props.data;
-        const data = {
+        const data: $TSFixMe = {
             ...value,
             statusPageId,
         };

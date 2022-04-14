@@ -208,7 +208,7 @@ export default class Service {
             incident.createdByIncomingHttpRequest =
                 data.createdByIncomingHttpRequest;
 
-            const templatesInput = {
+            const templatesInput: $TSFixMe = {
                 incidentType: data.incidentType,
                 projectName: project?.name,
                 time: Moment().format('h:mm:ss a'),
@@ -219,7 +219,7 @@ export default class Service {
             if (!incident.manuallyCreated) {
                 const select =
                     'projectId title description incidentPriority isDefault name';
-                const query = {
+                const query: $TSFixMe = {
                     projectId: data.projectId,
                     isDefault: true,
                 };
@@ -634,7 +634,7 @@ export default class Service {
                 monitor.componentId
             );
 
-            const meta = {
+            const meta: $TSFixMe = {
                 type: 'Incident',
                 componentId: monitor.componentId._id || monitor.componentId,
                 incidentId: incident._id,
@@ -875,7 +875,7 @@ export default class Service {
         httpRequest = {},
         resolvedByApi = false
     ): void {
-        const data = {};
+        const data: $TSFixMe = {};
         let incident = await this.findOneBy({
             query: { _id: incidentId },
             select: '_id acknowledged',
@@ -1095,7 +1095,7 @@ export default class Service {
         });
         const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-        const query = {
+        const query: $TSFixMe = {
             'monitors.monitorId': { $in: monitorIds },
         };
 
@@ -1123,7 +1123,7 @@ export default class Service {
         });
         const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-        const query = {
+        const query: $TSFixMe = {
             'monitors.monitorId': { $in: monitorIds },
         };
 
@@ -1174,7 +1174,7 @@ export default class Service {
         });
         const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
 
-        const query = {
+        const query: $TSFixMe = {
             projectId,
             'monitors.monitorId': { $in: monitorIds },
         };
@@ -1486,7 +1486,7 @@ export default class Service {
         ]);
 
         if (!currentIncident.breachedCommunicationSla) {
-            const slaList = {};
+            const slaList: $TSFixMe = {};
             let fetchedDefault = false;
 
             for (const monitor of monitorList) {
@@ -1529,7 +1529,7 @@ export default class Service {
 
                     const alertTime = incidentCommunicationSla.alertTime * 60;
 
-                    const data = {
+                    const data: $TSFixMe = {
                         projectId,
                         incidentCommunicationSla,
                         incident: currentIncident,

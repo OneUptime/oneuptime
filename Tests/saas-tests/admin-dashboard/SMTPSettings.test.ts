@@ -24,7 +24,7 @@ describe('SMTP Settings API', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: email,
             password: password,
         };
@@ -38,7 +38,7 @@ describe('SMTP Settings API', () => {
             query: {},
         });
 
-        const config = {
+        const config: $TSFixMe = {
             method: 'post',
             url: utils.INIT_SCRIPT_URL + '/removeMany',
             headers: {

@@ -16,7 +16,7 @@ import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 import { RenderSelect } from '../basic/RenderSelect';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.url(values.endpoint)) {
 
@@ -71,7 +71,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
             monitor,
         } = this.props;
 
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         const { selectAllMonitors } = values;
         const monitorId = data.currentMonitorId;
         let monitors = [];
@@ -158,7 +158,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -191,7 +191,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -209,7 +209,7 @@ class EditWebHook extends React.Component<EditWebHookProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [
@@ -965,7 +965,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
-    const currentMonitorValue = { value: '', label: 'Select monitor' };
+    const currentMonitorValue: $TSFixMe = { value: '', label: 'Select monitor' };
 
     if (props.data && props.data.monitorId) {
         currentMonitorValue.label = props.data.monitorId.name;

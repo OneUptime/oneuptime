@@ -14,7 +14,7 @@ import { editComponent } from '../../actions/component';
 import { PropTypes } from 'prop-types';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.name)) {
 

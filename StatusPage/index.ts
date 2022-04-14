@@ -104,7 +104,7 @@ app.get(
         }
 
         REACT_APP_BACKEND_PROTOCOL = process.env.BACKEND_PROTOCOL;
-        const env = {
+        const env: $TSFixMe = {
             REACT_APP_ONEUPTIME_HOST,
             REACT_APP_BACKEND_PROTOCOL,
             REACT_APP_BACKEND_URL: process.env.BACKEND_URL,
@@ -371,7 +371,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
             decodeAndSave(privateKey, privateKeyPath),
         ]);
 
-        const options = {
+        const options: $TSFixMe = {
             cert: fs.readFileSync(
                 path.resolve(
                     process.cwd(),

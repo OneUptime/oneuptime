@@ -248,7 +248,7 @@ interface TD5Props {
 function TD5({
     text
 }: TD5Props) {
-    const incidentStatusColor = {
+    const incidentStatusColor: $TSFixMe = {
         identified: 'red',
         acknowledged: 'yellow',
         resolved: 'green',

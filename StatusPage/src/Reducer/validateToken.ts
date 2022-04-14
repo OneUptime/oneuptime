@@ -8,7 +8,7 @@ import * as types from '../constants/validateToken';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     requesting: false,
     user: {},
     error: null,

@@ -150,7 +150,7 @@ export default class Service {
 
             if (issue) {
                 // set query with the current error tracker and issue ID
-                const innerQuery = {
+                const innerQuery: $TSFixMe = {
                     errorTrackerId: query.errorTrackerId,
                     issueId: issue._id,
                 };
@@ -185,7 +185,7 @@ export default class Service {
                         ]);
 
                     // fill in its biodata with the latest error event details
-                    const errorEvent = {
+                    const errorEvent: $TSFixMe = {
                         _id: issue._id,
                         name: issue.name,
                         description: issue.description,

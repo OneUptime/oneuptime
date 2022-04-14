@@ -337,7 +337,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         },
     } = state;
 
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         monitors: selectedMonitors
             ? selectedMonitors
                 .filter(

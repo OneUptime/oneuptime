@@ -8,12 +8,12 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email = utils.generateRandomBusinessEmail();
 const name = utils.generateRandomString();
 const password: string = '1234567890';
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };
 // smtp credential
-const smtpData = { ...utils.smtpCredential };
+const smtpData: $TSFixMe = { ...utils.smtpCredential };
 
 describe('Custom SMTP Settings', () => {
     const operationTimeOut = init.timeout;

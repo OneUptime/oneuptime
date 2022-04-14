@@ -1325,8 +1325,8 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
                 log.kubernetesLog &&
                 Object.keys(log.kubernetesLog).length > 0
             ) {
-                const initialData = { ...log.kubernetesLog };
-                const newData = {};
+                const initialData: $TSFixMe = { ...log.kubernetesLog };
+                const newData: $TSFixMe = {};
 
                 newData.podData = {
                     podStat: initialData.podData.podStat,

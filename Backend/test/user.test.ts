@@ -26,7 +26,9 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import { fetchIdpSAMLResponse } from './utils/test-utils';
 
 let projectId: ObjectID, userId: ObjectID, token: $TSFixMe;
-const deleteAccountConfirmation = { deleteMyAccount: 'DELETE MY ACCOUNT' };
+const deleteAccountConfirmation: $TSFixMe = {
+    deleteMyAccount: 'DELETE MY ACCOUNT',
+};
 
 describe('User API', function (): void {
     this.timeout(20000);

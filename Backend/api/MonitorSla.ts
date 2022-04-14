@@ -117,7 +117,7 @@ router.post(
                 return sendErrorResponse(req, res, error as Exception);
             }
 
-            const data = { ...req.body };
+            const data: $TSFixMe = { ...req.body };
             data.projectId = projectId;
             const monitorSla = await MonitorSlaService.create(data);
             return sendItemResponse(req, res, monitorSla);
@@ -197,7 +197,7 @@ router.put(
                 return sendErrorResponse(req, res, error as Exception);
             }
 
-            const data = { ...req.body };
+            const data: $TSFixMe = { ...req.body };
             const monitorSla = await MonitorSlaService.updateOneBy(
                 { projectId, _id: monitorSlaId },
                 data

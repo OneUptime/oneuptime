@@ -33,12 +33,12 @@ import Query from '../Types/DB/Query';
 import axios from 'axios';
 const bearer = process.env.TWITTER_BEARER_TOKEN;
 
-const publicListProps = {
+const publicListProps: $TSFixMe = {
     populate: [],
     select: ['_id', 'projectId', 'name', 'slug', 'title', 'description'],
 };
 
-const publicItemProps = {
+const publicItemProps: $TSFixMe = {
     populate: [
         { path: 'projectId', select: 'parentProjectId' },
         { path: 'monitorIds', select: 'name' },
@@ -202,7 +202,7 @@ export default class Service {
         });
 
         if (!existingBaseDomain) {
-            const creationData = {
+            const creationData: $TSFixMe = {
                 domain: subDomain,
                 projectId,
             };
@@ -347,7 +347,7 @@ export default class Service {
         });
 
         if (!existingBaseDomain) {
-            const creationData = {
+            const creationData: $TSFixMe = {
                 domain: newDomain,
                 projectId,
             };
@@ -522,7 +522,7 @@ export default class Service {
             populate,
         });
 
-        const data = { ...statusPage };
+        const data: $TSFixMe = { ...statusPage };
 
         data.projectId = statusPageProjectId;
 
@@ -1837,7 +1837,7 @@ export default class Service {
         _id: $TSFixMe,
         data: $TSFixMe
     ): void {
-        const query = { projectId, _id };
+        const query: $TSFixMe = { projectId, _id };
 
         const externalStatusPages =
             await ExternalStatusPageModel.findOneAndUpdate(
@@ -1857,7 +1857,7 @@ export default class Service {
         _id: $TSFixMe,
         userId: ObjectID
     ): void {
-        const query = { projectId, _id };
+        const query: $TSFixMe = { projectId, _id };
 
         const externalStatusPages =
             await ExternalStatusPageModel.findOneAndUpdate(
@@ -1990,7 +1990,7 @@ export default class Service {
             });
         }
 
-        const log = {
+        const log: $TSFixMe = {
             active: false,
             endDate: new Date(),
             updatedById: data.createdById,

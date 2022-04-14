@@ -112,7 +112,7 @@ class NewScript extends Component<ComponentProps> {
         const { type, script } = this.state;
 
         const { activeProject } = this.props;
-        const payload = { ...values, scriptType: type, script };
+        const payload: $TSFixMe = { ...values, scriptType: type, script };
 
         this.props.createAutomatedScript(activeProject, payload).then(() => {
 

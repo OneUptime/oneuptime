@@ -23,7 +23,7 @@ describe('Project Setting: Change Plan', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: email,
             password: password,
         };
@@ -285,7 +285,7 @@ describe('Member Restriction', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: secondEmail,
             password: password,
         };

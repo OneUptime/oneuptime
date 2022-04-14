@@ -110,7 +110,7 @@ router.put(
             const { groupId, projectId } = req.params;
             const { name, teams } = req.body;
 
-            const data = {};
+            const data: $TSFixMe = {};
             if (name) {
                 data.name = name;
             }

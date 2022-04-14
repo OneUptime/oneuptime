@@ -12,7 +12,7 @@ import { confirmLicense } from '../../actions/license';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (values.email) {
         if (!Validate.email(values.email)) {

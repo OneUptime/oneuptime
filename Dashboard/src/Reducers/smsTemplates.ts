@@ -2,7 +2,7 @@ import * as types from '../constants/smstemplates';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     smsTemplates: {
         requesting: false,
         error: null,

@@ -2,7 +2,7 @@ import * as types from '../constants/group';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     createGroup: { requesting: false, success: false, error: null },
     getGroups: { requesting: false, success: false, error: null },
     getProjectGroups: { requesting: false, success: false, error: null },

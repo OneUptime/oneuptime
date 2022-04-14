@@ -22,7 +22,7 @@ import countryCodes from '../../utils/countryCodes';
 import { fetchStatusPageSubscribers } from '../../actions/statusPage';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.monitorId)) {
 

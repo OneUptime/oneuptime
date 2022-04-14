@@ -18,7 +18,7 @@ describe('User Feedback', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
         // Register user
-        const user = {
+        const user: $TSFixMe = {
             email,
             password,
         };

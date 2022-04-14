@@ -436,7 +436,7 @@ describe('Probe API', function (): void {
             gitPassword: gitCredential.gitPassword,
             projectId,
         }).then((credential): void => {
-            const data = {
+            const data: $TSFixMe = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
 
@@ -476,7 +476,7 @@ describe('Probe API', function (): void {
             dockerPassword: dockerCredential.dockerPassword,
             projectId,
         }).then((credential): void => {
-            const data = {
+            const data: $TSFixMe = {
                 name: 'Test',
                 dockerCredential: credential._id,
                 imagePath: dockerCredential.imagePath,

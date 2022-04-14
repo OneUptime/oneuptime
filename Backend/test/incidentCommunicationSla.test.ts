@@ -18,7 +18,7 @@ import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import IncidentCommunicationSlaService from '../backend/services/incidentCommunicationSlaService';
 
-const incidentSlaPayload = {
+const incidentSlaPayload: $TSFixMe = {
     name: 'fxPro',
     alertTime: '2',
     duration: '5',

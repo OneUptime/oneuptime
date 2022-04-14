@@ -71,7 +71,7 @@ describe('API Monitor API', () => {
             timeout: init.timeout,
         });
 
-        const user = {
+        const user: $TSFixMe = {
             email: utils.generateRandomBusinessEmail(),
             password,
         };

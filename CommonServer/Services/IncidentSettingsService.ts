@@ -10,7 +10,7 @@ export default class Service {
             name,
         } = data;
 
-        const query = { projectId, name };
+        const query: $TSFixMe = { projectId, name };
         const select: string =
             '_id projectId title description incidentPriority name';
         const incidentSetting = await this.findOne({

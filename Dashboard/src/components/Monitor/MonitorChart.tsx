@@ -32,7 +32,7 @@ const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TS
         const dayEnd =
             i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
-        const timeObj = {
+        const timeObj: $TSFixMe = {
             date: dayStart.toISOString(),
             downTime: 0,
             upTime: 0,
@@ -152,7 +152,7 @@ const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TS
                          * The first part comes before the nextIncident,
                          * the second one comes after the nextIncident.
                          */
-                        const newIncident = {
+                        const newIncident: $TSFixMe = {
                             start: nextIncident.end,
                             end: firstIncident.end,
                             status: firstIncident.status,

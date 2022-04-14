@@ -16,7 +16,7 @@ import {
 import { bindActionCreators, Dispatch } from 'redux';
 import { RenderField } from '../basic/RenderField';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: '#c23d4b',
 };
 
@@ -140,7 +140,7 @@ export class ResetPasswordForm extends Component<ResetPasswordFormProps>{
 ResetPasswordForm.displayName = 'ResetPasswordForm';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.email)) {
 
         errors.email = 'Email is required.';

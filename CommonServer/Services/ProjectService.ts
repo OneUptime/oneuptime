@@ -83,7 +83,7 @@ export default class Service {
         projectModel.adminNotes = data.adminNotes || null;
         const project = await projectModel.save();
 
-        const prioritiesData = {
+        const prioritiesData: $TSFixMe = {
             high: {
                 projectId: project._id,
                 name: 'High',
@@ -376,7 +376,10 @@ export default class Service {
     }
 
     async upgradeToEnterprise(projectId): void {
-        const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
+        const data: $TSFixMe = {
+            stripePlanId: 'enterprise',
+            stripeSubscriptionId: null,
+        };
 
         const project = await this.findOneBy({
             query: { _id: projectId },
@@ -445,7 +448,7 @@ export default class Service {
         let result = [];
         if (!isFlatenArr) {
             for (const member of members) {
-                const track = {},
+                const track: $TSFixMe = {},
                     data = [];
                 for (const user of member) {
                     if (!track[user.userId]) {
@@ -457,7 +460,7 @@ export default class Service {
                 result = [...result, data];
             }
         } else {
-            const track = {};
+            const track: $TSFixMe = {};
             for (const member of members) {
                 if (!track[member.userId]) {
                     track[member.userId] = member.userId;
@@ -674,7 +677,7 @@ export default class Service {
         }
 
         // query data
-        const query = {
+        const query: $TSFixMe = {
             $or: [
                 { _id: { $in: parentProjectIds } },
                 { _id: { $in: projectIds } },

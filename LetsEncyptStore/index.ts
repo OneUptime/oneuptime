@@ -4,7 +4,7 @@ const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUP
 // make api call to designated endpoints
 // to make the necessary updates to the db
 module.exports.create = function (config: $TSFixMe): void {
-    const store = {};
+    const store: $TSFixMe = {};
 
     store.options = config;
 
@@ -14,7 +14,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 (opts.account && opts.account.id) || opts.email || 'default';
 
             const url: string = `${BASE_URL}/api/account/store/${id}`;
-            const data = {
+            const data: $TSFixMe = {
                 id: id,
                 privateKeyPem: opts.keypair.privateKeyPem,
                 privateKeyJwk: opts.keypair.privateKeyJwk,
@@ -53,7 +53,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 opts.subject;
 
             const url: string = `${BASE_URL}/api/certificate/store/${id}`;
-            const data = {
+            const data: $TSFixMe = {
                 id: id,
                 deleted: false,
                 ...opts.keypair,
@@ -85,7 +85,7 @@ module.exports.create = function (config: $TSFixMe): void {
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
             const url: string = `${BASE_URL}/api/certificate/store/${id}`;
-            const data = {
+            const data: $TSFixMe = {
                 id: id,
                 deleted: false,
                 ...opts.pems,

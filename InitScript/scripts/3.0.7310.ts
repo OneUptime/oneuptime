@@ -9,7 +9,7 @@ async function run(): void {
     });
 
     for (const monitor of monitors) {
-        const data = {
+        const data: $TSFixMe = {
             thirdPartyVariable: [monitor.name],
         };
 

@@ -28,7 +28,7 @@ const pingfetch = async (
         logger.info(`Ping Start: ${method} ${url}`);
         let sslCertificate, data;
         const urlObject = new URL(url);
-        const payload = {
+        const payload: $TSFixMe = {
             method: method,
             timeout: 30000,
         };

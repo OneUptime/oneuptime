@@ -137,7 +137,7 @@ export default class Service {
         const subscribers = await subscriberQuery;
         const subscribersArr = [];
         for (const result of subscribers) {
-            const temp = {};
+            const temp: $TSFixMe = {};
 
             temp._id = result._id;
 
@@ -189,7 +189,7 @@ export default class Service {
 
         const subscribersArr = [];
         for (const result of subscribers) {
-            const temp = {};
+            const temp: $TSFixMe = {};
 
             temp._id = result._id;
 

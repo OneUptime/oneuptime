@@ -53,7 +53,7 @@ export const DOMAIN = window.location.origin;
 
 export const VERSION = process.env.VERSION || env('VERSION');
 
-export const User = {
+export const User: $TSFixMe = {
     getAccessToken() {
         return localStorage.getItem('access_token');
     },
@@ -88,7 +88,7 @@ export const User = {
 };
 
 // Data validation Util goes in here.
-export const Validate = {
+export const Validate: $TSFixMe = {
     isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
@@ -314,7 +314,7 @@ export const handleResources: Function = (
     }
 };
 
-export const cacheProvider = {
+export const cacheProvider: $TSFixMe = {
     get: (language: $TSFixMe, key: $TSFixMe) =>
         ((JSON.parse(localStorage.getItem('translations')) || {})[key] || {})[
             language

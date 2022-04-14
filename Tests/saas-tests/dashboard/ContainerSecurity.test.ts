@@ -22,7 +22,7 @@ describe('Container Security Page', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
-        const user = {
+        const user: $TSFixMe = {
             email: email,
             password: password,
         };

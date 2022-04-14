@@ -27,7 +27,7 @@ let token: $TSFixMe,
     monitorId: $TSFixMe,
     componentId;
 
-const scheduledEvent = {
+const scheduledEvent: $TSFixMe = {
     name: 'New scheduled Event',
     startDate: '2019-06-11 11:01:52.178',
     endDate: '2019-06-26 11:31:53.302',
@@ -38,7 +38,7 @@ const scheduledEvent = {
     monitorDuringEvent: false,
 };
 
-const ongoingScheduledEvent = {
+const ongoingScheduledEvent: $TSFixMe = {
     name: 'Ongoing Scheduled Event',
     startDate: moment().startOf('day').format(),
     endDate: moment().add(2, 'days').format(),

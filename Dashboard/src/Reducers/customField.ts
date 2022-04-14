@@ -2,7 +2,7 @@ import * as types from '../constants/customField';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     customField: {
         requesting: false,
         success: false,

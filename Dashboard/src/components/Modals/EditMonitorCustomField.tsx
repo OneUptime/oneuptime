@@ -14,7 +14,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { updateCustomField } from '../../actions/monitorCustomField';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.fieldName) {
 
@@ -56,7 +56,7 @@ class UpdateMonitorCustomField extends React.Component<UpdateMonitorCustomFieldP
 
             initialValues,
         } = this.props;
-        const postObj = {
+        const postObj: $TSFixMe = {
             fieldName: values.fieldName,
             fieldType: values.fieldType,
             uniqueField: values.uniqueField,
@@ -372,7 +372,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 
 const mapStateToProps: Function = (state: RootState) => {
     const customFieldToBeUpdated = state.modal.modals[0].customField;
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
 
     if (customFieldToBeUpdated) {
 

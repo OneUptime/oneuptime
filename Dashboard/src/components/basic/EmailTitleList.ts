@@ -1,4 +1,4 @@
-export const emailTemplateTitles = {
+export const emailTemplateTitles: $TSFixMe = {
     'Subscriber Incident Created': 'Subscriber Incident Created Email Template',
     'Subscriber Incident Acknowledged':
         'Subscriber Incident Acknowledged Email Template',
@@ -6,7 +6,7 @@ export const emailTemplateTitles = {
         'Subscriber Incident Resolved Email Template',
 };
 
-export const emailTemplateDescriptions = {
+export const emailTemplateDescriptions: $TSFixMe = {
     'Subscriber Incident Created':
         'This email is sent to a subscriber when an incident is created.',
     'Subscriber Incident Acknowledged':

@@ -18,7 +18,7 @@ export default {
                 } = await runScript(code, true);
 
                 // normalize response
-                const resp = {
+                const resp: $TSFixMe = {
                     success,
                     statusText: status,
                     error: success ? undefined : message + ': ' + errors,

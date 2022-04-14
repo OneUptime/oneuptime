@@ -150,7 +150,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     addMoreDomain: false,
     setting: {
         error: null,
@@ -1050,7 +1050,7 @@ export default function statusPage(
 
         case 'DELETE_MONITOR_BY_SOCKET': {
             if (state.status._id) {
-                const status = {
+                const status: $TSFixMe = {
                     ...state.status,
 
                     monitors: state.status.monitors.filter(
@@ -1220,7 +1220,11 @@ export default function statusPage(
             const monitorNames = action.payload.monitors.map(
                 ({ monitor }: $TSFixMe) => monitor.name
             );
-            const status = { ...action.payload, monitorNames, monitors };
+            const status: $TSFixMe = {
+                ...action.payload,
+                monitorNames,
+                monitors,
+            };
             return Object.assign({}, state, {
                 status,
             });
@@ -1471,7 +1475,7 @@ export default function statusPage(
                     monitors,
                 });
             });
-            const incidentStatusPages = {
+            const incidentStatusPages: $TSFixMe = {
                 count: action.payload.count || 0,
                 limit: action.payload.limit || 10,
                 skip: action.payload.skip || 0,

@@ -103,7 +103,7 @@ class Announcements extends Component<ComponentProps> {
 
             announceError,
         } = this.props;
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
         const { skip, count, limit } = announcements;
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;

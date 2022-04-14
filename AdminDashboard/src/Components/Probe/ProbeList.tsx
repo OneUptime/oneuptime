@@ -48,7 +48,7 @@ export class ProbeList extends Component<ComponentProps>{
         // };
         try {
             reader.readAsDataURL(file);
-            const data = { id: probe._id, probeImage: file };
+            const data: $TSFixMe = { id: probe._id, probeImage: file };
 
             this.props.updateProbe(data);
         } catch (error) {

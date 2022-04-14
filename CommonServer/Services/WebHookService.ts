@@ -308,7 +308,7 @@ export default class Service {
             };
         }
 
-        const data = {
+        const data: $TSFixMe = {
             title: notificationTitle,
             text: notificationText,
             monitorName: monitor.name,

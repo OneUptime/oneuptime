@@ -24,7 +24,7 @@ import { testphoneNumber } from './utils/config';
 import GlobalConfig from './utils/globalConfig';
 
 let token: $TSFixMe, userId, projectId: ObjectID, monitorId: $TSFixMe;
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
@@ -111,7 +111,7 @@ describe('Twilio API', function (): void {
             select: 'value',
         });
         const value = configuration.value;
-        const payload = {
+        const payload: $TSFixMe = {
             accountSid: value['account-sid'],
             authToken: value['authentication-token'],
             phoneNumber: value.phone,
@@ -135,7 +135,7 @@ describe('Twilio API', function (): void {
         });
         const value = configuration.value;
 
-        const payload = {
+        const payload: $TSFixMe = {
             accountSid: value['account-sid'],
             authToken: value['authentication-token'],
             phoneNumber: '',
@@ -157,7 +157,7 @@ describe('Twilio API', function (): void {
         const value = configuration.value;
 
         value['account-sid'] = 'xxuerandomsid';
-        const payload = {
+        const payload: $TSFixMe = {
             accountSid: value['account-sid'],
             authToken: value['authentication-token'],
             phoneNumber: value.phone,
@@ -180,7 +180,7 @@ describe('Twilio API', function (): void {
         const value = configuration.value;
 
         value['authentication-token'] = 'xxuerandomsid';
-        const payload = {
+        const payload: $TSFixMe = {
             accountSid: value['account-sid'],
             authToken: value['authentication-token'],
             phoneNumber: value.phone,

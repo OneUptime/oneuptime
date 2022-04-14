@@ -42,7 +42,7 @@ class NewPerformanceTracker extends Component<ComponentProps> {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     validate = (values: $TSFixMe) => {
-        const errors = {};
+        const errors: $TSFixMe = {};
         if (!ValidateField.text(values[`name`])) {
 
             errors.name = 'Performance Tracker Name is required.';
@@ -64,7 +64,7 @@ class NewPerformanceTracker extends Component<ComponentProps> {
     };
 
     submitForm = (values: $TSFixMe) => {
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         postObj.name = values[`name`];
         if (values[`resourceCategory`]) {

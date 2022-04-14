@@ -18,7 +18,7 @@ import { trim } from 'lodash';
 import { IS_SAAS_SERVICE } from '../../config';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.name)) {
 

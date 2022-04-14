@@ -293,7 +293,7 @@ class UserForm extends Component<ComponentProps> {
 UserForm.displayName = 'UserForm';
 
 const validate = function (values: $TSFixMe) {
-    const error = {};
+    const error: $TSFixMe = {};
 
 
     if (!Validate.text(values.name)) error.name = 'Name is required.';

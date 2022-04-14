@@ -74,7 +74,7 @@ class EditDomain extends React.Component<EditDomainProps> {
             });
         }
 
-        const data = {
+        const data: $TSFixMe = {
             projectId,
             domainId,
             data: {
@@ -294,7 +294,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         domain: state.modal.modals[0].domain,
     };
     return {

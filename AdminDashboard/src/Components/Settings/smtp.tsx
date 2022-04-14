@@ -16,7 +16,7 @@ import MessageModal from './MessageModal';
 
 // Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.email(values.email)) {
 
@@ -228,7 +228,7 @@ export class Component extends Component<ComponentProps>{
                     customSmtp,
                 } = smtpForm.values;
 
-                const payload = {
+                const payload: $TSFixMe = {
                     user,
                     pass,
                     host,

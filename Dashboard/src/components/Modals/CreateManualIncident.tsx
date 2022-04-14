@@ -611,7 +611,7 @@ function mapStateToProps(state: RootState) {
     const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
 
     const  incidentType: string = 'offline';
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         incidentType,
     };
 

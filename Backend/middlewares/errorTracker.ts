@@ -7,7 +7,7 @@ import {
 } from 'CommonServer/Utils/Express';
 import ErrorTrackerService from '../Services/errorTrackerService';
 
-const _this = {
+const _this: $TSFixMe = {
     isErrorTrackerValid: async function (
         req: ExpressRequest,
         res: ExpressResponse,

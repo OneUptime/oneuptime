@@ -203,7 +203,7 @@ export default class Service {
                 } else if (resource.callSchedule) {
                     type = 'callSchedule';
                 }
-                const data = {
+                const data: $TSFixMe = {
                     status: 'failed',
                     success: false,
                     executionTime: 1,

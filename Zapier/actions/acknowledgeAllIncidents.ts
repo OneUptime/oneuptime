@@ -5,7 +5,7 @@ const acknowledgeAllIncidents: Function = (
     if (bundle.cleanedRequest) {
         return bundle.cleanedRequest;
     }
-    const data = {
+    const data: $TSFixMe = {
         monitors: bundle.inputData.monitors,
     };
     const responsePromise = z.request({

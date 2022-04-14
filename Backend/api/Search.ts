@@ -123,7 +123,7 @@ const getComponents = async (
         populate: populateComponent,
     });
     if (components.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Components',
             values: components.map((component: $TSFixMe) => ({
                 name: component.name,
@@ -149,7 +149,7 @@ const getMonitors = async (
     val: $TSFixMe,
     parentProjectId: ObjectID
 ): void => {
-    const query = {
+    const query: $TSFixMe = {
         projectId: { $in: projectIds },
         deleted: false,
         $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
@@ -168,7 +168,7 @@ const getMonitors = async (
         select,
     });
     if (monitors.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Monitors',
             values: monitors.map((monitor: $TSFixMe) => ({
                 name: monitor.componentId.name + '/' + monitor.name,
@@ -228,7 +228,7 @@ const getStatusPages = async (
     });
 
     if (statusPages.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Status Pages',
 
             values: statusPages.map((statusPage: $TSFixMe) => ({
@@ -277,7 +277,7 @@ const getUsers = async (projectIds: $TSFixMe, val: $TSFixMe): void => {
         select: 'name _id',
     });
     if (users.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Team Members',
             values: users.map((user: $TSFixMe) => ({
                 name: user.name,
@@ -326,7 +326,7 @@ const getOnCallDuty = async (
         populate,
     });
     if (schedules.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'On-Call Duty',
             values: schedules.map((schedule: $TSFixMe) => ({
                 name: schedule.name,
@@ -373,7 +373,7 @@ const getSchedultEvent = async (
         select: selectScheduledEvent,
     });
     if (scheduleEvents.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Schedule Events',
             values: scheduleEvents.map((scheduleEvent: $TSFixMe) => ({
                 name: scheduleEvent.name,
@@ -435,7 +435,7 @@ const getIncidents = async (
             populate,
         });
         if (incidents.length > 0) {
-            const resultObj = {
+            const resultObj: $TSFixMe = {
                 title: 'Incidents',
                 values: incidents.map((incident: $TSFixMe) => {
                     return {
@@ -487,7 +487,7 @@ const getErrorTrackers = async (
         populate,
     });
     if (errorTrackers.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Error Trackers',
             values: errorTrackers.map((errorTracker: $TSFixMe) => ({
                 name: errorTracker.name,
@@ -543,7 +543,7 @@ const getLogContainers = async (
     });
 
     if (logContainers.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Log Containers',
             values: logContainers.map((logContainer: $TSFixMe) => ({
                 name: logContainer.name,
@@ -597,7 +597,7 @@ const getPerformanceTrackers = async (
         populate: populatePerfTracker,
     });
     if (performanceTrackers.length > 0) {
-        const resultObj = {
+        const resultObj: $TSFixMe = {
             title: 'Performance Tracker',
             values: performanceTrackers.map((performanceTracker: $TSFixMe) => ({
                 name: performanceTracker.name,

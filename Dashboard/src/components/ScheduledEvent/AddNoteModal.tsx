@@ -39,7 +39,7 @@ class AddNoteModal extends Component<ComponentProps> {
     }
 
     validate = (values: $TSFixMe) => {
-        const errors = {};
+        const errors: $TSFixMe = {};
         if (!ValidateField.text(values[`content`])) {
 
             errors.name = 'Note content is required.';
@@ -71,7 +71,7 @@ class AddNoteModal extends Component<ComponentProps> {
 
             closeModal,
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         if (values.external_note) {
 
             postObj.external_note = values['external_note'];

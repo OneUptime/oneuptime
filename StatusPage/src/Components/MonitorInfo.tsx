@@ -307,14 +307,14 @@ class MonitorInfo extends Component<ComponentProps> {
             }
         }
 
-        const status = {
+        const status: $TSFixMe = {
             display: 'inline-block',
             borderRadius: '2px',
             height: '8px',
             width: '8px',
             margin: '0 8px 1px 0',
         };
-        const monitorCategoryStyle = {
+        const monitorCategoryStyle: $TSFixMe = {
             display: 'inline-block',
             marginBottom: 10,
             fontSize: 10,
@@ -323,8 +323,8 @@ class MonitorInfo extends Component<ComponentProps> {
             textTransform: 'uppercase',
         };
 
-        const subheading = {};
-        const primaryText = {};
+        const subheading: $TSFixMe = {};
+        const primaryText: $TSFixMe = {};
         if (colors) {
 
             subheading.color = `rgba(${colors.subheading.r}, ${colors.subheading.g}, ${colors.subheading.b}, ${colors.subheading.a})`;

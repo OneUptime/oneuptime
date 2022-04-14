@@ -208,7 +208,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                     UserService.sendToken(user, user.email);
                 }
                 // create access token and refresh token.
-                const authUserObj = {
+                const authUserObj: $TSFixMe = {
                     id: user._id,
                     name: user.name,
                     email: user.email,
@@ -269,7 +269,7 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
             MailService.sendSignupMail(user.email, user.name);
 
             // create access token and refresh token.
-            const authUserObj = {
+            const authUserObj: $TSFixMe = {
                 id: user._id,
                 name: user.name,
                 email: user.email,
@@ -406,7 +406,7 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
 router.post(
     '/sso/callback',
     async (req: ExpressRequest, res: ExpressResponse) => {
-        const options = {
+        const options: $TSFixMe = {
             request_body: req.body,
             allow_unencrypted_assertion: true,
             ignore_signature: true,
@@ -527,7 +527,7 @@ router.post(
                     }
                 }
 
-                const authUserObj = {
+                const authUserObj: $TSFixMe = {
                     id: user._id,
                     name: user.name,
                     email: user.email,
@@ -671,7 +671,7 @@ router.post(
             }
 
             // create access token and refresh token.
-            const userObj = {
+            const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name ? user.name : '',
                 email: user.email ? user.email : '',
@@ -759,7 +759,7 @@ router.post(
             }
 
             // create access token and refresh token.
-            const userObj = {
+            const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name ? user.name : '',
                 email: user.email ? user.email : '',
@@ -880,7 +880,7 @@ router.post(
             }
 
             if (user.otpauth_url) {
-                const response = { otpauth_url: user.otpauth_url };
+                const response: $TSFixMe = { otpauth_url: user.otpauth_url };
                 return sendItemResponse(req, res, response);
             }
 
@@ -1269,7 +1269,7 @@ router.put(
             }
 
             const user = await UserService.changePassword(data);
-            const userObj = {
+            const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name,
                 email: user.email,
@@ -1317,7 +1317,7 @@ router.get(
                 query: { _id: userId },
                 select,
             });
-            const userObj = {
+            const userObj: $TSFixMe = {
                 id: user._id,
                 name: user.name ? user.name : '',
                 email: user.email ? user.email : '',

@@ -2,7 +2,7 @@ import * as types from '../constants/card';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     addCard: {
         requesting: false,
         error: null,

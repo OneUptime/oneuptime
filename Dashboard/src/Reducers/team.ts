@@ -25,7 +25,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     teamLoading: {
         error: null,
         requesting: false,

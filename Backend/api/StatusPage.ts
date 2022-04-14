@@ -603,7 +603,7 @@ router.put(
                     query: { _id: data._id },
                     select: 'faviconPath logoPath bannerPath',
                 });
-                const imagesPath = {
+                const imagesPath: $TSFixMe = {
                     faviconPath: statusPage.faviconPath,
 
                     logoPath: statusPage.logoPath,
@@ -1074,12 +1074,12 @@ router.get(
                         },
                     });
                 }
-                const xmlOptions = {
+                const xmlOptions: $TSFixMe = {
                     indent: '  ',
                     header: true,
                 };
 
-                const feedObj = {
+                const feedObj: $TSFixMe = {
                     _name: 'rss',
                     _attrs: {
                         version: '2.0',
@@ -1253,7 +1253,7 @@ router.get(
 
         const skip = req.query['skip'] || 0;
         const limit = req.query['limit'] || 5;
-        const query = {
+        const query: $TSFixMe = {
             'monitors.monitorId': req.params.monitorId,
             deleted: false,
             createdAt: { $gte: start, $lt: end },
@@ -1444,7 +1444,7 @@ router.get(
         const theme = req.query.theme;
 
         const currentDate = moment().format();
-        const query = {
+        const query: $TSFixMe = {
             'monitors.monitorId': req.params.monitorId,
             showEventOnStatusPage: true,
             deleted: false,
@@ -1535,7 +1535,7 @@ router.post(
             const startDate = moment(endDate).subtract(90, 'days');
             const { memory, cpu, storage, responseTime, temperature } =
                 req.body;
-            const filter = {
+            const filter: $TSFixMe = {
                 ...(!memory && {
                     maxMemoryUsed: 0,
                     memoryUsed: 0,
@@ -1743,7 +1743,7 @@ router.post(
         try {
             const { projectId, statusPageId } = req.params;
             const { name, url } = req.body;
-            const data = {};
+            const data: $TSFixMe = {};
 
             data.name = name;
 
@@ -1777,8 +1777,8 @@ router.post(
                 });
             }
             // To confirm the name and url is not created already
-            const nameQuery = { name };
-            const urlQuery = { url };
+            const nameQuery: $TSFixMe = { name };
+            const urlQuery: $TSFixMe = { url };
 
             const existingExternalStatusPageId =
                 await StatusPageService.getExternalStatusPage(nameQuery);
@@ -1856,7 +1856,7 @@ router.post(
         try {
             const { projectId, externalStatusPageId } = req.params;
             const { name, url } = req.body;
-            const data = {};
+            const data: $TSFixMe = {};
 
             data.name = name;
 
@@ -1964,7 +1964,7 @@ router.get(
             }
 
             // To fetch all created external statuspages
-            const query = { projectId, statusPageId };
+            const query: $TSFixMe = { projectId, statusPageId };
 
             const response = await StatusPageService.getExternalStatusPage(
                 query
@@ -2109,7 +2109,11 @@ router.put(
                 }));
             }
 
-            const query = { projectId, statusPageId, _id: announcementId };
+            const query: $TSFixMe = {
+                projectId,
+                statusPageId,
+                _id: announcementId,
+            };
 
             const response = await StatusPageService.updateAnnouncement(
                 query,
@@ -2118,7 +2122,7 @@ router.put(
 
             if (response && data.announcementToggle) {
                 const date = new Date();
-                const log = {};
+                const log: $TSFixMe = {};
 
                 log.statusPageId = statusPageId;
                 if (data.hideAnnouncement) {
@@ -2200,7 +2204,7 @@ router.get(
         try {
             const { projectId, statusPageId } = req.params;
             const { skip, limit, show } = req.query;
-            const query = { projectId, statusPageId };
+            const query: $TSFixMe = { projectId, statusPageId };
 
             if (show) {
                 query.hideAnnouncement = false;
@@ -2321,7 +2325,7 @@ const formatNotes: Function = (data = [], days: $TSFixMe): void => {
 };
 
 function checkDuplicateDates(items: $TSFixMe): void {
-    const track = {};
+    const track: $TSFixMe = {};
 
     const result = [];
 
@@ -2598,7 +2602,7 @@ router.get(
         try {
             const { statusPageSlug } = req.params;
             const { range } = req.query;
-            const response = {};
+            const response: $TSFixMe = {};
             //get status pages
             const statusPage = await getStatusPage(req, statusPageSlug);
 
@@ -2786,7 +2790,7 @@ async function getMonitorLogs(req: ExpressRequest, monitors: $TSFixMe): void {
                 temperature,
                 monitor: monitorId,
             } = monitor;
-            const filter = {
+            const filter: $TSFixMe = {
                 ...(!memory && {
                     maxMemoryUsed: 0,
                     memoryUsed: 0,
@@ -2831,7 +2835,7 @@ async function getAnnouncements(
     projectId: ObjectID
 ): void {
     const { skip, limit, show = true } = req.query;
-    const query = { projectId, statusPageId };
+    const query: $TSFixMe = { projectId, statusPageId };
 
     if (show) {
         query.hideAnnouncement = false;
@@ -2857,7 +2861,7 @@ async function getMonitorStatuses(
     req: ExpressRequest,
     monitors: $TSFixMe
 ): void {
-    const status = {};
+    const status: $TSFixMe = {};
     const endDate = moment(Date.now());
     const startDate = moment(Date.now()).subtract(90, 'days');
     for (const data of monitors) {
@@ -2975,7 +2979,7 @@ async function calculateTime(
     probeData: $TSFixMe,
     range: $TSFixMe
 ): void {
-    const result = {};
+    const result: $TSFixMe = {};
     const start = Date.now();
     const theme = statusPage.theme === 'Clean Theme';
     if (!theme) {

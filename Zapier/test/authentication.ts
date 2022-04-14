@@ -10,7 +10,7 @@ describe('Authenticate API KEY and ProjectID', () => {
     zapier.tools.env.inject();
 
     it('passes authentication and returns json', (done: $TSFixMe) => {
-        const bundle = {
+        const bundle: $TSFixMe = {
             authData: {
                 apiKey: process.env.DEV_API_KEY,
                 projectId: process.env.DEV_PROJECT_ID,

@@ -147,7 +147,7 @@ class EventBox extends Component<ComponentProps> {
 
             allScheduleEventLength,
         } = this.props;
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
         const numberOfPages = Math.ceil(parseInt(this.props.count) / 10);
 

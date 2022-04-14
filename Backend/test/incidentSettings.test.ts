@@ -35,13 +35,13 @@ let token: $TSFixMe,
     incidentId: $TSFixMe,
     templateId: $TSFixMe;
 
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
 
-const incidentSettings = {
+const incidentSettings: $TSFixMe = {
     title: `TEST: {{monitorName}}`,
     description: `TEST: {{incidentType}}`,
     name: 'Another update',
@@ -199,7 +199,7 @@ describe('Incident Settings API', function (): void {
 
     it('should substitute variables with their values when an incident is created manually.', async () => {
         const authorization: string = `Basic ${token}`;
-        const payload = {
+        const payload: $TSFixMe = {
             ...incidentData,
             ...incidentSettings,
             monitors: [monitorId],

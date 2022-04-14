@@ -17,7 +17,7 @@ import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
 import DataPathHoC from '../DataPathHoC';
 
 function validate(value: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(value.rechargeBalanceAmount)) {
 

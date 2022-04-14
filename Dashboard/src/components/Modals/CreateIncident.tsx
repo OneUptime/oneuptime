@@ -244,7 +244,7 @@ class CreateIncident extends Component<ComponentProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -277,7 +277,7 @@ class CreateIncident extends Component<ComponentProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -295,7 +295,7 @@ class CreateIncident extends Component<ComponentProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [
@@ -1099,7 +1099,7 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
     }
 
     const  incidentType: string = 'offline';
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         incidentType,
         selectAllMonitors: false,
     };

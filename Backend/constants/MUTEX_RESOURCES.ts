@@ -1,4 +1,4 @@
-const MUTEX_RESOURCES = {
+const MUTEX_RESOURCES: $TSFixMe = {
     PROJECT: 'PROJECT',
     MONITOR: 'MONITOR',
 };

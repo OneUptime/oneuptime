@@ -72,7 +72,7 @@ function mapStateToProps(state: RootState) {
     const projectCustomTutorial = state.tutorial[projectId];
 
     // set a default show to true for the tutorials to display
-    const tutorialStat = {
+    const tutorialStat: $TSFixMe = {
         statusPage: { show: true },
     };
     // loop through each of the tutorial stat, if they have a value based on the project id, replace it with it

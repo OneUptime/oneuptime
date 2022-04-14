@@ -11,14 +11,14 @@ import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
 import { ValidateField } from '../../config';
 
-const style = {
+const style: $TSFixMe = {
     marginTop: '10px',
     marginBottom: '-13px',
     borderRadius: '0px',
     boxShadow: 'none',
 };
 
-const textboxstyle = {
+const textboxstyle: $TSFixMe = {
     backgroundColor: '#fff',
     borderRadius: '4px',
     width: '250px',
@@ -286,7 +286,7 @@ ApiAdvance.propTypes = {
     index: PropTypes.number,
 };
 
-const mapDispatchToProps = {
+const mapDispatchToProps: $TSFixMe = {
     pushArray: arrayPush,
 };
 

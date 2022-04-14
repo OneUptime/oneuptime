@@ -361,7 +361,7 @@ export default class Service {
                 a.status !== 'internal notes updated'
         );
         filteredMsg = await Services.rearrangeDuty(filteredMsg);
-        const result = {
+        const result: $TSFixMe = {
             data: filteredMsg,
             incidentId,
             projectId,
@@ -598,7 +598,7 @@ export default class Service {
             return;
         }
 
-        const alertProgress = {
+        const alertProgress: $TSFixMe = {
             emailProgress: null,
             smsProgress: null,
             callProgress: null,
@@ -729,8 +729,8 @@ export default class Service {
             nextEscalationPolicy._id.toString() !==
                 activeEscalation._id.toString()
         ) {
-            const query = { _id: callScheduleStatus._id };
-            const data = { alertedEveryone: true };
+            const query: $TSFixMe = { _id: callScheduleStatus._id };
+            const data: $TSFixMe = { alertedEveryone: true };
             await OnCallScheduleStatusService.updateOneBy({ query, data });
             return; //can't escalate anymore.
         }
@@ -743,8 +743,8 @@ export default class Service {
         });
         callScheduleStatus.activeEscalation = nextEscalationPolicy;
 
-        const query = { _id: callScheduleStatus._id };
-        const data = {
+        const query: $TSFixMe = { _id: callScheduleStatus._id };
+        const data: $TSFixMe = {
             escalations: callScheduleStatus.escalations,
             activeEscalation: callScheduleStatus.activeEscalation,
         };
@@ -1054,7 +1054,7 @@ export default class Service {
 
         const identification = userData.identification;
 
-        const options = {
+        const options: $TSFixMe = {
             vapidDetails: {
                 subject: process.env.PUSHNOTIFICATION_URL, // Address or URL for this application
                 publicKey: process.env.PUSHNOTIFICATION_PUBLIC_KEY, // URL Safe Base64 Encoded Public Key
@@ -1877,7 +1877,7 @@ export default class Service {
         projectId: ObjectID
     ): void {
         const uuid = new Date().getTime();
-        const track = {};
+        const track: $TSFixMe = {};
 
         const monitors = incident.monitors.map(
             (monitor: $TSFixMe) => monitor.monitorId
@@ -1972,7 +1972,7 @@ export default class Service {
         const selectStatusPage =
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const track = {};
+        const track: $TSFixMe = {};
         const sendSubscriberAlert = async ({
             subscriber,
             monitor,
@@ -2765,7 +2765,7 @@ export default class Service {
         monitors: $TSFixMe
     ): void {
         const uuid = new Date().getTime();
-        const track = {};
+        const track: $TSFixMe = {};
         const populateStatusPage = [
             { path: 'projectId', select: 'parentProjectId' },
             { path: 'monitorIds', select: 'name' },
@@ -2868,7 +2868,7 @@ export default class Service {
         monitors: $TSFixMe
     ): void {
         const uuid = new Date().getTime();
-        const track = {};
+        const track: $TSFixMe = {};
         const populateStatusPage = [
             { path: 'projectId', select: 'parentProjectId' },
             { path: 'monitorIds', select: 'name' },
@@ -3047,7 +3047,7 @@ export default class Service {
             statusUrl = `${global.statusHost}/StatusPage/${statusPageSlug}/incident/${incident.slug}`;
         }
 
-        const monitorCustomFields = {},
+        const monitorCustomFields: $TSFixMe = {},
             incidentCustomFields = {};
         if (monitor && monitor.customFields) {
             monitor.customFields.forEach(
@@ -3061,7 +3061,7 @@ export default class Service {
                     (incidentCustomFields[field.fieldName] = field.fieldValue)
             );
         }
-        const customFields = {
+        const customFields: $TSFixMe = {
             monitor: { customFields: monitorCustomFields },
             incident: { customFields: incidentCustomFields },
         };
@@ -4044,7 +4044,7 @@ export default class Service {
     async sendCreatedScheduledEventToSubscribers(schedule: $TSFixMe): void {
         const uuid = new Date().getTime();
         if (schedule) {
-            const track = {};
+            const track: $TSFixMe = {};
             const sendSubscribersAlert = async ({
                 subscriber,
                 component,
@@ -4094,7 +4094,7 @@ export default class Service {
     async sendResolvedScheduledEventToSubscribers(schedule: $TSFixMe): void {
         const uuid = new Date().getTime();
         if (schedule) {
-            const track = {};
+            const track: $TSFixMe = {};
             const sendSubscribersAlert = async ({
                 subscriber,
                 component,
@@ -5043,7 +5043,7 @@ export default class Service {
         const uuid = new Date().getTime();
 
         if (message) {
-            const track = {};
+            const track: $TSFixMe = {};
             const sendAlerts = async ({
                 project,
                 subscriber,

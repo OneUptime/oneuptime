@@ -97,7 +97,7 @@ router.put(
             const { dockerRegistryUrl, dockerUsername, dockerPassword } =
                 req.body;
 
-            const data = {};
+            const data: $TSFixMe = {};
             if (dockerRegistryUrl) {
                 data.dockerRegistryUrl = dockerRegistryUrl;
             }

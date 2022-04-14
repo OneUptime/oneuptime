@@ -14,7 +14,7 @@ import { RenderField } from '../basic/RenderField';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.url(values.endpoint)) {
 
@@ -66,7 +66,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
 
             data: { monitorId },
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         const { selectAllMonitors } = values;
         let monitors = [];
         const allMonitors = monitor.monitorsList.monitors
@@ -157,7 +157,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -190,7 +190,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -208,7 +208,7 @@ class CreateMsTeams extends React.Component<CreateMsTeamsProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [

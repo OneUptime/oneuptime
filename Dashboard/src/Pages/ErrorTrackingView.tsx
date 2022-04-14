@@ -106,7 +106,7 @@ class ErrorTrackingView extends Component<ComponentProps> {
         }
     };
     handleCloseQuickStart = () => {
-        const postObj = { showQuickStart: false };
+        const postObj: $TSFixMe = { showQuickStart: false };
 
         const { errorTracker, editErrorTracker } = this.props;
 

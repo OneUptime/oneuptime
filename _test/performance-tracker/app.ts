@@ -7,7 +7,7 @@ import axios from 'axios'
 
 
 // set up performance tracker configuration
-const options = {
+const options: $TSFixMe = {
     apiUrl: 'https://staging.oneuptime.com/api',
     appId: '609975b682d0790014cba640',
     appKey: '9a715493-f7d5-4b50-a229-7ae79a5d2336',

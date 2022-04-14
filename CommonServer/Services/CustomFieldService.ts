@@ -84,7 +84,7 @@ export default class Service {
         ]);
 
         for (const request of incomingRequests) {
-            const data = {
+            const data: $TSFixMe = {
                 customFields: [],
             };
             for (const field of request.customFields) {
@@ -192,7 +192,7 @@ export default class Service {
         ]);
 
         for (const request of incomingRequests) {
-            const data = {
+            const data: $TSFixMe = {
                 customFields: [],
             };
             data.customFields = request.customFields.filter(

@@ -16,12 +16,12 @@ import PropTypes from 'prop-types';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     const alertArrayErrors = [];
 
     if (values.OnCallAlertBox) {
         for (let i = 0; i < values.OnCallAlertBox.length; i++) {
-            const repeatErrors = {};
+            const repeatErrors: $TSFixMe = {};
             const escalationArrayErrors: $TSFixMe = [];
             if (values.OnCallAlertBox[i]) {
                 if (values.OnCallAlertBox[i].callReminders === '') {
@@ -98,7 +98,7 @@ function validate(values: $TSFixMe) {
             values.OnCallAlertBox[i] &&
                 values.OnCallAlertBox[i].teams &&
                 values.OnCallAlertBox[i].teams.forEach((val: $TSFixMe, j: $TSFixMe) => {
-                    const escalationErrors = {};
+                    const escalationErrors: $TSFixMe = {};
                     if (val) {
                         if (
                             val.teamMembers[0] &&

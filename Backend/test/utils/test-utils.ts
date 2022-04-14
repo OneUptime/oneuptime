@@ -5,7 +5,7 @@ import { expect } from 'chai';
 
 import decode from 'urldecode';
 
-const methods = {
+const methods: $TSFixMe = {
     getAuthorizationHeader: ({ jwtToken }: $TSFixMe) => `Basic ${jwtToken}`,
     login: async ({ request, email, password }: $TSFixMe) =>
         await request.post('/user/login').send({
@@ -16,7 +16,7 @@ const methods = {
         await request.get(`/api/user/sso/login?email=${email}`),
     /**
    * Example of payload:
-      const payload = {
+      const payload: $TSFixMe = {
         projectId,
         name: "test",
         criteria: {},
@@ -36,7 +36,7 @@ const methods = {
     },
     /**
    * Example of payload:
-      const payload = {
+      const payload: $TSFixMe = {
         componentId,
         projectId,
         type: "device",
@@ -59,12 +59,12 @@ const methods = {
     },
     /**
    * Example of payloads:
-      const payload = {
+      const payload: $TSFixMe = {
         alertVia: "sms",
         contactPhone: "9173976235",
         countryCode: "us",
       };
-      const payload1 = {
+      const payload1: $TSFixMe = {
         alertVia: "email",
         contactEmail: "test@hackerbay.io"
       }
@@ -105,7 +105,7 @@ const methods = {
     },
     /**
    * Example of a payload
-      const payload = { monitorIds: [monitorId] };
+      const payload: $TSFixMe = { monitorIds: [monitorId] };
    */
     updateSchedule: async ({
         request,
@@ -202,7 +202,7 @@ const methods = {
     },
     /**
    * Example of payload
-      const payload = {
+      const payload: $TSFixMe = {
         monitors: [monitorId],
         projectId,
         title: "test monitor  is offline.",

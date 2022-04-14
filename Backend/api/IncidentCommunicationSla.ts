@@ -103,7 +103,7 @@ router.post(
                 return sendErrorResponse(req, res, error as Exception);
             }
 
-            const data = { ...req.body };
+            const data: $TSFixMe = { ...req.body };
             data.projectId = projectId;
             const incidentSla = await IncidentCommunicationSlaService.create(
                 data
@@ -165,7 +165,7 @@ router.put(
                 return sendErrorResponse(req, res, error as Exception);
             }
 
-            const data = { ...req.body };
+            const data: $TSFixMe = { ...req.body };
             const incidentSla =
                 await IncidentCommunicationSlaService.updateOneBy(
                     { projectId, _id: incidentSlaId },

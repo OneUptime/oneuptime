@@ -464,7 +464,7 @@ class Monitors extends Component<ComponentProps> {
     }
 }
 
-const actionCreators = {
+const actionCreators: $TSFixMe = {
     getActiveMonitors,
     getActiveMonitorsRequest,
     getActiveMonitorsSuccess,

@@ -17,7 +17,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     addScripts: {
         requesting: false,
         success: false,

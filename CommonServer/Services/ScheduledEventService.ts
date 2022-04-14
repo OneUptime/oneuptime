@@ -582,7 +582,7 @@ export default class Service {
                 newStartDate = moment(startDate).add(1, 'months');
                 newEndDate = moment(endDate).add(1, 'months');
             }
-            const postObj = {};
+            const postObj: $TSFixMe = {};
 
             postObj.name = resolvedScheduledEvent.name;
 

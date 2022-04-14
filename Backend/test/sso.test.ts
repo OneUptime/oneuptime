@@ -17,7 +17,7 @@ import VerificationTokenModel from '../backend/models/verificationToken';
 import SsoService from '../backend/services/ssoService';
 import ProjectService from '../backend/services/projectService';
 
-const ssoObject = {
+const ssoObject: $TSFixMe = {
     'saml-enable': true,
     domain: 'hackerbay.com',
     samlSsoUrl: 'hackerbay.com/login',
@@ -188,7 +188,7 @@ describe('SSO API', function (): void {
 
         it('should not create a new SSO if domaine is not defined', (done: $TSFixMe): void => {
             const authorization: string = `Basic ${token}`;
-            const payload = { ...ssoObject };
+            const payload: $TSFixMe = { ...ssoObject };
 
             delete payload.domain;
 
@@ -204,7 +204,7 @@ describe('SSO API', function (): void {
 
         it('should not create a new SSO if Saml SSO url is not defined', (done: $TSFixMe): void => {
             const authorization: string = `Basic ${token}`;
-            const payload = { ...ssoObject };
+            const payload: $TSFixMe = { ...ssoObject };
 
             delete payload.samlSsoUrl;
 
@@ -220,7 +220,7 @@ describe('SSO API', function (): void {
 
         it('should not create a new SSO if remote logout url is not defined', (done: $TSFixMe): void => {
             const authorization: string = `Basic ${token}`;
-            const payload = { ...ssoObject };
+            const payload: $TSFixMe = { ...ssoObject };
 
             delete payload.remoteLogoutUrl;
 
@@ -270,7 +270,7 @@ describe('SSO API', function (): void {
             const authorization: string = `Basic ${token}`;
             SsoService.create(ssoObject).then(sso => {
                 const { _id: ssoId } = sso;
-                const updatedSsoObject = { ...ssoObject };
+                const updatedSsoObject: $TSFixMe = { ...ssoObject };
                 updatedSsoObject.domain = 'updated.hackerbay.com';
                 updatedSsoObject.samlSsoUrl = 'updated.hackerbay.com/login';
                 updatedSsoObject.remoteLogoutUrl =

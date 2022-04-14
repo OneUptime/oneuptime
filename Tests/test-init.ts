@@ -6,7 +6,7 @@ chai.use(chaihttp);
 
 const request = chai.request(utils.BACKEND_URL);
 
-const _this = {
+const _this: $TSFixMe = {
     /**
      *
      * @param { ObjectConstructor } user
@@ -504,7 +504,7 @@ const _this = {
         user: $TSFixMe,
         page: $TSFixMe
     ): void {
-        const masterAdmin = {
+        const masterAdmin: $TSFixMe = {
             email: 'masteradmin@hackerbay.io',
             password: '1234567890',
         };

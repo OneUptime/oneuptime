@@ -14,7 +14,7 @@ const newPassword: string = '1234567890';
 const subProjectName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

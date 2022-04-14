@@ -2,7 +2,7 @@ import { OPEN_MODAL, CLOSE_MODAL } from '../constants/modal';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     modals: [],
     feedbackModalVisble: false,
 };

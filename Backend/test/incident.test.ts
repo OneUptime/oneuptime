@@ -57,12 +57,12 @@ let token: $TSFixMe,
     componentId: $TSFixMe,
     investigationMessageId: $TSFixMe,
     internalMessageId: $TSFixMe;
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },
 };
-const testServerMonitor = {
+const testServerMonitor: $TSFixMe = {
     name: 'Test Server',
     type: 'url',
     data: { url: HTTP_TEST_SERVER_URL },

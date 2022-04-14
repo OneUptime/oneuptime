@@ -48,7 +48,7 @@ router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
 
     const userToken = state[1];
 
-    const options = {
+    const options: $TSFixMe = {
         uri: `${API_ROUTE}/slack/${projectId}/link?code=${slackCode}`,
         method: 'POST',
         headers: {
@@ -96,7 +96,7 @@ router.post(
             );
         }
 
-        const options = {
+        const options: $TSFixMe = {
             uri:
                 'https://slack.com/api/oauth.access?code=' +
                 code +
@@ -115,7 +115,7 @@ router.post(
                     return sendErrorResponse(req, res, JSONresponse.error);
                 } else {
                     // get slack response object
-                    const data = {
+                    const data: $TSFixMe = {
                         userId: JSONresponse.user_id,
                         teamName: JSONresponse.team_name,
                         accessToken: JSONresponse.access_token,

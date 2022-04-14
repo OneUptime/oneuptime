@@ -169,7 +169,7 @@ export const getAllStatusPageResource: Function = (
                 statusPageNote,
                 monitorStatuses,
             ]) => {
-                const data = {
+                const data: $TSFixMe = {
                     ongoingEvents: ongoingEvents.data,
 
                     futureEvents: futureEvents.data,

@@ -24,7 +24,7 @@ import {
 } from '@stripe/react-stripe-js';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.projectName)) {
 

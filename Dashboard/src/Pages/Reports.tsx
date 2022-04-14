@@ -13,7 +13,7 @@ import Select from '../components/basic/Select';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DateTimeRangePicker from '../components/basic/DateTimeRangePicker';
 
-const styles = {
+const styles: $TSFixMe = {
     cardGrid: {
         display: 'grid',
         gridTemplateColumns: '520px 520px',

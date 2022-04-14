@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 import queryString from 'query-string';
 import { removeQuery } from '../store';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: '#c23d4b',
 };
 
@@ -203,7 +203,7 @@ export class ResendTokenForm extends Component<ResendTokenFormProps>{
 ResendTokenForm.displayName = 'ResendTokenForm';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.email)) {
 
         errors.email = 'Email is required.';

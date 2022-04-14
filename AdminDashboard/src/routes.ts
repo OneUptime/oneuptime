@@ -267,7 +267,7 @@ export const allRoutes = groups
         const newRoutes = [];
         for (const route of routes) {
             newRoutes.push(route);
-            const tempRoute = { ...route };
+            const tempRoute: $TSFixMe = { ...route };
             tempRoute.path = '/admin' + route.path;
             newRoutes.push(tempRoute);
         }
@@ -276,7 +276,7 @@ export const allRoutes = groups
                 const newSubRoutes = [];
                 for (const subRoute of route.subRoutes) {
                     newSubRoutes.push(subRoute);
-                    const tempRoute = { ...subRoute };
+                    const tempRoute: $TSFixMe = { ...subRoute };
                     tempRoute.path = '/admin' + subRoute.path;
                     newSubRoutes.push(tempRoute);
                 }

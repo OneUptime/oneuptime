@@ -2,7 +2,7 @@ import * as types from '../constants/probe';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     probes: {
         requesting: false,
         error: null,

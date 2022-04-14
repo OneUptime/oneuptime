@@ -214,7 +214,7 @@ class IncidentNoteTemplates extends Component<ComponentProps> {
 
             templates,
         } = this.props;
-        const footerBorderTopStyle = { margin: 0, padding: 0 };
+        const footerBorderTopStyle: $TSFixMe = { margin: 0, padding: 0 };
 
         const canNext = count > Number(skip) + Number(limit) ? true : false;
         const canPrev = Number(skip) <= 0 ? false : true;

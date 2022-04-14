@@ -10,7 +10,7 @@ import {
     getResolveTimeRequest,
     getResolveTimeSuccess,
 } from '../../actions/reports';
-const noDataStyle = {
+const noDataStyle: $TSFixMe = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -89,7 +89,7 @@ class ResolveTime extends Component<ComponentProps> {
 
         const chartData: $TSFixMe = [];
         resolveTime.map((element: $TSFixMe) => {
-            const value = {};
+            const value: $TSFixMe = {};
 
             value.resolveTime = element.averageResolved;
 
@@ -169,7 +169,7 @@ class ResolveTime extends Component<ComponentProps> {
 
 ResolveTime.displayName = 'ResolveTime';
 
-const actionCreators = {
+const actionCreators: $TSFixMe = {
     getResolveTime,
     getResolveTimeError,
     getResolveTimeRequest,

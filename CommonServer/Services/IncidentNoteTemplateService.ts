@@ -104,7 +104,7 @@ export default class Service {
             return null;
         }
 
-        const data = {
+        const data: $TSFixMe = {
             deleted: true,
             deletedAt: Date.now(),
         };

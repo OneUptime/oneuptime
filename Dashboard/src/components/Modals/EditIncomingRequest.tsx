@@ -21,7 +21,7 @@ import RenderCodeEditor from '../basic/RenderCodeEditor';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!values.name || !values.name.trim()) {
 
@@ -31,7 +31,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const bulletpoints = {
+const bulletpoints: $TSFixMe = {
     display: 'listItem',
     listStyleType: 'disc',
     listStylePosition: 'inside',
@@ -102,7 +102,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
             customFields,
         } = this.props;
         const requestId = initialValues._id;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
 
         postObj.name = values.name;
@@ -264,7 +264,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -297,7 +297,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -315,7 +315,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [
@@ -3288,7 +3288,7 @@ const mapStateToProps: Function = (state: RootState) => {
     const incidentPriorities =
         state.incidentPriorities.incidentPrioritiesList.incidentPriorities;
 
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
 
     if (incomingRequestToBeUpdated) {
 

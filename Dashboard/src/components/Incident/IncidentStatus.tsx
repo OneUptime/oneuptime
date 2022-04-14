@@ -2843,7 +2843,7 @@ const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { incidentId } = ownProps.match.params;
     const incident = ownProps.incident;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         title: incident.title,
         description: incident.description,
         incidentPriority: incident.incidentPriority

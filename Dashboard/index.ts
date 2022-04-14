@@ -48,7 +48,7 @@ app.get(
             }
         }
 
-        const env = {
+        const env: $TSFixMe = {
             REACT_APP_IS_SAAS_SERVICE: process.env['IS_SAAS_SERVICE'],
             ...(!isClustLocal && {
                 REACT_APP_HOST: global.dashboardHost,

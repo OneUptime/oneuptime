@@ -25,7 +25,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const body = req.body;
-            const data = {};
+            const data: $TSFixMe = {};
 
             data.projectId = req.params.projectId;
 

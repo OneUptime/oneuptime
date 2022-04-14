@@ -11,7 +11,7 @@ import {
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     license: {
         error: null,
         requesting: false,
@@ -38,7 +38,7 @@ export default (state = initialState, action: Action): void => {
             });
 
         case FETCH_LICENSE_SUCCESS: {
-            const data = {};
+            const data: $TSFixMe = {};
             for (const config of action.payload.data) {
                 const { name, value } = config;
 
@@ -90,7 +90,7 @@ export default (state = initialState, action: Action): void => {
             });
 
         case CONFIRM_LICENSE_SUCCESS: {
-            const data = {};
+            const data: $TSFixMe = {};
             for (const config of action.payload.data) {
                 const { name, value } = config;
 

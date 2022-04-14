@@ -25,7 +25,7 @@ async function run(): void {
 
     //Update the incidents idNumber
     for (const projectId of projectIds) {
-        const query = {
+        const query: $TSFixMe = {
             projectId,
         };
 
@@ -50,7 +50,7 @@ async function run(): void {
     //Add default incident priorities for existing
     //projects not having any priority
     for (const project of allProjects) {
-        const query = {
+        const query: $TSFixMe = {
             projectId: project._id,
         };
 

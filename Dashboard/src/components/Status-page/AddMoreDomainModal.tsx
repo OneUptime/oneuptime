@@ -80,7 +80,7 @@ class AddMoreDomainModal extends React.Component<AddMoreDomainModalProps> {
             });
         }
 
-        const data = {
+        const data: $TSFixMe = {
             projectId,
             statusPageId,
             domain: values.domain,
@@ -711,7 +711,7 @@ const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
 );
 
 const mapStateToProps: Function = (state: RootState) => {
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         enableHttps: true,
         autoProvisioning: true,
     };

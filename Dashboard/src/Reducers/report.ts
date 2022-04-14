@@ -2,7 +2,7 @@ import * as types from '../constants/report';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     activeMembers: {
         requesting: false,
         error: null,

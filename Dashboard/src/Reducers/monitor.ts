@@ -76,7 +76,7 @@ import moment from 'moment';
 
 import Action from 'CommonUI/src/types/action';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     monitorsList: {
         monitors: [],
         error: null,
@@ -1054,7 +1054,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                               }
                                           }
 
-                                          const logData = {
+                                          const logData: $TSFixMe = {
                                               ...data,
                                               maxResponseTime:
                                                   data.responseTime,
@@ -2065,7 +2065,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
         }
 
         case GET_MONITOR_LOGS_FAILURE: {
-            const failureLogs = {
+            const failureLogs: $TSFixMe = {
                 ...state.monitorLogs,
 
                 [action.payload.monitorId]: state.monitorLogs[
@@ -2092,7 +2092,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
         }
 
         case GET_MONITOR_LOGS_REQUEST: {
-            const requestLogs = {
+            const requestLogs: $TSFixMe = {
                 ...state.monitorLogs,
 
                 [action.payload.monitorId]: state.monitorLogs[

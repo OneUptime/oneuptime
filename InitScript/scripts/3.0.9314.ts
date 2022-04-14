@@ -8,7 +8,7 @@ async function run(): void {
     });
 
     for (const integration of integrations) {
-        const obj = {};
+        const obj: $TSFixMe = {};
         const data = integration.data;
         delete data.monitorId;
 

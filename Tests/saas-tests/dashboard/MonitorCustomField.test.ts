@@ -7,7 +7,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorFieldText = {
+const monitorFieldText: $TSFixMe = {
         fieldName: 'textField',
         fieldType: 'text',
     },
@@ -15,7 +15,7 @@ const monitorFieldText = {
         fieldName: 'numField',
         fieldType: 'number',
     };
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

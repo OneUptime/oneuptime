@@ -8,11 +8,11 @@ const password: string = '1234567890';
 const subProjectName = utils.generateRandomString();
 const newProjectName = utils.generateRandomString();
 const statusPageName = utils.generateRandomString();
-const projectViewer = {
+const projectViewer: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

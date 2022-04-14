@@ -14,7 +14,7 @@ const alertTime: string = '10';
 const component = utils.generateRandomString();
 const monitor = utils.generateRandomString();
 
-const user = {
+const user: $TSFixMe = {
     email,
     password,
 };

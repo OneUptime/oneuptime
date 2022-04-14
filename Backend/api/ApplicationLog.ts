@@ -221,7 +221,7 @@ router.post(
                 });
             }
 
-            const query = {};
+            const query: $TSFixMe = {};
 
             if (applicationLogId) {
                 query.applicationLogId = applicationLogId;
@@ -285,13 +285,13 @@ router.post(
                 });
             }
 
-            const query = {};
+            const query: $TSFixMe = {};
 
             if (applicationLogId) {
                 query.applicationLogId = applicationLogId;
             }
 
-            const stat = {};
+            const stat: $TSFixMe = {};
 
             const [allCount, errorCount, infoCount, warningCount] =
                 await Promise.all([
@@ -337,7 +337,7 @@ router.post(
         }
 
         // application Log is valid
-        const data = {
+        const data: $TSFixMe = {
             key: uuid.v4(), // set new app log key
         };
 
@@ -392,7 +392,7 @@ router.put(
         }
 
         // try to find in the application log if the name already exist for that component
-        const existingQuery = {
+        const existingQuery: $TSFixMe = {
             name: data.name,
             componentId: componentId,
         };
@@ -419,7 +419,7 @@ router.put(
         }
 
         // application Log is valid
-        const applicationLogUpdate = {};
+        const applicationLogUpdate: $TSFixMe = {};
         if (data.name) {
             applicationLogUpdate.name = data.name;
         }

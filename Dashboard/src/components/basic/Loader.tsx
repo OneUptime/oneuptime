@@ -1,6 +1,6 @@
 import React from 'react';
 
-const loaderStyle = {
+const loaderStyle: $TSFixMe = {
     backgroundColor: '#96d8ff',
 };
 

@@ -171,7 +171,7 @@ export default class Service {
         alertType
     ): void {
         // let release;
-        const status = {};
+        const status: $TSFixMe = {};
         // const mutex = getMutex(
         //     MUTEX_RESOURCES.PROJECT,
         //     project._id.toString()
@@ -318,7 +318,7 @@ export default class Service {
                 );
 
                 if (plan) {
-                    const item = {
+                    const item: $TSFixMe = {
                         plan: plan.planId,
                         id: subscription.items.data[i].id,
                         quantity: seats,
@@ -426,7 +426,7 @@ export default class Service {
                 //create notification
                 const message =
                     'Your balance has fallen below minimum balance set in Alerts option. Click here to authorize payment';
-                const meta = {
+                const meta: $TSFixMe = {
                     type: 'action',
                     client_secret: paymentIntent.client_secret,
                 };

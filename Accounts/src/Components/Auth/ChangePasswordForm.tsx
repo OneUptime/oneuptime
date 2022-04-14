@@ -16,7 +16,7 @@ import { RenderField } from '../basic/RenderField';
 
 import { Link } from 'react-router-dom';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: '#c23d4b',
 };
 
@@ -150,7 +150,7 @@ export class ChangePasswordForm extends Component<ChangePasswordFormProps>{
 ChangePasswordForm.displayName = 'ChangePasswordForm';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.password)) {
 
         errors.password = 'Password is required.';

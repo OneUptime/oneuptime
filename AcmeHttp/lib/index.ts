@@ -15,7 +15,7 @@ export default {
                 // make api call to backend to store
                 // keyAuthorization, challengeUrl, and token
                 const url: string = `${BASE_URL}/api/ssl/challenge`;
-                const dataConfig = {
+                const dataConfig: $TSFixMe = {
                     token: ch.token,
                     keyAuthorization: ch.keyAuthorization,
                     challengeUrl: ch.challengeUrl,

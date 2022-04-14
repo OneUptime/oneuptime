@@ -19,7 +19,7 @@ import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
 const validate: Function = (values: $TSFixMe, props: $TSFixMe) => {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (props.showSmsSmtpConfiguration) {
         if (values.accountSid) {
             if (!Validate.text(values.accountSid)) {

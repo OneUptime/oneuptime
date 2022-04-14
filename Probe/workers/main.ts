@@ -15,7 +15,7 @@ if (limit && typeof limit === 'string') {
 
 import asyncSleep from 'await-sleep';
 
-const _this = {
+const _this: $TSFixMe = {
     runJob: async function (): void {
         logger.info(`Getting a list of ${limit} monitors`);
 

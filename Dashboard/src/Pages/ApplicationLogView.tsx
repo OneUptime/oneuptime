@@ -133,7 +133,7 @@ class ApplicationLogView extends Component<ComponentProps> {
     }
 
     handleCloseQuickStart = () => {
-        const postObj = { showQuickStart: false };
+        const postObj: $TSFixMe = { showQuickStart: false };
 
         const projectId = this.props.currentProject
 

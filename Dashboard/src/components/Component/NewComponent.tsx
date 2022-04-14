@@ -57,7 +57,7 @@ class NewComponent extends Component<ComponentProps> {
 
     //Client side validation
     validate = (values: $TSFixMe) => {
-        const errors = {};
+        const errors: $TSFixMe = {};
 
 
         if (!ValidateField.text(values[`name_${this.props.index}`])) {
@@ -91,7 +91,7 @@ class NewComponent extends Component<ComponentProps> {
 
 
         const { upgradeModalId } = this.state;
-        const postObj = { data: {}, criteria: {} };
+        const postObj: $TSFixMe = { data: {}, criteria: {} };
 
         postObj.projectId = this.props.activesubProjectId;
 

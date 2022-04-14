@@ -18,7 +18,7 @@ class SsoLoginPage extends React.Component<ComponentProps> {
     override componentDidMount() {
 
         const query = qs.parse(this.props.location.search);
-        const user = {
+        const user: $TSFixMe = {
             id: query.id,
             name: query.name,
             email: query.email,

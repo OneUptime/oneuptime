@@ -10,7 +10,7 @@ async function run(): void {
     });
 
     for (const incident of incidents) {
-        const data = {
+        const data: $TSFixMe = {
             notifications: [],
         };
 

@@ -181,7 +181,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query, userId: ObjectID, projectId: ObjectID): void {
-        const data = {
+        const data: $TSFixMe = {
             deleted: true,
             event_state: 'Deleted',
             deletedAt: Date.now(),

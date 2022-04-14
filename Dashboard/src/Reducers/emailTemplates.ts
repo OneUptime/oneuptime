@@ -2,7 +2,7 @@ import * as types from '../constants/emailTemplates';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     emailTemplates: {
         requesting: false,
         error: null,

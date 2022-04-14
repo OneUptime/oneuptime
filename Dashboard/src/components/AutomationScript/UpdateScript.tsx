@@ -117,7 +117,7 @@ class UpdateScript extends Component<ComponentProps> {
             details: { _id, slug },
         } = this.props;
         const automatedScriptId = _id;
-        const payload = { ...values, scriptType: type, script };
+        const payload: $TSFixMe = { ...values, scriptType: type, script };
         this.props
 
             .updateAutomatedScript(activeProject, automatedScriptId, payload)
@@ -847,7 +847,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
         });
     });
 
-    const initialValues = {};
+    const initialValues: $TSFixMe = {};
 
     initialValues.name = ownProps?.details?.name;
 

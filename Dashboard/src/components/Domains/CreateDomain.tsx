@@ -70,7 +70,7 @@ class CreateDomain extends React.Component<CreateDomainProps> {
             });
         }
 
-        const data = {
+        const data: $TSFixMe = {
             projectId,
             data: {
                 domain: values.domain,

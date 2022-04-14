@@ -43,7 +43,7 @@ export default class Service {
     async create(data: $TSFixMe): void {
         let subProject = null;
 
-        const query = {
+        const query: $TSFixMe = {
             name: data.name,
             componentId: data.componentId,
             projectId: data.projectId,
@@ -341,7 +341,7 @@ export default class Service {
         lighthouseScanStatus: $TSFixMe,
         lighthouseScannedBy: $TSFixMe
     ): void {
-        const updateData = {};
+        const updateData: $TSFixMe = {};
 
         if (lighthouseScanStatus !== 'scanning') {
             updateData.lighthouseScannedAt = Date.now();
@@ -376,7 +376,7 @@ export default class Service {
             { path: 'resourceCategory', select: 'name' },
             { path: 'statusPageCategory', select: 'name' },
         ];
-        const query = { _id };
+        const query: $TSFixMe = { _id };
 
         const monitor = await this.findOneBy({ query, select, populate });
         RealTimeService.monitorEdit(monitor);
@@ -430,7 +430,7 @@ export default class Service {
             const monitor = await this.findOneBy({ query, select });
             for (const field of data.customFields) {
                 if (field.uniqueField) {
-                    const query = {
+                    const query: $TSFixMe = {
                         customFields: {
                             $elemMatch: {
                                 fieldName: field.fieldName,
@@ -1262,7 +1262,7 @@ export default class Service {
             ];
 
             for (const probe of probes) {
-                const query = {
+                const query: $TSFixMe = {
                     monitorId,
                     createdAt: { $gte: start, $lte: end },
                 };
@@ -1341,7 +1341,7 @@ export default class Service {
 
         const probeLogs = [];
         for (const probe of probes) {
-            const query = {
+            const query: $TSFixMe = {
                 monitorId,
                 createdAt: { $gte: start, $lte: end },
             };
@@ -1394,7 +1394,7 @@ export default class Service {
         }
 
         for (const probe of probes) {
-            const query = {
+            const query: $TSFixMe = {
                 monitorId,
                 $and: [
                     { startTime: { $lte: end } },
@@ -1517,7 +1517,7 @@ export default class Service {
         const times = [];
         for (let i = days; i >= 0; i--) {
             let incidents = [];
-            const temp = {};
+            const temp: $TSFixMe = {};
             let status = 'online';
 
             temp.date = moment(dateNow).utc().subtract(i, 'days');
@@ -1758,7 +1758,7 @@ export default class Service {
             const dayEnd =
                 i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
-            const timeObj = {
+            const timeObj: $TSFixMe = {
                 date: dayStart.toISOString(),
                 downTime: 0,
                 upTime: 0,
@@ -1888,7 +1888,7 @@ export default class Service {
                              * The first part comes before the nextIncident,
                              * the second one comes after the nextIncident.
                              */
-                            const newIncident = {
+                            const newIncident: $TSFixMe = {
                                 start: nextIncident.end,
                                 end: firstIncident.end,
                                 status: firstIncident.status,
@@ -2022,7 +2022,7 @@ export default class Service {
             const dayEnd =
                 i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
 
-            const timeObj = {
+            const timeObj: $TSFixMe = {
                 date: dayStart.toISOString(),
                 downTime: 0,
                 upTime: 0,
@@ -2187,7 +2187,7 @@ export default class Service {
                              * The first part comes before the nextIncident,
                              * the second one comes after the nextIncident.
                              */
-                            const newIncident = {
+                            const newIncident: $TSFixMe = {
                                 start: nextIncident.end,
                                 end: firstIncident.end,
                                 status: firstIncident.status,

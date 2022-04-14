@@ -47,7 +47,7 @@ class NewApplicationLog extends Component<ComponentProps> {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
     validate = (values: $TSFixMe) => {
-        const errors = {};
+        const errors: $TSFixMe = {};
         if (!ValidateField.text(values[`name`])) {
 
             errors.name = 'Application Name is required.';
@@ -73,7 +73,7 @@ class NewApplicationLog extends Component<ComponentProps> {
     };
     submitForm = (values: $TSFixMe) => {
         const thisObj = this;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
 
         postObj.name = values[`name`];
         if (values[`resourceCategory`]) {
@@ -409,7 +409,7 @@ const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const componentId = ownProps.componentId;
     const requesting = state.applicationLog.newApplicationLog.requesting;
     const currentProject = state.project.currentProject;
-    const initialValues = {
+    const initialValues: $TSFixMe = {
         name: ownProps.applicationLog ? ownProps.applicationLog.name : '',
         resourceCategory: ownProps.applicationLog
             ? ownProps.applicationLog.resourceCategory

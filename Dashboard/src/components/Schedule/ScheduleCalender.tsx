@@ -37,7 +37,7 @@ function ScheduleCalender({
         for (let i = 0; i <= dayOffset; i++) {
             const currentStart = new Date(schedule.startTime);
             const currentEnd = new Date(schedule.endTime);
-            const scheduleData = {
+            const scheduleData: $TSFixMe = {
                 title: `${schedule.user?.name ||
                     schedule.user
                         ?.email} is on-call schedule during this period`,

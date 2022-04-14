@@ -2,7 +2,7 @@ import * as types from '../constants/subscriber';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     subscribers: {
         requesting: false,
         error: null,

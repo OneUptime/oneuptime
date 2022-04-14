@@ -28,7 +28,7 @@ describe('Incident Custom Field API', function (): void {
         authorization: $TSFixMe,
         customFieldId: $TSFixMe;
 
-    const incidentFieldText = {
+    const incidentFieldText: $TSFixMe = {
             fieldName: 'inTextField',
             fieldType: 'text',
         },

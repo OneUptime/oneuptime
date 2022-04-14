@@ -6,7 +6,7 @@ import {
     ExpressRequest,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-const _this = {
+const _this: $TSFixMe = {
     isValidAPIKey: async function (
         req: ExpressRequest,
         res: ExpressResponse,

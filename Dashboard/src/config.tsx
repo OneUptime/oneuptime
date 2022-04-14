@@ -67,7 +67,7 @@ export const STATUSPAGE_DOMAIN =
 
 export const VERSION = process.env.VERSION || env('VERSION');
 
-export const User = {
+export const User: $TSFixMe = {
     getAccessToken() {
         return localStorage.getItem('access_token');
     },
@@ -152,7 +152,7 @@ export const User = {
 };
 
 //Data validation Util goes in here.
-export const Validate = {
+export const Validate: $TSFixMe = {
     isDomain(domain: $TSFixMe) {
         return domain.search(/\./) >= 0;
     },
@@ -260,7 +260,7 @@ export const Validate = {
     },
 };
 
-export const ValidateField = {
+export const ValidateField: $TSFixMe = {
     required: (value: $TSFixMe) => value && value.length ? undefined : 'This field is required',
 
     isJson: (value: $TSFixMe) => {
@@ -314,7 +314,7 @@ export const ValidateField = {
         text1 === text2 ? undefined : 'These texts donot match',
 };
 
-export const PricingPlan = {
+export const PricingPlan: $TSFixMe = {
     getPlans() {
         if (
             env('STRIPE_PUBLIC_KEY') &&
@@ -437,7 +437,7 @@ export const capitalize: Function = (words: $TSFixMe) => {
     return words.join(' ').trim();
 };
 
-export const tutorials = {
+export const tutorials: $TSFixMe = {
     getTutorials() {
         return [
             {
@@ -634,11 +634,11 @@ export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
 }
 
 export const makeCriteria: Function = (val: $TSFixMe) => {
-    const val2 = {};
+    const val2: $TSFixMe = {};
     const criteria = [];
 
     for (let i = 0; i < val.length; i++) {
-        const val3 = {};
+        const val3: $TSFixMe = {};
         if (val[i].responseType && val[i].responseType.length) {
 
             val3.responseType = val[i].responseType;
@@ -691,7 +691,7 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
     nestVal = [...nestVal];
     if (val.criteria && val.criteria.length) {
         for (let j = 0; j < val.criteria.length; j++) {
-            const innerVal = {};
+            const innerVal: $TSFixMe = {};
             if (
                 val.criteria[j].responseType &&
                 val.criteria[j].responseType.length
@@ -744,7 +744,7 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
     const val2 = [];
     if (val && val.criteria && val.criteria.condition === 'and') {
         for (let i = 0; i < val.criteria.criteria.length; i++) {
-            const val3 = {};
+            const val3: $TSFixMe = {};
             if (
                 val.criteria.criteria[i].responseType &&
                 val.criteria.criteria[i].responseType.length
@@ -801,7 +801,7 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
         return val2;
     } else if (val && val.criteria && val.criteria.condition === 'or') {
         for (let i = 0; i < val.criteria.criteria.length; i++) {
-            const val3 = {};
+            const val3: $TSFixMe = {};
             if (
                 val.criteria.criteria[i].responseType &&
                 val.criteria.criteria[i].responseType.length
@@ -862,7 +862,7 @@ export const mapCriteria: Function = (val: $TSFixMe) => {
 function mapNestedCriteria(criteriaObj: $TSFixMe, innerContainer: $TSFixMe, cr: $TSFixMe) {
     innerContainer = [...innerContainer];
     for (let j = 0; j < criteriaObj.criteria.length; j++) {
-        const innerVal = {};
+        const innerVal: $TSFixMe = {};
         if (
             criteriaObj.criteria[j].responseType &&
             criteriaObj.criteria[j].responseType.length
@@ -1198,7 +1198,7 @@ export const filterProbeData: Function = (monitor: $TSFixMe, probe: $TSFixMe, st
     return { logs, statuses };
 };
 
-export const metricsQuickStart = {
+export const metricsQuickStart: $TSFixMe = {
     getLibraries() {
         return [
             {
@@ -1289,7 +1289,7 @@ export const metricsQuickStart = {
     import OneUptime from 'oneuptime'
     
     // set up performance tracker configuration
-    const options = {                    
+    const options: $TSFixMe = {                    
         apiUrl: '${apiUrl ? apiUrl : 'API_URL'}',
         appId: '${appId ? appId : 'APP_ID'}',
         appKey: '${key ? key : 'APP_KEY'}',
@@ -1387,7 +1387,7 @@ export const metricsQuickStart = {
     },
 };
 
-export const logLibraries = {
+export const logLibraries: $TSFixMe = {
     getLibraries() {
         return [
             {
@@ -1477,7 +1477,7 @@ import OneUptime from 'oneuptime';
 import OneUptime from 'oneuptime'
 
 // set up tracking configurations                    
-const options = {                    
+const options: $TSFixMe = {                    
     maxTimeline: 10, 
     captureCodeSnippet: true,                   
 };
@@ -1523,7 +1523,7 @@ const logger = new OneUptime.Logger(
                 
 // Sending a JSON object log to the server    
                 
-const item = {
+const item: $TSFixMe = {
     user: 'Test User',
     page: {
         title: 'Landing Page',

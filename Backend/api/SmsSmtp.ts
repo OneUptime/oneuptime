@@ -105,7 +105,7 @@ router.delete(
     async (req, res): void => {
         try {
             const smsSmtpId = req.params.smsSmtpId;
-            const payload = {
+            const payload: $TSFixMe = {
                 enabled: false,
                 accountSid: '',
                 authToken: '',

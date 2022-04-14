@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     if (!Validate.text(values.currentPassword)) {
 
         errors.currentPassword = 'Current password is required.';

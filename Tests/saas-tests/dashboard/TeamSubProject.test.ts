@@ -27,7 +27,7 @@ describe('Team API With SubProjects', () => {
         await page.setUserAgent(utils.agent);
 
         // Register user
-        const user = {
+        const user: $TSFixMe = {
             email,
             password,
         };

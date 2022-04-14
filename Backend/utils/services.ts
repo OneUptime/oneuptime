@@ -1,6 +1,6 @@
 export default {
     deduplicate: async (arr = []) => {
-        const map = {};
+        const map: $TSFixMe = {};
 
         let curr;
 

@@ -251,7 +251,7 @@ class Home extends Component<ComponentProps> {
                 const isOnDutyAllTheTime =
                     userSchedule.startTime === userSchedule.endTime;
 
-                const tempObj = { ...userSchedule, isOnDutyAllTheTime };
+                const tempObj: $TSFixMe = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
 
@@ -768,7 +768,7 @@ const mapStateToProps: Function = (state: RootState) => {
     const projectCustomTutorial = state.tutorial[projectId];
 
     // set a default show to true for the 3 custom tutorials to display on the Home Page
-    const tutorialStat = {
+    const tutorialStat: $TSFixMe = {
         componentCustom: { show: true },
         monitorCustom: { show: true },
         teamMemberCustom: { show: true },

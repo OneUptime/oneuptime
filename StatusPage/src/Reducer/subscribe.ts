@@ -11,7 +11,7 @@ import {
     OPEN_LANGUAGE_MENU,
 } from '../actions/subscribe';
 
-const INITIAL_STATE = {
+const INITIAL_STATE: $TSFixMe = {
     subscribeMenu: false,
     languageMenu: false,
     selectedMenu: 1,

@@ -28,7 +28,7 @@ describe('Monitor Custom Field API', function (): void {
         authorization: $TSFixMe,
         monitorCustomFieldId: $TSFixMe;
 
-    const monitorFieldText = {
+    const monitorFieldText: $TSFixMe = {
             fieldName: 'textField',
             fieldType: 'text',
         },

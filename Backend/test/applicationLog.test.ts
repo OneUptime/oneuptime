@@ -25,12 +25,12 @@ let token: $TSFixMe,
     projectId: ObjectID,
     componentId: $TSFixMe,
     applicationLog: $TSFixMe;
-const log = {
+const log: $TSFixMe = {
     applicationLogKey: 'Wrong-key',
     content: 'this is a log',
     type: 'info',
 };
-const logCount = {
+const logCount: $TSFixMe = {
     error: 0,
     info: 0,
     warning: 0,

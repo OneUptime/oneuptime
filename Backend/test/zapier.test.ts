@@ -23,7 +23,7 @@ import incidentData from './data/incident';
 // eslint-disable-next-line
 let token: $TSFixMe, projectId: ObjectID, apiKey: string, userId, zapierId: $TSFixMe, monitorId: $TSFixMe, incidentId: $TSFixMe;
 
-const monitor = {
+const monitor: $TSFixMe = {
     name: 'New Monitor',
     type: 'url',
     data: { url: 'http://www.tests.org' },

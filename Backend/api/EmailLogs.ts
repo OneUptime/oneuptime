@@ -21,7 +21,7 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const query = {};
+            const query: $TSFixMe = {};
             const skip = req.query['skip'];
             const limit = req.query['limit'];
             const selectEmailStatus =
@@ -208,7 +208,7 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const query = {};
+            const query: $TSFixMe = {};
 
             const msg = await EmailLogsService.hardDeleteBy({ query });
 

@@ -16,7 +16,7 @@ import RenderIfSubProjectAdmin from '../basic/RenderIfSubProjectAdmin';
 import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 
 function validate(value: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(value.schedule_name)) {
 

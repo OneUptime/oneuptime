@@ -4,7 +4,7 @@ import Select from 'react-select';
 
 import { PropTypes } from 'prop-types';
 
-const styles = {
+const styles: $TSFixMe = {
     control: (provided: $TSFixMe) => ({
         ...provided,
         border: '1px solid hsl(0,0%,80%) !important',

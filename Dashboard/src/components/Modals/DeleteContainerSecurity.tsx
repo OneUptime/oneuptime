@@ -61,7 +61,7 @@ class DeleteContainerSecurity extends Component<ComponentProps> {
             containerSecurityId,
             componentSlug,
         } = propArr[0];
-        const data = { projectId, componentId, containerSecurityId };
+        const data: $TSFixMe = { projectId, componentId, containerSecurityId };
 
         deleteContainerSecurity(data).then(() => {
             history.push(

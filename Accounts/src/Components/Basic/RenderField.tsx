@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const errorStyle = {
+const errorStyle: $TSFixMe = {
     color: '#c23d4b',
     width: '222px',
 };

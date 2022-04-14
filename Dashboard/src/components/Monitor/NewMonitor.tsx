@@ -277,7 +277,7 @@ class NewMonitor extends Component<ComponentProps> {
                 const criteria = [];
 
                 // add a default criterion as a down criterion
-                const defaultDownCriterion = {
+                const defaultDownCriterion: $TSFixMe = {
                     type: CRITERIA_TYPES.DOWN.type,
                     id: uuidv4(),
                     default: true,
@@ -297,7 +297,7 @@ class NewMonitor extends Component<ComponentProps> {
                         } else {
                             const id = uuidv4();
 
-                            const newCriterion = {
+                            const newCriterion: $TSFixMe = {
                                 id,
                                 type: criterion.type,
                                 name:
@@ -380,7 +380,7 @@ class NewMonitor extends Component<ComponentProps> {
         }
 
         try {
-            const initialCriterionValue = {};
+            const initialCriterionValue: $TSFixMe = {};
 
             switch (criterionType) {
                 case CRITERIA_TYPES.UP.type:
@@ -511,7 +511,7 @@ class NewMonitor extends Component<ComponentProps> {
             return;
         }
 
-        const newCriterion = {
+        const newCriterion: $TSFixMe = {
             ...criterion,
             name: this.getDefaultCriterionName(criterion),
         };
@@ -527,7 +527,7 @@ class NewMonitor extends Component<ComponentProps> {
 
     submitForm = (values: $TSFixMe) => {
         const thisObj = this;
-        const postObj = { data: {}, criteria: {} };
+        const postObj: $TSFixMe = { data: {}, criteria: {} };
         thisObj.setState({ processingMonitor: true });
 
 
@@ -663,10 +663,10 @@ class NewMonitor extends Component<ComponentProps> {
             postObj.type === 'ip'
         ) {
             // collect and organize all criteria data
-            const criteria = { up: [], down: [], degraded: [] };
+            const criteria: $TSFixMe = { up: [], down: [], degraded: [] };
 
             this.state.criteria.forEach((criterion: $TSFixMe) => {
-                const criterionData = {};
+                const criterionData: $TSFixMe = {};
 
                 const criterionFieldName:string = `${criterion.type}_${criterion.id}`;
 

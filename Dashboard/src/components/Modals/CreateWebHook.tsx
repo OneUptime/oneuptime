@@ -21,7 +21,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import MultiSelectDropDown from '../basic/MultiSelectDropDown';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.url(values.endpoint)) {
 
@@ -72,7 +72,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
 
             data: { monitorId },
         } = this.props;
-        const postObj = {};
+        const postObj: $TSFixMe = {};
         const { selectAllMonitors } = values;
         let monitors = [];
         const allMonitors = monitor.monitorsList.monitors
@@ -160,7 +160,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
     formatData = () => {
 
         const monitors = this.props.monitorsList;
-        const hash = {};
+        const hash: $TSFixMe = {};
 
         monitors.forEach((monitor: $TSFixMe) => {
             const projectId = monitor.projectId._id || monitor.projectId;
@@ -193,7 +193,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
 
                     components: hash[projectId].components.map((componentObj: $TSFixMe) => {
                         if (componentObj.componentId === componentId) {
-                            const newMonitor = {
+                            const newMonitor: $TSFixMe = {
                                 monitorName: monitor.name,
                                 monitorId: monitor._id,
                             };
@@ -211,7 +211,7 @@ class CreateWebHook extends React.Component<CreateWebHookProps> {
                 };
 
                 if (!monitorAdded) {
-                    const componentData = {
+                    const componentData: $TSFixMe = {
                         componentName: monitor.componentId.name,
                         componentId,
                         monitors: [

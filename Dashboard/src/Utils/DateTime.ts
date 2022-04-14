@@ -3,7 +3,7 @@ import differenceInDays from 'date-fns/differenceInDays';
 import differenceInWeeks from 'date-fns/differenceInWeeks';
 import differenceInMonths from 'date-fns/differenceInMonths';
 
-const _this = {
+const _this: $TSFixMe = {
     // This function will strip
     changeDateTimezone: function (date: $TSFixMe, timezone: $TSFixMe): void {
         if (typeof date === 'string') {

@@ -2,7 +2,7 @@ import * as types from '../constants/monitorCustomField';
 
 import Action from 'CommonUI/src/types/action';
 
-const initialState = {
+const initialState: $TSFixMe = {
     monitorCustomField: {
         requesting: false,
         success: false,

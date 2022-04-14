@@ -6,7 +6,7 @@ import 'should';
 
 // user credentials
 let browser: $TSFixMe, page: $TSFixMe;
-const user = {
+const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };

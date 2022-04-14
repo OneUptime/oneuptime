@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 
-const greenBackground = {
+const greenBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -10,7 +10,7 @@ const greenBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: '#24b47e',
 };
-const yellowBackground = {
+const yellowBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -18,7 +18,7 @@ const yellowBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: '#e39f48',
 };
-const redBackground = {
+const redBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',
@@ -26,7 +26,7 @@ const redBackground = {
     margin: '0 8px 1px 0',
     backgroundColor: '#e25950',
 };
-const greyBackground = {
+const greyBackground: $TSFixMe = {
     display: 'inline-block',
     borderRadius: '50%',
     height: '8px',

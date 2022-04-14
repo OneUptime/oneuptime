@@ -243,7 +243,7 @@ router.put(
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }
-                const data = {};
+                const data: $TSFixMe = {};
 
                 data.audioFieldName = audioFieldName;
 
@@ -314,7 +314,7 @@ router.delete(
                 select: 'routingSchema',
             });
             routingSchema = routingSchema.routingSchema;
-            const query = {};
+            const query: $TSFixMe = {};
             if (backup) {
                 query.filename = routingSchema.backup_introAudio;
                 routingSchema.backup_introAudio = null;

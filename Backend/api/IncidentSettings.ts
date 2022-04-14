@@ -40,7 +40,7 @@ router.get(
             const select =
                 'projectId title description incidentPriority isDefault name createdAt';
 
-            const query = { projectId, isDefault: true };
+            const query: $TSFixMe = { projectId, isDefault: true };
             const template = await IncidentSettingsService.findOne({
                 query,
                 select,
@@ -67,7 +67,7 @@ router.get(
                 throw new BadDataException('Project Id must be present');
             }
 
-            const query = { projectId };
+            const query: $TSFixMe = { projectId };
             const populate = [
                 { path: 'incidentPriority', select: 'name color' },
             ];
@@ -275,7 +275,7 @@ router.post(
                 throw error;
             }
 
-            const data = {
+            const data: $TSFixMe = {
                 projectId,
                 title,
                 description,

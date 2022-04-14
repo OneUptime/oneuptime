@@ -15,7 +15,7 @@ import {
 import * as _ from 'lodash';
 import { formatDecimal, formatBytes } from '../../config';
 
-const noDataStyle = {
+const noDataStyle: $TSFixMe = {
     textAlign: 'center',
     flexBasis: 1,
 };

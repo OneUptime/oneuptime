@@ -11,12 +11,12 @@ import { Validate } from '../../config';
 
 //Client side validation
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
     const adminNotesArrayErrors = [];
 
     if (values.adminNotes) {
         for (let i = 0; i < values.adminNotes.length; i++) {
-            const adminNotesErrors = {};
+            const adminNotesErrors: $TSFixMe = {};
             if (values.adminNotes[i] && values.adminNotes[i].note) {
                 if (!Validate.text(values.adminNotes[i].note)) {
 

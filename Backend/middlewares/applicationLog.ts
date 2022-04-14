@@ -9,7 +9,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import ApplicationLogService from '../Services/applicationLogService';
 import { sendErrorResponse } from 'CommonServer/Utils/Response';
 
-const _this = {
+const _this: $TSFixMe = {
     isApplicationLogValid: async function (
         req: ExpressRequest,
         res: ExpressResponse,

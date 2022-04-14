@@ -87,7 +87,7 @@ export default class API {
     }
 
     public static getDefaultHeaders(): Headers {
-        const defaultHeaders: Headers = {
+        const defaultHeaders: Headers: $TSFixMe = {
             'Access-Control-Allow-Origin': '*',
             Accept: 'application/json',
             'Content-Type': 'application/json;charset=UTF-8',

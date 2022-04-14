@@ -1,6 +1,6 @@
 // fetches a list of records from the endpoint
 const fetchList: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
-    const options = {
+    const options: $TSFixMe = {
         url: `${bundle.authData.serverUrl}/zapier/monitors`,
     };
     return z

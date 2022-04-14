@@ -13,7 +13,7 @@ import { closeModal } from 'CommonUI/actions/modal';
 import RadioInput from '../project/RadioInput';
 
 function validate(values: $TSFixMe) {
-    const errors = {};
+    const errors: $TSFixMe = {};
 
     if (!Validate.text(values.planId)) {
 

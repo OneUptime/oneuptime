@@ -108,7 +108,7 @@ router.put(
                 imageTags,
                 resourceCategory,
             } = req.body;
-            const data = {};
+            const data: $TSFixMe = {};
 
             if (name) {
                 data.name = name;
