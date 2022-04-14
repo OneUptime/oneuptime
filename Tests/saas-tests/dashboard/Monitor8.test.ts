@@ -11,8 +11,8 @@ const password: string = '1234567890';
 describe('API Monitor API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
 
-    const componentName: $TSFixMe: string = utils.generateRandomString();
-    const monitorName: $TSFixMe: string = utils.generateRandomString();
+    const componentName: string = utils.generateRandomString();
+    const monitorName: string = utils.generateRandomString();
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

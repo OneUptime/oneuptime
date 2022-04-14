@@ -6,7 +6,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -35,7 +35,7 @@ describe('New Monitor API', () => {
     test(
         'should not show any upgrade modal if the project plan is on Scale plan and above',
         async (done: $TSFixMe) => {
-            const projectName: $TSFixMe: string = utils.generateRandomString();
+            const projectName: string = utils.generateRandomString();
             const componentName: string = utils.generateRandomString();
             await init.addScaleProject(projectName, page);
             // create a component

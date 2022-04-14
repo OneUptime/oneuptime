@@ -7,12 +7,12 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const projectName: $TSFixMe: string = utils.generateRandomString();
-const callSchedule: $TSFixMe: string = utils.generateRandomString();
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
+const callSchedule: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -45,7 +45,7 @@ describe('Monitor API', () => {
             // Create Component first
             // Redirects automatically component to details page
             await init.navigateToComponentDetails(componentName, page);
-            const monitorName: $TSFixMe: string = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 

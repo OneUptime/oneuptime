@@ -39,7 +39,7 @@ export default {
     },
 
     decrypt: (encText, iv) => {
-        const promise = new Promise((resolve, reject): $TSFixMe => {
+        const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
             try {
                 const decipher: $TSFixMe = crypto.createDecipheriv(
                     algorithm,

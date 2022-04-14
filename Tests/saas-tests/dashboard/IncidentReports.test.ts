@@ -5,11 +5,11 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 
 // parent user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const componentName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 describe('Incident Reports API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

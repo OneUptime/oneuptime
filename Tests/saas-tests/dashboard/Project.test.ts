@@ -4,8 +4,8 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
-const teamEmail: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
+const teamEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const newProjectName: string = 'Test';
 

@@ -156,7 +156,7 @@ class OneUptimeListener {
                 method: options ? options.method : 'GET', // get request doesnt have a method on fetch, so its set as default
                 status_code: '',
             };
-            const promise = currentFetch(url, options);
+            const promise: Promise = currentFetch(url, options);
             // Do something with the promise
             promise.then(
                 res => {

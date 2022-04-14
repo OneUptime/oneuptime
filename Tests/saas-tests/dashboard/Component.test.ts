@@ -9,11 +9,11 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const newComponentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const newMonitorName: $TSFixMe: string = utils.generateRandomString();
-const applicationLogName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const newComponentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const newMonitorName: string = utils.generateRandomString();
+const applicationLogName: string = utils.generateRandomString();
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Components', () => {

@@ -6,7 +6,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -36,7 +36,7 @@ describe('Project API', () => {
     test(
         'Should create new project from dropdown after login',
         async (done: $TSFixMe) => {
-            const projectName: $TSFixMe: string = utils.generateRandomString();
+            const projectName: string = utils.generateRandomString();
             //Login is no longer required as Dashboard page is loaded automatically.
             await init.pageWaitForSelector(page, '#selector', {
                 visible: true,

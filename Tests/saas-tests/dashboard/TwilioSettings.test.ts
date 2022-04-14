@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const { twilioCredentials }: $TSFixMe = { ...utils };
 
@@ -16,7 +16,7 @@ const monitorName: string = 'monitor1';
 const countryCode: string = '+1';
 const phoneNumber: string = '9173976235';
 const alertPhone: string = '+19173976123';
-const incidentTitle: $TSFixMe: string = utils.generateRandomString();
+const incidentTitle: string = utils.generateRandomString();
 
 describe('Custom Twilio Settings', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

@@ -53,7 +53,7 @@ export default {
     },
 
     decrypt: (encText, iv) => {
-        const promise = new Promise((resolve, reject) => {
+        const promise: Promise = new Promise((resolve, reject) => {
             try {
                 const decipher = crypto.createDecipheriv(algorithm, key, iv);
                 let decoded = decipher.update(encText, 'hex', 'utf8');

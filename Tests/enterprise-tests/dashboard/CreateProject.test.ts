@@ -8,7 +8,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const user: $TSFixMe = {

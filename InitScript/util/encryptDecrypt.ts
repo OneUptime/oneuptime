@@ -5,7 +5,7 @@ const key: $TSFixMe = EncryptionKeys.key;
 
 export default {
     encrypt: (plainText: $TSFixMe, iv: $TSFixMe) => {
-        const promise = new Promise((resolve, reject): $TSFixMe => {
+        const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
             try {
                 const cipher: $TSFixMe = crypto.createCipheriv(
                     algorithm,
@@ -23,7 +23,7 @@ export default {
     },
 
     decrypt: (encText: $TSFixMe, iv = EncryptionKeys.iv) => {
-        const promise = new Promise((resolve, reject): $TSFixMe => {
+        const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
             try {
                 const decipher: $TSFixMe = crypto.createDecipheriv(
                     algorithm,

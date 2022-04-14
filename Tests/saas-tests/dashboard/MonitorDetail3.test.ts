@@ -6,14 +6,14 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const webHookName: $TSFixMe: string = utils.generateRandomString();
-const newWebHookName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const webHookName: string = utils.generateRandomString();
+const newWebHookName: string = utils.generateRandomString();
 const webhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
-const priorityName: $TSFixMe: string = utils.generateRandomString();
+const priorityName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -270,7 +270,10 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows: $TSFixMe = await init.page$$(page, createdWebhookSelector);
+            let webhookRows: $TSFixMe = await init.page$$(
+                page,
+                createdWebhookSelector
+            );
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);

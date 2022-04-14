@@ -7,10 +7,10 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -56,33 +56,36 @@ describe('Monitor API', () => {
             }
         );
 
-        let lighthousePerformanceElement: $TSFixMe = await init.pageWaitForSelector(
-            page,
-            `#lighthouse-performance-${monitorName}`,
-            { visible: true, timeout: 600000 }
-        );
+        let lighthousePerformanceElement: $TSFixMe =
+            await init.pageWaitForSelector(
+                page,
+                `#lighthouse-performance-${monitorName}`,
+                { visible: true, timeout: 600000 }
+            );
         lighthousePerformanceElement =
             await lighthousePerformanceElement.getProperty('innerText');
         lighthousePerformanceElement =
             await lighthousePerformanceElement.jsonValue();
         lighthousePerformanceElement.should.endWith('%');
 
-        let lighthouseAccessibilityElement: $TSFixMe = await init.pageWaitForSelector(
-            page,
-            `#lighthouse-accessibility-${monitorName}`,
-            { visible: true, timeout: operationTimeOut }
-        );
+        let lighthouseAccessibilityElement: $TSFixMe =
+            await init.pageWaitForSelector(
+                page,
+                `#lighthouse-accessibility-${monitorName}`,
+                { visible: true, timeout: operationTimeOut }
+            );
         lighthouseAccessibilityElement =
             await lighthouseAccessibilityElement.getProperty('innerText');
         lighthouseAccessibilityElement =
             await lighthouseAccessibilityElement.jsonValue();
         lighthouseAccessibilityElement.should.endWith('%');
 
-        let lighthouseBestPracticesElement: $TSFixMe = await init.pageWaitForSelector(
-            page,
-            `#lighthouse-bestPractices-${monitorName}`,
-            { visible: true, timeout: operationTimeOut }
-        );
+        let lighthouseBestPracticesElement: $TSFixMe =
+            await init.pageWaitForSelector(
+                page,
+                `#lighthouse-bestPractices-${monitorName}`,
+                { visible: true, timeout: operationTimeOut }
+            );
         lighthouseBestPracticesElement =
             await lighthouseBestPracticesElement.getProperty('innerText');
         lighthouseBestPracticesElement =

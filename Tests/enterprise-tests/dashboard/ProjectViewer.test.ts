@@ -4,11 +4,11 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const subProjectName: $TSFixMe: string = utils.generateRandomString();
-const newProjectName: $TSFixMe: string = utils.generateRandomString();
-const statusPageName: $TSFixMe: string = utils.generateRandomString();
+const subProjectName: string = utils.generateRandomString();
+const newProjectName: string = utils.generateRandomString();
+const statusPageName: string = utils.generateRandomString();
 const projectViewer: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',

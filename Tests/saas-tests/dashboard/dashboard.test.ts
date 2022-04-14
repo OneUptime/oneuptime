@@ -13,8 +13,8 @@ const user: $TSFixMe = {
 describe('Monitor API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
 
-    const componentName: $TSFixMe: string = utils.generateRandomString();
-    const monitorName: $TSFixMe: string = utils.generateRandomString();
+    const componentName: string = utils.generateRandomString();
+    const monitorName: string = utils.generateRandomString();
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);

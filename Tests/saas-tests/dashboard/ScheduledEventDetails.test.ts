@@ -5,13 +5,13 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
-const anotherEmail: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
+const anotherEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const scheduledEventName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const scheduledEventName: string = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,
@@ -268,7 +268,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         );
         // create multiple notes
         for (let i = 0; i < 15; i++) {
-            const noteDescription: $TSFixMe: string = utils.generateRandomString();
+            const noteDescription: string = utils.generateRandomString();
             await init.addScheduledMaintenanceNote(
                 page,
                 'internal',

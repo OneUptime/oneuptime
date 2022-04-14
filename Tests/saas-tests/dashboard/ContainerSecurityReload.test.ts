@@ -7,8 +7,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const containerSecurityName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const containerSecurityName: string = utils.generateRandomString();
 
 const dockerRegistryUrl: $TSFixMe = utils.dockerCredential.dockerRegistryUrl;
 const dockerUsername: $TSFixMe = utils.dockerCredential.dockerUsername;

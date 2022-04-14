@@ -9,10 +9,10 @@ const existingSubscribers: string = `${__dirname}/MOCKS/existing.csv`;
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const componentName: $TSFixMe: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

@@ -6,7 +6,7 @@ import init from '../../test-init';
 import 'should';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const componentName: string = 'hackerbay';
 const monitorName: string = 'oneuptime';

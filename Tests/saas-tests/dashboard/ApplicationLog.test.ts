@@ -9,7 +9,7 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
 const applicationLogName: string = 'AppLogName';
 
 describe('Log Containers', () => {

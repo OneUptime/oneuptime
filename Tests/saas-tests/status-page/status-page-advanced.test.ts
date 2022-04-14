@@ -6,18 +6,18 @@ import init from '../../test-init';
 
 let page: $TSFixMe, browser: $TSFixMe;
 
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
 };
 
-const projectName: $TSFixMe: string = utils.generateRandomString();
-const statusPageName: $TSFixMe: string = utils.generateRandomString();
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const subscriberEmail: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const projectName: string = utils.generateRandomString();
+const statusPageName: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const subscriberEmail: Email = utils.generateRandomBusinessEmail();
 const customDomainWebsite: string = `www.${utils.generateRandomString()}.com`;
 
 describe('StatusPage Advanced Options', () => {

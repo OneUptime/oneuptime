@@ -8,7 +8,7 @@ import axios from 'axios';
 let page, browser: $TSFixMe;
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const queryString: string =
     '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';

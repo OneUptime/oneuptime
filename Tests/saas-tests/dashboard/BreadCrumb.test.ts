@@ -7,7 +7,7 @@ import 'should';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 const user: $TSFixMe = {
@@ -37,8 +37,8 @@ describe('BreadCrumb Component test', () => {
     test(
         'Should navigate between pages from the breadcrumbs',
         async (done: $TSFixMe) => {
-            const componentName: $TSFixMe: string = utils.generateRandomString();
-            const monitorName: $TSFixMe: string = utils.generateRandomString();
+            const componentName: string = utils.generateRandomString();
+            const monitorName: string = utils.generateRandomString();
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],

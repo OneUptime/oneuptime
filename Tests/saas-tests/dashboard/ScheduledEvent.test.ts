@@ -5,13 +5,13 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const scheduleMaintenanceName: $TSFixMe: string = utils.generateRandomString();
-const newScheduledMaintenanceName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const scheduleMaintenanceName: string = utils.generateRandomString();
+const newScheduledMaintenanceName: string = utils.generateRandomString();
 
 const user: $TSFixMe = {
     email,

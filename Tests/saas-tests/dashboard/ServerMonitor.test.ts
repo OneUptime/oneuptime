@@ -18,7 +18,7 @@ try {
 import 'should';
 
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Server Monitor API', () => {
@@ -44,8 +44,8 @@ describe('Server Monitor API', () => {
         done();
     });
 
-    const componentName: $TSFixMe: string = utils.generateRandomString();
-    const monitorName: $TSFixMe: string = utils.generateRandomString();
+    const componentName: string = utils.generateRandomString();
+    const monitorName: string = utils.generateRandomString();
 
     test(
         'should create offline incident if no data is uploaded in 3 minutes after creating server monitor',
@@ -131,10 +131,14 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
-                visible: true,
-                timeout: operationTimeOut,
-            });
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitorId',
+                {
+                    visible: true,
+                    timeout: operationTimeOut,
+                }
+            );
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
@@ -210,10 +214,14 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
-                visible: true,
-                timeout: operationTimeOut,
-            });
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitorId',
+                {
+                    visible: true,
+                    timeout: operationTimeOut,
+                }
+            );
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
@@ -284,10 +292,14 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
-                visible: true,
-                timeout: operationTimeOut,
-            });
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitorId',
+                {
+                    visible: true,
+                    timeout: operationTimeOut,
+                }
+            );
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 
@@ -358,10 +370,14 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
-                visible: true,
-                timeout: operationTimeOut,
-            });
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitorId',
+                {
+                    visible: true,
+                    timeout: operationTimeOut,
+                }
+            );
             monitorId = await monitorId.getProperty('innerText');
             monitorId = await monitorId.jsonValue();
 

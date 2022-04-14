@@ -7,10 +7,10 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const componentName: $TSFixMe: string = utils.generateRandomString();
-const monitorName: $TSFixMe: string = utils.generateRandomString();
-const onCallName: $TSFixMe: string = utils.generateRandomString();
-const projectName: $TSFixMe: string = utils.generateRandomString();
+const componentName: string = utils.generateRandomString();
+const monitorName: string = utils.generateRandomString();
+const onCallName: string = utils.generateRandomString();
+const projectName: string = utils.generateRandomString();
 
 /** This is a test to check:
  * No errors on page reload

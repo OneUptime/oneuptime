@@ -5,10 +5,10 @@ import init from '../../test-init';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let subProjectName = utils.generateRandomString();
-const newSubProjectName: $TSFixMe: string = utils.generateRandomString();
+const newSubProjectName: string = utils.generateRandomString();
 
 describe('Sub-Project API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -117,7 +117,7 @@ describe('Sub-Project API', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
 
             await init.pageClick(page, '#projectSettings');
-            const editSubProjectName: $TSFixMe: string = utils.generateRandomString();
+            const editSubProjectName: string = utils.generateRandomString();
 
             await init.pageClick(page, `#sub_project_edit_${subProjectName}`);
 
@@ -240,7 +240,10 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, 'button[id=removeSubProject]');
 
-            let modalTitle: $TSFixMe = await init.page$(page, 'span#modalTitle');
+            let modalTitle: $TSFixMe = await init.page$(
+                page,
+                'span#modalTitle'
+            );
             modalTitle = await modalTitle.getProperty('innerText');
             modalTitle = await modalTitle.jsonValue();
             expect(modalTitle).toEqual('Confirm API Reset');

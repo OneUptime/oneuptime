@@ -6,7 +6,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
-const email: $TSFixMe: Email = utils.generateRandomBusinessEmail();
+const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,
@@ -63,26 +63,30 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let sendCreatedIncidentNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#sendCreatedIncidentNotificationEmail',
-                (elem: $TSFixMe) => elem.value
-            );
-            let sendAcknowledgedIncidentNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#sendAcknowledgedIncidentNotificationEmail',
-                (elem: $TSFixMe) => elem.value
-            );
-            let sendResolvedIncidentNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#sendResolvedIncidentNotificationEmail',
-                (elem: $TSFixMe) => elem.value
-            );
-            let sendInvestigationNoteNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#enableInvestigationNoteNotificationEmail',
-                (elem: $TSFixMe) => elem.value
-            );
+            let sendCreatedIncidentNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#sendCreatedIncidentNotificationEmail',
+                    (elem: $TSFixMe) => elem.value
+                );
+            let sendAcknowledgedIncidentNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#sendAcknowledgedIncidentNotificationEmail',
+                    (elem: $TSFixMe) => elem.value
+                );
+            let sendResolvedIncidentNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#sendResolvedIncidentNotificationEmail',
+                    (elem: $TSFixMe) => elem.value
+                );
+            let sendInvestigationNoteNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#enableInvestigationNoteNotificationEmail',
+                    (elem: $TSFixMe) => elem.value
+                );
             sendCreatedIncidentNotification = utils.parseBoolean(
                 sendCreatedIncidentNotification
             );
@@ -393,26 +397,30 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let sendCreatedIncidentNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#sendCreatedIncidentNotificationSms',
-                (elem: $TSFixMe) => elem.value
-            );
-            let sendAcknowledgedIncidentNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#sendAcknowledgedIncidentNotificationSms',
-                (elem: $TSFixMe) => elem.value
-            );
-            let sendResolvedIncidentNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#sendResolvedIncidentNotificationSms',
-                (elem: $TSFixMe) => elem.value
-            );
-            let sendInvestigationNoteNotification: $TSFixMe = await init.page$Eval(
-                page,
-                '#enableInvestigationNoteNotificationSMS',
-                (elem: $TSFixMe) => elem.value
-            );
+            let sendCreatedIncidentNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#sendCreatedIncidentNotificationSms',
+                    (elem: $TSFixMe) => elem.value
+                );
+            let sendAcknowledgedIncidentNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#sendAcknowledgedIncidentNotificationSms',
+                    (elem: $TSFixMe) => elem.value
+                );
+            let sendResolvedIncidentNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#sendResolvedIncidentNotificationSms',
+                    (elem: $TSFixMe) => elem.value
+                );
+            let sendInvestigationNoteNotification: $TSFixMe =
+                await init.page$Eval(
+                    page,
+                    '#enableInvestigationNoteNotificationSMS',
+                    (elem: $TSFixMe) => elem.value
+                );
             sendCreatedIncidentNotification = utils.parseBoolean(
                 sendCreatedIncidentNotification
             );
