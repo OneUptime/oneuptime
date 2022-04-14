@@ -760,12 +760,12 @@ export const updateTwoFactorAuthToken: Function = (
         const promise: $TSFixMe = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const payload: $TSFixMe = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -814,12 +814,12 @@ export function fetchUserloginHistory(
         );
         dispatch(fetchUserHistoryRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const payload: $TSFixMe = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchUserHistoryError(error));
             }
         );

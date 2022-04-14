@@ -42,7 +42,7 @@ export function fetchIncidentPriorities(
                     fetchIncidentPrioritiesSuccess(incidentsPriorities.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchIncidentPrioritiesFailure(error));
             }
         );
@@ -63,7 +63,7 @@ export const createIncidentPriority: Function = (
             (incidentPriority): void => {
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createIncidentPriorityFailure(error));
             }
         );
@@ -105,7 +105,7 @@ export const updateIncidentPriority: Function = (
             (incidentPriority): void => {
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateIncidentPriorityFailure(error));
             }
         );
@@ -145,7 +145,7 @@ export const deleteIncidentPriority: Function = (
             (incidentPriority): void => {
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteIncidentPriorityFailure(error));
             }
         );

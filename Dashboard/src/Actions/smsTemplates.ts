@@ -42,7 +42,7 @@ export const getSmsTemplates: Function = (projectId: ObjectID): void => {
             (sms): void => {
                 dispatch(smsTemplatesSuccess(sms.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(smsTemplatesError(error));
             }
         );
@@ -141,7 +141,7 @@ export const resetSmsTemplates: Function = (
             (sms): void => {
                 dispatch(resetSmsTemplatesSuccess(sms.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetSmsTemplatesError(error));
             }
         );
@@ -192,7 +192,7 @@ export const getSmtpConfig: Function = (projectId: ObjectID): void => {
 
                 dispatch(smtpConfigSuccess(data.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(smtpConfigError(error));
             }
         );
@@ -223,7 +223,7 @@ export const postSmtpConfig: Function = (
                     });
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(smtpConfigError(error));
             }
         );
@@ -275,7 +275,7 @@ export const deleteSmtpConfig: Function = (
                     });
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteSmtpConfigError(error));
             }
         );
@@ -310,7 +310,7 @@ export function updateSmtpConfig(
                     });
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(smtpConfigError(error));
             }
         );

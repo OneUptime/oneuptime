@@ -34,10 +34,10 @@ export const fetchTimeMetrics: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchTimeMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -85,10 +85,10 @@ export const fetchThroughputMetrics: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchThroughputMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -136,10 +136,10 @@ export const fetchErrorMetrics: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchErrorMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -259,10 +259,10 @@ export const fetchIncomingMetrics: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchIncomingMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -309,10 +309,10 @@ export const fetchOutgoingMetrics: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchOutgoingMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -380,10 +380,10 @@ export const deleteIncomingMetrics: $TSFixMe =
             delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteIncomingMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -430,10 +430,10 @@ export const deleteOutgoingMetrics: $TSFixMe =
             delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteOutgoingMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

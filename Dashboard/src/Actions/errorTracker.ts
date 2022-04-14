@@ -23,7 +23,7 @@ export function createErrorTracker(
             (errorTracker): void => {
                 dispatch(createErrorTrackerSuccess(errorTracker.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -89,7 +89,7 @@ export const fetchErrorTrackersByProject: Function = (
                     fetchErrorTrackersSuccess(errorTrackers.data.errorTrackers)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -115,7 +115,7 @@ export function fetchErrorTrackers(
             (errorTrackers): void => {
                 dispatch(fetchErrorTrackersSuccess(errorTrackers.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -175,7 +175,7 @@ export function fetchErrorTrackerIssues(
         dispatch(fetchErrorTrackerIssuesRequest(errorTrackerId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     fetchErrorTrackerIssuesSuccess({
                         errorTrackerId,
@@ -190,7 +190,7 @@ export function fetchErrorTrackerIssues(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchErrorTrackerIssuesFailure(error));
             }
         );
@@ -245,7 +245,7 @@ export function fetchErrorEvent(
         dispatch(fetchErrorEventRequest(errorTrackerId, errorEventId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     fetchErrorEventSuccess({
                         errorTrackerId,
@@ -261,7 +261,7 @@ export function fetchErrorEvent(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchErrorEventFailure(error));
             }
         );
@@ -327,7 +327,7 @@ export function deleteErrorTracker(
             (errorTracker): void => {
                 dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     deleteErrorTrackerFailure({
                         error: error,
@@ -392,7 +392,7 @@ export function editErrorTracker(
             (errorTracker): void => {
                 dispatch(editErrorTrackerSuccess(errorTracker.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -451,7 +451,7 @@ export function resetErrorTrackerKey(
             (errorTracker): void => {
                 dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetErrorTrackerKeyFailure(error));
             }
         );
@@ -505,7 +505,7 @@ export function ignoreErrorEvent(
         dispatch(ignoreErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     ignoreErrorEventSuccess({
                         errorTrackerId,
@@ -514,7 +514,7 @@ export function ignoreErrorEvent(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(ignoreErrorEventFailure(error));
             }
         );
@@ -570,7 +570,7 @@ export function unresolveErrorEvent(
         dispatch(unresolveErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     unresolveErrorEventSuccess({
                         errorTrackerId,
@@ -579,7 +579,7 @@ export function unresolveErrorEvent(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(unresolveErrorEventFailure(error));
             }
         );
@@ -635,7 +635,7 @@ export function resolveErrorEvent(
         dispatch(resolveErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     resolveErrorEventSuccess({
                         errorTrackerId,
@@ -644,7 +644,7 @@ export function resolveErrorEvent(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resolveErrorEventFailure(error));
             }
         );
@@ -707,7 +707,7 @@ export function updateErrorEventMember(
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     updateErrorEventMemberSuccess({
                         errorTrackerId,
@@ -717,7 +717,7 @@ export function updateErrorEventMember(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateErrorEventMemberFailure(error));
             }
         );
@@ -778,7 +778,7 @@ export function deleteErrorTrackerIssue(
             (errorTracker): void => {
                 dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     deleteErrorTrackerIssueFailure({
                         error: error,

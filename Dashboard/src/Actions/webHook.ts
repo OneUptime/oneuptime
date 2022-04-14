@@ -49,7 +49,7 @@ export const deleteWebHook: Function = (
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteWebHookError(error));
             }
         );
@@ -99,7 +99,7 @@ export function getWebHook(
             (webhooks): void => {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getWebHookError(error));
             }
         );
@@ -127,7 +127,7 @@ export function getWebHookMonitor(
             (webhooks): void => {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getWebHookError(error));
             }
         );
@@ -181,7 +181,7 @@ export const createWebHook: Function = (
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createWebHookError(error));
             }
         );
@@ -234,7 +234,7 @@ export function updateWebHook(
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateWebHookError(error));
             }
         );

@@ -54,7 +54,7 @@ export const getSubProjects: Function = (
                 };
                 dispatch(subProjectsSuccess(subData));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(subProjectsError(error));
             }
         );
@@ -123,7 +123,7 @@ export function createSubProject(
 
                 return subProject.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createSubProjectError(error));
                 return { error };
             }
@@ -181,7 +181,7 @@ export const resetSubProjectToken: Function = (
             (subProject): void => {
                 dispatch(resetSubProjectTokenSuccess(subProject));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetSubProjectTokenError(error));
             }
         );
@@ -242,7 +242,7 @@ export function renameSubProject(
                 dispatch(renameSubProjectSuccess(project));
                 return project;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(renameSubProjectError(error));
                 return { error };
             }
@@ -304,7 +304,7 @@ export const deleteSubProject: Function = (
                 dispatch(deleteSubProjectSuccess(subProjectId));
                 return subProjectId;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteSubProjectError(error));
                 return { error };
             }
@@ -351,7 +351,7 @@ export function exitSubProject(
             (): void => {
                 dispatch(exitSubProjectSuccess({ projectId, userId }));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(exitSubProjectError(error));
             }
         );
@@ -408,7 +408,7 @@ export function markSubProjectForDelete(
             (): void => {
                 dispatch(markSubProjectForDeleteSuccess(projectId));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(markSubProjectForDeleteError(error));
             }
         );

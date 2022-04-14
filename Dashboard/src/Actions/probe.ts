@@ -61,7 +61,7 @@ export function getProbes(
 
                 dispatch(probeSuccess(probes.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(probeError(error));
             }
         );

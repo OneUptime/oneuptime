@@ -54,7 +54,7 @@ export const loginUser: Function = (values: $TSFixMe): void => {
             (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }

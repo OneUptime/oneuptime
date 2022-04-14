@@ -89,12 +89,12 @@ export const updateProfileSetting: Function = (values: $TSFixMe): void => {
         const promise: $TSFixMe = BackendAPI.put('user/profile', data);
         dispatch(updateProfileSettingRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const profileSettings: $TSFixMe = response.data;
                 dispatch(updateProfileSettingSuccess(profileSettings));
                 return profileSettings;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateProfileSettingError(error));
             }
         );
@@ -112,12 +112,12 @@ export const updatePushNotification: Function = (data: $TSFixMe): void => {
         );
         dispatch(updatePushNotificationRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const profileSettings: $TSFixMe = response.data;
                 dispatch(updatePushNotificationSuccess(profileSettings));
                 return profileSettings;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updatePushNotificationError(error));
             }
         );
@@ -159,12 +159,12 @@ export const verifyTwoFactorAuthToken: Function = (values: $TSFixMe): void => {
         );
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const payload: $TSFixMe = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -203,12 +203,12 @@ export const generateTwoFactorQRCode: Function = (userId: ObjectID): void => {
         const promise: $TSFixMe = BackendAPI.post(`user/totp/token/${userId}`);
         dispatch(generateTwoFactorQRCodeRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const payload: $TSFixMe = response.data;
                 dispatch(generateTwoFactorQRCodeSuccess(payload));
                 return payload;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(generateTwoFactorQRCodeError(error));
             }
         );
@@ -224,12 +224,12 @@ export const updateTwoFactorAuthToken: Function = (data: $TSFixMe): void => {
         const promise: $TSFixMe = BackendAPI.put('user/profile', data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const payload: $TSFixMe = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -272,7 +272,7 @@ export const updateChangePasswordSetting: Function = (data: $TSFixMe): void => {
                 dispatch(updateChangePasswordSettingSuccess());
                 return {};
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateChangePasswordSettingError(error));
             }
         );
@@ -323,12 +323,12 @@ export const userSettings: Function = (): void => {
         dispatch(userSettingsRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const settings: $TSFixMe = response.data;
                 dispatch(userSettingsSuccess(settings));
                 return settings;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(userSettingsError(error));
             }
         );
@@ -416,7 +416,7 @@ export const sendEmailVerificationLink: Function = (values: $TSFixMe): void => {
                 dispatch(sendEmailVerificationSuccess(data));
                 return data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(sendEmailVerificationError(error));
             }
         );
@@ -435,12 +435,12 @@ export const sendVerificationSMS: Function = (
         dispatch(sendVerificationSMSRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const vericationAction: $TSFixMe = response.data;
                 dispatch(sendVerificationSMSSuccess(vericationAction));
                 return vericationAction;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(sendVerificationSMSError(error));
             }
         );
@@ -488,12 +488,12 @@ export const verifySMSCode: Function = (
         dispatch(verifySMSCodeRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const verificationResult: $TSFixMe = response.data;
                 dispatch(verifySMSCodeSuccess(verificationResult));
                 return verificationResult;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(verifySMSCodeError(error));
             }
         );
@@ -626,11 +626,11 @@ export const deleteAccount: Function = (
         dispatch(deleteAccountRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteAccountSuccess(response.data));
                 return response;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteAccountFailure(error));
             }
         );
@@ -660,11 +660,11 @@ export const generateBackupCodes: Function = (): void => {
         dispatch(generateBackupCodesRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(generateBackupCodesSuccess(response.data));
                 return response;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(generateBackupCodesFailure(error));
             }
         );

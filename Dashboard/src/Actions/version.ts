@@ -41,7 +41,7 @@ export const getVersion: Function = (): void => {
             (versions): void => {
                 dispatch(getVersionSuccess(versions.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getVersionError(error));
             }
         );

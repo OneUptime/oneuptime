@@ -49,7 +49,7 @@ export function fetchSchedules(
             (schedule): void => {
                 dispatch(scheduleSuccess(schedule.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(scheduleError(error));
             }
         );
@@ -107,7 +107,7 @@ export const fetchSubProjectSchedules: Function = (
             (schedule): void => {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(subProjectScheduleError(error));
             }
         );
@@ -161,7 +161,7 @@ export function fetchProjectSchedule(
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(projectScheduleError(error));
             }
         );
@@ -210,7 +210,7 @@ export const createSchedule: Function = (
             (schedule): void => {
                 dispatch(createScheduleSuccess(schedule.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createScheduleError(error));
             }
         );
@@ -267,7 +267,7 @@ export function renameSchedule(
                 (schedule): void => {
                     dispatch(renameScheduleSuccess(schedule));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -348,7 +348,7 @@ export const deleteSchedule: Function = (
                     dispatch(fetchSchedules(projectId));
                     return dispatch(deleteScheduleSuccess({ data }));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -418,7 +418,7 @@ export function addMonitors(
                 (schedule): void => {
                     dispatch(addMonitorSuccess(schedule));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -488,7 +488,7 @@ export function addUsers(
                 (schedule): void => {
                     dispatch(addUserSuccess(schedule));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -559,7 +559,7 @@ export function addEscalation(
             (escalation): void => {
                 dispatch(escalationSuccess(escalation));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(escalationError(error));
             }
         );
@@ -583,7 +583,7 @@ export const getEscalation: Function = (
             (escalation): void => {
                 dispatch(escalationSuccess(escalation.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(escalationError(error));
             }
         );
@@ -661,7 +661,7 @@ export const fetchUserSchedule: Function = (
             (schedule): void => {
                 dispatch(userScheduleSuccess(schedule.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(userScheduleError(error));
             }
         );

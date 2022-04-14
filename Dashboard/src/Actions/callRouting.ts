@@ -25,7 +25,7 @@ export function getCallRoutingNumbers(
             (numbers): void => {
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getCallRoutingNumbersFailure(error));
             }
         );
@@ -76,7 +76,7 @@ export const getTeamAndSchedules: Function = (projectId: ObjectID): void => {
                 };
                 dispatch(getTeamAndSchedulesSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getTeamAndSchedulesFailure(error));
             }
         );
@@ -122,7 +122,7 @@ export const addCallRoutingNumber: Function = (
             (number): void => {
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -196,7 +196,7 @@ export function uploadCallRoutingAudio(
                     )
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -270,7 +270,7 @@ export function addCallRoutingSchedule(
             (data): void => {
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -329,7 +329,7 @@ export function fetchNumbers(
             (numbers): void => {
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchNumbersFailure(error));
             }
         );
@@ -380,7 +380,7 @@ export const removeNumbers: Function = (
             (numbers): void => {
                 dispatch(removeNumbersSuccess(numbers.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(removeNumbersFailure(error));
             }
         );
@@ -435,7 +435,7 @@ export function getCallRoutingLogs(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getCallRoutingLogsFailure(error));
             }
         );
@@ -490,7 +490,7 @@ export function removeIntroAudio(
             (numbers): void => {
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(removeIntroAudioFailure(error, backup));
             }
         );

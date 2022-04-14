@@ -33,10 +33,10 @@ export const createStatusPageCategory: $TSFixMe =
         dispatch(createStatusPageCategoryRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createStatusPageCategorySuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createStatusPageCategoryFailure(error));
             }
         );
@@ -74,10 +74,10 @@ export const updateStatusPageCategory: $TSFixMe =
         dispatch(updateStatusPageCategoryRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updateStatusPageCategorySuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageCategoryFailure(error));
             }
         );
@@ -118,10 +118,10 @@ export const fetchStatusPageCategories: $TSFixMe =
         dispatch(fetchStatusPageCategoriesRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchStatusPageCategoriesSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchStatusPageCategoriesFailure(error));
             }
         );
@@ -162,10 +162,10 @@ export const fetchAllStatusPageCategories: $TSFixMe =
         dispatch(fetchAllStatusPageCategoriesRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchAllStatusPageCategoriesSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchAllStatusPageCategoriesFailure(error));
             }
         );
@@ -199,10 +199,10 @@ export const deleteStatusPageCategory: $TSFixMe =
         dispatch(updateStatusPageCategoryRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updateStatusPageCategorySuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageCategoryFailure(error));
             }
         );

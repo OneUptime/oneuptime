@@ -102,7 +102,7 @@ export const signupUser: Function = (values: $TSFixMe): void => {
                     dispatch(loginSuccess(user.data));
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(signupError(error));
             }
         );
@@ -175,10 +175,10 @@ export const isUserInvited: Function = (values: $TSFixMe): void => {
         );
         dispatch(isUserInvitedRequest(promise));
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(isUserInvitedSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(isUserInvitedError(error));
             }
         );
@@ -221,7 +221,7 @@ export const addCard: Function = (data: $TSFixMe): void => {
             (card): void => {
                 dispatch(addCardSuccess(card.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(addCardFailed(error));
             }
         );
@@ -240,10 +240,10 @@ export const getEmailFromToken: Function = (token: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise: $TSFixMe = BackendAPI.get(`user/${token}/email`);
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(getEmailSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getEmailSuccess(error));
             }
         );

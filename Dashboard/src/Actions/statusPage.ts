@@ -60,12 +60,12 @@ export const uploadCertFile: Function = (
             );
             dispatch(uploadCertFileRequest());
             promise.then(
-                (response): void => {
+                (response: $TSFixMe): void => {
                     const data: $TSFixMe = response.data;
                     dispatch(uploadCertFileSuccess(data.cert));
                     return data;
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -130,12 +130,12 @@ export const uploadPrivateKey: Function = (
             );
             dispatch(uploadPrivateKeyRequest());
             promise.then(
-                (response): void => {
+                (response: $TSFixMe): void => {
                     const data: $TSFixMe = response.data;
                     dispatch(uploadPrivateKeySuccess(data.privateKey));
                     return data;
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -194,13 +194,13 @@ export const updateStatusPageSetting: Function = (
         );
         dispatch(updateStatusPageSettingRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageSettingSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageSettingError(error));
             }
         );
@@ -248,11 +248,11 @@ export function updateStatusPageMonitors(
         dispatch(updateStatusPageMonitorsRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageMonitorsSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageMonitorsError(error));
             }
         );
@@ -299,12 +299,12 @@ export const updatePrivateStatusPage: Function = (
         dispatch(updatePrivateStatusPageRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updatePrivateStatusPageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updatePrivateStatusPageError(error));
             }
         );
@@ -349,12 +349,12 @@ export function updateStatusPageLanguage(
         dispatch(updateStatusPageLanguageRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageLanguageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageLanguageError(error));
             }
         );
@@ -399,11 +399,11 @@ export const updateSubscriberOption: Function = (
         dispatch(updateSubscriberOptionRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateSubscriberOptionSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateSubscriberOptionError(error));
             }
         );
@@ -532,11 +532,11 @@ export function updateStatusPageBranding(
         dispatch(updateStatusPageBrandingRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageBrandingSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageBrandingError(error));
             }
         );
@@ -557,12 +557,12 @@ export const updateTheme: Function = (
         dispatch(updateStatusPageThemeRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageThemeSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageThemeError(error));
             }
         );
@@ -583,11 +583,11 @@ export const updateStatusPageName: Function = (
         dispatch(updateStatusPageNameRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageNameSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageNameError(error));
             }
         );
@@ -634,11 +634,11 @@ export const updateStatusPageLinks: Function = (
         dispatch(updateStatusPageLinksRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageLinksSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageLinksError(error));
             }
         );
@@ -685,11 +685,11 @@ export function updateStatusPageCustomHTML(
         dispatch(updateStatusPageCustomHTMLRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageCustomHTMLError(error));
             }
         );
@@ -745,12 +745,12 @@ export function fetchProjectStatusPage(
         }
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchProjectStatusPageError(error));
             }
         );
@@ -804,11 +804,11 @@ export function fetchSubProjectStatusPages(
         }
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchSubProjectStatusPagesError(error));
             }
         );
@@ -860,10 +860,10 @@ export function fetchIncidentStatusPages(
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchIncidentStatusPagesSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchIncidentStatusPagesError(error));
             }
         );
@@ -908,11 +908,11 @@ export function resetStatusBubbleId(
         );
         dispatch(resetStatusBubbleIdRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(resetStatusBubbleIdSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetStatusBubbleIdError(error));
             }
         );
@@ -959,11 +959,11 @@ export function deleteStatusPage(
             delete (`StatusPage/${projectId}/${statusPageSlug}`, null);
         dispatch(deleteStatusPageRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
                 dispatch(deleteStatusPageSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteStatusPageError(error));
             }
         );
@@ -1007,14 +1007,14 @@ export const readStatusPage: Function = (
         );
         dispatch(duplicateStatusPageRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPageData: $TSFixMe = response.data;
                 delete statusPageData._id;
                 delete statusPageData.slug;
                 statusPageData.name = data.name;
                 return response;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -1034,10 +1034,10 @@ export function createDuplicateStatusPage(
             : `StatusPage/${projectId}/${statusPageSlug}/duplicateStatusPage`;
         const promise: $TSFixMe = BackendAPI.post(url, data);
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 return response;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -1051,14 +1051,14 @@ export const fetchStatusPage: Function = (statusPageSlug: $TSFixMe): void => {
             `StatusPage/${statusPageSlug}`
         );
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPageData: $TSFixMe = response.data;
                 dispatch(duplicateStatusPageSuccess(statusPageData));
                 dispatch(
                     fetchProjectStatusPage(statusPageData.projectId._id, true)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -1110,14 +1110,14 @@ export function updateStatusPageEmbeddedCss(
         );
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageEmbeddedCssSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageEmbeddedCssError(error));
             }
         );
@@ -1162,11 +1162,11 @@ export function resetBrandingColors(
         );
         dispatch(resetBrandingColorsRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const colors: $TSFixMe = response.data;
                 dispatch(resetBrandingColorsSuccess(colors));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetBrandingColorsError(error));
             }
         );
@@ -1213,13 +1213,13 @@ export function resetStatusPageEmbeddedCss(
         );
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(resetStatusPageEmbeddedCssSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetStatusPageEmbeddedCssError(error));
             }
         );
@@ -1263,14 +1263,14 @@ export const updateStatusPageLayout: Function = (
         );
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const statusPage: $TSFixMe = response.data;
                 dispatch(updateStatusPageLayoutSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateStatusPageLayoutError(error));
             }
         );
@@ -1311,10 +1311,10 @@ export function fetchStatusPageSubscribers(
         );
         dispatch(fetchSubscriberRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchSubscriberSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchSubscriberFailure(error));
             }
         );
@@ -1358,12 +1358,12 @@ export function createExternalStatusPage(
         );
         dispatch(createExternalStatusPageRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createExternalStatusPageFailure(error));
                 return error;
             }
@@ -1409,12 +1409,12 @@ export function updateExternalStatusPage(
         );
         dispatch(updateExternalStatusPageRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updateExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateExternalStatusPageFailure(error));
                 return error;
             }
@@ -1458,12 +1458,12 @@ export function fetchExternalStatusPages(
         );
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchExternalStatusPagesFailure(error));
                 return error;
             }
@@ -1507,12 +1507,12 @@ export function deleteExternalStatusPage(
         );
         dispatch(deleteExternalStatusPageRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteExternalStatusPageFailure(error));
                 return error;
             }
@@ -1556,12 +1556,12 @@ export function createAnnouncement(
         );
         dispatch(createAnnouncementRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createAnnouncementSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1584,12 +1584,12 @@ export function updateAnnouncement(
         );
         dispatch(createAnnouncementRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createAnnouncementSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1633,10 +1633,10 @@ export function fetchAnnouncements(
         );
         dispatch(fetchAnnouncementRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchAnnouncementSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchAnnouncementFailure(error));
             }
         );
@@ -1680,10 +1680,10 @@ export function fetchAnnouncementLogs(
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1719,10 +1719,10 @@ export function fetchSingleAnnouncement(
             `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchSingleAnnouncementSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchSingleAnnouncementFailure(error));
             }
         );
@@ -1789,10 +1789,10 @@ export function deleteAnnouncement(
             delete `StatusPage/${projectId}/announcement/${announcementId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteAnnouncementFailure(error));
             }
         );
@@ -1809,10 +1809,10 @@ export function deleteAnnouncementLog(
             delete `StatusPage/${projectId}/announcementLog/${announcementLogId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteAnnouncementFailure(error));
             }
         );

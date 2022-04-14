@@ -54,10 +54,10 @@ export const createPerformanceTracker: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createPerformanceTrackerSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -105,10 +105,10 @@ export const fetchPerformanceTracker: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchPerformanceTrackerSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -165,10 +165,10 @@ export const fetchPerformanceTrackers: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchPerformanceTrackersSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -217,10 +217,10 @@ export const updatePerformanceTracker: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updatePerformanceTrackerSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -268,10 +268,10 @@ export const deletePerformanceTracker: $TSFixMe =
             delete `performanceTracker/${projectId}/tracker/${performanceTrackerId}`;
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deletePerformanceTrackerSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -320,10 +320,10 @@ export const resetPerformanceTrackerKey: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(resetPerformanceTrackerKeySuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -366,10 +366,10 @@ export const removeQuickStart: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(removeQuickStartSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -415,10 +415,10 @@ export const fetchLastMetrics: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchLastMetricsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

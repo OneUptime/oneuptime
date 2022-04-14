@@ -31,10 +31,10 @@ export const createIncidentNoteTemplate: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createIncidentNoteTemplateSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -78,10 +78,10 @@ export const fetchIncidentNoteTemplates: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchIncidentNoteTemplatesSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -126,10 +126,10 @@ export const updateIncidentNoteTemplate: $TSFixMe =
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updateIncidentNoteTemplateSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -173,10 +173,10 @@ export const deleteIncidentNoteTemplate: $TSFixMe =
             delete `incidentNoteTemplate/${projectId}/${templateId}`;
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteIncidentNoteTemplateSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

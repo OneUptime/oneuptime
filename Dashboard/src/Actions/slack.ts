@@ -51,7 +51,7 @@ export const deleteSlackLink: Function = (
 
                 return teams.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteSlackLinkError(error));
             }
         );
@@ -105,7 +105,7 @@ export function getSlackTeams(
             (teams): void => {
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getSlackTeamsError(error));
             }
         );

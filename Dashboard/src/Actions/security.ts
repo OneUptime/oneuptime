@@ -395,10 +395,10 @@ export function editContainerSecurity({
         dispatch(editContainerSecurityRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(editContainerSecuritySuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -807,10 +807,10 @@ export function editApplicationSecurity({
         dispatch(editApplicationSecurityRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

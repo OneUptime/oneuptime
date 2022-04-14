@@ -28,7 +28,7 @@ export const fetchMonitors: Function = (
             (monitors): void => {
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchMonitorsFailure(error));
             }
         );
@@ -85,7 +85,7 @@ export function fetchPaginatedMonitors({
             (monitors): void => {
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchPaginatedMonitorsFailure(error));
             }
         );
@@ -141,7 +141,7 @@ export const createMonitor: Function = (
 
                 return monitor.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -176,12 +176,12 @@ export const uploadIdentityFile: Function = (
             );
             dispatch(uploadIdentityFileRequest());
             promise.then(
-                (response): void => {
+                (response: $TSFixMe): void => {
                     const data: $TSFixMe = response.data;
                     dispatch(logFile(data.identityFile));
                     return data;
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -263,12 +263,12 @@ export const uploadConfigurationFile: Function = (
             );
             dispatch(uploadConfigurationFileRequest());
             promise.then(
-                (response): void => {
+                (response: $TSFixMe): void => {
                     const data: $TSFixMe = response.data;
                     dispatch(logConfigFile(data.configurationFile));
                     return data;
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -352,7 +352,7 @@ export const editMonitor: Function = (
             (monitor): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -428,7 +428,7 @@ export function addSiteUrl(
             (monitor): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -465,7 +465,7 @@ export function deleteSiteUrl(
             (monitor): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -499,7 +499,7 @@ export const deleteMonitor: Function = (
             (monitor): void => {
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteMonitorFailure({ error: error, monitorId }));
             }
         );
@@ -562,7 +562,7 @@ export const disableMonitor: Function = (
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(disableMonitorFailure({ error: error, monitorId }));
             }
         );
@@ -703,7 +703,7 @@ export function fetchMonitorsIncidents(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchMonitorsIncidentsFailure(error));
             }
         );
@@ -767,7 +767,7 @@ export function fetchMonitorsSubscribers(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchMonitorsSubscribersFailure(error));
             }
         );
@@ -829,7 +829,7 @@ export function fetchMonitorLogs(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -909,7 +909,7 @@ export function fetchMonitorStatuses(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -963,7 +963,7 @@ export const fetchMonitorCriteria: Function = (): void => {
             (monitorCriteria): void => {
                 dispatch(fetchMonitorCriteriaSuccess(monitorCriteria));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -1073,7 +1073,7 @@ export function getMonitorLogs(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getMonitorLogsFailure({ monitorId, error: error }));
             }
         );
@@ -1133,7 +1133,7 @@ export function fetchLighthouseLogs(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchLighthouseLogsFailure(error));
             }
         );
@@ -1181,7 +1181,7 @@ export const fetchMonitorIssue: Function = (
             (monitorIssue): void => {
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchMonitorIssueFailure(error));
             }
         );
@@ -1228,7 +1228,7 @@ export const addSeat: Function = (projectId: ObjectID): void => {
 
                 dispatch(addSeatSuccess(monitor.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }

@@ -51,7 +51,7 @@ export const getProbes: Function = (skip = 0, limit = 10): void => {
 
                 dispatch(probeSuccess(probes.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(probeError(error));
             }
         );

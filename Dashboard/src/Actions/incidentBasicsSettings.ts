@@ -32,7 +32,7 @@ export const fetchBasicIncidentSettingsVariables: Function = (): void => {
                     )
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchBasicIncidentSettingsVariablesFailure(error));
             }
         );
@@ -79,7 +79,7 @@ export const fetchIncidentTemplates: $TSFixMe =
                     fetchIncidentTemplatesSuccess(incidentBasicSettings.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchIncidentTemplatesFailure(error));
             }
         );
@@ -119,7 +119,7 @@ export const createIncidentTemplate: $TSFixMe =
                     createIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createIncidentTemplateFailure(error));
             }
         );
@@ -159,7 +159,7 @@ export const updateIncidentTemplate: $TSFixMe =
                     updateIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateIncidentTemplateFailure(error));
             }
         );
@@ -199,7 +199,7 @@ export const deleteIncidentTemplate: $TSFixMe =
                     deleteIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteIncidentTemplateFailure(error));
             }
         );
@@ -237,7 +237,7 @@ export const setDefaultTemplate: $TSFixMe =
             (incidentBasicSettings): void => {
                 dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(setDefaultTemplateFailure(error));
             }
         );
@@ -283,7 +283,7 @@ export const fetchDefaultTemplate: $TSFixMe =
                     fetchDefaultTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchDefaultTemplateFailure(error));
             }
         );

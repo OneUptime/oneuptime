@@ -46,7 +46,7 @@ export const resetPassword: Function = (values: $TSFixMe): void => {
             (data): void => {
                 dispatch(resetPasswordSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetPasswordError(error));
             }
         );

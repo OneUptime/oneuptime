@@ -61,7 +61,7 @@ export function getProjectIncidents(
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(projectIncidentsError(error));
             }
         );
@@ -101,7 +101,7 @@ export function getProjectComponentIncidents(
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(projectIncidentsError(error));
             }
         );
@@ -147,7 +147,7 @@ export const getIncidents: Function = (projectId: ObjectID): void => {
             (incidents): void => {
                 dispatch(incidentsSuccess(incidents.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(incidentsError(error));
             }
         );
@@ -168,7 +168,7 @@ export function getComponentIncidents(
             (incidents): void => {
                 dispatch(incidentsSuccess(incidents.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(incidentsError(error));
             }
         );
@@ -251,7 +251,7 @@ export function createNewIncident(
 
                 dispatch(createIncidentSuccess(createIncident.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createIncidentError(error));
             }
         );
@@ -338,7 +338,7 @@ export const getIncident: Function = (
             (incident): void => {
                 dispatch(incidentSuccess(incident.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(incidentError(error));
             }
         );
@@ -370,7 +370,7 @@ export function getIncidentTimeline(
             (timeline): void => {
                 dispatch(incidentTimelineSuccess(timeline.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(incidentTimelineError(error));
             }
         );
@@ -481,7 +481,7 @@ export function acknowledgeIncident(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (multiple) {
                     dispatch(
                         incidentError({
@@ -579,7 +579,7 @@ export function resolveIncident(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (multiple) {
                     dispatch(
                         incidentError({
@@ -638,7 +638,7 @@ export const closeIncident: Function = (
             (incident): void => {
                 dispatch(closeIncidentSuccess(incident.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(closeIncidentError(error));
             }
         );
@@ -699,7 +699,7 @@ export const fetchUnresolvedIncidents: Function = (
             (incidents): void => {
                 dispatch(UnresolvedIncidentsSuccess(incidents.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(UnresolvedIncidentsError(error));
             }
         );
@@ -766,7 +766,7 @@ export function setInvestigationNote(
             (incidents): void => {
                 dispatch(investigationNoteSuccess(incidents.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(investigationNoteError(error, isUpdate));
             }
         );
@@ -837,7 +837,7 @@ export function setInternalNote(
                     dispatch(internalNoteSuccess(incidents.data));
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(internalNoteError(error, isUpdate));
             }
         );
@@ -886,7 +886,7 @@ export const deleteIncident: Function = (
             (incident): void => {
                 dispatch(deleteIncidentSuccess(incident.data._id));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteIncidentFailure({ error: error, incidentId }));
             }
         );
@@ -923,7 +923,7 @@ export const hideIncident: Function = (data: $TSFixMe): void => {
             (incident): void => {
                 dispatch(hideIncidentSuccess(incident));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(hideIncidentFailure({ error: error, incidentId }));
             }
         );
@@ -954,7 +954,7 @@ export function fetchIncidentMessages(
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     fetchIncidentMessagesSuccess({
                         incidentId: incidentSlug,
@@ -969,7 +969,7 @@ export function fetchIncidentMessages(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     fetchIncidentMessagesFailure({
                         incidentId: incidentSlug,
@@ -1055,7 +1055,7 @@ export function deleteIncidentMessage(
                     );
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     deleteIncidentMessageFailure({
                         error: error,
@@ -1120,7 +1120,7 @@ export function updateIncident(
             (incident): void => {
                 dispatch(updateIncidentSuccess(incident.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateIncidentFailure(error));
             }
         );

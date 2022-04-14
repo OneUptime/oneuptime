@@ -140,14 +140,14 @@ export const userCreate: Function = (
         const promise: $TSFixMe = BackendAPI.post(`team/${projectId}`, values);
         dispatch(userCreateRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
                 const projectUsers: $TSFixMe = data.filter(
                     (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(userCreateSuccess(projectUsers.team));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(userCreateError(error));
             }
         );
@@ -267,14 +267,14 @@ export const userUpdateRole: Function = (
         dispatch(userUpdateRoleRequest(values.teamMemberId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const data: $TSFixMe = response.data;
                 const projectUsers: $TSFixMe = data.filter(
                     (user: $TSFixMe) => user.projectId === projectId
                 )[0];
                 dispatch(userUpdateRoleSuccess(projectUsers));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(userUpdateRoleError(error));
             }
         );
@@ -369,7 +369,7 @@ export const teamDelete: Function = (
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 const team: $TSFixMe = response.data;
                 const projectTeam: $TSFixMe = team.filter(
                     (team: $TSFixMe) => team.projectId === projectId
@@ -377,7 +377,7 @@ export const teamDelete: Function = (
                 dispatch(teamDeleteSuccess(projectTeam.team));
                 return { team };
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -1018,12 +1018,12 @@ export const deleteProjectDomain: Function = ({
         const promise: $TSFixMe =
             delete `domainVerificationToken/${projectId}/domain/${domainId}`;
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteProjectDomainSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMessage: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -1137,10 +1137,10 @@ export const unVerifyProjectDomain: Function = (
             `domainVerificationToken/${projectId}/unverify/${domainId}`
         );
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(unVerifyProjectDomainSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMessage: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -1195,10 +1195,10 @@ export const resetProjectDomain: Function = (
             `domainVerificationToken/${projectId}/resetDomain/${domainId}`
         );
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(resetProjectDomainSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMessage: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

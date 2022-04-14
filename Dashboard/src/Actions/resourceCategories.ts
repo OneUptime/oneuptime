@@ -30,7 +30,7 @@ export function fetchResourceCategories(
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchResourceCategoriesFailure(error));
             }
         );
@@ -77,7 +77,7 @@ export const createResourceCategory: Function = (
             (resourceCategory): void => {
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -114,7 +114,7 @@ export function updateResourceCategory(
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -196,7 +196,7 @@ export function deleteResourceCategory(
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteResourceCategoryFailure({ error: error }));
             }
         );
@@ -248,7 +248,7 @@ export const fetchResourceCategoriesForNewResource: Function = (
                     )
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchResourceCategoriesForNewResourceFailure(error));
             }
         );

@@ -82,7 +82,7 @@ export function getInvoice(
                     dispatch(decrementNextCount());
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getInvoiceError(error));
             }
         );

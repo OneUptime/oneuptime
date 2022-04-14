@@ -41,10 +41,10 @@ export const changePassword: Function = (values: $TSFixMe): void => {
         dispatch(changePasswordRequest(promise));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(changePasswordSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(changePasswordError(error));
             }
         );

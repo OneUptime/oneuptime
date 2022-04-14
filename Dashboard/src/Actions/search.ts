@@ -58,7 +58,7 @@ export const search: Function = (
                 const search: $TSFixMe = result.data;
                 dispatch(searchSuccess(search.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(searchFailure(error));
             }
         );

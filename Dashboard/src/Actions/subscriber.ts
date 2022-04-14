@@ -55,7 +55,7 @@ export function createSubscriber(
             (createSubscriber): void => {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createSubscriberError(error));
             }
         );
@@ -114,7 +114,7 @@ export function exportCSV(
 
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(exportCsvError(error));
             }
         );
@@ -174,7 +174,7 @@ export const deleteSubscriber: Function = (
                     payload: subscriber.data,
                 });
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteSubscriberError(error));
             }
         );
@@ -245,7 +245,7 @@ export function importSubscribersFromCsvFile(
             (createSubscriber): void => {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createSubscriberError(error));
             }
         );

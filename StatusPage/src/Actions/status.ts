@@ -891,7 +891,7 @@ export function fetchMonitorStatuses(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -958,7 +958,7 @@ export function fetchMonitorLogs(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -1436,10 +1436,10 @@ export function getAnnouncements(
         );
         dispatch(getAnnouncementsRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(getAnnouncementsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -1490,10 +1490,10 @@ export function getSingleAnnouncement(
         );
         dispatch(getSingleAnnouncementRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -1545,10 +1545,10 @@ export function fetchAnnouncementLogs(
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1594,10 +1594,10 @@ export function calculateTime(
         );
         dispatch(calculateTimeRequest(monitorId));
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(calculateTimeSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(calculateTimeFailure(error));
             }
         );
@@ -1640,10 +1640,10 @@ export const fetchTweets: Function = (
 
         dispatch(fetchTweetsRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchTweetsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchTweetsFailure(error));
             }
         );
@@ -1686,10 +1686,10 @@ export function fetchExternalStatusPages(
 
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchExternalStatusPagesFailure(error));
             }
         );

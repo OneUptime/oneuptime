@@ -43,7 +43,7 @@ export const fetchAlert: Function = (projectId: ObjectID): void => {
             (payload): void => {
                 dispatch(alertSuccess(payload.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(alertError(error));
             }
         );
@@ -99,7 +99,7 @@ export function fetchProjectAlert(
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(projectAlertError(error));
             }
         );
@@ -155,7 +155,7 @@ export function fetchIncidentAlert(
             (alerts): void => {
                 dispatch(incidentAlertSuccess(alerts.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(incidentAlertError(error));
             }
         );
@@ -223,7 +223,7 @@ export function fetchSubscriberAlert(
             (alerts): void => {
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(subscriberAlertError(error));
             }
         );
@@ -278,7 +278,7 @@ export function fetchAlertCharges(
             (alertCharges): void => {
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchAlertChargesFailed(error));
             }
         );
@@ -325,7 +325,7 @@ export const downloadAlertCharges: Function = (projectId: ObjectID): void => {
             (alertCharges): void => {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(downloadAlertChargesFailed(error));
             }
         );

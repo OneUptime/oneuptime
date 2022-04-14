@@ -33,7 +33,7 @@ export const fetchComponents: Function = ({
             (components): void => {
                 dispatch(fetchComponentsSuccess(components.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchComponentsFailure(error));
             }
         );
@@ -84,10 +84,10 @@ export function fetchPaginatedComponents({
         dispatch(fetchPaginatedComponentsRequest(projectId));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchPaginatedComponentsFailure(error, projectId));
             }
         );
@@ -140,7 +140,7 @@ export const createComponent: Function = (
             (component): void => {
                 dispatch(createComponentSuccess(component.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -205,7 +205,7 @@ export const editComponent: Function = (
             (component): void => {
                 dispatch(editComponentSuccess(component.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -278,7 +278,7 @@ export const deleteComponent: Function = (
             (component): void => {
                 dispatch(deleteComponentSuccess(component.data._id));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     deleteComponentFailure({
                         error: error,
@@ -340,7 +340,7 @@ export const addSeat: Function = (projectId: ObjectID): void => {
 
                 dispatch(addSeatSuccess(component.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -404,7 +404,7 @@ export function fetchComponentResources(
             (components): void => {
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchComponentResourcesFailure(error));
             }
         );
@@ -464,7 +464,7 @@ export function fetchComponentSummary(
             (components): void => {
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchComponentSummaryFailure(error));
             }
         );
@@ -549,7 +549,7 @@ export const fetchComponent: Function = (
             (component): void => {
                 dispatch(fetchComponentSuccess(component.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchComponentFailure(error));
             }
         );

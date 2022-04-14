@@ -416,7 +416,7 @@ export function updateScheduledEvent(
             (scheduledEvent): void => {
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data
@@ -801,7 +801,7 @@ export const fetchScheduledEvent: Function = (
             (component): void => {
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

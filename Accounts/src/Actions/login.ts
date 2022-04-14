@@ -116,7 +116,7 @@ export const loginUser: Function = (values: $TSFixMe): void => {
             (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error.message === 'Verify your email first.') {
                     dispatch(resendToken(values));
                     dispatch({
@@ -178,7 +178,7 @@ export const verifyAuthToken: Function = (values: $TSFixMe): void => {
             (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(verifyTokenError(error));
             }
         );
@@ -227,7 +227,7 @@ export const verifyBackupCode: Function = (values: $TSFixMe): void => {
             (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(useBackupCodeError(error));
             }
         );
@@ -278,10 +278,10 @@ export const checkIfMasterAdminExists: Function = (values: $TSFixMe): void => {
         );
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(masterAdminExistsSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(masterAdminExistsError(error));
             }
         );

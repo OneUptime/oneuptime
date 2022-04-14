@@ -19,10 +19,10 @@ export const createSso: Function = ({ data }: $TSFixMe): void => {
         dispatch(createSsoRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createSsoSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createSsoFailure(error));
             }
         );
@@ -56,10 +56,10 @@ export const fetchSsos: Function = ({
         dispatch(fetchSsosRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchSsosSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchSsosFailure(error));
             }
         );
@@ -84,10 +84,10 @@ export const fetchSso: Function = (ssoId: $TSFixMe): void => {
         dispatch(fetchSsoRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchSsoSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchSsoFailure(error));
             }
         );
@@ -112,10 +112,10 @@ export const updateSso: Function = ({ id, data }: $TSFixMe): void => {
         dispatch(updateSsoRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updateSsoSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateSsoFailure(error));
             }
         );
@@ -140,10 +140,10 @@ export const deleteSso: Function = (ssoId: $TSFixMe): void => {
         dispatch(deleteSsoRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteSsoSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteSsoFailure(error));
             }
         );

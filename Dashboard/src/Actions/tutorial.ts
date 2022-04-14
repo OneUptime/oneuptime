@@ -69,7 +69,7 @@ export const fetchTutorial: Function = (): void => {
             (tutorial): void => {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchTutorialError(error));
             }
         );
@@ -92,7 +92,7 @@ export const closeTutorial: Function = (
             (tutorial): void => {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(closeTutorialError(error));
             }
         );

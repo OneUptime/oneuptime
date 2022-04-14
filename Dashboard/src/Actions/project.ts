@@ -178,7 +178,7 @@ export const getProjects: Function = (switchToProjectId: ObjectID): void => {
                         dispatch(switchProject(dispatch, projects[0]));
                 }
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(projectsError(error));
             }
         );
@@ -218,7 +218,7 @@ export const getProjectBalance: Function = (projectId: ObjectID): void => {
             (balance): void => {
                 dispatch(getProjectBalanceSuccess(balance.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getprojectError(error));
             }
         );
@@ -269,7 +269,7 @@ export const createProject: Function = (values: $TSFixMe): void => {
 
                 return project.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createProjectError(error));
             }
         );
@@ -469,7 +469,7 @@ export const resetProjectToken: Function = (projectId: ObjectID): void => {
                 (project): void => {
                     dispatch(resetProjectTokenSuccess(project));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -538,7 +538,7 @@ export const renameProject: Function = (
                     dispatch(renameProjectSuccess(project));
                     return project;
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -602,7 +602,7 @@ export const deleteProject: Function = (
                 dispatch(deleteProjectMonitors(projectId));
                 dispatch(deleteProjectStatusPages(projectId));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteProjectError(error));
             }
         );
@@ -662,7 +662,7 @@ export function changePlan(
                 (project): void => {
                     dispatch(changePlanSuccess(project));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -706,7 +706,7 @@ export function upgradeToEnterpriseMail(
                 (project): void => {
                     dispatch(changePlanSuccess(project));
                 },
-                (error): void => {
+                (error: $TSFixMe): void => {
                     if (error && error.response && error.response.data) {
                         error = error.response.data;
                     }
@@ -764,7 +764,7 @@ export const exitProject: Function = (
             (): void => {
                 dispatch(exitProjectSuccess({ projectId, userId }));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(exitProjectError(error));
             }
         );
@@ -822,7 +822,7 @@ export const markProjectForDelete: Function = (
             (): void => {
                 dispatch(markProjectForDeleteSuccess(projectId));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(markProjectForDeleteError(error));
             }
         );
@@ -871,7 +871,7 @@ export const alertOptionsUpdate: Function = (
             (project): void => {
                 dispatch(alertOptionsUpdateSuccess(project));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(alertOptionsUpdateError(error));
             }
         );
@@ -915,7 +915,7 @@ export const addBalance: Function = (
             (pi): void => {
                 dispatch(addBalanceSuccess(pi));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(addBalanceError(error));
             }
         );
@@ -1005,7 +1005,7 @@ export const checkCard: Function = (data: $TSFixMe): void => {
             (card): void => {
                 dispatch(checkCardSuccess(card.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(checkCardFailed(error));
             }
         );
@@ -1500,10 +1500,10 @@ export const fetchTrial: Function = (projectId: ObjectID): void => {
         dispatch(fetchTrialRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchTrialSuccess(response));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchTrialError(error));
             }
         );
@@ -1543,10 +1543,10 @@ export const fetchProjectSlug: Function = (slug: $TSFixMe): void => {
         dispatch(fetchProjectSlugRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchProjectSlugSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 const errorMsg: $TSFixMe =
                     error.response && error.response.data
                         ? error.response.data

@@ -49,7 +49,7 @@ export const deleteMsTeams: Function = (
 
                 return msTeams.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteMsTeamsError(error));
             }
         );
@@ -101,7 +101,7 @@ export function getMsTeams(
             (webhooks): void => {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -129,7 +129,7 @@ export function getMsTeamsMonitor(
             (webhooks): void => {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -182,7 +182,7 @@ export const createMsTeams: Function = (
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createMsTeamsError(error));
             }
         );
@@ -235,7 +235,7 @@ export function updateMsTeams(
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateMsTeamsError(error));
             }
         );

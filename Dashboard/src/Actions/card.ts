@@ -36,7 +36,7 @@ export const addCard: Function = (userId: ObjectID, token: $TSFixMe): void => {
             (card): void => {
                 dispatch(addCardSuccess(card.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(addCardFailed(error));
             }
         );
@@ -74,7 +74,7 @@ export const fetchCards: Function = (userId: ObjectID): void => {
             (cards): void => {
                 dispatch(fetchCardsSuccess(cards.data.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchCardsFailed(error));
             }
         );
@@ -117,7 +117,7 @@ export const deleteCard: Function = (
             (card): void => {
                 dispatch(deleteCardSuccess(card.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteCardFailed(error));
             }
         );
@@ -168,7 +168,7 @@ export const setDefaultCard: Function = (
                 dispatch(setDefaultCardSuccess(card.data));
                 dispatch(fetchCards(userId));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(setDefaultCardFailed(error));
             }
         );

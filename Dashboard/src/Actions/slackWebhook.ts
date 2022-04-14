@@ -48,7 +48,7 @@ export const deleteSlack: Function = (
 
                 return msTeams.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteSlackError(error));
             }
         );
@@ -100,7 +100,7 @@ export const getSlack: Function = (
             (webhooks): void => {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getSlackError(error));
             }
         );
@@ -128,7 +128,7 @@ export function getSlackMonitor(
             (webhooks): void => {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(getSlackError(error));
             }
         );
@@ -181,7 +181,7 @@ export const createSlack: Function = (
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createSlackError(error));
             }
         );
@@ -234,7 +234,7 @@ export function updateSlack(
 
                 return webhook.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(updateSlackError(error));
             }
         );

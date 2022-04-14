@@ -45,7 +45,7 @@ export const resendToken: Function = (values: $TSFixMe): void => {
             (data): void => {
                 dispatch(resendTokenSuccess(data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resendTokenError(error));
             }
         );

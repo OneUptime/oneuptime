@@ -51,12 +51,12 @@ export const createAutomatedScript: Function = (
         dispatch(createAutomatedScriptRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(createAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -118,12 +118,12 @@ export function updateAutomatedScript(
         dispatch(updateAutomatedScriptRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(updateAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -185,10 +185,10 @@ export function fetchSingleAutomatedScript(
         dispatch(fetchSingleAutomatedScriptRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchSingleAutomatedScriptSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -237,10 +237,10 @@ export function fetchAutomatedScript(
         );
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchAutomatedScriptFailure(error));
             }
         );
@@ -280,12 +280,12 @@ export const runScript: Function = (
         dispatch(runAutomatedScriptRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(runAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(runAutomatedScriptFailure(error));
             }
         );
@@ -324,11 +324,11 @@ export function deleteAutomatedScript(
         dispatch(deleteAutomatedScriptRequest());
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(deleteAutomatedScriptSuccess(response.data));
                 return true;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(deleteAutomatedScriptFailure(error));
                 return false;
             }

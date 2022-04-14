@@ -61,7 +61,7 @@ export function createFeedback(
                 dispatch(createFeedbackSuccess(feedback));
                 return feedback;
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(createFeedbackError(error));
             }
         );

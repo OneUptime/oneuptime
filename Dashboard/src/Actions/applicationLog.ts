@@ -22,7 +22,7 @@ export function createApplicationLog(
             (applicationLog): void => {
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -89,7 +89,7 @@ export function fetchApplicationLogs(
             (applicationLogs): void => {
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchApplicationLogsFailure(error));
             }
         );
@@ -150,7 +150,7 @@ export function deleteApplicationLog(
             (applicationLog): void => {
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     deleteApplicationLogFailure({
                         error: error,
@@ -226,7 +226,7 @@ export function fetchLogs(
         dispatch(fetchLogsRequest({ applicationLogId }));
 
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -241,7 +241,7 @@ export function fetchLogs(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
@@ -293,7 +293,7 @@ export function resetApplicationLogKey(
             (applicationLog): void => {
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(resetApplicationLogKeyFailure(error));
             }
         );
@@ -355,7 +355,7 @@ export function editApplicationLog(
             (applicationLog): void => {
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -421,7 +421,7 @@ export function fetchStats(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(
                     fetchStatsFailure({
                         applicationLogId,
@@ -482,7 +482,7 @@ export function searchLog(
         );
         dispatch(fetchLogsRequest({ applicationLogId }));
         promise.then(
-            (response): void => {
+            (response: $TSFixMe): void => {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -493,7 +493,7 @@ export function searchLog(
                     })
                 );
             },
-            (error): void => {
+            (error: $TSFixMe): void => {
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
