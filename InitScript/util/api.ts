@@ -20,7 +20,7 @@ const _this: $TSFixMe = {
                 headers,
                 data,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {

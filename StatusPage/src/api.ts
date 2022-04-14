@@ -20,7 +20,7 @@ export const post: Function = (url: URL, data: $TSFixMe): void => {
                 headers,
                 data,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response);
                 })
                 .then((error: Error) => {
@@ -43,7 +43,7 @@ export const get: Function = (url: URL): void => {
                 url: `${API_URL}/${url}`,
                 headers,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response);
                 })
                 .then((error: Error) => {
@@ -67,7 +67,7 @@ export const put: Function = (url: URL, data: $TSFixMe): void => {
                 headers,
                 data,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response);
                 })
                 .then((error: Error) => {

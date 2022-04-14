@@ -25,7 +25,7 @@ const _this: $TSFixMe = {
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {

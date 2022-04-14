@@ -23,7 +23,7 @@ const _this: $TSFixMe = {
                 headers,
                 data,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -46,7 +46,7 @@ const _this: $TSFixMe = {
                 url: `${config.serverUrl}/${url}`,
                 headers,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -70,7 +70,7 @@ const _this: $TSFixMe = {
                 headers,
                 data,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -94,7 +94,7 @@ const _this: $TSFixMe = {
                 headers,
                 data,
             })
-                .then((response: $TSFixME) => {
+                .then((response: $TSFixMe) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
