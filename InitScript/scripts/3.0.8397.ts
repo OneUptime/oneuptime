@@ -7,7 +7,7 @@ async function run(): void {
         hideIncident: { $exists: false },
     });
 
-    for (let i = 0; i < incidents.length; i++) {
+    for (let i: $TSFixMe = 0; i < incidents.length; i++) {
         const incident: $TSFixMe = incidents[i];
         await update(
             incidentsCollection,

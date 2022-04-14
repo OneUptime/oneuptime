@@ -86,8 +86,8 @@ describe('Probe bar test', () => {
             await page.goto(link);
 
             // To confirm if the probe shows after creating a status.
-            const probeBar = await page.evaluate(() => {
-                const el = document.querySelector('.bs-probes');
+            const probeBar: $TSFixMe = await page.evaluate(() => {
+                const el: $TSFixMe = document.querySelector('.bs-probes');
 
                 return el ? el.innerText : '';
             });

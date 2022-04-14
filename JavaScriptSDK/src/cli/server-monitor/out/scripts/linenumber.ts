@@ -1,9 +1,9 @@
 (() => {
-    const source = document.getElementsByClassName(
+    const source: $TSFixMe = document.getElementsByClassName(
         'prettyprint source linenums'
     );
-    let i = 0;
-    let lineNumber = 0;
+    let i: $TSFixMe = 0;
+    let lineNumber: $TSFixMe = 0;
     let lineId;
     let lines;
     let totalLines;

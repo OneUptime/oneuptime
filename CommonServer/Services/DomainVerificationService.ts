@@ -161,8 +161,8 @@ export default class Service {
             query: { _id: projectId },
             select: '_id parentProjectId',
         });
-        let projectList = [project._id];
-        let subProjects = [];
+        let projectList: $TSFixMe = [project._id];
+        let subProjects: $TSFixMe = [];
         if (project.parentProjectId) {
             projectList.push(
                 project.parentProjectId._id || project.parentProjectId

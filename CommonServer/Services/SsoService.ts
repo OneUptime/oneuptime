@@ -101,7 +101,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        let domainExists = null;
+        let domainExists: $TSFixMe = null;
         if (data.domain) {
             domainExists = await this.findOneBy({
                 query: { domain: data.domain, _id: { $ne: query._id } },

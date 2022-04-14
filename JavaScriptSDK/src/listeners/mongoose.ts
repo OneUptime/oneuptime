@@ -11,16 +11,16 @@ class MongooseListener {
 
     wrapAsync(orig, name) {
         return async function (): void {
-            const uuid = uuidv4();
+            const uuid: $TSFixMe = uuidv4();
 
-            const operation = this.op;
+            const operation: $TSFixMe = this.op;
             name = name || `mongoose.${operation}`; // mongose Query.exec specific
-            const result = this.start(uuid, {
+            const result: $TSFixMe = this.start(uuid, {
                 path: operation,
                 type: 'mongoose',
             });
             try {
-                const res = await orig.apply(this, arguments);
+                const res: $TSFixMe = await orig.apply(this, arguments);
                 this.end(uuid, result, name);
                 return res;
             } catch (err) {
@@ -31,17 +31,17 @@ class MongooseListener {
     }
 
     _setUpMongooseListener(mod): void {
-        const proto = Object.getPrototypeOf(mod);
-        const exec = proto.Query.prototype.exec;
+        const proto: $TSFixMe = Object.getPrototypeOf(mod);
+        const exec: $TSFixMe = proto.Query.prototype.exec;
 
         proto.Query.prototype.exec = this.wrapAsync(exec);
 
-        const Model = proto.Model;
+        const Model: $TSFixMe = proto.Model;
 
-        const remove = Model.prototype.remove;
+        const remove: $TSFixMe = Model.prototype.remove;
         Model.prototype.remove = this.wrapAsync(remove, 'mongoose.remove');
 
-        const save = Model.prototype.save;
+        const save: $TSFixMe = Model.prototype.save;
         Model.prototype.save = this.wrapAsync(save, 'mongoose.save');
 
         return mod;

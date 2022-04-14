@@ -156,9 +156,9 @@ export const getProjects: Function = (switchToProjectId: ObjectID): void => {
                         dispatch(switchProject(dispatch, projects[0]));
                     }
                 } else {
-                    let projectSwitched = false;
+                    let projectSwitched: $TSFixMe = false;
 
-                    for (let i = 0; i < projects.length; i++) {
+                    for (let i: $TSFixMe = 0; i < projects.length; i++) {
                         if (projects[i]._id === switchToProjectId) {
                             dispatch(switchProject(dispatch, projects[i]));
                             projectSwitched = true;

@@ -174,7 +174,7 @@ export default class Service {
             query,
             select: '_id userIds monitorIds',
         });
-        let userIds = [];
+        let userIds: $TSFixMe = [];
         if (data.userIds) {
             for (const userId of data.userIds) {
                 userIds.push(userId);
@@ -183,7 +183,7 @@ export default class Service {
             userIds = schedule.userIds;
         }
         data.userIds = userIds;
-        let monitorIds = [];
+        let monitorIds: $TSFixMe = [];
         if (data.monitorIds) {
             for (const monitorId of data.monitorIds) {
                 monitorIds.push(monitorId);
@@ -307,7 +307,7 @@ export default class Service {
     ): void {
         const escalationIds: $TSFixMe = [];
         for (const data of escalations) {
-            let escalation = {};
+            let escalation: $TSFixMe = {};
             if (!data._id) {
                 escalation = await EscalationService.create(data);
             } else {

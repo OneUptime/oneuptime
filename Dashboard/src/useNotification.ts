@@ -32,7 +32,7 @@ function urlBase64ToUint8Array(base64String: $TSFixMe): void {
     const rawData: $TSFixMe = window.atob(base64);
     const outputArray: $TSFixMe = new Uint8Array(rawData.length);
 
-    for (let i = 0; i < rawData.length; ++i) {
+    for (let i: $TSFixMe = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;

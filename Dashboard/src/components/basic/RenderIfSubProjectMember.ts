@@ -10,7 +10,7 @@ function RenderIfSubProjectMember(props: $TSFixMe): void {
         props;
     const userId: $TSFixMe = User.getUserId();
 
-    let renderItems = null;
+    let renderItems: $TSFixMe = null;
     if (
         userId &&
         userId === currentUserId &&

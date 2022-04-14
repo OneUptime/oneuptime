@@ -21,7 +21,7 @@ const incidentRequest: $TSFixMe = {
 };
 
 describe('Incoming HTTP Request', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -122,11 +122,12 @@ describe('Incoming HTTP Request', () => {
                 hidden: true,
             });
 
-            const firstIncomingHttpRequest = await init.pageWaitForSelector(
-                page,
-                '#copyIncomingRequestBtn_0',
-                { visible: true, timeout: init.timeout }
-            );
+            const firstIncomingHttpRequest: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    '#copyIncomingRequestBtn_0',
+                    { visible: true, timeout: init.timeout }
+                );
             expect(firstIncomingHttpRequest).toBeDefined();
 
             done();
@@ -175,7 +176,7 @@ describe('Incoming HTTP Request', () => {
                 hidden: true,
             });
 
-            const updatedRequest = await init.pageWaitForSelector(
+            const updatedRequest: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incomingRequest_newName',
                 { visible: true, timeout: init.timeout }
@@ -227,7 +228,7 @@ describe('Incoming HTTP Request', () => {
                 hidden: true,
             });
 
-            const noIncomingRequest = await init.pageWaitForSelector(
+            const noIncomingRequest: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#noIncomingRequest',
                 { visible: true, timeout: init.timeout }

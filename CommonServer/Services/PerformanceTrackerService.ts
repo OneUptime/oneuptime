@@ -48,7 +48,7 @@ export default class Service {
 
         data.key = uuid.v4();
         // handle the slug
-        let name = data.name;
+        let name: $TSFixMe = data.name;
         name = slugify(name);
         name = `${name}-${generate('1234567890', 8)}`;
         data.slug = name.toLowerCase();
@@ -236,7 +236,7 @@ export default class Service {
         }
 
         if (data && data.name) {
-            let name = data.name;
+            let name: $TSFixMe = data.name;
             name = slugify(name);
             name = `${name}-${generate('1234567890', 8)}`;
             data.slug = name.toLowerCase();

@@ -145,54 +145,32 @@ router.post(
             const low: $TSFixMe = findLog.data.advisories
                 .filter((e: $TSFixMe) => e.severity === 'low')
                 .slice(0, 10);
-            const criticalWithTitle = critical.map((advisories: $TSFixMe) => {
-                const filter: $TSFixMe = advisories.via.filter(
-                    (e: $TSFixMe) => e.severity === advisories.severity
-                );
-                let filterBySeverity;
-                let filterByTitle;
-                //This is used to get the library name and description
-                if (filter.length > 0) {
-                    filterBySeverity = advisories.via.find(
+            const criticalWithTitle: $TSFixMe = critical.map(
+                (advisories: $TSFixMe) => {
+                    const filter: $TSFixMe = advisories.via.filter(
                         (e: $TSFixMe) => e.severity === advisories.severity
-                    ).severity;
-                    filterByTitle = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).title;
-                } else {
-                    filterBySeverity = 'Nil';
-                    filterByTitle = 'Nil';
+                    );
+                    let filterBySeverity;
+                    let filterByTitle;
+                    //This is used to get the library name and description
+                    if (filter.length > 0) {
+                        filterBySeverity = advisories.via.find(
+                            (e: $TSFixMe) => e.severity === advisories.severity
+                        ).severity;
+                        filterByTitle = advisories.via.find(
+                            (e: $TSFixMe) => e.severity === advisories.severity
+                        ).title;
+                    } else {
+                        filterBySeverity = 'Nil';
+                        filterByTitle = 'Nil';
+                    }
+                    advisories.severity === filterBySeverity
+                        ? (advisories.title = filterByTitle)
+                        : (advisories.title = 'Nil');
+                    return advisories;
                 }
-                advisories.severity === filterBySeverity
-                    ? (advisories.title = filterByTitle)
-                    : (advisories.title = 'Nil');
-                return advisories;
-            });
-            const highWithTitle = high.map((advisories: $TSFixMe) => {
-                const filter: $TSFixMe = advisories.via.filter(
-                    (e: $TSFixMe) => e.severity === advisories.severity
-                );
-                let filterBySeverity;
-                let filterByTitle;
-                //This is used to get the library name and description
-                if (filter.length > 0) {
-                    filterBySeverity = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).severity;
-                    filterByTitle = advisories.via.find(
-                        (e: $TSFixMe) => e.severity === advisories.severity
-                    ).title;
-                } else {
-                    filterBySeverity = 'Nil';
-                    filterByTitle = 'Nil';
-                }
-
-                advisories.severity === filterBySeverity
-                    ? (advisories.title = filterByTitle)
-                    : (advisories.title = 'Nil');
-                return advisories;
-            });
-            const moderateWithTitle = moderate.map((advisories: $TSFixMe) => {
+            );
+            const highWithTitle: $TSFixMe = high.map((advisories: $TSFixMe) => {
                 const filter: $TSFixMe = advisories.via.filter(
                     (e: $TSFixMe) => e.severity === advisories.severity
                 );
@@ -216,7 +194,33 @@ router.post(
                     : (advisories.title = 'Nil');
                 return advisories;
             });
-            const lowWithTitle = low.map((advisories: $TSFixMe) => {
+            const moderateWithTitle: $TSFixMe = moderate.map(
+                (advisories: $TSFixMe) => {
+                    const filter: $TSFixMe = advisories.via.filter(
+                        (e: $TSFixMe) => e.severity === advisories.severity
+                    );
+                    let filterBySeverity;
+                    let filterByTitle;
+                    //This is used to get the library name and description
+                    if (filter.length > 0) {
+                        filterBySeverity = advisories.via.find(
+                            (e: $TSFixMe) => e.severity === advisories.severity
+                        ).severity;
+                        filterByTitle = advisories.via.find(
+                            (e: $TSFixMe) => e.severity === advisories.severity
+                        ).title;
+                    } else {
+                        filterBySeverity = 'Nil';
+                        filterByTitle = 'Nil';
+                    }
+
+                    advisories.severity === filterBySeverity
+                        ? (advisories.title = filterByTitle)
+                        : (advisories.title = 'Nil');
+                    return advisories;
+                }
+            );
+            const lowWithTitle: $TSFixMe = low.map((advisories: $TSFixMe) => {
                 const filter: $TSFixMe = advisories.via.filter(
                     (e: $TSFixMe) => e.severity === advisories.severity
                 );
@@ -246,7 +250,7 @@ router.post(
             project.moderateIssues = moderateWithTitle;
             project.lowIssues = lowWithTitle;
 
-            for (let i = 0; i < userIds.length; i++) {
+            for (let i: $TSFixMe = 0; i < userIds.length; i++) {
                 const userId: $TSFixMe = userIds[i].id;
                 const user: $TSFixMe = await UserService.findOneBy({
                     query: { _id: userId },

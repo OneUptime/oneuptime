@@ -11,10 +11,11 @@ const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Credential Page', () => {
-    const operationTimeOut = init.timeout;
-    const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
-    const dockerUsername = utils.dockerCredential.dockerUsername;
-    const dockerPassword = utils.dockerCredential.dockerPassword;
+    const operationTimeOut: $TSFixMe = init.timeout;
+    const dockerRegistryUrl: $TSFixMe =
+        utils.dockerCredential.dockerRegistryUrl;
+    const dockerUsername: $TSFixMe = utils.dockerCredential.dockerUsername;
+    const dockerPassword: $TSFixMe = utils.dockerCredential.dockerPassword;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(operationTimeOut);
@@ -150,11 +151,10 @@ describe('Credential Page', () => {
 
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const credentialModalForm = await init.pageWaitForSelector(
-                page,
-                '#dockerCredentialForm',
-                { hidden: true }
-            );
+            const credentialModalForm: $TSFixMe =
+                await init.pageWaitForSelector(page, '#dockerCredentialForm', {
+                    hidden: true,
+                });
             expect(credentialModalForm).toBeNull();
 
             done();
@@ -202,7 +202,7 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            const updatedCredential = await init.pageWaitForSelector(
+            const updatedCredential: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#dockerUsername_${dockerUsername}`,
                 { visible: true, timeout: init.timeout }
@@ -253,11 +253,11 @@ describe('Credential Page', () => {
 
             await init.pageClick(page, '#updateCredentialModalBtn');
 
-            const updateCredentialError = await init.pageWaitForSelector(
-                page,
-                '#updateCredentialError',
-                { visible: true, timeout: operationTimeOut }
-            );
+            const updateCredentialError: $TSFixMe =
+                await init.pageWaitForSelector(page, '#updateCredentialError', {
+                    visible: true,
+                    timeout: operationTimeOut,
+                });
             expect(updateCredentialError).toBeDefined();
 
             done();
@@ -312,7 +312,7 @@ describe('Credential Page', () => {
 
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const addCredentialError = await init.pageWaitForSelector(
+            const addCredentialError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#addCredentialError',
                 { visible: true, timeout: operationTimeOut }
@@ -350,7 +350,10 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            const initialTableRow = await init.page$$(page, 'tbody tr');
+            const initialTableRow: $TSFixMe = await init.page$$(
+                page,
+                'tbody tr'
+            );
 
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
@@ -364,7 +367,7 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            const finalTableRow = await init.page$$(page, 'tbody tr');
+            const finalTableRow: $TSFixMe = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
 

@@ -12,7 +12,7 @@ const newPriorityName: string = utils.generateRandomString();
 const password: string = '1234567890';
 
 describe('Incident Priority API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -91,7 +91,7 @@ describe('Incident Priority API', () => {
             const lastRowFirstColumnIndentifier: string = `#priority_${priorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowFirstColumnIndentifier);
-            const content = await init.page$Eval(
+            const content: $TSFixMe = await init.page$Eval(
                 page,
                 lastRowFirstColumnIndentifier,
                 (e: $TSFixMe) => e.textContent
@@ -162,7 +162,7 @@ describe('Incident Priority API', () => {
             const lastRowIndentifier: string = `#priority_${newPriorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowIndentifier);
-            const content = await init.page$Eval(
+            const content: $TSFixMe = await init.page$Eval(
                 page,
                 lastRowIndentifier,
                 (e: $TSFixMe) => e.textContent
@@ -204,7 +204,7 @@ describe('Incident Priority API', () => {
             const incidentPrioritiesCount: string = '#incidentPrioritiesCount';
 
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
-            const incidentsCountBeforeDeletion = await init.page$Eval(
+            const incidentsCountBeforeDeletion: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritiesCount,
                 (e: $TSFixMe) => e.textContent
@@ -237,7 +237,7 @@ describe('Incident Priority API', () => {
             );
 
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
-            const incidentsCountAfterDeletion = await init.page$Eval(
+            const incidentsCountAfterDeletion: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritiesCount,
                 (e: $TSFixMe) => e.textContent
@@ -283,7 +283,7 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const incidentPrioritiesCountIdentifier =
+            const incidentPrioritiesCountIdentifier: $TSFixMe =
                 '#incidentPrioritiesCount';
 
             await init.pageWaitForSelector(
@@ -299,7 +299,7 @@ describe('Incident Priority API', () => {
                 'Page 1 of 1 (2 Priorities)'
             );
 
-            for (let i = 0; i < 11; i++) {
+            for (let i: $TSFixMe = 0; i < 11; i++) {
                 await init.pageWaitForSelector(page, '#addNewPriority');
 
                 await init.pageClick(page, '#addNewPriority');

@@ -11,7 +11,7 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Project', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -49,11 +49,14 @@ describe('Project', () => {
             );
             await page.reload({ waitUntil: 'networkidle0' });
 
-            const elem = await init.page$$(page, 'table > tbody > tr');
+            const elem: $TSFixMe = await init.page$$(
+                page,
+                'table > tbody > tr'
+            );
             elem[0].click();
 
             await page.waitForNavigation({ waitUntil: 'networkidle0' });
-            const planBox = await page.$('#planBox');
+            const planBox: $TSFixMe = await page.$('#planBox');
             expect(planBox).toBeNull();
         },
         operationTimeOut
@@ -70,7 +73,7 @@ describe('Project', () => {
 
             await init.pageClick(page, '#projects');
 
-            const firstProject = await init.pageWaitForSelector(
+            const firstProject: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#project_0',
                 {
@@ -96,7 +99,7 @@ describe('Project', () => {
                 hidden: true,
             });
 
-            const restoreBtn = await init.pageWaitForSelector(
+            const restoreBtn: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#restore',
                 {
@@ -122,7 +125,7 @@ describe('Project', () => {
 
             await init.pageClick(page, '#projects');
 
-            const firstProject = await init.pageWaitForSelector(
+            const firstProject: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#project_0',
                 {
@@ -138,10 +141,14 @@ describe('Project', () => {
 
             await init.pageClick(page, '#restore');
 
-            const deleteBtn = await init.pageWaitForSelector(page, '#delete', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const deleteBtn: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#delete',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(deleteBtn).toBeDefined();
 
             done();

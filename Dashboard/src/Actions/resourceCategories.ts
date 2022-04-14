@@ -12,7 +12,7 @@ export function fetchResourceCategories(
     skip = parseInt(skip);
     limit = parseInt(limit);
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         if (skip >= 0 && limit >= 0) {
             promise = BackendAPI.get(
                 `resourceCategory/${projectId}?skip=${skip}&limit=${limit}`

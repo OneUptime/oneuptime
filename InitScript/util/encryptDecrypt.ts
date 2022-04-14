@@ -12,7 +12,7 @@ export default {
                     key,
                     iv
                 );
-                let encoded = cipher.update(plainText, 'utf8', 'hex');
+                let encoded: $TSFixMe = cipher.update(plainText, 'utf8', 'hex');
                 encoded += cipher.final('hex');
                 resolve(encoded);
             } catch (error) {
@@ -30,7 +30,7 @@ export default {
                     key,
                     iv
                 );
-                let decoded = decipher.update(encText, 'hex', 'utf8');
+                let decoded: $TSFixMe = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
                 resolve(decoded);
             } catch (error) {

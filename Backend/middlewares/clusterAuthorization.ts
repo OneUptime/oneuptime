@@ -12,7 +12,7 @@ export default {
         res: ExpressResponse,
         next: NextFunction
     ): void {
-        let masterAdmin = false;
+        let masterAdmin: $TSFixMe = false;
 
         if (req.authorizationType === 'MASTER-ADMIN') {
             masterAdmin = true;

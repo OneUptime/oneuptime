@@ -31,9 +31,9 @@ export default {
 };
 
 const checkCondition: Function = async (condition: $TSFixMe): void => {
-    let response = false;
+    let response: $TSFixMe = false;
     if (condition && condition.and && condition.and.length) {
-        for (let i = 0; i < condition.and.length; i++) {
+        for (let i: $TSFixMe = 0; i < condition.and.length; i++) {
             if (
                 condition.and[i] &&
                 condition.and[i].responseType &&
@@ -55,7 +55,7 @@ const checkCondition: Function = async (condition: $TSFixMe): void => {
             }
         }
     } else if (condition && condition.or && condition.or.length) {
-        for (let i = 0; i < condition.or.length; i++) {
+        for (let i: $TSFixMe = 0; i < condition.or.length; i++) {
             if (
                 condition.or[i] &&
                 condition.or[i].responseType &&

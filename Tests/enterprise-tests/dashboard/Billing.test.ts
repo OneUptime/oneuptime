@@ -15,7 +15,7 @@ const user: $TSFixMe = {
 };
 
 describe('Enterprise Disabled Billing API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -45,7 +45,7 @@ describe('Enterprise Disabled Billing API', () => {
 
             await init.pageClick(page, '#projectSettings');
 
-            const projectBilling = await page.$('#billingSetting');
+            const projectBilling: $TSFixMe = await page.$('#billingSetting');
             expect(projectBilling).toBeNull();
             done();
         },
@@ -65,7 +65,7 @@ describe('Enterprise Disabled Billing API', () => {
 
             await init.pageClick(page, '#profile-menu');
 
-            const profileBilling = await page.$('#cbBilling');
+            const profileBilling: $TSFixMe = await page.$('#cbBilling');
             expect(profileBilling).toBeNull();
             done();
         },

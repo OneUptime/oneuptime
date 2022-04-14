@@ -37,7 +37,7 @@ export default class Service {
             await IncidentCommunicationSlaModel.create(data);
 
         if (data.monitors && data.monitors.length > 0) {
-            let monitorIds = [...data.monitors];
+            let monitorIds: $TSFixMe = [...data.monitors];
             monitorIds = [...new Set(monitorIds)];
             await MonitorService.updateManyIncidentCommunicationSla(
                 monitorIds,
@@ -130,7 +130,7 @@ export default class Service {
 
             const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {
-                let monitorIds = [...data.monitors];
+                let monitorIds: $TSFixMe = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
                 monitorIds = monitorIds.map(id => String(id));
                 initialMonitorIds.forEach((monitorId: $TSFixMe) => {
@@ -176,7 +176,7 @@ export default class Service {
             );
         }
 
-        let updatedIncidentCommunicationSla =
+        let updatedIncidentCommunicationSla: $TSFixMe =
             await IncidentCommunicationSlaModel.findOneAndUpdate(
                 query,
                 {

@@ -520,8 +520,8 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
 
         case 'ADD_INCIDENT_NOTE': {
-            let addToIncident = false;
-            let notes = [...state.incidentNotes.notes];
+            let addToIncident: $TSFixMe = false;
+            let notes: $TSFixMe = [...state.incidentNotes.notes];
             const noteData: $TSFixMe = state.notes.notes,
                 result: $TSFixMe = [];
             const check: $TSFixMe = noteData.find(
@@ -579,7 +579,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'UPDATE_INCIDENT_NOTE': {
-            let notes = [...state.incidentNotes.notes];
+            let notes: $TSFixMe = [...state.incidentNotes.notes];
             if (
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
@@ -761,9 +761,9 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
 
         case 'ADD_SCHEDULED_EVENT': {
-            let monitorInStatusPage = false;
-            let addEvent = false;
-            let addFutureEvent = false;
+            let monitorInStatusPage: $TSFixMe = false;
+            let addEvent: $TSFixMe = false;
+            let addFutureEvent: $TSFixMe = false;
 
             state.statusPage.monitors.map((monitorData: $TSFixMe) => {
                 action.payload.monitors.map((monitor: $TSFixMe) => {
@@ -818,8 +818,8 @@ export default (state = INITIAL_STATE, action: Action): void => {
         case 'DELETE_SCHEDULED_EVENT': {
             const currentDate: $TSFixMe = moment().format();
             const startDate: $TSFixMe = moment(action.payload.startDate).format();
-            let isFutureEvent = false;
-            let events = [];
+            let isFutureEvent: $TSFixMe = false;
+            let events: $TSFixMe = [];
             if (startDate > currentDate) {
                 isFutureEvent = true;
                 events = state.futureEvents.events.filter(
@@ -852,11 +852,11 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'UPDATE_SCHEDULED_EVENT': {
-            let addEvent = false;
-            let addFutureEvent = false;
-            let futureEventExist = false;
-            let eventExist = false;
-            let monitorInStatusPage = false;
+            let addEvent: $TSFixMe = false;
+            let addFutureEvent: $TSFixMe = false;
+            let futureEventExist: $TSFixMe = false;
+            let eventExist: $TSFixMe = false;
+            let monitorInStatusPage: $TSFixMe = false;
             const currentDate: $TSFixMe = moment().format();
             const startDate: $TSFixMe = moment(action.payload.startDate).format();
             const endDate: $TSFixMe = moment(action.payload.endDate).format();
@@ -874,7 +874,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 return monitorData;
             });
 
-            const updatedEvents = state.events.events.map(event: $TSFixMe => {
+            const updatedEvents: $TSFixMe = state.events.events.map(event: $TSFixMe => {
                 if (String(event._id) === String(action.payload._id)) {
                     eventExist = true;
 
@@ -883,7 +883,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 return event;
             });
 
-            const updatedFutureEvent = state.futureEvents.events.map(event: $TSFixMe => {
+            const updatedFutureEvent: $TSFixMe = state.futureEvents.events.map(event: $TSFixMe => {
                 if (String(event._id) === String(action.payload._id)) {
                     futureEventExist = true;
 
@@ -1480,8 +1480,8 @@ export default (state = INITIAL_STATE, action: Action): void => {
             };
 
         case 'ADD_EVENT_NOTE': {
-            let eventNotes = [...state.eventNoteList.eventNotes];
-            let increaseCount = false;
+            let eventNotes: $TSFixMe = [...state.eventNoteList.eventNotes];
+            let increaseCount: $TSFixMe = false;
             if (
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
@@ -1503,8 +1503,8 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'DELETE_EVENT_NOTE': {
-            let eventNotes = [...state.eventNoteList.eventNotes];
-            let reduceCount = false;
+            let eventNotes: $TSFixMe = [...state.eventNoteList.eventNotes];
+            let reduceCount: $TSFixMe = false;
             if (
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
@@ -1527,7 +1527,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'UPDATE_EVENT_NOTE': {
-            let eventNotes = [...state.eventNoteList.eventNotes];
+            let eventNotes: $TSFixMe = [...state.eventNoteList.eventNotes];
             if (
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
@@ -1685,12 +1685,12 @@ export default (state = INITIAL_STATE, action: Action): void => {
             };
 
         case 'INCIDENT_CREATED': {
-            let incidentFound = false;
+            let incidentFound: $TSFixMe = false;
 
             const statusPageMonitorIds: $TSFixMe = state.statusPage.monitors.map(
                 (monitorData: $TSFixMe) => String(monitorData.monitor._id)
             );
-            let notes = state.notes.notes.map(note => {
+            let notes: $TSFixMe = state.notes.notes.map(note => {
                 if (String(note._id) === String(action.payload._id)) {
                     incidentFound = true;
                 }
@@ -1740,7 +1740,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         }
 
         case 'INCIDENT_UPDATED': {
-            const notes = state.notes.notes.map(note: $TSFixMe => {
+            const notes: $TSFixMe = state.notes.notes.map(note: $TSFixMe => {
                 if (String(note._id) === String(action.payload._id)) {
                     note = action.payload;
                     return note;
@@ -1903,8 +1903,8 @@ export default (state = INITIAL_STATE, action: Action): void => {
 
         case 'INCIDENT_TIMELINE_CREATED': {
             const timelineIds: $TSFixMe = [];
-            let singleTimeline = false;
-            let timelines = state.lastIncidentTimelines.timelines.map(
+            let singleTimeline: $TSFixMe = false;
+            let timelines: $TSFixMe = state.lastIncidentTimelines.timelines.map(
                 timeline => {
                     if (
                         String(timeline.incidentId) ===

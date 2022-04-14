@@ -60,7 +60,7 @@ export const resetCloseTutorial: Function = (): void => {
 
 export const fetchTutorial: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(new Route('tutorial'));
 
         dispatch(fetchTutorialRequest(promise));
@@ -83,7 +83,7 @@ export const closeTutorial: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.put('tutorial', { type, projectId });
 
         dispatch(closeTutorialRequest(promise));

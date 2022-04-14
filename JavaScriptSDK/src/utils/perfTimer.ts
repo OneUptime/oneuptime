@@ -12,9 +12,9 @@ class PerfTimer {
         this.appKey = appKey;
         this.dataStore = new DataStore(this.apiUrl, this.appId, this.appKey);
         this.obs = new PerformanceObserver(list => {
-            const entry = list.getEntries()[0];
-            const id = entry.name.slice(entry.name.indexOf('-') + 1);
-            const originalValue = this.dataStore.getValue(id);
+            const entry: $TSFixMe = list.getEntries()[0];
+            const id: $TSFixMe = entry.name.slice(entry.name.indexOf('-') + 1);
+            const originalValue: $TSFixMe = this.dataStore.getValue(id);
             if (originalValue && originalValue !== undefined) {
                 originalValue.duration = entry.duration;
                 this.dataStore.setData(originalValue);

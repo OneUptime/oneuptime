@@ -55,7 +55,7 @@ describe('HTTP Home page', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#html > span');
-        const html = await init.page$Eval(
+        const html: $TSFixMe = await init.page$Eval(
             page,
             '#html > span',
             (e: $TSFixMe) => {

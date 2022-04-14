@@ -25,7 +25,7 @@ const handleFetchingUnpaidSubscriptions: Function = async (
     }
 };
 
-let data = [];
+let data: $TSFixMe = [];
 const _this: $TSFixMe = {
     /**
      * use stripe sdk to check for unpaid subscriptions (saas mode)
@@ -57,7 +57,7 @@ const _this: $TSFixMe = {
             for (const unpaidSubscription of unpaidSubscriptions) {
                 const stripeCustomerId: $TSFixMe = unpaidSubscription.customer;
                 const stripeSubscriptionId: $TSFixMe = unpaidSubscription.id;
-                let subscriptionEndDate = unpaidSubscription.ended_at; // unix timestamp
+                let subscriptionEndDate: $TSFixMe = unpaidSubscription.ended_at; // unix timestamp
                 subscriptionEndDate = moment(subscriptionEndDate * 1000);
                 const timeDiff: $TSFixMe = moment().diff(
                     subscriptionEndDate,

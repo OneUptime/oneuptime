@@ -10,7 +10,7 @@ async function run(): void {
         domain: { $type: 'string' },
     });
 
-    for (let i = 0; i < statusPages.length; i++) {
+    for (let i: $TSFixMe = 0; i < statusPages.length; i++) {
         const statusPage: $TSFixMe = statusPages[i];
         const token: string = `oneuptime=${randomChar()}`;
         const now: $TSFixMe = new Date().toISOString();

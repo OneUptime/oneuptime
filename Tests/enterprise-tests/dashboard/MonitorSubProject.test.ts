@@ -14,7 +14,7 @@ const user: $TSFixMe = {
 };
 
 describe('Enterprise Monitor SubProject API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);

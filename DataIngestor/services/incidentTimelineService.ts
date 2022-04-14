@@ -14,7 +14,7 @@ const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
-        let incidentTimeline = {};
+        let incidentTimeline: $TSFixMe = {};
 
         incidentTimeline.incidentId = data.incidentId;
         if (data.createdById) {

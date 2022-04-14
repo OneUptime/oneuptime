@@ -184,7 +184,7 @@ export default function monitorSla(state = initialState, action: Action): void {
             };
 
         case types.UPDATE_MONITOR_SLA_SUCCESS: {
-            const slas = state.monitorSlas.slas.map(sla: $TSFixMe => {
+            const slas: $TSFixMe = state.monitorSlas.slas.map(sla: $TSFixMe => {
                 if (
                     action.payload.isDefault &&
                     String(sla._id) !== String(action.payload._id)

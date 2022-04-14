@@ -67,7 +67,7 @@ export const fetchscheduledEvents: $TSFixMe =
         dispatch(fetchscheduledEventsRequest());
 
         try {
-            let response = {};
+            let response: $TSFixMe = {};
             if (!skip && !limit) {
                 response = await BackendAPI.get(
                     `scheduledEvent/${projectId}?skip=${0}&limit=${10}`
@@ -490,7 +490,7 @@ export const fetchScheduledEventNotesInternal: $TSFixMe =
             skip = Number(skip);
             limit = Number(limit);
 
-            let response = {};
+            let response: $TSFixMe = {};
             if (skip >= 0 && limit >= 0) {
                 response = await BackendAPI.get(
                     `scheduledEvent/${projectId}/${scheduledEventId}/notes?limit=${limit}&skip=${skip}&type=${type}`

@@ -1209,14 +1209,16 @@ export default function statusPage(
             });
 
         case UPDATE_STATUSPAGE_SUCCESS: {
-            const monitors = action.payload.monitors.map((mon: $TSFixMe) => {
-                return {
-                    ...mon,
-                    _id: mon._id,
-                    monitor: mon.monitor._id,
-                    description: mon.description,
-                };
-            });
+            const monitors: $TSFixMe = action.payload.monitors.map(
+                (mon: $TSFixMe) => {
+                    return {
+                        ...mon,
+                        _id: mon._id,
+                        monitor: mon.monitor._id,
+                        description: mon.description,
+                    };
+                }
+            );
             const monitorNames: $TSFixMe = action.payload.monitors.map(
                 ({ monitor }: $TSFixMe) => monitor.name
             );

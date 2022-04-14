@@ -262,7 +262,7 @@ class DatabaseService<ModelType> {
             data: createBy.data,
         });
 
-        let data = _createdBy.data;
+        let data: $TSFixMe = _createdBy.data;
 
         this.checkRequiredFields(data);
 
@@ -323,7 +323,7 @@ class DatabaseService<ModelType> {
         try {
             query['deleted'] = false;
             const count: $TSFixMe = await this.model.countDocuments(query);
-            let countPositive = new PositiveNumber(count);
+            let countPositive: $TSFixMe = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;
         } catch (error) {
@@ -575,7 +575,7 @@ class DatabaseService<ModelType> {
 
             query['deleted'] = false;
 
-            let dbQuery = null;
+            let dbQuery: $TSFixMe = null;
 
             if (!multiple) {
                 dbQuery = this.model.findOne(onBeforeFind.query);

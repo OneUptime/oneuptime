@@ -8,7 +8,7 @@ import { RootState } from '../../store';
 export const RenderIfSubProjectOwner: Function = (props: $TSFixMe): void => {
     const { currentProject, subProjects, children }: $TSFixMe = props;
     const userId: $TSFixMe = User.getUserId();
-    let renderItems = null;
+    let renderItems: $TSFixMe = null;
     if (
         userId &&
         currentProject &&

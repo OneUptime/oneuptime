@@ -45,7 +45,9 @@ const _this: $TSFixMe = {
             : new Date(
                   new Date(new Date().getTime()).setHours(endHour, endMin)
               ).getTime();
-        let current = new Date(new Date().setHours(nowHour, nowMin)).getTime();
+        let current: $TSFixMe = new Date(
+            new Date().setHours(nowHour, nowMin)
+        ).getTime();
 
         current =
             current < start && isDifferentDay

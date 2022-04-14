@@ -595,7 +595,7 @@ router.get(
             await Promise.all(
                 applicationLogObj.applicationLogs.map(
                     async (elem: $TSFixMe) => {
-                        let logStatus = 'No logs yet';
+                        let logStatus: $TSFixMe = 'No logs yet';
                         // confirm if the application log has started collecting logs or not
                         const logs: $TSFixMe =
                             await LogService.getLogsByApplicationLogId(
@@ -626,7 +626,7 @@ router.get(
             await Promise.all(
                 errorTrackerObj.errorTrackers.map(
                     async (errorTracker: $TSFixMe) => {
-                        let errorStatus = 'No Errors yet';
+                        let errorStatus: $TSFixMe = 'No Errors yet';
 
                         const populateIssue: $TSFixMe = [
                             { path: 'errorTrackerId', select: 'name' },
@@ -666,7 +666,8 @@ router.get(
             await Promise.all(
                 performanceTrackers.map(
                     async (performanceTracker: $TSFixMe) => {
-                        let trackerStatus = 'Not monitoring performance';
+                        let trackerStatus: $TSFixMe =
+                            'Not monitoring performance';
                         const metrics: $TSFixMe =
                             await PerformanceTrackerMetricService.findBy({
                                 query: {

@@ -11,7 +11,7 @@ const user: $TSFixMe = {
 };
 
 describe('Profile -> Delete Account Component test', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

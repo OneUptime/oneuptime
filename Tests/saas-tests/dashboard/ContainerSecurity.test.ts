@@ -14,7 +14,7 @@ const newContainerSecurityName: string = 'Byter';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Container Security Page', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(operationTimeOut);
@@ -40,11 +40,14 @@ describe('Container Security Page', () => {
     test(
         'should create an application security with a resource category and ensure it redirects to the details page and has category attached',
         async (done: $TSFixMe) => {
-            const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
-            const dockerUsername = utils.dockerCredential.dockerUsername;
-            const dockerPassword = utils.dockerCredential.dockerPassword;
-            const imagePath = utils.dockerCredential.imagePath;
-            const imageTags = utils.dockerCredential.imageTags || '';
+            const dockerRegistryUrl: $TSFixMe =
+                utils.dockerCredential.dockerRegistryUrl;
+            const dockerUsername: $TSFixMe =
+                utils.dockerCredential.dockerUsername;
+            const dockerPassword: $TSFixMe =
+                utils.dockerCredential.dockerPassword;
+            const imagePath: $TSFixMe = utils.dockerCredential.imagePath;
+            const imageTags: $TSFixMe = utils.dockerCredential.imageTags || '';
 
             await init.addComponent(component, page);
 
@@ -122,7 +125,7 @@ describe('Container Security Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const containerSecurity = await init.pageWaitForSelector(
+            const containerSecurity: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#containerSecurityHeader_${containerSecurityName}`,
                 { visible: true, timeout: init.timeout }
@@ -131,10 +134,11 @@ describe('Container Security Page', () => {
 
             // find the edit button which appears only on the details page
 
-            const editContainerElement = await init.pageWaitForSelector(
-                page,
-                `#edit_${containerSecurityName}`
-            );
+            const editContainerElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#edit_${containerSecurityName}`
+                );
             expect(editContainerElement).toBeDefined();
 
             // confirm the category shows in the details page.
@@ -191,7 +195,7 @@ describe('Container Security Page', () => {
             page,
             `#moreContainerSecurity_${containerSecurityName}`
         );
-        const issueCount = await init.pageWaitForSelector(
+        const issueCount: $TSFixMe = await init.pageWaitForSelector(
             page,
             '#vulnerabilities',
             {
@@ -241,7 +245,7 @@ describe('Container Security Page', () => {
                 page,
                 `#moreContainerSecurity_${containerSecurityName}`
             );
-            const securityLog = await init.pageWaitForSelector(
+            const securityLog: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#securityLog',
                 {
@@ -291,7 +295,7 @@ describe('Container Security Page', () => {
             });
 
             await init.pageClick(page, '#issueCount');
-            const securityLog = await init.pageWaitForSelector(
+            const securityLog: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#securityLog',
                 {
@@ -352,7 +356,10 @@ describe('Container Security Page', () => {
             // make sure the added container security
             // have atlest one security vulnerability
 
-            const logs = await init.page$$(page, '#securityLog tbody tr');
+            const logs: $TSFixMe = await init.page$$(
+                page,
+                '#securityLog tbody tr'
+            );
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
             done();
@@ -421,7 +428,7 @@ describe('Container Security Page', () => {
                 hidden: true,
             });
 
-            const textContent = await init.page$Eval(
+            const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 `#containerSecurityTitle_${newContainerSecurityName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -493,7 +500,7 @@ describe('Container Security Page', () => {
 
             await init.pageClick(page, '#deleteContainerSecurityModalBtn');
 
-            const containerSecurity = await init.pageWaitForSelector(
+            const containerSecurity: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#containerSecurityHeader_${newContainerSecurityName}`,
                 { hidden: true }

@@ -13,7 +13,7 @@ const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -160,7 +160,7 @@ describe('Monitor API', () => {
             await criterionAdvancedOptions.click();
 
             await init.pageWaitForSelector(page, 'input[id^=name_up]');
-            const criterionName = await init.page$Eval(
+            const criterionName: $TSFixMe = await init.page$Eval(
                 page,
                 'input[id^=name_up]',
                 (el: $TSFixMe) => el.value

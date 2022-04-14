@@ -17,7 +17,7 @@ const user: $TSFixMe = {
 const smtpData: $TSFixMe = { ...utils.smtpCredential };
 
 describe('Custom SMTP Settings', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -110,7 +110,7 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const host = await init.page$Eval(
+            const host: $TSFixMe = await init.page$Eval(
                 page,
                 '#host',
                 (elem: $TSFixMe) => elem.value
@@ -167,7 +167,7 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const fromVal = await init.page$Eval(
+            const fromVal: $TSFixMe = await init.page$Eval(
                 page,
                 '#from',
                 (elem: $TSFixMe) => elem.value
@@ -208,14 +208,14 @@ describe('Custom SMTP Settings', () => {
                 timeout: init.timeout,
             });
 
-            const port = await init.page$(page, '#port');
+            const port: $TSFixMe = await init.page$(page, '#port');
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
 
             await init.pageClick(page, '#saveSmtp');
 
             await init.pageWaitForSelector(page, '#port');
-            const emptyMessage = await init.page$Eval(
+            const emptyMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#port',
                 (element: $TSFixMe) => element.textContent
@@ -275,7 +275,9 @@ describe('Custom SMTP Settings', () => {
 
             await init.pageClick(page, '#saveSmtp');
             await init.navigateToSmtp(page);
-            const username = await init.page$(page, '#user', { hidden: true });
+            const username: $TSFixMe = await init.page$(page, '#user', {
+                hidden: true,
+            });
             expect(username).toBe(null);
 
             done();
@@ -313,9 +315,13 @@ describe('Custom SMTP Settings', () => {
             });
 
             await init.pageClick(page, '#saveSmtp');
-            const error = await init.pageWaitForSelector(page, '#errorInfo', {
-                hidden: true,
-            });
+            const error: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#errorInfo',
+                {
+                    hidden: true,
+                }
+            );
             expect(error).toBeDefined();
 
             done();

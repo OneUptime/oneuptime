@@ -226,7 +226,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
-            for (let i = 0; i < 11; i++) {
+            for (let i: $TSFixMe = 0; i < 11; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
@@ -274,7 +274,7 @@ describe('Monitor Detail API', () => {
                 page,
                 createdWebhookSelector
             );
-            let countWebhooks = webhookRows.length;
+            let countWebhooks: $TSFixMe = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
 

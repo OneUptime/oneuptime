@@ -13,7 +13,7 @@ import moment from 'moment';
 export default class Service {
     async create(data: $TSFixMe): void {
         const Log: $TSFixMe = new MonitorLogModel();
-        let responseBody = '';
+        let responseBody: $TSFixMe = '';
         if (data.resp && data.resp.body) {
             if (typeof data.resp.body === 'object') {
                 responseBody = JSON.stringify(data.resp.body);

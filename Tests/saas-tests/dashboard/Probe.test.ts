@@ -11,7 +11,7 @@ const user: $TSFixMe = {
 };
 
 describe('API test', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -51,7 +51,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const elementHandle = await init.page$(
+            const elementHandle: $TSFixMe = await init.page$(
                 page,
                 '#offline_0 > span > span',
                 { hidden: true } //Probe is expected to be online

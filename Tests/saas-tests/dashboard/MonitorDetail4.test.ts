@@ -10,11 +10,11 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const monitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
-const webhookEndpoint = utils.generateRandomWebsite();
+const webhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
 const priorityName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -80,7 +80,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            const createdWebhookEndpoint = await init.page$Eval(
+            const createdWebhookEndpoint: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
                 (el: $TSFixMe) => el.textContent
@@ -109,7 +109,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
-            for (let i = 0; i < 10; i++) {
+            for (let i: $TSFixMe = 0; i < 10; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
@@ -154,7 +154,7 @@ describe('Monitor Detail API', () => {
                 page,
                 createdWebhookSelector
             );
-            let countWebhooks = webhookRows.length;
+            let countWebhooks: $TSFixMe = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
 

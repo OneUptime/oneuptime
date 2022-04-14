@@ -620,7 +620,7 @@ export const changeMonitorComponent: Function = (
 
             return monitor;
         } catch (err) {
-            let error = { ...err };
+            let error: $TSFixMe = { ...err };
             if (error && error.response && error.response.data) {
                 error = error.response.data;
             }

@@ -14,7 +14,7 @@ const componentName: string = utils.generateRandomString();
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Components', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -42,10 +42,8 @@ describe('Components', () => {
                 waitUntil: 'networkidle0',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(
-                page,
-                '#info-teamMember'
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(page, '#info-teamMember');
             expect(componentBoxElement).toBeDefined();
 
             let spanElement;
@@ -65,10 +63,8 @@ describe('Components', () => {
                 e.click()
             );
 
-            const componentFormElement = await init.pageWaitForSelector(
-                page,
-                `#teamMemberPage`
-            );
+            const componentFormElement: $TSFixMe =
+                await init.pageWaitForSelector(page, `#teamMemberPage`);
             expect(componentFormElement).toBeDefined();
             done();
         },
@@ -83,10 +79,8 @@ describe('Components', () => {
                 waitUntil: 'networkidle0',
             });
 
-            const componentBoxElement = await init.pageWaitForSelector(
-                page,
-                '#info-component'
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(page, '#info-component');
             expect(componentBoxElement).toBeDefined();
 
             let spanElement;
@@ -106,10 +100,8 @@ describe('Components', () => {
                 e.click()
             );
 
-            const componentFormElement = await init.pageWaitForSelector(
-                page,
-                '#form-new-component'
-            );
+            const componentFormElement: $TSFixMe =
+                await init.pageWaitForSelector(page, '#form-new-component');
             expect(componentFormElement).toBeDefined();
             done();
         },
@@ -167,7 +159,7 @@ describe('Components', () => {
                 waitUntil: 'networkidle0',
             });
 
-            const monitorBoxElement = await init.pageWaitForSelector(
+            const monitorBoxElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#info-monitor'
             );
@@ -233,7 +225,7 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectBreadcrumb = await page.evaluate(
+            const projectBreadcrumb: $TSFixMe = await page.evaluate(
                 (projectSelector: $TSFixMe) =>
                     document.querySelector(projectSelector).textContent,
                 projectSelector
@@ -242,7 +234,7 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const componentBreadcrumb = await page.evaluate(
+            const componentBreadcrumb: $TSFixMe = await page.evaluate(
                 (componentSelector: $TSFixMe) =>
                     document.querySelector(componentSelector).textContent,
                 componentSelector
@@ -303,10 +295,11 @@ describe('Components', () => {
             const customTutorialType: string = 'monitor';
             // confirm that monitor box exist on component details page
 
-            const componentBoxElement = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(componentBoxElement).toBeDefined();
             done();
         },

@@ -18,7 +18,7 @@ const projectName: string = utils.generateRandomString();
 const projectName2: string = utils.generateRandomString();
 
 describe('Profile -> Delete Account Component test', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -113,7 +113,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await init.pageWaitForSelector(
+            const projectDeletion: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#projectOwnership' // Updated UI
             );
@@ -183,7 +183,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await init.pageWaitForSelector(
+            const projectDeletion: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#projectOwnership'
             );
@@ -208,7 +208,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#teamMembers');
 
             await init.pageClick(page, '#teamMembers');
-            const emailSelector = user1.email.split('@')[0];
+            const emailSelector: $TSFixMe = user1.email.split('@')[0];
 
             await init.pageClick(page, `#changeRole_${emailSelector}`);
 
@@ -262,7 +262,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             await init.pageClick(page, '#btn_confirm_delete');
 
-            const projectDeletion = await init.pageWaitForSelector(
+            const projectDeletion: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#projectDeletion'
             );
@@ -311,7 +311,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             await init.pageClick(page, '#close');
             await page.waitForNavigation();
-            const url = await page.url();
+            const url: $TSFixMe = await page.url();
             expect(url).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
 
             done();

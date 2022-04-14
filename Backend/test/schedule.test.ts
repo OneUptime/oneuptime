@@ -11,7 +11,7 @@ import GlobalConfig from './utils/globalConfig';
 const request: $TSFixMe = chai.request.agent(app);
 
 import { createUser } from './utils/userSignUp';
-// let log = require('./data/log');
+// let log: $TSFixMe = require('./data/log');
 import UserService from '../backend/services/userService';
 import ProjectService from '../backend/services/projectService';
 import ScheduleService from '../backend/services/scheduleService';

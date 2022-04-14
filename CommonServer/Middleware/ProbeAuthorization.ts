@@ -89,7 +89,7 @@ export default {
             probeVersion = req.body.probeVersion;
         }
 
-        let probeId = null;
+        let probeId: $TSFixMe = null;
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
             // if cluster key matches then just query by probe name,

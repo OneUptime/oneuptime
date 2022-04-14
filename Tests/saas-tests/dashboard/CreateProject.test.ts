@@ -67,15 +67,17 @@ describe('Project API', () => {
                 timeout: init.timeout,
             });
 
-            const localStorageData = await page.evaluate((): $TSFixMe => {
-                const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key: $TSFixMe = localStorage.key(i);
+            const localStorageData: $TSFixMe = await page.evaluate(
+                (): $TSFixMe => {
+                    const json: $TSFixMe = {};
+                    for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                        const key: $TSFixMe = localStorage.key(i);
 
-                    json[key] = localStorage.getItem(key);
+                        json[key] = localStorage.getItem(key);
+                    }
+                    return json;
                 }
-                return json;
-            });
+            );
 
             localStorageData.should.have.property('project');
 

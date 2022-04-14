@@ -16,8 +16,8 @@ import { sendListResponse } from 'CommonServer/Utils/response';
 router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const userId: $TSFixMe = req.params.userId;
-        let startingAfter = req.query.startingAfter;
-        let endingBefore = req.query.endingBefore;
+        let startingAfter: $TSFixMe = req.query.startingAfter;
+        let endingBefore: $TSFixMe = req.query.endingBefore;
 
         if (startingAfter === 'undefined') {
             startingAfter = {};

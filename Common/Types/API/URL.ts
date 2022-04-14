@@ -46,7 +46,7 @@ export default class URL {
     }
 
     static fromString(url: string): URL {
-        let protocol = Protocol.HTTPS;
+        let protocol: $TSFixMe = Protocol.HTTPS;
 
         if (url.startsWith('https://')) {
             protocol = Protocol.HTTPS;

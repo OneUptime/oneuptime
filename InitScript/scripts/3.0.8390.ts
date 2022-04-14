@@ -7,7 +7,7 @@ async function run(): void {
         pushReminders: { $exists: false },
     });
 
-    for (let i = 0; i < escalations.length; i++) {
+    for (let i: $TSFixMe = 0; i < escalations.length; i++) {
         const escalation: $TSFixMe = escalations[i];
         await update(
             escalationsCollection,

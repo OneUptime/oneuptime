@@ -255,7 +255,7 @@ export default class Service {
             quantity: 1,
         });
 
-        let subscriptionObj = {};
+        let subscriptionObj: $TSFixMe = {};
 
         if (coupon) {
             subscriptionObj = {
@@ -295,7 +295,7 @@ export default class Service {
             subscriptionId
         );
 
-        let plan = null;
+        let plan: $TSFixMe = null;
         const items: $TSFixMe = [];
         if (
             !subscription ||
@@ -315,7 +315,7 @@ export default class Service {
                 trial_end_date = subscription.trial_end;
             }
 
-            for (let i = 0; i < subscription.items.data.length; i++) {
+            for (let i: $TSFixMe = 0; i < subscription.items.data.length; i++) {
                 plan = await Plans.getPlanById(
                     subscription.items.data[i].plan.id
                 );
@@ -376,7 +376,7 @@ export default class Service {
     }
 
     async changePlan(subscriptionId, planId, seats): void {
-        let subscriptionObj = {};
+        let subscriptionObj: $TSFixMe = {};
 
         const subscription: $TSFixMe = await stripe.subscriptions.retrieve(
             subscriptionId

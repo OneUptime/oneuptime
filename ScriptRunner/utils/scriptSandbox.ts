@@ -150,7 +150,7 @@ const run: $TSFixMe: Function = async (
                 worker.terminate();
             });
 
-            let totalRuntime = 0,
+            let totalRuntime: $TSFixMe = 0,
                 statementTimeExceeded = false,
                 scriptTimeExceeded = false;
 

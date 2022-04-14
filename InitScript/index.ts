@@ -89,7 +89,7 @@ async function run(): void {
         );
 
     // Switched to for loop, forEach does not await the callback
-    for (let i = 0; i < files.length; i++) {
+    for (let i: $TSFixMe = 0; i < files.length; i++) {
         const file: $TSFixMe = files[i];
 
         logger.info(file + ': Running script.');

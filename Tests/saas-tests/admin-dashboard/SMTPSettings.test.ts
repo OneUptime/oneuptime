@@ -15,7 +15,7 @@ const smtpName: string = 'Hackerbay';
 const wrongPassword: string = utils.generateRandomString();
 
 describe('SMTP Settings API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -33,7 +33,7 @@ describe('SMTP Settings API', () => {
         await init.loginAdminUser(user, page);
 
         // delete existing smtp details, if there is any.
-        const data = JSON.stringify({
+        const data: $TSFixMe = JSON.stringify({
             collection: 'globalconfigs',
             query: {},
         });
@@ -73,7 +73,7 @@ describe('SMTP Settings API', () => {
 
             await init.pageClick(page, '#customSmtp');
 
-            const originalValues = await init.page$$Eval(
+            const originalValues: $TSFixMe = await init.page$$Eval(
                 page,
                 'input',
                 (e: $TSFixMe) => e.map((field: $TSFixMe) => field.value)
@@ -196,7 +196,7 @@ describe('SMTP Settings API', () => {
 
             await page.reload();
 
-            const value = await init.page$Eval(
+            const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
                 (e: $TSFixMe) => e.value

@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'CommonServer/utils/Express'
 import OneUptime from 'oneuptime-staging'
-const app = express()
+const app: $TSFixMe = express()
 
 
 import axios from 'axios'

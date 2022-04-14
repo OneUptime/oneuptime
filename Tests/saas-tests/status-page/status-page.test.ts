@@ -43,7 +43,7 @@ describe('Check StatusPage up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const response = await init.page$Eval(
+            const response: $TSFixMe = await init.page$Eval(
                 page,
                 '#error',
                 (e: $TSFixMe) => {
@@ -284,8 +284,8 @@ describe('Check StatusPage up', () => {
         'should add more monitors and see if they are present on the StatusPage',
         async (done: $TSFixMe) => {
             // This creates 2 additonal monitors
-            let additionalMonitor = 0;
-            for (let i = 0; i < 2; i++) {
+            let additionalMonitor: $TSFixMe = 0;
+            for (let i: $TSFixMe = 0; i < 2; i++) {
                 await init.navigateToComponentDetails(componentName, page);
                 const monitorName: string = utils.generateRandomString();
                 const description: string = utils.generateRandomString();
@@ -314,8 +314,8 @@ describe('Check StatusPage up', () => {
                 timeout: init.timeout,
             });
 
-            const monitor = await init.page$$(page, '.monitor-list');
-            const monitorLength = monitor.length;
+            const monitor: $TSFixMe = await init.page$$(page, '.monitor-list');
+            const monitorLength: $TSFixMe = monitor.length;
             expect(monitorLength).toEqual(3);
 
             done();

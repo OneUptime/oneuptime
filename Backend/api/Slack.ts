@@ -24,7 +24,7 @@ const router: $TSFixMe = express.getRouter();
 
 router.get('/auth/redirect', (req: ExpressRequest, res: ExpressResponse) => {
     // get oneuptime project id from slack auth state query params
-    let state = req.query.state;
+    let state: $TSFixMe = req.query.state;
     const slackCode: $TSFixMe = req.query.code;
 
     if (!slackCode) {

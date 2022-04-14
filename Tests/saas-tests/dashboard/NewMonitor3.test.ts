@@ -49,7 +49,7 @@ describe('New Monitor API', () => {
                 firstMonitorName
             );
 
-            for (let i = 0; i < 14; i++) {
+            for (let i: $TSFixMe = 0; i < 14; i++) {
                 // This adds 14 more monitors
                 // The Interface for adding additional monitor has been updated
                 const monitorName: string = utils.generateRandomString();
@@ -112,7 +112,7 @@ describe('New Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await init.pageWaitForSelector(
+            const pricingPlanModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 { hidden: true }

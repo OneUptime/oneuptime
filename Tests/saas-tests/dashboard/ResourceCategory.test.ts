@@ -18,7 +18,7 @@ const user: $TSFixMe = {
 };
 
 describe('Resource Category', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -82,7 +82,7 @@ describe('Resource Category', () => {
 
             await init.pageClick(page, '#addResourceCategoryButton');
 
-            const createdResourceCategorySelector =
+            const createdResourceCategorySelector: $TSFixMe =
                 '#resourceCategoryList #resource-category-name:nth-child(2)';
 
             await init.pageWaitForSelector(
@@ -94,7 +94,7 @@ describe('Resource Category', () => {
                 }
             );
 
-            const createdResourceCategoryName = await init.page$Eval(
+            const createdResourceCategoryName: $TSFixMe = await init.page$Eval(
                 page,
                 createdResourceCategorySelector,
                 (el: $TSFixMe) => el.textContent
@@ -118,7 +118,7 @@ describe('Resource Category', () => {
                 timeout: init.timeout,
             });
 
-            let resourceCategoryCheck = false;
+            let resourceCategoryCheck: $TSFixMe = false;
 
             await init.selectDropdownValue(
                 '#resourceCategory',
@@ -126,9 +126,13 @@ describe('Resource Category', () => {
                 page
             );
 
-            const noOption = await init.page$(page, 'div.css-1gl4k7y', {
-                hidden: true,
-            });
+            const noOption: $TSFixMe = await init.page$(
+                page,
+                'div.css-1gl4k7y',
+                {
+                    hidden: true,
+                }
+            );
 
             if (!noOption) {
                 resourceCategoryCheck = true;
@@ -183,7 +187,7 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: operationTimeOut,
             });
-            const createdMonitorName = await init.page$Eval(
+            const createdMonitorName: $TSFixMe = await init.page$Eval(
                 page,
                 createdMonitorSelector,
                 (el: $TSFixMe) => el.textContent
@@ -242,7 +246,7 @@ describe('Resource Category', () => {
 
             const resourceCategoryCounterSelector: string =
                 '#resourceCategoryCount';
-            const resourceCategoryCount = await init.page$Eval(
+            const resourceCategoryCount: $TSFixMe = await init.page$Eval(
                 page,
                 resourceCategoryCounterSelector,
                 (el: $TSFixMe) => el.textContent
@@ -256,7 +260,7 @@ describe('Resource Category', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -328,7 +332,7 @@ describe('Member Restriction', () => {
             );
 
             await init.pageClick(page, '#createResourceCategoryButton');
-            const modal = await init.pageWaitForSelector(
+            const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 {
@@ -374,7 +378,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, editBtn);
-            const modal = await init.pageWaitForSelector(
+            const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 {
@@ -420,7 +424,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, deleteBtn);
-            const modal = await init.pageWaitForSelector(
+            const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 {

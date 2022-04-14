@@ -9,7 +9,7 @@ async function run(): void {
     const monitors: $TSFixMe = await find(monitorCollection, {
         pollTime: { $type: 'date' },
     });
-    for (let i = 0; i < monitors.length; i++) {
+    for (let i: $TSFixMe = 0; i < monitors.length; i++) {
         const monitor: $TSFixMe = monitors[i];
         await update(monitorCollection, { _id: monitor._id }, { pollTime: [] });
     }
@@ -34,7 +34,7 @@ async function run(): void {
             .find(query)
             .sort('createdAt', 1)
             .toArray();
-        for (let i = 0; i < incidents.length; i++) {
+        for (let i: $TSFixMe = 0; i < incidents.length; i++) {
             await update(
                 incidentsCollection,
                 { _id: incidents[i]._id },

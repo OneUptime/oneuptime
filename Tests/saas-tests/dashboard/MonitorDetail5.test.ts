@@ -14,7 +14,7 @@ const urlMonitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -86,11 +86,11 @@ describe('Monitor Detail API', () => {
                 }
             );
 
-            const lighthouseLogsRows = await init.page$$(
+            const lighthouseLogsRows: $TSFixMe = await init.page$$(
                 page,
                 createdLighthouseLogsSelector
             );
-            const countLighthouseLogs = lighthouseLogsRows.length;
+            const countLighthouseLogs: $TSFixMe = lighthouseLogsRows.length;
 
             expect(countLighthouseLogs).toEqual(1);
             done();
@@ -138,11 +138,11 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            const lighthouseLogsRows = await init.page$$(
+            const lighthouseLogsRows: $TSFixMe = await init.page$$(
                 page,
                 createdLighthouseLogsSelector
             );
-            const countLighthouseLogs = lighthouseLogsRows.length;
+            const countLighthouseLogs: $TSFixMe = lighthouseLogsRows.length;
 
             expect(countLighthouseLogs).toEqual(2);
             done();
@@ -184,11 +184,11 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            const lighthouseLogsRows = await init.page$$(
+            const lighthouseLogsRows: $TSFixMe = await init.page$$(
                 page,
                 createdLighthouseLogsSelector
             );
-            const countLighthouseLogs = lighthouseLogsRows.length;
+            const countLighthouseLogs: $TSFixMe = lighthouseLogsRows.length;
 
             expect(countLighthouseLogs).toEqual(1);
             done();
@@ -273,7 +273,7 @@ describe('Monitor Detail API', () => {
 
             const selector: string = `span#monitor-title-${newMonitorName}`;
 
-            const spanElement = await init.page$(page, selector, {
+            const spanElement: $TSFixMe = await init.page$(page, selector, {
                 hidden: true,
             });
             expect(spanElement).toEqual(null);

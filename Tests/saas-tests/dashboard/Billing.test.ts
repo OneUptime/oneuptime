@@ -15,7 +15,7 @@ const subProjectName: string = 'Trial';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Project Setting: Change Plan', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(360000);
@@ -46,7 +46,7 @@ describe('Project Setting: Change Plan', () => {
             await page.reload({ waitUntil: 'networkidle0' });
 
             await init.pageWaitForSelector(page, 'input#Growth_month');
-            const checked = await init.page$Eval(
+            const checked: $TSFixMe = await init.page$Eval(
                 page,
                 'input#Growth_month',
                 (input: $TSFixMe) => input.checked
@@ -59,8 +59,8 @@ describe('Project Setting: Change Plan', () => {
     test(
         'should not update project account when admin recharge account with negative number',
         async (done: $TSFixMe) => {
-            const balance = 0;
-            let creditedBalance = 0;
+            const balance: $TSFixMe = 0;
+            let creditedBalance: $TSFixMe = 0;
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
@@ -122,7 +122,7 @@ describe('Project Setting: Change Plan', () => {
     test(
         'should update project account when admin recharge account',
         async (done: $TSFixMe) => {
-            let balance = 0,
+            let balance: $TSFixMe = 0,
                 creditedBalance = 0;
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#projectSettings', {
@@ -210,8 +210,8 @@ describe('Project Setting: Change Plan', () => {
     test(
         'should not update project account when admin recharge account and clicks cancel',
         async (done: $TSFixMe) => {
-            const balance = 0;
-            let creditedBalance = 0;
+            const balance: $TSFixMe = 0;
+            let creditedBalance: $TSFixMe = 0;
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
@@ -277,7 +277,7 @@ describe('Project Setting: Change Plan', () => {
 });
 
 describe('Member Restriction', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -350,7 +350,7 @@ describe('Member Restriction', () => {
             );
 
             await init.pageClick(page, '#alertOptionSave');
-            const unauthorisedModal = await init.pageWaitForSelector(
+            const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
@@ -384,7 +384,7 @@ describe('Member Restriction', () => {
             await init.pageType(page, '#rechargeBalanceAmount', '20');
 
             await init.pageClick(page, '#rechargeAccount');
-            const unauthorisedModal = await init.pageWaitForSelector(
+            const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }
@@ -418,7 +418,7 @@ describe('Member Restriction', () => {
             await init.pageClick(page, 'input#Startup_month');
 
             await init.pageClick(page, '#changePlanBtn');
-            const unauthorisedModal = await init.pageWaitForSelector(
+            const unauthorisedModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#unauthorisedModal',
                 { visible: true, timeout: init.timeout }

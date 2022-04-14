@@ -154,7 +154,7 @@ describe('Scheduled Event Note', function (): void {
                                                                             [];
 
                                                                         for (
-                                                                            let i = 0;
+                                                                            let i: $TSFixMe = 0;
                                                                             i <
                                                                             12;
                                                                             i++

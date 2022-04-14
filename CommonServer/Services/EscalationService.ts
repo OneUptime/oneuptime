@@ -316,12 +316,12 @@ function computeActiveTeams(escalation: $TSFixMe): void {
         rotationTimezone,
     }: $TSFixMe = escalation;
 
-    let firstRotationOn = escalation.firstRotationOn;
+    let firstRotationOn: $TSFixMe = escalation.firstRotationOn;
 
     const currentDate: $TSFixMe = new Date();
 
     if (rotateBy && rotateBy != '') {
-        let intervalDifference = 0;
+        let intervalDifference: $TSFixMe = 0;
 
         //convert rotation switch time to timezone.
         firstRotationOn = DateTime.changeDateTimezone(
@@ -355,7 +355,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
             intervalDifference,
             rotationInterval
         );
-        let activeTeamRotationStartTime = null;
+        let activeTeamRotationStartTime: $TSFixMe = null;
 
         //if the first rotation hasn't kicked in yet.
         if (DateTime.lessThan(currentDate, firstRotationOn)) {
@@ -377,7 +377,7 @@ function computeActiveTeams(escalation: $TSFixMe): void {
             rotationEndTime: activeTeamRotationEndTime,
         };
 
-        let nextActiveTeamIndex = activeTeamIndex + 1;
+        let nextActiveTeamIndex: $TSFixMe = activeTeamIndex + 1;
 
         if (!teams[nextActiveTeamIndex]) {
             nextActiveTeamIndex = 0;

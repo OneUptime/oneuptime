@@ -7,7 +7,7 @@ export default function getSlug(name: $TSFixMe): void {
         return;
     }
 
-    let slug = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
+    let slug: $TSFixMe = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
 
     slug = `${slug}-${generate('1234567890', 8)}`;
     slug = slug.toLowerCase();

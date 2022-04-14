@@ -30,7 +30,7 @@ export default class Service {
 
         const selectNotification: $TSFixMe =
             'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
-        let notification = new NotificationModel();
+        let notification: $TSFixMe = new NotificationModel();
 
         notification.projectId = projectId;
 

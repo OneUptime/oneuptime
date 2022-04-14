@@ -33,10 +33,10 @@ async function run(): void {
                 }
             );
 
-            let updatedMonitors = statusPage.monitors;
+            let updatedMonitors: $TSFixMe = statusPage.monitors;
 
-            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
-                ObjectId(monitorObj.monitor)
+            const monitorIds: $TSFixMe = statusPage.monitors.map(
+                (monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -65,8 +65,8 @@ async function run(): void {
                         }
                     );
 
-                    let monitorIds = monitors.map((monitor: $TSFixMe) =>
-                        ObjectId(monitor._id)
+                    let monitorIds: $TSFixMe = monitors.map(
+                        (monitor: $TSFixMe) => ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,
@@ -109,10 +109,10 @@ async function run(): void {
                 }
             );
 
-            let updatedMonitors = statusPage.monitors;
+            let updatedMonitors: $TSFixMe = statusPage.monitors;
 
-            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
-                ObjectId(monitorObj.monitor)
+            const monitorIds: $TSFixMe = statusPage.monitors.map(
+                (monitorObj: $TSFixMe) => ObjectId(monitorObj.monitor)
             );
             for (const resourceCategory of resourceCategories) {
                 // fetch monitors with this category
@@ -131,8 +131,8 @@ async function run(): void {
                         }
                     );
 
-                    let monitorIds = monitors.map((monitor: $TSFixMe) =>
-                        ObjectId(monitor._id)
+                    let monitorIds: $TSFixMe = monitors.map(
+                        (monitor: $TSFixMe) => ObjectId(monitor._id)
                     );
                     await updateMany(
                         monitorCollection,

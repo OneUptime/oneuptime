@@ -36,11 +36,11 @@ export const resetGetVersion: Function = (): void => {
 
 export const getVersion: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        let promise = null;
-        let backendPromise = null;
-        let helmChartPromise = null;
-        let docsPromise = null;
-        let dashboardPromise = null;
+        let promise: $TSFixMe = null;
+        let backendPromise: $TSFixMe = null;
+        let helmChartPromise: $TSFixMe = null;
+        let docsPromise: $TSFixMe = null;
+        let dashboardPromise: $TSFixMe = null;
 
         backendPromise = BackendAPI.get(new Route('/version'));
         helmChartPromise = HelmAPI.get(new Route('/version'));
@@ -58,7 +58,7 @@ export const getVersion: Function = (): void => {
 
         promise.then(
             (versions): void => {
-                let versionsObject = {};
+                let versionsObject: $TSFixMe = {};
                 versions.forEach(version => {
                     versionsObject = { ...versionsObject, ...version.data };
                 });

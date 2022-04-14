@@ -77,7 +77,7 @@ const _this: $TSFixMe = {
                 }
             );
 
-            const stripeIframeElements = await this.page$$(
+            const stripeIframeElements: $TSFixMe = await this.page$$(
                 page,
                 '.__PrivateStripeElement > iframe'
             );
@@ -150,10 +150,13 @@ const _this: $TSFixMe = {
 
             await this.pageClick(page, 'button[type=submit]');
 
-            const home = await this.pageWaitForSelector(page, '#profile-menu');
+            const home: $TSFixMe = await this.pageWaitForSelector(
+                page,
+                '#profile-menu'
+            );
             expect(home).toBeDefined(); // This ensures that we have been navigated to the dashboard page
 
-            const signupResponse = await page.waitForResponse(
+            const signupResponse: $TSFixMe = await page.waitForResponse(
                 (response: $TSFixMe) => response.status() === 200
                 // The page navigates however '/user/signup' is not strictly included in the response.
             );
@@ -223,7 +226,7 @@ const _this: $TSFixMe = {
                 }
             );
 
-            const stripeIframeElements = await this.page$$(
+            const stripeIframeElements: $TSFixMe = await this.page$$(
                 page,
                 '.__PrivateStripeElement > iframe'
             );
@@ -511,7 +514,10 @@ const _this: $TSFixMe = {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        const signUp = await this.isElementOnPage(page, '#signUpLink');
+        const signUp: $TSFixMe = await this.isElementOnPage(
+            page,
+            '#signUpLink'
+        );
 
         if (signUp) {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
@@ -597,14 +603,14 @@ const _this: $TSFixMe = {
 
         await this.pageClick(page, 'button[type=submit]');
         try {
-            const signupResponse = await page.waitForResponse(
+            const signupResponse: $TSFixMe = await page.waitForResponse(
                 (response: $TSFixMe) =>
                     response.url().includes('/user/signup') &&
                     response.status() === 200
             );
             if (signupResponse) {
-                const signupData = await signupResponse.text();
-                const parsedSignupData = JSON.parse(signupData);
+                const signupData: $TSFixMe = await signupResponse.text();
+                const parsedSignupData: $TSFixMe = JSON.parse(signupData);
                 if (parsedSignupData.verificationToken) {
                     await request
                         .get(
@@ -658,7 +664,7 @@ const _this: $TSFixMe = {
         await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
     },
     clear: async function (selector: $TSFixMe, page: $TSFixMe): void {
-        const input = await this.page$(page, selector);
+        const input: $TSFixMe = await this.page$(page, selector);
         await input.click({ clickCount: 3 });
         await input.type('');
     },
@@ -1187,7 +1193,7 @@ const _this: $TSFixMe = {
         subProjectName: $TSFixMe,
         page: $TSFixMe
     ): void {
-        const subProjectNameSelector = await this.isElementOnPage(
+        const subProjectNameSelector: $TSFixMe = await this.isElementOnPage(
             page,
             '#btn_Add_SubProjects',
 
@@ -1464,7 +1470,7 @@ const _this: $TSFixMe = {
             page,
             '[data-testId=add_criterion_up]',
             (addCriterionButtons: $TSFixMe) => {
-                const lastAddCriterionButton =
+                const lastAddCriterionButton: $TSFixMe =
                     addCriterionButtons[addCriterionButtons.length - 1];
                 lastAddCriterionButton.click();
             }
@@ -1532,7 +1538,7 @@ const _this: $TSFixMe = {
             page,
             '[data-testId=add_criterion_degraded]',
             (addCriterionButtons: $TSFixMe) => {
-                const lastAddCriterionButton =
+                const lastAddCriterionButton: $TSFixMe =
                     addCriterionButtons[addCriterionButtons.length - 1];
                 lastAddCriterionButton.click();
             }
@@ -1689,7 +1695,7 @@ const _this: $TSFixMe = {
         projectName: $TSFixMe,
         page: $TSFixMe
     ): void {
-        const createStatusPageSelector = await page.$(
+        const createStatusPageSelector: $TSFixMe = await page.$(
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -1727,7 +1733,7 @@ const _this: $TSFixMe = {
         projectName: $TSFixMe,
         page: $TSFixMe
     ): void {
-        const createStatusPageSelector = await this.page$(
+        const createStatusPageSelector: $TSFixMe = await this.page$(
             page,
             `#btnCreateStatusPage_${projectName}`,
             { hidden: true }
@@ -1880,7 +1886,7 @@ const _this: $TSFixMe = {
         await this.pageType(page, '#name', projectName ? projectName : 'test');
 
         await this.pageClick(page, 'label[for=Startup_month]');
-        const startupOption = await this.pageWaitForSelector(
+        const startupOption: $TSFixMe = await this.pageWaitForSelector(
             page,
             'label[for=Startup_month]',
             { visible: true, timeout: this.timeout }
@@ -1892,11 +1898,11 @@ const _this: $TSFixMe = {
                 'iframe[name=__privateStripeFrame5]'
             );
 
-            const elementHandle = await this.page$(
+            const elementHandle: $TSFixMe = await this.page$(
                 page,
                 'iframe[name=__privateStripeFrame5]'
             );
-            const frame = await elementHandle.contentFrame();
+            const frame: $TSFixMe = await elementHandle.contentFrame();
             await frame.waitForSelector('input[name=cardnumber]');
             await frame.type('input[name=cardnumber]', '42424242424242424242', {
                 delay: 200,
@@ -1959,7 +1965,7 @@ const _this: $TSFixMe = {
             hidden: true,
         });
 
-        const createdResourceCategorySelector =
+        const createdResourceCategorySelector: $TSFixMe =
             '#resourceCategoryList #resource-category-name';
         await this.pageWaitForSelector(page, createdResourceCategorySelector, {
             visible: true,
@@ -1986,7 +1992,7 @@ const _this: $TSFixMe = {
         await this.pageType(page, '#name', projectName);
 
         await this.pageClick(page, 'label[for=Growth_month]');
-        const growthOption = await this.pageWaitForSelector(
+        const growthOption: $TSFixMe = await this.pageWaitForSelector(
             page,
             'label[for=Growth_month]',
             { visible: true, timeout: this.timeout }
@@ -2018,7 +2024,7 @@ const _this: $TSFixMe = {
         await this.pageType(page, '#name', projectName);
 
         await this.pageClick(page, 'label[for=Scale_month]');
-        const scaleOption = await this.pageWaitForSelector(
+        const scaleOption: $TSFixMe = await this.pageWaitForSelector(
             page,
             'label[for=Scale_month]',
             { visible: true, timeout: this.timeout }

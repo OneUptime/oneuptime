@@ -10,7 +10,7 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('About Modal (IS_SAAS_SERVICE=false)', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -49,7 +49,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
             await init.page$Eval(page, '#profile-menu', (elem: $TSFixMe) =>
                 elem.click()
             );
-            const about = await init.pageWaitForSelector(
+            const about: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#about-button',
                 {
@@ -90,33 +90,33 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const serverVersion = await init.page$Eval(
+            const serverVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#server-version',
                 (elem: $TSFixMe) => elem.textContent
             );
-            const docsVersion = await init.page$Eval(
+            const docsVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#docs-version',
                 (elem: $TSFixMe) => elem.textContent
             );
-            const helmVersion = await init.page$Eval(
+            const helmVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#helm-version',
                 (elem: $TSFixMe) => elem.textContent
             );
-            const dashboardVersion = await init.page$Eval(
+            const dashboardVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#dashboard-version',
                 (elem: $TSFixMe) => elem.textContent
             );
-            const adminDashboardVersion = await init.page$Eval(
+            const adminDashboardVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#AdminDashboard-version',
                 (elem: $TSFixMe) => elem.textContent
             );
 
-            const probeVersion = await init.page$Eval(
+            const probeVersion: $TSFixMe = await init.page$Eval(
                 page,
                 '#probe-version',
                 (elem: $TSFixMe) => elem.textContent

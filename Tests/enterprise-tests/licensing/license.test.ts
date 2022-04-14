@@ -17,7 +17,7 @@ describe('License API', function (): void {
     this.timeout(20000);
 
     before(async () => {
-        const licenses = await AirtableService.create({
+        const licenses: $TSFixMe = await AirtableService.create({
             tableName,
             fields: [{ fields: validLicense }, { fields: expiredLicense }],
         });

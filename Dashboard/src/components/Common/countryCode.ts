@@ -253,9 +253,9 @@ const codes: $TSFixMe = {
 
 export const countryCode: Function = (): void => {
     const invertedObject: $TSFixMe = _.invert(codes);
-    let keys = Object.keys(invertedObject);
+    let keys: $TSFixMe = Object.keys(invertedObject);
     keys = keys.sort();
-    const data = keys.map(k: $TSFixMe => ({ label: k, value: invertedObject[k] }));
+    const data: $TSFixMe = keys.map(k: $TSFixMe => ({ label: k, value: invertedObject[k] }));
     data.unshift({ value: '', label: 'Select a country' });
     return data;
 };

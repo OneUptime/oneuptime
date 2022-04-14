@@ -7,8 +7,8 @@
 export default (num = 15): void => {
     const input: $TSFixMe =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let output = '';
-    for (let i = 0; i < num; i++) {
+    let output: $TSFixMe = '';
+    for (let i: $TSFixMe = 0; i < num; i++) {
         output += input.charAt(Math.floor(Math.random() * input.length));
     }
     return output;

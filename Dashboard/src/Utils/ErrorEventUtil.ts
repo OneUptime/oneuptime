@@ -1,6 +1,6 @@
 const _this: $TSFixMe = {
     getExceptionColor: function (type: $TSFixMe): void {
-        let indicator = '#ff0000';
+        let indicator: $TSFixMe = '#ff0000';
         if (type === 'exception') {
             indicator = '#ffa500';
         }
@@ -14,7 +14,11 @@ const _this: $TSFixMe = {
         if (!unformattedFilters) {
             return option;
         }
-        for (let index = 0; index < unformattedFilters.length; index++) {
+        for (
+            let index: $TSFixMe = 0;
+            index < unformattedFilters.length;
+            index++
+        ) {
             const element: $TSFixMe = unformattedFilters[index];
             switch (element.value) {
                 case 'is:resolved':

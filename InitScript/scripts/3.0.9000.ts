@@ -7,7 +7,7 @@ async function run(): void {
         subscribed: { $exists: false },
     });
 
-    for (let i = 0; i < subscribers.length; i++) {
+    for (let i: $TSFixMe = 0; i < subscribers.length; i++) {
         const subscriber: $TSFixMe = subscribers[i];
         await update(
             subscriberCollection,

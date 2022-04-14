@@ -190,7 +190,7 @@ export default class Service {
         enableHttps: $TSFixMe,
         autoProvisioning: $TSFixMe
     ): void {
-        let createdDomain = {};
+        let createdDomain: $TSFixMe = {};
 
         // check if domain already exist
         // only one domain in the db is allowed
@@ -228,7 +228,7 @@ export default class Service {
         if (statusPage) {
             // attach the domain id to statuspage collection and update it
 
-            const domain = statusPage.domains.find((domain: $TSFixMe) =>
+            const domain: $TSFixMe = statusPage.domains.find((domain: $TSFixMe) =>
                 domain.domain === subDomain ? true : false
             );
             if (domain) {
@@ -339,7 +339,7 @@ export default class Service {
         enableHttps: $TSFixMe,
         autoProvisioning: $TSFixMe
     ): void {
-        let createdDomain = {};
+        let createdDomain: $TSFixMe = {};
 
         const existingBaseDomain: $TSFixMe = await DomainVerificationService.findOneBy({
             query: { domain: newDomain },
@@ -375,7 +375,7 @@ export default class Service {
             );
         }
 
-        let doesDomainExist = false;
+        let doesDomainExist: $TSFixMe = false;
 
         const domainList: $TSFixMe = [...statusPage.domains];
         const updatedDomainList: $TSFixMe = [];
@@ -807,7 +807,7 @@ export default class Service {
         });
 
         const checkHideResolved: $TSFixMe = statuspages[0].hideResolvedIncident;
-        let option = {};
+        let option: $TSFixMe = {};
         if (checkHideResolved) {
             option = {
                 resolved: false,
@@ -990,7 +990,7 @@ export default class Service {
             IncidentService.countBy(query),
         ]);
 
-        const investigationNotes = incidents.map((incident: $TSFixMe) => {
+        const investigationNotes: $TSFixMe = incidents.map((incident: $TSFixMe) => {
             // return all the incident object
             return incident;
         });
@@ -1149,7 +1149,7 @@ export default class Service {
             (statusPage: $TSFixMe) => statusPage.monitors.length
         );
         const statuspage: $TSFixMe = withMonitors[0];
-        let monitorIds = statuspage
+        let monitorIds: $TSFixMe = statuspage
             ? statuspage.monitors.map((m: $TSFixMe) => m.monitor)
             : [];
         monitorIds = monitorIds.map(
@@ -1454,7 +1454,7 @@ export default class Service {
 
         const statusPages: $TSFixMe = await statusPagesQuery;
 
-        let statusPage = null;
+        let statusPage: $TSFixMe = null;
 
         if (
             query &&
@@ -1496,7 +1496,7 @@ export default class Service {
                 throw error;
             }
 
-            const monitorIds = statusPage.monitors.map((monitorObj: $TSFixMe) =>
+            const monitorIds: $TSFixMe = statusPage.monitors.map((monitorObj: $TSFixMe) =>
                 String(monitorObj.monitor._id || monitorObj.monitor)
             );
             const projectId: $TSFixMe = statusPage.projectId._id || statusPage.projectId;
@@ -1515,7 +1515,7 @@ export default class Service {
                 0,
                 0
             );
-            const filteredMonitorData = monitors.map(subProject: $TSFixMe => {
+            const filteredMonitorData: $TSFixMe = monitors.map(subProject: $TSFixMe => {
                 return subProject.monitors.filter((monitor: $TSFixMe) =>
                     monitorIds.includes(monitor._id.toString())
                 );
@@ -1709,8 +1709,8 @@ export default class Service {
             'monitors.monitorId'
         );
 
-        let statusPages = [];
-        let count = 0;
+        let statusPages: $TSFixMe = [];
+        let count: $TSFixMe = 0;
         if (monitors) {
             monitors = monitors.map(
                 (monitor: $TSFixMe) =>
@@ -1756,7 +1756,7 @@ export default class Service {
             })
         );
         const bubble: $TSFixMe = await getServiceStatus(statuses, probes);
-        let statusMessage = '';
+        let statusMessage: $TSFixMe = '';
         if (bubble === 'all') {
             statusMessage = 'All services are online';
         } else if (bubble === 'some') {
@@ -2152,7 +2152,7 @@ export default class Service {
         );
 
         const userId: $TSFixMe = userData?.data?.data?.id || false;
-        let response = '';
+        let response: $TSFixMe = '';
 
         if (userId) {
             const tweetData: $TSFixMe = await axios.get(
@@ -2220,8 +2220,8 @@ const getServiceStatus: Function = (
     const probesLength: $TSFixMe = probes && probes.length;
 
     const totalServices: $TSFixMe = monitorsLength * probesLength;
-    let onlineServices = totalServices;
-    let degraded = 0;
+    let onlineServices: $TSFixMe = totalServices;
+    let degraded: $TSFixMe = 0;
 
     monitorsData.forEach((monitor: $TSFixMe) => {
         probes.forEach((probe: $TSFixMe) => {

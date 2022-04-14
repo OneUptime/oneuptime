@@ -11,7 +11,7 @@ const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Email Logs', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -62,7 +62,7 @@ describe('Email Logs', () => {
                 hidden: true,
             });
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr',
                 (row: $TSFixMe) => row.textContent
@@ -99,7 +99,7 @@ describe('Email Logs', () => {
 
             await init.pageClick(page, '#cancelEmailDelete');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
                 (rows: $TSFixMe) => rows.length
@@ -122,7 +122,7 @@ describe('Email Logs', () => {
             await init.pageWaitForSelector(page, '#emailLogs');
 
             await init.pageClick(page, '#emailLogs');
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`,
                 { hidden: true }
@@ -183,7 +183,7 @@ describe('Email Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`
             );
@@ -207,7 +207,7 @@ describe('Email Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`
             );
@@ -277,7 +277,7 @@ describe('Email Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#emailLogDisabled`
             );

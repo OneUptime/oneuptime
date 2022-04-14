@@ -107,7 +107,7 @@ app.use('/dashboard', ExpressStatic(path.join(__dirname, 'build')));
 // app.use(
 //     /^\/dashboard\/static\/js\/([0-9]|[1-9][0-9]|[1-9][0-9][0-9])\.(.+)\.chunk\.js$/,
 //     function(req:Request, res: ExpressResponse, next: NextFunction) {
-//         let baseUrls = req.baseUrl;
+//         let baseUrls: $TSFixMe = req.baseUrl;
 //         baseUrls = baseUrls.split('/');
 
 //         const fileName: $TSFixMe = baseUrls[baseUrls.length - 1];
@@ -125,7 +125,7 @@ app.use('/dashboard', ExpressStatic(path.join(__dirname, 'build')));
 //     res,
 //     next
 // ) {
-//     let baseUrls = req.baseUrl;
+//     let baseUrls: $TSFixMe = req.baseUrl;
 //     baseUrls = baseUrls.split('/');
 
 //     const fileName: $TSFixMe = baseUrls[baseUrls.length - 1];

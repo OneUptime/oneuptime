@@ -7,7 +7,7 @@ const monitorCollection: string = 'monitors';
 async function run(): void {
     const projects: $TSFixMe = await find(projectCollection, {});
 
-    for (let i = 0; i < projects.length; i++) {
+    for (let i: $TSFixMe = 0; i < projects.length; i++) {
         const project: $TSFixMe = projects[i];
         // Find monitors without a component
         const monitors: $TSFixMe = await find(monitorCollection, {
@@ -15,7 +15,7 @@ async function run(): void {
             componentId: undefined,
         });
 
-        for (let i = 0; i < monitors.length; i++) {
+        for (let i: $TSFixMe = 0; i < monitors.length; i++) {
             const { _id, name }: $TSFixMe = monitors[i];
             // Create a component for this monitor
             const { ops = [{}] }: $TSFixMe = await save(componentCollection, [

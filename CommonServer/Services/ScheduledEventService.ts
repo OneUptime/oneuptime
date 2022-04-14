@@ -507,7 +507,7 @@ export default class Service {
                 );
 
                 if (event.monitors.length > 0) {
-                    let updatedEvent =
+                    let updatedEvent: $TSFixMe =
                         await ScheduledEventModel.findOneAndUpdate(
                             { _id: event._id },
                             { $set: { monitors: event.monitors } },
@@ -523,7 +523,7 @@ export default class Service {
                     RealTimeService.updateScheduledEvent(updatedEvent);
                 } else {
                     // delete the scheduled event when no monitor is remaining
-                    let deletedEvent =
+                    let deletedEvent: $TSFixMe =
                         await ScheduledEventModel.findOneAndUpdate(
                             { _id: event._id },
                             {

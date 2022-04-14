@@ -198,7 +198,7 @@ export default class Service {
     }
 
     async removeMonitor(monitorId: $TSFixMe, userId: ObjectID): void {
-        let query = {};
+        let query: $TSFixMe = {};
         if (monitorId) {
             query = { monitorId: monitorId };
         }

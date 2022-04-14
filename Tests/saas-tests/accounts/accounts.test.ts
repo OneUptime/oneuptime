@@ -37,10 +37,10 @@ describe('Login API', () => {
             await init.saasLogout(page);
             await init.loginUser(user, page); // Items required are only available when 'loginUser' is initiated.
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData: $TSFixMe = await page.evaluate(() => {
                 const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }

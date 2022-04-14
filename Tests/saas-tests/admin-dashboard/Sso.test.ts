@@ -56,7 +56,7 @@ const createSso: Function = async (page: $TSFixMe, data: $TSFixMe): void => {
 };
 
 describe('SSO API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     afterAll(async (done: $TSFixMe) => {
         /**This takes care of the closing the browser when the test is complete */
@@ -116,7 +116,7 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const ssoCountAfterCreation = await init.page$Eval(
+            const ssoCountAfterCreation: $TSFixMe = await init.page$Eval(
                 page,
                 '#sso-count',
                 (e: $TSFixMe) => {
@@ -126,9 +126,13 @@ describe('SSO API', () => {
 
             expect(ssoCountAfterCreation).toContain('1');
 
-            const tbody = await init.page$Eval(page, 'tbody', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const tbody: $TSFixMe = await init.page$Eval(
+                page,
+                'tbody',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
 
             expect(tbody).toContain('test.hackerbay.io');
 
@@ -148,7 +152,7 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-count');
 
-            const ssoCountAfterCreation = await init.page$Eval(
+            const ssoCountAfterCreation: $TSFixMe = await init.page$Eval(
                 page,
                 '#sso-count',
                 (e: $TSFixMe) => {
@@ -176,9 +180,13 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const tbody = await init.page$Eval(page, 'tbody', (e: $TSFixMe) => {
-                return e.innerHTML;
-            });
+            const tbody: $TSFixMe = await init.page$Eval(
+                page,
+                'tbody',
+                (e: $TSFixMe) => {
+                    return e.innerHTML;
+                }
+            );
             expect(tbody).toContain('updated.test.hackerbay.io');
 
             done();
@@ -194,7 +202,7 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-count');
 
-            const count = await init.page$Eval(
+            const count: $TSFixMe = await init.page$Eval(
                 page,
                 '#sso-count',
                 (e: $TSFixMe) => {
@@ -215,17 +223,16 @@ describe('SSO API', () => {
                 await page.reload({ waitUntil: 'networkidle2' });
             }
 
-            const ssoMessage = await init.pageWaitForSelector(
+            const ssoMessage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#no-sso-message'
             ); // 'No SSO created yet' is rendered when none is available
             expect(ssoMessage).toBeDefined();
 
-            const ssoCountAfterDeletion = await init.pageWaitForSelector(
-                page,
-                '#sso-count',
-                { hidden: true }
-            );
+            const ssoCountAfterDeletion: $TSFixMe =
+                await init.pageWaitForSelector(page, '#sso-count', {
+                    hidden: true,
+                });
             expect(ssoCountAfterDeletion).toBeNull();
 
             done();
@@ -241,7 +248,7 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#no-sso-message');
 
-            for (let i = 0; i <= 11; i++) {
+            for (let i: $TSFixMe = 0; i <= 11; i++) {
                 await createSso(page, {
                     domain: `subdomain.${i}.test.hackerbay.io`,
                     entityId: 'hackerbay.io', //Updated UI
@@ -254,7 +261,7 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const ssoCount = await init.page$Eval(
+            const ssoCount: $TSFixMe = await init.page$Eval(
                 page,
                 '#sso-count',
                 (e: $TSFixMe) => {
@@ -264,7 +271,7 @@ describe('SSO API', () => {
 
             expect(ssoCount).toContain('12');
 
-            const firstPageTbody = await init.page$Eval(
+            const firstPageTbody: $TSFixMe = await init.page$Eval(
                 page,
                 'tbody',
                 (e: $TSFixMe) => {
@@ -276,7 +283,7 @@ describe('SSO API', () => {
 
             await init.pageClick(page, '#next-button');
 
-            const secondPageTbody = await init.page$Eval(
+            const secondPageTbody: $TSFixMe = await init.page$Eval(
                 page,
                 'tbody',
                 (e: $TSFixMe) => {
@@ -288,7 +295,7 @@ describe('SSO API', () => {
 
             await init.pageClick(page, '#previous-button');
 
-            const initalPageTbody = await init.page$Eval(
+            const initalPageTbody: $TSFixMe = await init.page$Eval(
                 page,
                 'tbody',
                 (e: $TSFixMe) => {

@@ -21,7 +21,7 @@ export default {
             expiryDate: new Date(),
         };
 
-        let licenseFound = false;
+        let licenseFound: $TSFixMe = false;
 
         for (const record of records) {
             const fetchedLicense: $TSFixMe = record.get('License Key');

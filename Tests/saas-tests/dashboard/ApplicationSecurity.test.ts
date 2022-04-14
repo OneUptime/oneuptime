@@ -12,7 +12,7 @@ const component: string = 'TestComponent';
 const applicationSecurityName: string = 'Test';
 
 describe('Application Security Page', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(600000);
@@ -38,9 +38,10 @@ describe('Application Security Page', () => {
     test(
         'should create an application security with a resource category and ensure it redirects to the details page and has category attached',
         async (done: $TSFixMe) => {
-            const gitUsername = utils.gitCredential.gitUsername;
-            const gitPassword = utils.gitCredential.gitPassword;
-            const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
+            const gitUsername: $TSFixMe = utils.gitCredential.gitUsername;
+            const gitPassword: $TSFixMe = utils.gitCredential.gitPassword;
+            const gitRepositoryUrl: $TSFixMe =
+                utils.gitCredential.gitRepositoryUrl;
 
             await init.addComponent(component, page);
 
@@ -110,19 +111,21 @@ describe('Application Security Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const applicationSecurity = await init.pageWaitForSelector(
-                page,
-                `#applicationSecurityHeader_${applicationSecurityName}`,
-                { visible: true, timeout: init.timeout }
-            );
+            const applicationSecurity: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true, timeout: init.timeout }
+                );
             expect(applicationSecurity).toBeDefined();
 
             // find the edit button which appears only on the details page
 
-            const editApplicationElement = await init.pageWaitForSelector(
-                page,
-                `#edit_${applicationSecurityName}`
-            );
+            const editApplicationElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#edit_${applicationSecurityName}`
+                );
             expect(editApplicationElement).toBeDefined();
 
             // confirm the category shows in the details page.
@@ -183,10 +186,14 @@ describe('Application Security Page', () => {
             page,
             `#moreApplicationSecurity_${applicationSecurityName}`
         );
-        const issueCount = await init.pageWaitForSelector(page, '#issueCount', {
-            visible: true,
-            timeout: init.timeout,
-        });
+        const issueCount: $TSFixMe = await init.pageWaitForSelector(
+            page,
+            '#issueCount',
+            {
+                visible: true,
+                timeout: init.timeout,
+            }
+        );
         expect(issueCount).toBeDefined();
 
         done();
@@ -231,7 +238,7 @@ describe('Application Security Page', () => {
                 page,
                 `#moreApplicationSecurity_${applicationSecurityName}`
             );
-            const securityLog = await init.pageWaitForSelector(
+            const securityLog: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#securityLog',
                 {
@@ -283,7 +290,7 @@ describe('Application Security Page', () => {
             );
 
             await init.pageClick(page, '#issueCount');
-            const securityLog = await init.pageWaitForSelector(
+            const securityLog: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#securityLog',
                 {
@@ -346,7 +353,10 @@ describe('Application Security Page', () => {
             // make sure the added application security
             // has atleast one security vulnerability
 
-            const logs = await init.page$$(page, '#securityLog tbody tr');
+            const logs: $TSFixMe = await init.page$$(
+                page,
+                '#securityLog tbody tr'
+            );
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
             done();
@@ -427,7 +437,7 @@ describe('Application Security Page', () => {
                 }
             );
 
-            const textContent = await init.page$Eval(
+            const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 `#applicationSecurityTitle_${newApplicationName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -503,11 +513,12 @@ describe('Application Security Page', () => {
 
             await init.pageClick(page, '#deleteApplicationSecurityModalBtn');
 
-            const applicationSecurity = await init.pageWaitForSelector(
-                page,
-                `#applicationSecurityHeader_${newApplicationName}`,
-                { hidden: true }
-            );
+            const applicationSecurity: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#applicationSecurityHeader_${newApplicationName}`,
+                    { hidden: true }
+                );
             expect(applicationSecurity).toBeNull();
 
             done();

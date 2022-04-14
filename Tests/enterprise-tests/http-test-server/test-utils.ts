@@ -18,7 +18,7 @@ const puppeteerLaunchConfig: $TSFixMe = {
     ],
 };
 
-const user = faker.helpers.createCard();
+const user: $TSFixMe = faker.helpers.createCard();
 
 function generateRandomString(): void {
     return Math.random().toString(36).substring(10);

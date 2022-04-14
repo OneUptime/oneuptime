@@ -6,10 +6,10 @@ async function run(): void {
     const statusPages: $TSFixMe = await find(statusPageCollection, {
         monitorIds: { $exists: true },
     });
-    for (let i = 0; i < statusPages.length; i++) {
+    for (let i: $TSFixMe = 0; i < statusPages.length; i++) {
         const statusPage: $TSFixMe = statusPages[i];
         const monitors: $TSFixMe = [];
-        for (let j = 0; j < statusPage.monitorIds.length; j++) {
+        for (let j: $TSFixMe = 0; j < statusPage.monitorIds.length; j++) {
             monitors.push({
                 monitor: statusPage.monitorIds[j],
                 description: '',

@@ -11,7 +11,7 @@ const password: string = '1234567890';
 const createUserMail: Email = utils.generateRandomBusinessEmail();
 
 describe('SMTP Settings API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -49,7 +49,10 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
 
-            const users = await init.page$$(page, '.bs-ObjectList-rows > a');
+            const users: $TSFixMe = await init.page$$(
+                page,
+                '.bs-ObjectList-rows > a'
+            );
             await users[1].click();
 
             await init.pageWaitForSelector(page, '#disableUser2fa');
@@ -78,10 +81,16 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '.bs-ObjectList-rows > a');
 
-            const users = await init.page$$(page, '.bs-ObjectList-rows > a');
+            const users: $TSFixMe = await init.page$$(
+                page,
+                '.bs-ObjectList-rows > a'
+            );
             await users[0].click();
 
-            const elem = await init.isElementOnPage(page, '#disableUser2fa');
+            const elem: $TSFixMe = await init.isElementOnPage(
+                page,
+                '#disableUser2fa'
+            );
             expect(elem).toEqual(false);
             done();
         },

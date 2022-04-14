@@ -7,9 +7,9 @@ async function run(): void {
         notificationType: { $exists: false },
     });
 
-    for (let i = 0; i < subscribers.length; i++) {
+    for (let i: $TSFixMe = 0; i < subscribers.length; i++) {
         const subscriber: $TSFixMe = subscribers[i];
-        let notificationType = null;
+        let notificationType: $TSFixMe = null;
         if (subscriber.statusPageId) {
             notificationType = {
                 announcement: false,

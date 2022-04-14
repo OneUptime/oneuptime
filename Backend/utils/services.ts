@@ -4,7 +4,7 @@ export default {
 
         let curr;
 
-        for (let i = 0; i < arr.length; i++) {
+        for (let i: $TSFixMe = 0; i < arr.length; i++) {
             curr = arr[i];
 
             if (!map[curr.identification]) {
@@ -20,7 +20,7 @@ export default {
 
     rearrangeDuty: async (main = []) => {
         let closeStringId;
-        for (let i = 0; i < main.length; i++) {
+        for (let i: $TSFixMe = 0; i < main.length; i++) {
             if (typeof main[i].schedule == 'object') {
                 closeStringId = i - 1;
             }
@@ -34,7 +34,7 @@ export default {
     },
 
     checkCallSchedule: async (arr: $TSFixMe) => {
-        const isAllFalse = arr.every((a: $TSFixMe) => !a.isOnDuty);
+        const isAllFalse: $TSFixMe = arr.every((a: $TSFixMe) => !a.isOnDuty);
 
         if (isAllFalse) {
             return arr[0] ? [arr[0]] : [];

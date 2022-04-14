@@ -21,7 +21,7 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
 
     await init.pageWaitForSelector(page, '#statusPages');
     await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
-    const rowItem = await init.pageWaitForSelector(
+    const rowItem: $TSFixMe = await init.pageWaitForSelector(
         page,
         '#statusPagesListContainer > tr',
         { visible: true, timeout: init.timeout }
@@ -30,7 +30,7 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
 };
 
 describe('Status Page', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -152,7 +152,7 @@ describe('Status Page', () => {
             await page.goto(link);
             await init.pageWaitForSelector(page, '#js', { hidden: true });
 
-            const code = await init.page$Eval(
+            const code: $TSFixMe = await init.page$Eval(
                 page,
                 '#js',
                 (script: $TSFixMe) => script.innerHTML,
@@ -185,7 +185,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await init.page$Eval(
+            const element: $TSFixMe = await init.page$Eval(
                 page,
                 '#field-error',
                 (e: $TSFixMe) => {
@@ -224,7 +224,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await init.page$Eval(
+            const element: $TSFixMe = await init.page$Eval(
                 page,
                 '#field-error',
                 (e: $TSFixMe) => {
@@ -261,14 +261,18 @@ describe('Status Page', () => {
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
             });
-            const elem = await init.pageWaitForSelector(page, '#domainNotSet', {
-                hidden: true,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#domainNotSet',
+                {
+                    hidden: true,
+                }
+            );
             expect(elem).toBeNull();
 
             // if domain was not added sucessfully, list will be undefined
             // it will timeout
-            const list = await init.pageWaitForSelector(
+            const list: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'fieldset[name="added-domain"]',
                 { visible: true, timeout: init.timeout }
@@ -300,7 +304,7 @@ describe('Status Page', () => {
             await init.pageType(page, '#customDomain', customDomain);
 
             await init.pageClick(page, '#createCustomDomainBtn');
-            const addDomainError = await init.pageWaitForSelector(
+            const addDomainError: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#addDomainError',
                 {

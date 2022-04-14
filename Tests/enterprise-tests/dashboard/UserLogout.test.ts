@@ -11,7 +11,7 @@ const user: $TSFixMe = {
 };
 
 describe('User logout', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);

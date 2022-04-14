@@ -106,7 +106,7 @@ export const confirmLicense: $TSFixMe =
                 true
             );
 
-            let data = response.data;
+            let data: $TSFixMe = response.data;
             if (data.token) {
                 const response: $TSFixMe = await BackendAPI.post(
                     new Route('globalConfig/'),

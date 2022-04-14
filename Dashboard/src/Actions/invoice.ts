@@ -51,7 +51,7 @@ export function getInvoice(
     endingBefore: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         const reqFornext: $TSFixMe = Boolean(startingAfter) && !endingBefore;
         const reqForPrev: $TSFixMe =
             Boolean(endingBefore) && Boolean(startingAfter);

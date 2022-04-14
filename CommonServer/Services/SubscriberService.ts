@@ -246,7 +246,7 @@ export default class Service {
             );
         }
 
-        const success = monitors.map(async (monitor: $TSFixMe) => {
+        const success: $TSFixMe = monitors.map(async (monitor: $TSFixMe) => {
             const newSubscriber: $TSFixMe = Object.assign({}, data, {
                 monitorId: monitor._id ?? monitor,
             });
@@ -293,7 +293,7 @@ export default class Service {
 
     async subscribeFromCSVFile(subscribers: $TSFixMe): void {
         const { data, projectId, monitorId }: $TSFixMe = subscribers;
-        const success = data.map(async (subscriber: $TSFixMe) => {
+        const success: $TSFixMe = data.map(async (subscriber: $TSFixMe) => {
             const newSubscriber: $TSFixMe = Object.assign({}, subscriber, {
                 monitorId,
                 projectId,

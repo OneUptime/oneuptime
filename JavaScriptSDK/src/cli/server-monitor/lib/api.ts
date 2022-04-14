@@ -103,7 +103,7 @@ const ping: Function = (
                         si.cpu(),
                     ])
                         .then(data => {
-                            const storage =
+                            const storage: $TSFixMe =
                                 data[2] && data[2].length > 0
                                     ? data[2].filter(
                                           partition =>
@@ -214,7 +214,7 @@ export default function (
 
             return get(apiUrl, url, apiKey, (response: $TSFixMe) => {
                 return new Promise((resolve, reject) => {
-                    const data = response.data;
+                    const data: $TSFixMe = response.data;
 
                     if (data && data !== null) {
                         if (id && typeof id === 'string') {
@@ -281,7 +281,8 @@ export default function (
                         logger.error(error);
                     }
 
-                    const errorCode = typeof error === 'number' ? error : 1;
+                    const errorCode: $TSFixMe =
+                        typeof error === 'number' ? error : 1;
                     process.exitCode = errorCode;
 
                     return error;

@@ -49,7 +49,7 @@ export default {
 const lighthouseFetch: Function = (url: URL): void => {
     return new Promise((resolve, reject) => {
         const lighthouseWorker: $TSFixMe = fork('./utils/lighthouse');
-        const timeoutHandler = setTimeout(async (): $TSFixMe => {
+        const timeoutHandler: $TSFixMe = setTimeout(async (): $TSFixMe => {
             await processLighthouseScan({
                 data: { url },
                 error: { message: 'TIMEOUT' },

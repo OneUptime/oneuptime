@@ -205,7 +205,7 @@ class Service extends DatabaseService<typeof Model> {
                 select: '_id',
             });
 
-            const incidentIds = incidents.map(incident: $TSFixMe => incident._id);
+            const incidentIds: $TSFixMe = incidents.map(incident: $TSFixMe => incident._id);
 
             if (incidentIds && incidentIds.length) {
                 log = await MonitorLogService.updateOneBy(
@@ -285,8 +285,8 @@ class Service extends DatabaseService<typeof Model> {
             }),
         ]);
         const { matchedCriterion }: $TSFixMe = data;
-        let incidentIds = [];
-        let scripts = [];
+        let incidentIds: $TSFixMe = [];
+        let scripts: $TSFixMe = [];
 
         if (
             matchedCriterion &&
@@ -310,7 +310,7 @@ class Service extends DatabaseService<typeof Model> {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes = incident.probes.map(probe: $TSFixMe => ({
+                        const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -385,7 +385,7 @@ class Service extends DatabaseService<typeof Model> {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes = incident.probes.map(probe: $TSFixMe => ({
+                        const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -459,7 +459,7 @@ class Service extends DatabaseService<typeof Model> {
                 const internalIncidents: $TSFixMe = [];
                 for (let incident of incidents) {
                     if (monitor.type !== 'incomingHttpRequest') {
-                        const initialProbes = incident.probes.map(probe: $TSFixMe => ({
+                        const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
                             probeId: probe.probeId._id || probe.probeId,
                             updatedAt: probe.updatedAt,
                             status: probe.status,
@@ -563,7 +563,7 @@ class Service extends DatabaseService<typeof Model> {
         let autoAcknowledge, autoResolve;
         if (incidents && incidents.length > 0) {
             incidents.forEach(incident => {
-                let criteriaId = null;
+                let criteriaId: $TSFixMe = null;
                 if (
                     incident &&
                     incident.criterionCause &&
@@ -624,7 +624,7 @@ class Service extends DatabaseService<typeof Model> {
                     incident.probes.length > 0 &&
                     monitor.type !== 'incomingHttpRequest'
                 ) {
-                    const initialProbes = incident.probes.map(probe: $TSFixMe => ({
+                    const initialProbes: $TSFixMe = incident.probes.map(probe: $TSFixMe => ({
                         probeId: probe.probeId._id || probe.probeId,
                         updatedAt: probe.updatedAt,
                         status: probe.status,
@@ -718,11 +718,11 @@ class Service extends DatabaseService<typeof Model> {
 
         const failedReasons: $TSFixMe = [];
 
-        let eventOccurred = false;
+        let eventOccurred: $TSFixMe = false;
         let matchedCriterion;
         if (con && con.length) {
             eventOccurred = con.some(condition => {
-                let stat = true;
+                let stat: $TSFixMe = true;
                 if (
                     condition &&
                     condition.criteria &&
@@ -789,12 +789,12 @@ class Service extends DatabaseService<typeof Model> {
 
         const failedReasons: $TSFixMe = [];
 
-        let eventOccurred = false;
+        let eventOccurred: $TSFixMe = false;
         let matchedCriterion;
 
         if (con && con.length) {
             eventOccurred = some(con, condition => {
-                let stat = true;
+                let stat: $TSFixMe = true;
                 if (
                     condition &&
                     condition.criteria &&
@@ -860,12 +860,12 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     incomingCondition(payload, conditions): void {
-        let eventOccurred = false;
+        let eventOccurred: $TSFixMe = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
             eventOccurred = some(conditions, condition => {
-                let response = false;
-                let respAnd = false,
+                let response: $TSFixMe = false;
+                let respAnd: $TSFixMe = false,
                     respOr = false,
                     countAnd = 0,
                     countOr = 0;
@@ -1079,8 +1079,8 @@ class Service extends DatabaseService<typeof Model> {
                       ),
                   ])
                 : false;
-        let timeHours = 0;
-        let timeMinutes = payload;
+        let timeHours: $TSFixMe = 0;
+        let timeMinutes: $TSFixMe = payload;
         let tempReason: string = `${payload} min`;
         if (timeMinutes > 60) {
             timeHours = Math.floor(timeMinutes / 60);
@@ -1168,11 +1168,11 @@ import CreateBy from '../Types/DB/CreateBy';
 import UUID from 'Common/Utils/UUID';
 
 const incomingCheckAnd: Function = (payload, condition): void => {
-    let validity = false;
-    let val = 0;
-    let incomingVal = 0;
+    let validity: $TSFixMe = false;
+    let val: $TSFixMe = 0;
+    let incomingVal: $TSFixMe = 0;
     if (condition && condition.criteria && condition.criteria.length > 0) {
-        for (let i = 0; i < condition.criteria.length; i++) {
+        for (let i: $TSFixMe = 0; i < condition.criteria.length; i++) {
             if (
                 condition.criteria[i].criteria &&
                 condition.criteria[i].criteria.length > 0
@@ -1318,11 +1318,11 @@ const incomingCheckAnd: Function = (payload, condition): void => {
 };
 
 const incomingCheckOr: Function = (payload, condition): void => {
-    let validity = false;
-    let val = 0;
-    let incomingVal = 0;
+    let validity: $TSFixMe = false;
+    let val: $TSFixMe = 0;
+    let incomingVal: $TSFixMe = 0;
     if (condition && condition.criteria && condition.criteria.length > 0) {
-        for (let i = 0; i < condition.criteria.length; i++) {
+        for (let i: $TSFixMe = 0; i < condition.criteria.length; i++) {
             if (
                 condition.criteria[i].criteria &&
                 condition.criteria[i].criteria.length > 0
@@ -1489,9 +1489,9 @@ const checkAnd: Function = (
 
     headers
 ): void => {
-    let validity = true;
+    let validity: $TSFixMe = true;
     if (con && con.criteria && con.criteria.length > 0) {
-        for (let i = 0; i < con.criteria.length; i++) {
+        for (let i: $TSFixMe = 0; i < con.criteria.length; i++) {
             if (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
@@ -1549,8 +1549,8 @@ const checkAnd: Function = (
                     con.criteria[i].responseType &&
                     con.criteria[i].responseType === 'incomingTime'
                 ) {
-                    let timeHours = 0;
-                    let timeMinutes = payload;
+                    let timeHours: $TSFixMe = 0;
+                    let timeMinutes: $TSFixMe = payload;
                     if (timeMinutes > 60) {
                         timeHours = Math.floor(timeMinutes / 60);
                         timeMinutes = Math.floor(timeMinutes % 60);
@@ -3863,9 +3863,9 @@ const checkOr: Function = (
 
     headers
 ): void => {
-    let validity = false;
+    let validity: $TSFixMe = false;
     if (con && con.criteria && con.criteria.length > 0) {
-        for (let i = 0; i < con.criteria.length; i++) {
+        for (let i: $TSFixMe = 0; i < con.criteria.length; i++) {
             if (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
@@ -3920,8 +3920,8 @@ const checkOr: Function = (
                     con.criteria[i].responseType &&
                     con.criteria[i].responseType === 'incomingTime'
                 ) {
-                    let timeHours = 0;
-                    let timeMinutes = payload;
+                    let timeHours: $TSFixMe = 0;
+                    let timeMinutes: $TSFixMe = payload;
                     if (timeMinutes > 60) {
                         timeHours = Math.floor(timeMinutes / 60);
                         timeMinutes = Math.floor(timeMinutes % 60);
@@ -6207,9 +6207,9 @@ const checkScriptAnd: Function = (
     successReasons,
     failedReasons
 ): void => {
-    let valid = true;
+    let valid: $TSFixMe = true;
     if (con && con.criteria && con.criteria.length > 0) {
-        for (let i = 0; i < con.criteria.length; i++) {
+        for (let i: $TSFixMe = 0; i < con.criteria.length; i++) {
             if (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
@@ -6267,9 +6267,9 @@ const checkScriptOr: Function = (
     successReasons,
     failedReasons
 ): void => {
-    let valid = false;
+    let valid: $TSFixMe = false;
     if (con && con.criteria && con.criteria.length > 0) {
-        for (let i = 0; i < con.criteria.length; i++) {
+        for (let i: $TSFixMe = 0; i < con.criteria.length; i++) {
             if (
                 con.criteria[i].criteria &&
                 con.criteria[i].criteria.length > 0
@@ -6363,7 +6363,7 @@ const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
 };
 
 const formatBytes: Function = (a, b, c, d, e): void => {
-    let value = a;
+    let value: $TSFixMe = a;
     let decimalPlaces;
     let roundType;
     if (typeof a === 'object') {

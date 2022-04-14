@@ -11,7 +11,7 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('SMS Logs', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -78,7 +78,7 @@ describe('SMS Logs', () => {
                 hidden: true,
             });
 
-            const alertLogs = await init.page$Eval(
+            const alertLogs: $TSFixMe = await init.page$Eval(
                 page,
                 '#logsStatus',
                 (element: $TSFixMe) => element.textContent
@@ -122,7 +122,7 @@ describe('SMS Logs', () => {
 
             await init.pageClick(page, '#cancelSmsDelete');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
                 (rows: $TSFixMe) => rows.length
@@ -189,7 +189,7 @@ describe('SMS Logs', () => {
 
             await init.pageClick(page, '#smsLogs');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
                 (rows: $TSFixMe) => rows.length
@@ -318,7 +318,7 @@ describe('SMS Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#smsLogDisabled`
             );
@@ -335,7 +335,7 @@ describe('SMS Logs', () => {
     //         await init.pageClick(page, '#smsLogs');
 
     //         // look for the alert panel
-    //         const alertPanelElement = await init.pageWaitForSelector(
+    //         const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
     //             page,
     //             `#smsLogDisabled`
     //         );
@@ -382,7 +382,7 @@ describe('SMS Logs', () => {
     //         logCount = Number(logCount.split(' ')[0]);
 
     //         // look for the alert panel
-    //         const alertPanelElement = await init.pageWaitForSelector(
+    //         const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
     //             page,
     //             `#smsLogDisabled`
     //         );

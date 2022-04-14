@@ -13,11 +13,11 @@ const componentName: string = utils.generateRandomString();
 const subscriberEmail: Email = utils.generateRandomBusinessEmail();
 const webHookName: string = utils.generateRandomString();
 const newWebHookName: string = utils.generateRandomString();
-const webhookEndpoint = utils.generateRandomWebsite();
+const webhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
 const priorityName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -81,7 +81,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            const createdSubscriberEmail = await init.page$Eval(
+            const createdSubscriberEmail: $TSFixMe = await init.page$Eval(
                 page,
                 createdSubscriberSelector,
                 (el: $TSFixMe) => el.textContent
@@ -110,7 +110,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
-            for (let i = 0; i < 5; i++) {
+            for (let i: $TSFixMe = 0; i < 5; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
@@ -140,11 +140,14 @@ describe('Monitor Detail API', () => {
                 createdSubscriberSelector,
                 (elem: $TSFixMe) => elem.textContent
             );
-            let countSubscribers = subscriberRows;
+            let countSubscribers: $TSFixMe = subscriberRows;
             // Total number of subscribers is rendered and not first 5.
             expect(countSubscribers).toEqual('6');
 
-            const nextSelector = await init.page$(page, '#btnNextSubscriber');
+            const nextSelector: $TSFixMe = await init.page$(
+                page,
+                '#btnNextSubscriber'
+            );
             await nextSelector.click();
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
@@ -159,7 +162,10 @@ describe('Monitor Detail API', () => {
             // Navigating to the next page did not affect the subscriber count.
             expect(countSubscribers).toEqual('6');
 
-            const prevSelector = await init.page$(page, '#btnPrevSubscriber');
+            const prevSelector: $TSFixMe = await init.page$(
+                page,
+                '#btnPrevSubscriber'
+            );
             await prevSelector.click();
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
@@ -226,7 +232,7 @@ describe('Monitor Detail API', () => {
             });
             // When an MSTeams is created, only 'Name' and 'Action' are rendered
             //MSTeams Endpoint is no longer rendered
-            const createdWebhookName = await init.page$Eval(
+            const createdWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 createdWebhookSelector,
                 (el: $TSFixMe) => el.textContent
@@ -254,7 +260,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
-            const existingWebhookName = await init.page$Eval(
+            const existingWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 existingWebhookSelector,
                 (el: $TSFixMe) => el.textContent
@@ -269,7 +275,7 @@ describe('Monitor Detail API', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            const newWebhookEndpoint = utils.generateRandomWebsite();
+            const newWebhookEndpoint: $TSFixMe = utils.generateRandomWebsite();
             await init.pageClick(page, '#webHookName', { clickCount: 3 });
 
             await init.pageType(page, '#webHookName', newWebHookName);
@@ -284,7 +290,7 @@ describe('Monitor Detail API', () => {
             });
 
             await init.pageWaitForSelector(page, `#msteam_${newWebHookName}`);
-            const updatedWebhookName = await init.page$Eval(
+            const updatedWebhookName: $TSFixMe = await init.page$Eval(
                 page,
                 `#msteam_${newWebHookName}`,
                 (el: $TSFixMe) => el.textContent
@@ -312,8 +318,11 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            const webhookRows = await init.page$$(page, createdWebhookSelector);
-            const countWebhooks = webhookRows.length;
+            const webhookRows: $TSFixMe = await init.page$$(
+                page,
+                createdWebhookSelector
+            );
+            const countWebhooks: $TSFixMe = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
@@ -364,7 +373,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
-            for (let i = 0; i < 11; i++) {
+            for (let i: $TSFixMe = 0; i < 11; i++) {
                 await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) =>
                     e.click()
                 );
@@ -410,7 +419,7 @@ describe('Monitor Detail API', () => {
                 page,
                 createdWebhookSelector
             );
-            let countWebhooks = webhookRows.length;
+            let countWebhooks: $TSFixMe = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);
 

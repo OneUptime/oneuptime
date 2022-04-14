@@ -5,7 +5,7 @@ async function run(): void {
     const items: $TSFixMe = await find(usersCollection, {
         email: { $regex: '[A-Z]' },
     });
-    for (let i = 0; i < items.length; i++) {
+    for (let i: $TSFixMe = 0; i < items.length; i++) {
         const { email }: $TSFixMe = items[i];
         items[i].email = email.toLowerCase();
         await update(

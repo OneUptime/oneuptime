@@ -12,7 +12,7 @@ const isMainProjectViewer: Function = (
     subProjects: $TSFixMe,
     currentProject: $TSFixMe
 ): void => {
-    let user = currentProject
+    let user: $TSFixMe = currentProject
         ? currentProject.users.find((user: $TSFixMe) => user.userId === userId)
         : null;
     if (user) {
@@ -30,7 +30,9 @@ const isMainProjectViewer: Function = (
               )
             : null;
     if (user && user.length > 0) {
-        const member = user.find((user: $TSFixMe) => user.role !== 'Viewer');
+        const member: $TSFixMe = user.find(
+            (user: $TSFixMe) => user.role !== 'Viewer'
+        );
         if (member && member._id) {
             return false;
         }

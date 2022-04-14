@@ -10,7 +10,7 @@ const user: $TSFixMe = {
 
 const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
-const webHookEndpoint = utils.generateRandomWebsite();
+const webHookEndpoint: $TSFixMe = utils.generateRandomWebsite();
 
 /** This is a test to check:
  * No errors on page reload
@@ -18,7 +18,7 @@ const webHookEndpoint = utils.generateRandomWebsite();
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -76,7 +76,7 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#addWebhookButton',
                 {

@@ -45,7 +45,7 @@ describe('Reset Password API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#reset-password-success');
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#reset-password-success',
                 (e: $TSFixMe) => {
@@ -80,7 +80,7 @@ describe('Reset Password API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#error-msg');
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#error-msg',
                 (e: $TSFixMe) => {

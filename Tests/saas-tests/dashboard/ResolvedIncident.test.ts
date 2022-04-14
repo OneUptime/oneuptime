@@ -43,7 +43,7 @@ describe('Incident Reports API', () => {
     test(
         'should create 5 incidents and resolved them',
         async (done: $TSFixMe) => {
-            for (let i = 0; i < 4; i++) {
+            for (let i: $TSFixMe = 0; i < 4; i++) {
                 await init.navigateToMonitorDetails(
                     componentName,
                     monitorName,

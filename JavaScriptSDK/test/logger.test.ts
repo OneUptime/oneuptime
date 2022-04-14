@@ -3,12 +3,12 @@ import ObjectID from 'Common/Types/ObjectID';
 import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
-const expect = chai.expect;
+const expect: $TSFixMe = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
 const API_URL: string = 'http://localhost:3002/api';
 
 const request: $TSFixMe = chai.request.agent(API_URL);
-const timeout = 5000;
+const timeout: $TSFixMe = 5000;
 
 import OneUptimeLogger from '../src/logger';
 
@@ -32,7 +32,7 @@ describe('OneUptimeLogger', function (): void {
                 .post('/user/signup')
                 .send(user)
                 .end((err: $TSFixMe, res: $TSFixMe): void => {
-                    const project = res.body.project;
+                    const project: $TSFixMe = res.body.project;
                     projectId = project._id;
                     token = res.body.tokens.jwtAccessToken;
                     request
@@ -60,7 +60,11 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should request for application log key', (): void => {
-        const firstLog = new OneUptimeLogger(API_URL, applicationLog._id, '');
+        const firstLog: $TSFixMe = new OneUptimeLogger(
+            API_URL,
+            applicationLog._id,
+            ''
+        );
         firstLog.log('here').catch(error => {
             expect(error.response.status).to.equal(400);
             expect(error.response.data.message).to.equal(
@@ -70,7 +74,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should request for content', (): void => {
-        const firstLog = new OneUptimeLogger(
+        const firstLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -84,7 +88,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return invalid application log', (): void => {
-        const firstLog = new OneUptimeLogger(
+        const firstLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             'key'
@@ -98,7 +102,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item of type string', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -116,7 +120,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item of type object', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -147,7 +151,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item with log type of error', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -165,7 +169,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item with log type of warning', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -183,7 +187,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item with log type of info with one tag', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -209,7 +213,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item with log type of warning with no tag', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
@@ -227,13 +231,13 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should return a valid logged item with log type of error with 3 tags', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key
         );
         const logMessage: string = 'This is a simple log';
-        const tags = ['auction', 'trial', 'famous'];
+        const tags: $TSFixMe = ['auction', 'trial', 'famous'];
 
         validLog.error(logMessage, tags).then(response => {
             expect(response.status).to.equal(200);
@@ -254,7 +258,7 @@ describe('OneUptimeLogger', function (): void {
     });
 
     it('should reject a valid logged item with log type of error with invalid tags', (): void => {
-        const validLog = new OneUptimeLogger(
+        const validLog: $TSFixMe = new OneUptimeLogger(
             API_URL,
             applicationLog._id,
             applicationLog.key

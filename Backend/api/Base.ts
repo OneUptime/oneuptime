@@ -33,7 +33,7 @@ export default ({
         res: ExpressResponse
     ): void => {
         try {
-            let item = null;
+            let item: $TSFixMe = null;
 
             if (req.role === 'member') {
                 item = await service.getItemForMember({
@@ -72,10 +72,10 @@ export default ({
         res: ExpressResponse
     ): void => {
         try {
-            let query = req.data.query;
-            let skip = req.data.skip;
-            let sort = req.data.sort;
-            let limit = req.data.limit;
+            let query: $TSFixMe = req.data.query;
+            let skip: $TSFixMe = req.data.skip;
+            let sort: $TSFixMe = req.data.sort;
+            let limit: $TSFixMe = req.data.limit;
 
             if (!query) {
                 query = {};
@@ -255,7 +255,7 @@ export default ({
     // Create API.
 
     if (createApiProps && createApiProps.enabled) {
-        let createApiPath = '/create';
+        let createApiPath: $TSFixMe = '/create';
 
         if (isResourceInProject) {
             createApiPath = '/:projectId/create';
@@ -269,7 +269,7 @@ export default ({
     }
 
     if (getApiProps && getApiProps.enabled) {
-        let getApiProps = '/:id';
+        let getApiProps: $TSFixMe = '/:id';
 
         if (isResourceInProject) {
             getApiProps = '/:projectId/:id';
@@ -283,7 +283,7 @@ export default ({
     }
 
     if (listApiProps && listApiProps.enabled) {
-        let listApiProps = '/list';
+        let listApiProps: $TSFixMe = '/list';
 
         if (isResourceInProject) {
             listApiProps = '/:projectId/list';
@@ -297,7 +297,7 @@ export default ({
     }
 
     if (updateApiProps && updateApiProps.enabled) {
-        let updateApiProps = '/:id';
+        let updateApiProps: $TSFixMe = '/:id';
 
         if (isResourceInProject) {
             updateApiProps = '/:projectId/:id';
@@ -312,7 +312,7 @@ export default ({
     }
 
     if (deleteApiProps && deleteApiProps.enabled) {
-        let deleteApiProps = '/:id';
+        let deleteApiProps: $TSFixMe = '/:id';
 
         if (isResourceInProject) {
             deleteApiProps = '/:projectId/:id';

@@ -19,23 +19,23 @@ class OutgoingListener {
         override(Https);
 
         function override(module): void {
-            const original = module.request;
+            const original: $TSFixMe = module.request;
 
             function wrapper(outgoing): void {
                 // Store a call to the original in req
 
-                const req = original.apply(this, arguments);
+                const req: $TSFixMe = original.apply(this, arguments);
 
-                const host = outgoing.host || outgoing.hostname;
-                const protocol = outgoing.protocol;
-                const path =
+                const host: $TSFixMe = outgoing.host || outgoing.hostname;
+                const protocol: $TSFixMe = outgoing.protocol;
+                const path: $TSFixMe =
                     outgoing.pathname || outgoing.path || outgoing.url || '/';
-                const method = outgoing.method;
+                const method: $TSFixMe = outgoing.method;
 
-                const emit = req.emit;
+                const emit: $TSFixMe = req.emit;
                 req.apm = {};
                 req.apm.uuid = uuidv4();
-                const result = this.start(req.apm.uuid, {
+                const result: $TSFixMe = this.start(req.apm.uuid, {
                     path: `${protocol}//${host}${path}`, // store full path for outgoing requests
                     type: 'outgoing',
                     method,
@@ -50,7 +50,7 @@ class OutgoingListener {
                             break;
                         }
                         case 'error': {
-                            const originalValue = this.store.getValue(
+                            const originalValue: $TSFixMe = this.store.getValue(
                                 req.apm.uuid
                             );
                             if (originalValue && originalValue !== undefined) {

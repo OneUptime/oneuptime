@@ -46,12 +46,12 @@ export default {
                     select: '_id users',
                 });
 
-                let isUserPresentInProject = false;
+                let isUserPresentInProject: $TSFixMe = false;
 
                 if (project) {
                     const projectUsers: $TSFixMe = project.users;
 
-                    for (let i = 0; i < projectUsers.length; i++) {
+                    for (let i: $TSFixMe = 0; i < projectUsers.length; i++) {
                         if (projectUsers[i].userId === userId) {
                             isUserPresentInProject = true;
                             return next();
@@ -68,9 +68,13 @@ export default {
                     if (subProjects && subProjects.length > 0) {
                         for (const subProject of subProjects) {
                             // 'for in' iterate over the keys while 'for of' iterate over the values
-                            const subProjectUsers = subProject.users; // Using 'for in' made subProject.users: $TSFixMe === undefined
+                            const subProjectUsers: $TSFixMe = subProject.users; // Using 'for in' made subProject.users: $TSFixMe === undefined
 
-                            for (let i = 0; i < subProjectUsers.length; i++) {
+                            for (
+                                let i: $TSFixMe = 0;
+                                i < subProjectUsers.length;
+                                i++
+                            ) {
                                 if (subProjectUsers[i].userId === userId) {
                                     isUserPresentInProject = true;
                                     return next();

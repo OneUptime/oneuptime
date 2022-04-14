@@ -22,7 +22,7 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
 
     await init.pageWaitForSelector(page, '#statusPages');
     await init.page$Eval(page, '#statusPages', (e: $TSFixMe) => e.click());
-    const rowItem = await init.pageWaitForSelector(
+    const rowItem: $TSFixMe = await init.pageWaitForSelector(
         page,
         '#statusPagesListContainer > tr',
         { visible: true, timeout: init.timeout }
@@ -31,7 +31,7 @@ const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
 };
 
 describe('Status Page', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -98,21 +98,15 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await page.reload({ waitUntil: 'networkidle2' });
-            const firstMonitorContainer = await init.pageWaitForSelector(
-                page,
-                '#monitor-0',
-                {
+            const firstMonitorContainer: $TSFixMe =
+                await init.pageWaitForSelector(page, '#monitor-0', {
                     visible: true,
-                }
-            );
+                });
             expect(firstMonitorContainer).toBeDefined();
-            const secondMonitorContainer = await init.pageWaitForSelector(
-                page,
-                '#monitor-1',
-                {
+            const secondMonitorContainer: $TSFixMe =
+                await init.pageWaitForSelector(page, '#monitor-1', {
                     visible: true,
-                }
-            );
+                });
             expect(secondMonitorContainer).toBeDefined();
             done();
         },
@@ -131,7 +125,7 @@ describe('Status Page', () => {
         link = await link.jsonValue();
         await page.goto(link);
 
-        const classicTheme = await init.pageWaitForSelector(
+        const classicTheme: $TSFixMe = await init.pageWaitForSelector(
             page,
             '.uptime-stat-name'
         );
@@ -156,12 +150,12 @@ describe('Status Page', () => {
             await page.goto(link);
 
             await init.pageWaitForSelector(page, '#monitor0');
-            const firstMonitorBeforeSwap = await init.page$Eval(
+            const firstMonitorBeforeSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor0 .uptime-stat-name',
                 (e: $TSFixMe) => e.textContent
             );
-            const secondMonitorBeforeSwap = await init.page$Eval(
+            const secondMonitorBeforeSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor1 .uptime-stat-name',
                 (e: $TSFixMe) => e.textContent
@@ -189,32 +183,26 @@ describe('Status Page', () => {
 
             await page.reload({ waitUntil: 'networkidle2' });
             // We check if the monitors are added
-            const firstMonitorContainer = await init.pageWaitForSelector(
-                page,
-                '#monitor-0',
-                {
+            const firstMonitorContainer: $TSFixMe =
+                await init.pageWaitForSelector(page, '#monitor-0', {
                     visible: true,
-                }
-            );
+                });
             expect(firstMonitorContainer).toBeDefined();
-            const secondMonitorContainer = await init.pageWaitForSelector(
-                page,
-                '#monitor-1',
-                {
+            const secondMonitorContainer: $TSFixMe =
+                await init.pageWaitForSelector(page, '#monitor-1', {
                     visible: true,
-                }
-            );
+                });
             expect(secondMonitorContainer).toBeDefined();
 
             await page.goto(link);
 
             await init.pageWaitForSelector(page, '#monitor0');
-            const firstMonitorAfterSwap = await init.page$Eval(
+            const firstMonitorAfterSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor0 .uptime-stat-name',
                 (e: $TSFixMe) => e.textContent
             );
-            const secondMonitorAfterSwap = await init.page$Eval(
+            const secondMonitorAfterSwap: $TSFixMe = await init.page$Eval(
                 page,
                 '#monitor1 .uptime-stat-name',
                 (e: $TSFixMe) => e.textContent
@@ -233,10 +221,14 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
 
             await init.pageClick(page, '.custom-domains-tab');
-            const elem = await init.pageWaitForSelector(page, '#domainNotSet', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#domainNotSet',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elem).toBeDefined();
             done();
         },
@@ -265,14 +257,18 @@ describe('Status Page', () => {
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
             });
-            const elem = await init.pageWaitForSelector(page, '#domainNotSet', {
-                hidden: true,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#domainNotSet',
+                {
+                    hidden: true,
+                }
+            );
             expect(elem).toBeNull();
 
             // if domain was not added sucessfully, list will be undefined
             // it will timeout
-            const list = await init.pageWaitForSelector(
+            const list: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'fieldset[name="added-domain"]',
                 { visible: true, timeout: init.timeout }
@@ -305,7 +301,7 @@ describe('Status Page', () => {
 
             await init.pageWaitForSelector(page, '#customDomain');
 
-            const input = await init.page$(page, '#customDomain');
+            const input: $TSFixMe = await init.page$(page, '#customDomain');
             await input.click({ clickCount: 3 });
             await input.type(finalValue);
 
@@ -353,7 +349,7 @@ describe('Status Page', () => {
 
             await init.pageClick(page, '#confirmVerifyDomain');
             // element will be visible once the domain was not verified
-            const elem = await init.pageWaitForSelector(
+            const elem: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#verifyDomainError',
                 {
@@ -383,7 +379,7 @@ describe('Status Page', () => {
             );
 
             //Get the initial length of domains
-            const initialLength = await init.page$$Eval(
+            const initialLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
                 (domains: $TSFixMe) => domains.length
@@ -439,7 +435,7 @@ describe('Status Page', () => {
                 page,
                 'fieldset[name="added-domain"]'
             );
-            const finalLength = await init.page$$Eval(
+            const finalLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
                 (domains: $TSFixMe) => domains.length
@@ -467,7 +463,7 @@ describe('Status Page', () => {
                 }
             );
             //Get the initial length of domains
-            const initialLength = await init.page$$Eval(
+            const initialLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
                 (domains: $TSFixMe) => domains.length
@@ -516,7 +512,7 @@ describe('Status Page', () => {
                 'fieldset[name="added-domain"]'
             );
             // get the final length of domains after cancelling
-            const finalLength = await init.page$$Eval(
+            const finalLength: $TSFixMe = await init.page$$Eval(
                 page,
                 'fieldset[name="added-domain"]',
                 (domains: $TSFixMe) => domains.length

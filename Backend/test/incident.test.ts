@@ -527,7 +527,7 @@ describe('Incident API', function (): void {
         expect(res.body).to.have.property('count');
         expect(res.body.count).to.be.equal(1);
 
-        const sameType = res.body.data.filter((e: $TSFixMe): void => {
+        const sameType: $TSFixMe = res.body.data.filter((e: $TSFixMe): void => {
             return e.type === 'internal';
         });
         expect(sameType[0].type).to.be.equal(type);

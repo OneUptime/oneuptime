@@ -62,7 +62,7 @@ export default {
                                 unhealthyPodData = [],
                                 allPods = [],
                                 allPodData = [];
-                            let runningPods = 0,
+                            let runningPods: $TSFixMe = 0,
                                 completedPods = 0,
                                 failedPods = 0;
 
@@ -374,7 +374,7 @@ export default {
                             };
 
                             // handle deployment output
-                            let desiredDeployment = 0,
+                            let desiredDeployment: $TSFixMe = 0,
                                 readyDeployment = 0;
 
                             const unhealthyDeployments: $TSFixMe = [],
@@ -501,7 +501,7 @@ export default {
                             };
 
                             // handle statefulset output
-                            let desiredStatefulsets = 0,
+                            let desiredStatefulsets: $TSFixMe = 0,
                                 readyStatefulsets = 0;
 
                             const healthyStatefulsets: $TSFixMe = [],
@@ -659,7 +659,7 @@ export default {
 
 function loadPodOutput(configPath, namespace): void {
     return new Promise(resolve => {
-        let podOutput = '';
+        let podOutput: $TSFixMe = '';
         const podCommand: string = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const podCommandOutput: $TSFixMe = spawn(podCommand, {
@@ -682,7 +682,7 @@ function loadPodOutput(configPath, namespace): void {
 
 function loadJobOutput(configPath, namespace): void {
     return new Promise(resolve => {
-        let jobOutput = '';
+        let jobOutput: $TSFixMe = '';
         const jobCommand: string = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const jobCommandOutput: $TSFixMe = spawn(jobCommand, {
@@ -705,7 +705,7 @@ function loadJobOutput(configPath, namespace): void {
 
 function loadServiceOutput(configPath, namespace): void {
     return new Promise(resolve => {
-        let serviceOutput = '';
+        let serviceOutput: $TSFixMe = '';
         const serviceCommand: string = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const serviceCommandOutput: $TSFixMe = spawn(serviceCommand, {
@@ -728,7 +728,7 @@ function loadServiceOutput(configPath, namespace): void {
 
 function loadDeploymentOutput(configPath, namespace): void {
     return new Promise(resolve => {
-        let deploymentOutput = '';
+        let deploymentOutput: $TSFixMe = '';
         const deploymentCommand: string = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const deploymentCommandOutput: $TSFixMe = spawn(deploymentCommand, {
@@ -751,7 +751,7 @@ function loadDeploymentOutput(configPath, namespace): void {
 
 function loadStatefulsetOutput(configPath, namespace): void {
     return new Promise(resolve => {
-        let statefulsetOutput = '';
+        let statefulsetOutput: $TSFixMe = '';
         const statefulsetCommand: string = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const statefulsetCommandOutput: $TSFixMe = spawn(statefulsetCommand, {

@@ -490,7 +490,7 @@ const MonitorCriteriaService: $TSFixMe = {
         const val2: $TSFixMe = {};
         const criteria: $TSFixMe = [];
 
-        for (let i = 0; i < val.length; i++) {
+        for (let i: $TSFixMe = 0; i < val.length; i++) {
             const val3: $TSFixMe = {};
             if (val[i].responseType && val[i].responseType.length) {
                 val3.responseType = val[i].responseType;
@@ -536,7 +536,7 @@ const MonitorCriteriaService: $TSFixMe = {
     innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
         nestVal = [...nestVal];
         if (val.criteria && val.criteria.length) {
-            for (let j = 0; j < val.criteria.length; j++) {
+            for (let j: $TSFixMe = 0; j < val.criteria.length; j++) {
                 const innerVal: $TSFixMe = {};
                 if (
                     val.criteria[j].responseType &&
@@ -588,7 +588,7 @@ const MonitorCriteriaService: $TSFixMe = {
     mapCriteria(val: $TSFixMe) {
         const val2: $TSFixMe = [];
         if (val && val.criteria && val.criteria.condition === 'and') {
-            for (let i = 0; i < val.criteria.criteria.length; i++) {
+            for (let i: $TSFixMe = 0; i < val.criteria.criteria.length; i++) {
                 const val3: $TSFixMe = {};
                 if (
                     val.criteria.criteria[i].responseType &&
@@ -639,7 +639,7 @@ const MonitorCriteriaService: $TSFixMe = {
             }
             return val2;
         } else if (val && val.criteria && val.criteria.condition === 'or') {
-            for (let i = 0; i < val.criteria.criteria.length; i++) {
+            for (let i: $TSFixMe = 0; i < val.criteria.criteria.length; i++) {
                 const val3: $TSFixMe = {};
                 if (
                     val.criteria.criteria[i].responseType &&
@@ -698,7 +698,7 @@ const MonitorCriteriaService: $TSFixMe = {
         cr: $TSFixMe
     ) {
         innerContainer = [...innerContainer];
-        for (let j = 0; j < criteriaObj.criteria.length; j++) {
+        for (let j: $TSFixMe = 0; j < criteriaObj.criteria.length; j++) {
             const innerVal: $TSFixMe = {};
             if (
                 criteriaObj.criteria[j].responseType &&

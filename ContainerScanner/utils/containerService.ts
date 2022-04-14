@@ -27,7 +27,7 @@ export default {
 
     decryptPassword: async function (security): void {
         const values: $TSFixMe = [];
-        for (let i = 0; i <= 15; i++) {
+        for (let i: $TSFixMe = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
         }
         const iv: $TSFixMe = Buffer.from(values);
@@ -46,7 +46,7 @@ export default {
                     key,
                     iv
                 );
-                let decoded = decipher.update(encText, 'hex', 'utf8');
+                let decoded: $TSFixMe = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
                 resolve(decoded);
             } catch (error) {
@@ -62,7 +62,7 @@ export default {
             ? `${imagePath}:${imageTags}`
             : imagePath;
         const outputFile: string = `${uuidv1()}result.json`;
-        let securityDir = 'container_security_dir';
+        let securityDir: $TSFixMe = 'container_security_dir';
 
         securityDir = await createDir(securityDir);
         const exactFilePath: $TSFixMe = Path.resolve(securityDir, outputFile);

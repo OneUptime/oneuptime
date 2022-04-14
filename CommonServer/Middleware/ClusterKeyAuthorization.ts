@@ -36,7 +36,7 @@ export default class ClusterKeyAuthorization {
             );
         }
 
-        const isAuthorized = clusterKey: $TSFixMe === CLUSTER_KEY;
+        const isAuthorized: $TSFixMe = clusterKey: $TSFixMe === CLUSTER_KEY;
 
         if (!isAuthorized) {
             return sendErrorResponse(

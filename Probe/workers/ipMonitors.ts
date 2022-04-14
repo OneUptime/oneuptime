@@ -8,8 +8,8 @@ export default {
     ping: async ({ monitor }: $TSFixMe) => {
         if (monitor && monitor.type) {
             if (monitor.data.IPAddress) {
-                let retry = true;
-                let retryCount = 0;
+                let retry: $TSFixMe = true;
+                let retryCount: $TSFixMe = 0;
                 while (retry || retryCount > 2) {
                     const { res, resp, rawResp }: $TSFixMe = await pingfetch(
                         monitor.data.IPAddress
@@ -40,9 +40,9 @@ export default {
 
 const pingfetch: Function = async (IPAddress: $TSFixMe): void => {
     const now: $TSFixMe = new Date().getTime();
-    let resp = null;
-    let rawResp = null;
-    let res = null;
+    let resp: $TSFixMe = null;
+    let rawResp: $TSFixMe = null;
+    let res: $TSFixMe = null;
 
     try {
         const response: $TSFixMe = await ping.promise.probe(IPAddress, {

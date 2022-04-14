@@ -76,7 +76,7 @@ describe('Registration API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#email_error');
-            const errorMsg = await init.page$Eval(
+            const errorMsg: $TSFixMe = await init.page$Eval(
                 page,
                 '#email_error',
                 (elem: $TSFixMe) => elem.textContent
@@ -95,7 +95,7 @@ describe('Registration API', () => {
                 password: '1234567890',
             };
             await init.registerFailedUser(user, page);
-            const errorMsg = await init.page$Eval(
+            const errorMsg: $TSFixMe = await init.page$Eval(
                 page,
                 '#error', // The previous validation is no longer in use.
                 (elem: $TSFixMe) => elem.textContent
@@ -158,7 +158,7 @@ describe('Registration API', () => {
             await init.pageClick(page, '#signUpLink a');
 
             await init.pageWaitForSelector(page, 'input[name=email]');
-            const email = await init.page$Eval(
+            const email: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
                 (element: $TSFixMe) => element.value
@@ -228,7 +228,7 @@ describe('Registration API', () => {
             await init.pageClick(page, '#signUpLink a');
 
             await init.pageWaitForSelector(page, 'input[name=email]');
-            const email = await init.page$Eval(
+            const email: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
                 (element: $TSFixMe) => element.value
@@ -244,7 +244,7 @@ describe('Registration API', () => {
             await init.registerUser(user, page);
 
             await init.pageWaitForSelector(page, '#titleText');
-            const innerText = await init.page$Eval(
+            const innerText: $TSFixMe = await init.page$Eval(
                 page,
                 '#cbHome',
                 (elem: $TSFixMe) => elem.innerText

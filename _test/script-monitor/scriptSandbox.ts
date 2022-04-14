@@ -43,9 +43,9 @@ const runScript: Function = async (functionCode: $TSFixMe, isCalled: $TSFixMe, o
         // modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration } = options;
         if (!isCalled) return;
-        const start = performance.now();
+        const start: $TSFixMe = performance.now();
         return new Promise(resolve => {
-            const worker = new Worker(__filename, {
+            const worker: $TSFixMe = new Worker(__filename, {
                 workerData: { functionCode },
                 execArgv: [
                     ...process.execArgv,
@@ -97,7 +97,7 @@ const runScript: Function = async (functionCode: $TSFixMe, isCalled: $TSFixMe, o
                         });
                         break;
                     case 1: {
-                        const message = statementTimeExceeded
+                        const message: $TSFixMe = statementTimeExceeded
                             ? `Max. synchronous statement execution time exceeded (${maxSyncStatementDuration}ms)`
                             : scriptTimeExceeded
                                 ? `Max. script execution time exceeded (${maxScriptRunTime}ms)`
@@ -148,11 +148,11 @@ const runScript: Function = async (functionCode: $TSFixMe, isCalled: $TSFixMe, o
                 worker.terminate();
             });
 
-            let totalRuntime = 0,
+            let totalRuntime: $TSFixMe = 0,
                 statementTimeExceeded = false,
                 scriptTimeExceeded = false;
 
-            const checker = setInterval(
+            const checker: $TSFixMe = setInterval(
                 () => {
                     totalRuntime += 1000;
                     if (totalRuntime > maxScriptRunTime) {
@@ -178,7 +178,7 @@ const runScript: Function = async (functionCode: $TSFixMe, isCalled: $TSFixMe, o
         // worker_threads code
 
         import { NodeVM } from 'vm2'
-        const vm = new NodeVM({
+        const vm: $TSFixMe = new NodeVM({
             eval: false,
             wasm: false,
             require: {
@@ -207,9 +207,9 @@ const runScript: Function = async (functionCode: $TSFixMe, isCalled: $TSFixMe, o
             }
         };
 
-        const code = workerData.functionCode;
+        const code: $TSFixMe = workerData.functionCode;
         setInterval(() => parentPort.postMessage({ type: 'ping' }), 500);
-        const sandboxFunction = await vm.run(
+        const sandboxFunction: $TSFixMe = await vm.run(
             `export default ${code}`,
             join(process.cwd(), 'node_modules')
         );

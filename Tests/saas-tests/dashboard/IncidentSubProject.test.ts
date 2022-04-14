@@ -22,7 +22,7 @@ const newComponentName: string = utils.generateRandomString();
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Incident API With SubProjects', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -121,7 +121,7 @@ describe('Incident API With SubProjects', () => {
                 }
             );
 
-            const incidentTitleSelector = await init.page$(
+            const incidentTitleSelector: $TSFixMe = await init.page$(
                 page,
                 `#incident_${projectMonitorName}_title`
             );
@@ -148,14 +148,15 @@ describe('Incident API With SubProjects', () => {
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(newComponentName, page);
 
-            const incidentTitleSelector = await init.pageWaitForSelector(
-                page,
-                `#incident_${projectMonitorName}_title`,
-                {
-                    hidden: true,
-                    timeout: init.timeout,
-                }
-            );
+            const incidentTitleSelector: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#incident_${projectMonitorName}_title`,
+                    {
+                        hidden: true,
+                        timeout: init.timeout,
+                    }
+                );
             expect(incidentTitleSelector).toBeNull();
             await init.saasLogout(page);
             done();
@@ -168,7 +169,7 @@ describe('Incident API With SubProjects', () => {
         async (done: $TSFixMe) => {
             await init.registerAndLoggingTeamMember(newUser, page);
             // close incident modal
-            const closeModal = await init.pageWaitForSelector(
+            const closeModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#closeIncident_0',
                 {
@@ -237,7 +238,7 @@ describe('Incident API With SubProjects', () => {
                 { visible: true }
             );
 
-            const incidentTitleSelector = await init.page$(
+            const incidentTitleSelector: $TSFixMe = await init.page$(
                 page,
                 `#incident_${projectMonitorName1}_title`
             );
@@ -276,7 +277,7 @@ describe('Incident API With SubProjects', () => {
                 timeout: operationTimeOut,
             });
 
-            const acknowledgeTextSelector = await init.page$(
+            const acknowledgeTextSelector: $TSFixMe = await init.page$(
                 page,
                 '#AcknowledgeText_0'
             );
@@ -308,7 +309,7 @@ describe('Incident API With SubProjects', () => {
                 timeout: operationTimeOut,
             });
 
-            const resolveTextSelector = await init.page$(
+            const resolveTextSelector: $TSFixMe = await init.page$(
                 page,
                 '#ResolveText_0'
             );
@@ -381,7 +382,7 @@ describe('Incident API With SubProjects', () => {
                 }
             );
 
-            const internalMessage = await init.page$(
+            const internalMessage: $TSFixMe = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
             );
@@ -431,7 +432,7 @@ describe('Incident API With SubProjects', () => {
     //         // click on incident notes tab
     //         await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
-    //         for (let i = 0; i < 10; i++) {
+    //         for (let i: $TSFixMe = 0; i < 10; i++) {
     //             await init.page$Eval(page, `#add-${type}-message`, e =>
     //                 e.click()
     //             );
@@ -475,7 +476,7 @@ describe('Incident API With SubProjects', () => {
     //             page,
     //             '#incidentTimeline tr.incidentListItem'
     //         );
-    //         let countIncidentTimelines = incidentTimelineRows.length;
+    //         let countIncidentTimelines: $TSFixMe = incidentTimelineRows.length;
 
     //         expect(countIncidentTimelines).toEqual(10);
 
@@ -550,11 +551,11 @@ describe('Incident API With SubProjects', () => {
                 timeout: init.timeout,
             });
 
-            const incidentRows = await init.page$$(
+            const incidentRows: $TSFixMe = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'
             );
-            const countIncidents = incidentRows.length;
+            const countIncidents: $TSFixMe = incidentRows.length;
             expect(countIncidents).toBeGreaterThanOrEqual(1);
 
             done();

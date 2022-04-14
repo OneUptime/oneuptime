@@ -52,7 +52,7 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted = await page.evaluate(
+            const emailSubmitted: $TSFixMe = await page.evaluate(
                 () => document.querySelector('.submitted-email').innerText
             );
             expect(emailSubmitted).toBe(utils.user.email);
@@ -101,7 +101,7 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted = await page.evaluate(
+            const emailSubmitted: $TSFixMe = await page.evaluate(
                 () => document.querySelector('.submitted-email').innerText
             );
             expect(emailSubmitted).toBe(utils.user.email);
@@ -150,7 +150,7 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted = await page.evaluate(
+            const emailSubmitted: $TSFixMe = await page.evaluate(
                 () => document.querySelector('.submitted-email').innerText
             );
             expect(emailSubmitted).toBe(utils.user.email);
@@ -199,7 +199,7 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted = await page.evaluate(
+            const emailSubmitted: $TSFixMe = await page.evaluate(
                 () => document.querySelector('.submitted-email').innerText
             );
             expect(emailSubmitted).toBe(utils.user.email);
@@ -248,7 +248,7 @@ describe('Request demo', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const emailSubmitted = await page.evaluate(
+            const emailSubmitted: $TSFixMe = await page.evaluate(
                 () => document.querySelector('.submitted-email').innerText
             );
             expect(emailSubmitted).toBe(utils.user.email);

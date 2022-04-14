@@ -35,13 +35,21 @@ class PerformanceTracker {
             this.nodeUse = false;
         }
         if (this.nodeUse) {
-            const perf = new PerfTimer(this.apiUrl, this.appId, this.appKey);
+            const perf: $TSFixMe = new PerfTimer(
+                this.apiUrl,
+                this.appId,
+                this.appKey
+            );
             const { start, end, store } = perf;
             this.start = start;
             this.end = end;
             this.store = store(); // returns the store instance
         } else {
-            const hrt = new HrTimer(this.apiUrl, this.appId, this.appKey);
+            const hrt: $TSFixMe = new HrTimer(
+                this.apiUrl,
+                this.appId,
+                this.appKey
+            );
             const { start, end, store } = hrt;
             this.start = start;
             this.end = end;
@@ -72,12 +80,15 @@ class PerformanceTracker {
         return new OutgoingListener(this.start, this.end, this.store);
     }
     setUpDataBaseListener(): void {
-        const load = Module._load;
+        const load: $TSFixMe = Module._load;
 
         Module._load = function (request: $TSFixMe): void {
-            const res = load.apply(this, arguments);
+            const res: $TSFixMe = load.apply(this, arguments);
             if (request === 'mongoose') {
-                const mongo = new MongooseListener(this.start, this.end);
+                const mongo: $TSFixMe = new MongooseListener(
+                    this.start,
+                    this.end
+                );
                 return mongo._setUpMongooseListener(res);
             }
             return res;

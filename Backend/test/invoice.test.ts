@@ -135,7 +135,7 @@ describe('Invoice API', function (): void {
     });
 
     it('should paginate invoices', async (): void => {
-        for (let i = 0; i < 10; i++) {
+        for (let i: $TSFixMe = 0; i < 10; i++) {
             await stripe.subscriptions.create({
                 customer: stripeCustomerId,
                 items: [

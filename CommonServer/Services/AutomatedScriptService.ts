@@ -225,8 +225,8 @@ export default class Service {
         if (stackSize > 2) {
             return;
         }
-        const events = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
-        const eventPromises = events.map(event: $TSFixMe => {
+        const events: $TSFixMe = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
+        const eventPromises: $TSFixMe = events.map(event: $TSFixMe => {
             let resourceType;
             if (event.automatedScript) {
                 resourceType = 'automatedScript';
@@ -266,7 +266,7 @@ export default class Service {
                 select: selectScript,
                 populate: populateScript,
             });
-        let data = null;
+        let data: $TSFixMe = null;
         if (scriptType === 'JavaScript') {
             const result: $TSFixMe = await BackendAPI.post(`${scriptBaseUrl}/script/js`, {
                 script,

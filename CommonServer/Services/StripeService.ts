@@ -105,7 +105,7 @@ export default class StripeService {
         ]);
 
         if (project) {
-            let userId = user._id;
+            let userId: $TSFixMe = user._id;
             if (user && user._id) {
                 await ProjectService.deleteBy(
                     {
@@ -153,7 +153,7 @@ export default class StripeService {
 
             this.get(userId),
         ]);
-        let duplicateCard = false;
+        let duplicateCard: $TSFixMe = false;
 
         if (
             cards &&
@@ -338,7 +338,7 @@ export default class StripeService {
                 ).lean();
                 const currentBalance: $TSFixMe = project.balance;
                 const newbalance: $TSFixMe = currentBalance + amountRecharged;
-                let updateObject = {};
+                let updateObject: $TSFixMe = {};
                 if (!minimumBalance || !rechargeToBalance) {
                     updateObject = {
                         balance: newbalance,

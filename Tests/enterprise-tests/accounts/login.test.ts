@@ -5,7 +5,7 @@ import utils from '../../test-utils';
 import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
-const operationTimeOut = init.timeout;
+const operationTimeOut: $TSFixMe = init.timeout;
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
@@ -133,7 +133,7 @@ describe('SSO login', () => {
                     response.url().includes('/login')
                 ),
             ]);
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#main-body',
                 (e: $TSFixMe) => e.innerHTML
@@ -169,7 +169,7 @@ describe('SSO login', () => {
                     response.url().includes('/login')
                 ),
             ]);
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#main-body',
                 (e: $TSFixMe) => e.innerHTML
@@ -204,7 +204,7 @@ describe('SSO login', () => {
 
                 init.pageClick(page, 'button[type=submit]'),
             ]);
-            const chain = response.request().redirectChain();
+            const chain: $TSFixMe = response.request().redirectChain();
             expect(chain.length).not.toBe(0);
 
             await init.pageClick(page, '#username');

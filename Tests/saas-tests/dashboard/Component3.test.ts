@@ -19,7 +19,7 @@ let browser: $TSFixMe,
     monitorPage: $TSFixMe;
 
 describe('Components', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -150,7 +150,9 @@ describe('Components', () => {
             );
             await monitorPage.waitForSelector('#ResolveText_0');
             // confirm it is resolved here
-            const resolveTextSelector = await monitorPage.$('#ResolveText_0');
+            const resolveTextSelector: $TSFixMe = await monitorPage.$(
+                '#ResolveText_0'
+            );
             expect(resolveTextSelector).not.toBeNull();
 
             // goto component page
@@ -263,7 +265,7 @@ describe('Components', () => {
 
             await init.pageClick(page, '#deleteComponent'); // after deleting the component
 
-            const componentClicked = await init.pageWaitForSelector(
+            const componentClicked: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#components',
                 {
@@ -437,8 +439,10 @@ describe('Components', () => {
                 page,
                 `#resource_status_${newMonitorName}`
             );
-            const element = await page.$(`#resource_status_${newMonitorName}`);
-            const value = await page.evaluate(
+            const element: $TSFixMe = await page.$(
+                `#resource_status_${newMonitorName}`
+            );
+            const value: $TSFixMe = await page.evaluate(
                 (el: $TSFixMe) => el.textContent,
                 element
             );

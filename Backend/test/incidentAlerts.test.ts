@@ -2145,7 +2145,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(billingEndpointResponse).to.have.status(200);
 
             // create multiple subscribers
-            for (let i = 0; i < 10; i++) {
+            for (let i: $TSFixMe = 0; i < 10; i++) {
                 const newSubscriber: $TSFixMe = await addSubscriberToMonitor({
                     request,
                     authorization,
@@ -2202,7 +2202,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             );
             expect(alertCharges).to.be.an('array');
 
-            let calculatedBalance = originalProjectBalance;
+            let calculatedBalance: $TSFixMe = originalProjectBalance;
             // calculate balance for each alert charge amount and compare it with
             // alert charge's closing balance
             const allAlertChargesCorrect: $TSFixMe = alertCharges.every(

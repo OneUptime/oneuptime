@@ -21,7 +21,7 @@ const user: $TSFixMe = {
 };
 
 describe('Schedule API With SubProjects', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -87,7 +87,7 @@ describe('Schedule API With SubProjects', () => {
 
             await init.pageClick(page, '#onCallDuty');
 
-            const createButton = await init.page$(
+            const createButton: $TSFixMe = await init.page$(
                 page,
                 `#btnCreateSchedule_${subProjectName}`,
                 { hidden: true }
@@ -121,11 +121,12 @@ describe('Schedule API With SubProjects', () => {
             );
             await page.reload({ waitUntil: 'networkidle2' });
 
-            const scheduleCountSelector = await init.pageWaitForSelector(
-                page,
-                `#schedule_count_${subProjectName}`,
-                { visible: true, timeout: init.timeout }
-            );
+            const scheduleCountSelector: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#schedule_count_${subProjectName}`,
+                    { visible: true, timeout: init.timeout }
+                );
             let textContent: $TSFixMe = await scheduleCountSelector.getProperty(
                 'innerText'
             );
@@ -148,7 +149,7 @@ describe('Schedule API With SubProjects', () => {
 
             await init.pageClick(page, `#project-${subProjectName}`);
             // add 10 more schedules to sub-project to test for pagination
-            for (let i = 0; i < 10; i++) {
+            for (let i: $TSFixMe = 0; i < 10; i++) {
                 const scheduleName: string = utils.generateRandomString();
                 await init.addScheduleToProject(
                     scheduleName,
@@ -167,11 +168,11 @@ describe('Schedule API With SubProjects', () => {
                 page,
                 'tr.scheduleListItem'
             );
-            let countSchedules = scheduleRows.length;
+            let countSchedules: $TSFixMe = scheduleRows.length;
 
             expect(countSchedules).toEqual(10);
 
-            //const nextSelector =
+            //const nextSelector: $TSFixMe =
             await init.pageWaitForSelector(page, `#btnNext-${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -185,7 +186,7 @@ describe('Schedule API With SubProjects', () => {
             countSchedules = scheduleRows.length;
             expect(countSchedules).toEqual(1);
 
-            // const prevSelector =
+            // const prevSelector: $TSFixMe =
             await init.pageWaitForSelector(page, `#btnPrev-${subProjectName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -236,7 +237,7 @@ describe('Schedule API With SubProjects', () => {
 
             await init.pageClick(page, '#btnSaveMonitors');
 
-            const monitorSelectValue = await init.page$Eval(
+            const monitorSelectValue: $TSFixMe = await init.page$Eval(
                 page,
                 'input[type=checkbox]',
                 (el: $TSFixMe) => el.value
@@ -284,8 +285,11 @@ describe('Schedule API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            const scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
-            const countSchedules = scheduleRows.length;
+            const scheduleRows: $TSFixMe = await init.page$$(
+                page,
+                'tr.scheduleListItem'
+            );
+            const countSchedules: $TSFixMe = scheduleRows.length;
 
             expect(countSchedules).toEqual(10);
 

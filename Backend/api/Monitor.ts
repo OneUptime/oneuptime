@@ -476,7 +476,7 @@ router.get(
         try {
             // const { projectId }: $TSFixMe = req.params;
             const { skip, limit, componentSlug }: $TSFixMe = req.query;
-            let componentId = req.query.componentId;
+            let componentId: $TSFixMe = req.query.componentId;
 
             let component;
             if (!componentId) {

@@ -12,7 +12,7 @@ const monitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -89,7 +89,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.subscribers-tab');
 
-            const textContent = await init.page$Eval(
+            const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 '#subscriber_contact',
                 (e: $TSFixMe) => e.textContent
@@ -139,7 +139,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '#createSubscriber');
 
-            const textContent = await init.page$Eval(
+            const textContent: $TSFixMe = await init.page$Eval(
                 page,
                 '#field-error',
                 (e: $TSFixMe) => e.textContent

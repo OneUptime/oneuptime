@@ -7,7 +7,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
-let subProjectName = utils.generateRandomString();
+let subProjectName: $TSFixMe = utils.generateRandomString();
 const newSubProjectName: string = utils.generateRandomString();
 
 describe('Sub-Project API', () => {

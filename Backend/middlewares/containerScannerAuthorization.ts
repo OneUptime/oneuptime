@@ -73,7 +73,7 @@ export default {
             containerScannerVersion = req.body.containerscannerversion;
         }
 
-        let containerScanner = null;
+        let containerScanner: $TSFixMe = null;
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
             // if cluster key matches then just query by containerScanner name,

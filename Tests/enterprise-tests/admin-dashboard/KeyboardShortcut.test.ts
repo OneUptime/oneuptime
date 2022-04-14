@@ -11,7 +11,7 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Keyboard Shortcut: Admin Dashboard', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(360000);
@@ -45,7 +45,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('p');
-            const project = await init.pageWaitForSelector(
+            const project: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeProject',
                 {
@@ -70,7 +70,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('b');
-            const probe = await init.pageWaitForSelector(
+            const probe: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeProbe',
                 {
@@ -99,7 +99,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('a');
-            const auditLog = await init.pageWaitForSelector(
+            const auditLog: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeAuditLog',
                 {
@@ -124,7 +124,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('l');
-            const license = await init.pageWaitForSelector(
+            const license: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeLicense',
                 {
@@ -149,7 +149,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('m');
-            const smtp = await init.pageWaitForSelector(
+            const smtp: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeSmtp',
                 {
@@ -174,7 +174,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('t');
-            const twilio = await init.pageWaitForSelector(
+            const twilio: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#oneuptimeTwilio',
                 {
@@ -199,10 +199,14 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('o');
-            const sso = await init.pageWaitForSelector(page, '#oneuptimeSso', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const sso: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#oneuptimeSso',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(sso).toBeDefined();
 
             done();
@@ -220,7 +224,7 @@ describe('Keyboard Shortcut: Admin Dashboard', () => {
             });
             await page.keyboard.press('f');
             await page.keyboard.press('d');
-            const component = await init.pageWaitForSelector(
+            const component: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#components',
                 {

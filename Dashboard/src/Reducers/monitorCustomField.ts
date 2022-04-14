@@ -148,7 +148,7 @@ export default function monitorCustomField(
             };
 
         case types.UPDATE_CUSTOM_FIELD_SUCCESS: {
-            const fields = state.monitorCustomFields.fields.map(field: $TSFixMe => {
+            const fields: $TSFixMe = state.monitorCustomFields.fields.map(field: $TSFixMe => {
                 if (String(field._id) === String(action.payload._id)) {
                     field = action.payload;
                 }

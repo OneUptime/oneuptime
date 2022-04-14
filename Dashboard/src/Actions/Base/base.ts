@@ -130,7 +130,7 @@ class BaseAction {
                 }
 
                 dispatch(actions[this.actionKeys.request]());
-                let response = null;
+                let response: $TSFixMe = null;
                 try {
                     if (this.actionType === 'create') {
                         response = await BackendAPI.post(path, data);

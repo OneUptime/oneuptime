@@ -79,7 +79,7 @@ class ErrorTracker {
                     ) {
                         this.options[key] = this.MAX_ITEMS_ALLOWED_IN_STACK;
                     } else if (key === 'captureCodeSnippet') {
-                        const isBoolean = typeof value === 'boolean'; // check if the passed value is a boolean
+                        const isBoolean: $TSFixMe = typeof value === 'boolean'; // check if the passed value is a boolean
                         // set boolean value if boolean or set default `true` if annything other than boolean is passed
                         this.options[key] = isBoolean ? value : true;
                     } else {
@@ -100,7 +100,9 @@ class ErrorTracker {
             return 'Invalid Tags type';
         }
         // get the index if the key exist already
-        const index = this.tags.findIndex((tag: $TSFixMe) => tag.key === key);
+        const index: $TSFixMe = this.tags.findIndex(
+            (tag: $TSFixMe) => tag.key === key
+        );
         if (index !== -1) {
             // replace value if it exist
             this.tags[index].value = value;
@@ -159,7 +161,7 @@ class ErrorTracker {
         ): void {
             const errorEvent: $TSFixMe = { message, file, line, col, error };
 
-            const string = errorEvent.message
+            const string: $TSFixMe = errorEvent.message
                 ? errorEvent.message.toLowerCase()
                 : errorEvent.toLowerCase();
             const substring: string = 'script error';
@@ -167,9 +169,8 @@ class ErrorTracker {
                 return; // third party error
             } else {
                 // construct the error object
-                const errorObj = await this.utilObj._getErrorStackTrace(
-                    errorEvent
-                );
+                const errorObj: $TSFixMe =
+                    await this.utilObj._getErrorStackTrace(errorEvent);
 
                 // set the a handled tag
                 this.setTag('handled', 'false');
@@ -200,7 +201,9 @@ class ErrorTracker {
     }
     async _manageErrorNode(error: $TSFixMe): void {
         // construct the error object
-        const errorObj = await this.utilObj._getErrorStackTrace(error);
+        const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
+            error
+        );
 
         // set the a handled tag
         this.setTag('handled', 'false');
@@ -233,7 +236,9 @@ class ErrorTracker {
     }
     async captureException(error: $TSFixMe): void {
         // construct the error object
-        const errorObj = await this.utilObj._getErrorStackTrace(error);
+        const errorObj: $TSFixMe = await this.utilObj._getErrorStackTrace(
+            error
+        );
 
         // set the a handled tag
         this.setTag('handled', 'true');
@@ -261,11 +266,13 @@ class ErrorTracker {
         // set the host as a tag to be used later
         this._setHost();
         // get current timeline
-        const timeline = this.getTimeline();
+        const timeline: $TSFixMe = this.getTimeline();
         // get device location and details
-        const deviceDetails = this.utilObj._getUserDeviceDetails();
-        const tags = this._getTags();
-        const fingerprint = this._getFingerprint(errorStackTrace.message); // default fingerprint will be the message from the error stacktrace
+        const deviceDetails: $TSFixMe = this.utilObj._getUserDeviceDetails();
+        const tags: $TSFixMe = this._getTags();
+        const fingerprint: $TSFixMe = this._getFingerprint(
+            errorStackTrace.message
+        ); // default fingerprint will be the message from the error stacktrace
         // get event ID
         // Temporary display the state of the error stack, timeline and device details when an error occur
         // prepare the event so it can be sent to the server

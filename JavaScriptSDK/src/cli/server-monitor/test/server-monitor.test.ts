@@ -13,14 +13,14 @@ import utils from './test-utils';
 import { expect } from 'chai';
 import serverMonitor from '../lib/api';
 
-const user = require('./test-utils').user;
+const user: $TSFixMe = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();
 
 let token, projectId: ObjectID, apiKey: string, monitorId: $TSFixMe;
 const badProjectId: string = 'badProjectId',
     badApiKey = 'badApiKey';
 const invalidProjectId: string = utils.generateRandomString();
-const timeout = 5000,
+const timeout: $TSFixMe = 5000,
     monitor = {
         name: 'New Monitor',
         type: 'server-monitor',
@@ -37,7 +37,7 @@ describe('Server Monitor', function (): void {
             .post('/user/signup')
             .send(user)
             .end((err: $TSFixMe, res: $TSFixMe): void => {
-                const project = res.body.project;
+                const project: $TSFixMe = res.body.project;
 
                 projectId = project._id;
                 apiKey = project.apiKey;
@@ -66,14 +66,14 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should connect when project id, api key and monitor id are provided', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId,
             apiKey,
             monitorId,
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(stopJob).to.be.an('object');
@@ -83,7 +83,7 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should connect when project id, custom api url, api key and monitor id are provided', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId,
             apiUrl: 'http://localhost:3002',
             apiKey,
@@ -91,7 +91,7 @@ describe('Server Monitor', function (): void {
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(stopJob).to.be.an('object');
@@ -101,11 +101,11 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should request for monitor id when only project id and api key are provided', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId,
             apiKey,
             monitorId: (data: $TSFixMe) => {
-                const filteredMonitor = data.filter(
+                const filteredMonitor: $TSFixMe = data.filter(
                     (monitor: $TSFixMe) => monitor._id === monitorId
                 );
 
@@ -116,7 +116,7 @@ describe('Server Monitor', function (): void {
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(stopJob).to.be.an('object');
@@ -126,13 +126,13 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should disconnect when project id is invalid', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId: invalidProjectId,
             apiKey: badApiKey,
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(job).to.haveOwnProperty('message');
@@ -144,13 +144,13 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should disconnect when project id or api key are incorrect', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId: badProjectId,
             apiKey: badApiKey,
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(job).to.haveOwnProperty('message');
@@ -164,13 +164,13 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should disconnect when project id is correct and api key is incorrect', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId,
             apiKey: badApiKey,
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(job).to.haveOwnProperty('message');
@@ -184,13 +184,13 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should disconnect when project id is incorrect and api key is correct', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId: badProjectId,
             apiKey,
         });
 
         monitor.start().then((job: $TSFixMe) => {
-            const stopJob = monitor.stop();
+            const stopJob: $TSFixMe = monitor.stop();
 
             expect(job).to.be.an('object');
             expect(job).to.haveOwnProperty('message');
@@ -204,7 +204,7 @@ describe('Server Monitor', function (): void {
     });
 
     it('Should disconnect when timeout provided is exceeded', (done: $TSFixMe) => {
-        const monitor = serverMonitor({
+        const monitor: $TSFixMe = serverMonitor({
             projectId,
             apiKey,
             monitorId,

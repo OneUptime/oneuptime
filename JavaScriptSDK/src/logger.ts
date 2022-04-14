@@ -23,7 +23,7 @@ class Logger {
     }
 
     async log(data: $TSFixMe, tags = null): void {
-        const type = typeof data;
+        const type: $TSFixMe = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return 'Invalid Content to be logged';
@@ -39,7 +39,7 @@ class Logger {
         return await this._makeApiRequest(data, logType, tags);
     }
     async warning(data: $TSFixMe, tags = null): void {
-        const type = typeof data;
+        const type: $TSFixMe = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return 'Invalid Content to be logged';
@@ -55,7 +55,7 @@ class Logger {
         return await this._makeApiRequest(data, logType, tags);
     }
     async error(data: $TSFixMe, tags = null): void {
-        const type = typeof data;
+        const type: $TSFixMe = typeof data;
 
         if (!data || !(type === 'object' || type === 'string')) {
             return 'Invalid Content to be logged';

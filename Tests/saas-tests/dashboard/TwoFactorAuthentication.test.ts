@@ -16,7 +16,7 @@ const password: string = '1234567890';
 let token: $TSFixMe;
 
 const generateOtp: Function = (): void => {
-    const otp = speakeasy.totp({
+    const otp: $TSFixMe = speakeasy.totp({
         secret: token.trim(),
         encoding: 'base32',
     });
@@ -24,7 +24,7 @@ const generateOtp: Function = (): void => {
 };
 
 describe('TwoFactor Authentication API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(360000);
@@ -84,7 +84,7 @@ describe('TwoFactor Authentication API', () => {
 
             await init.pageClick(page, '#enableTwoFactorAuthButton');
 
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#modal-message',
                 (element: $TSFixMe) => element.innerHTML
@@ -125,7 +125,7 @@ describe('TwoFactor Authentication API', () => {
                 (element: $TSFixMe) => element.innerHTML
             );
 
-            const otp = await generateOtp(token);
+            const otp: $TSFixMe = await generateOtp(token);
 
             await init.pageWaitForSelector(page, '#nextFormButton');
 
@@ -138,7 +138,7 @@ describe('TwoFactor Authentication API', () => {
             await init.pageWaitForSelector(page, '#enableTwoFactorAuthButton');
 
             await init.pageClick(page, '#enableTwoFactorAuthButton');
-            const isVisible = await init.isElementOnPage(
+            const isVisible: $TSFixMe = await init.isElementOnPage(
                 page,
                 '#modal-message'
             );
@@ -172,7 +172,7 @@ describe('TwoFactor Authentication API', () => {
                 timeout: init.timeout,
             });
 
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '.message',
                 (element: $TSFixMe) => element.innerHTML
@@ -210,7 +210,7 @@ describe('TwoFactor Authentication API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '.title span',
                 (element: $TSFixMe) => element.innerHTML
@@ -240,7 +240,7 @@ describe('TwoFactor Authentication API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const otp = generateOtp();
+            const otp: $TSFixMe = generateOtp();
 
             await init.pageWaitForSelector(page, '#token');
 

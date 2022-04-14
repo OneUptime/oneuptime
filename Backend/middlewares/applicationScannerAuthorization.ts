@@ -75,7 +75,7 @@ export default {
             applicationScannerVersion = req.body.applicationscannerversion;
         }
 
-        let applicationScanner = null;
+        let applicationScanner: $TSFixMe = null;
 
         if (clusterKey && clusterKey === CLUSTER_KEY) {
             // if cluster key matches then just query by applicationScanner name,

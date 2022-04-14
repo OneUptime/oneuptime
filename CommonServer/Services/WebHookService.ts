@@ -71,7 +71,7 @@ export default class Service {
         if (project && project.parentProjectId) {
             projectId = project.parentProjectId._id || project.parentProjectId;
         }
-        let query = {
+        let query: $TSFixMe = {
             projectId: projectId,
             integrationType: 'webhook',
             monitors: { $elemMatch: { monitorId: monitor._id } },
@@ -156,8 +156,8 @@ export default class Service {
         let httpMethod;
         const isStatusPageNoteNotification: $TSFixMe =
             note && incidentState && statusNoteStatus;
-        let notificationTitle = '';
-        let notificationText = '';
+        let notificationTitle: $TSFixMe = '';
+        let notificationText: $TSFixMe = '';
         const criterionCauseName: $TSFixMe = incident.criterionCause
             ? incident.criterionCause.name
             : 'Unnamed Criterion';

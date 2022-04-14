@@ -263,7 +263,7 @@ export default class Service {
 
     async decryptPassword(security: $TSFixMe): void {
         const values: $TSFixMe = [];
-        for (let i = 0; i <= 15; i++) {
+        for (let i: $TSFixMe = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
         }
         const iv: $TSFixMe = Buffer.from(values);

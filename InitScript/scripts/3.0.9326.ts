@@ -17,8 +17,10 @@ async function run(): void {
     const adminUserId: $TSFixMe = adminUser[0]?._id;
 
     for (const project of projects) {
-        let projectUsers = project.users;
-        let mainUserIds = projectUsers.map((user: $TSFixMe) => user.userId);
+        let projectUsers: $TSFixMe = project.users;
+        let mainUserIds: $TSFixMe = projectUsers.map(
+            (user: $TSFixMe) => user.userId
+        );
         if (adminUserId) {
             if (mainUserIds.includes(adminUserId.toString())) {
                 projectUsers = project.users?.map((user: $TSFixMe) => {

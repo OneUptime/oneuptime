@@ -165,7 +165,7 @@ export default class Service {
         data: $TSFixMe,
         excludeMonitors: $TSFixMe
     ): void {
-        let unsetData = {};
+        let unsetData: $TSFixMe = {};
         if (!query) {
             query = {};
         }
@@ -315,7 +315,7 @@ export default class Service {
             }));
         }
 
-        let updatedIncomingRequest =
+        let updatedIncomingRequest: $TSFixMe =
             await IncomingRequestModel.findOneAndUpdate(
                 { _id: query.requestId },
                 {
@@ -501,7 +501,7 @@ export default class Service {
                 );
 
                 if (incomingRequest.monitors.length > 0) {
-                    let updatedIncomingRequest =
+                    let updatedIncomingRequest: $TSFixMe =
                         await IncomingRequestModel.findOneAndUpdate(
                             { _id: incomingRequest._id },
                             { $set: { monitors: incomingRequest.monitors } },
@@ -521,7 +521,7 @@ export default class Service {
                     // 1. No monitor is remaining in the monitors array
                     // 2. It does not select all monitors
                     if (!incomingRequest.selectAllMonitors) {
-                        let deletedIncomingRequest =
+                        let deletedIncomingRequest: $TSFixMe =
                             await IncomingRequestModel.findOneAndUpdate(
                                 { _id: incomingRequest._id },
                                 {
@@ -627,7 +627,7 @@ export default class Service {
                 data.manuallyCreated = true;
             }
 
-            let monitors = [];
+            let monitors: $TSFixMe = [];
             if (incomingRequest.selectAllMonitors) {
                 const projectIds: $TSFixMe = await ProjectService.findBy({
                     query: { parentProjectId: data.projectId },
@@ -651,21 +651,23 @@ export default class Service {
             if (filters && filters.length > 0) {
                 // if template variables are used
                 // update the values for filterText
-                const updatedFilters = filters.map((filter: $TSFixMe) => {
-                    if (filter.filterText) {
-                        const dataConfig: $TSFixMe = {
-                            request: data.request,
-                        };
-                        filter.filterText = analyseVariable(
-                            filter.filterText,
-                            dataConfig
-                        );
+                const updatedFilters: $TSFixMe = filters.map(
+                    (filter: $TSFixMe) => {
+                        if (filter.filterText) {
+                            const dataConfig: $TSFixMe = {
+                                request: data.request,
+                            };
+                            filter.filterText = analyseVariable(
+                                filter.filterText,
+                                dataConfig
+                            );
+                        }
+                        return filter;
                     }
-                    return filter;
-                });
+                );
                 const newMonitorList: $TSFixMe = [];
                 monitors.forEach((monitor: $TSFixMe) => {
-                    let matchedFields = 0;
+                    let matchedFields: $TSFixMe = 0;
                     const monitorCustomFields: $TSFixMe =
                         monitor.customFields || [];
 
@@ -964,7 +966,7 @@ export default class Service {
             (incomingRequest.updateIncidentNote ||
                 incomingRequest.updateInternalNote)
         ) {
-            let subProjectIds = [];
+            let subProjectIds: $TSFixMe = [];
 
             const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: {
@@ -990,7 +992,7 @@ export default class Service {
                 : 'internal';
             data.content = incomingRequest.noteContent;
 
-            let incidents = [],
+            let incidents: $TSFixMe = [],
                 updatedFilters: $TSFixMe = [];
             const populate: $TSFixMe = [
                 {
@@ -1068,7 +1070,7 @@ export default class Service {
                             data.fieldValue = filterText;
                         }
 
-                        let incidents = [];
+                        let incidents: $TSFixMe = [];
                         if (filterCondition === 'equalTo') {
                             if (
                                 data.incidentId &&
@@ -1301,7 +1303,7 @@ export default class Service {
             if (filters || filters.length > 0) {
                 const newIncidentList: $TSFixMe = [];
                 incidents.forEach((incident: $TSFixMe) => {
-                    let matchedFields = 0;
+                    let matchedFields: $TSFixMe = 0;
                     const incidentCustomFields: $TSFixMe =
                         incident.customFields || [];
                     // automatically create incident id custom field
@@ -1499,7 +1501,7 @@ export default class Service {
             (incomingRequest.acknowledgeIncident ||
                 incomingRequest.resolveIncident)
         ) {
-            let subProjectIds = [];
+            let subProjectIds: $TSFixMe = [];
 
             const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: {
@@ -1521,7 +1523,7 @@ export default class Service {
                 resolvedIncidents: $TSFixMe = [],
                 acknowledgedIncidents: $TSFixMe = [];
 
-            let incidentQuery = {};
+            let incidentQuery: $TSFixMe = {};
             if (incomingRequest.resolveIncident) {
                 incidentQuery = { resolvedAt: { $exists: false } };
             }
@@ -1531,7 +1533,7 @@ export default class Service {
                 };
             }
 
-            let incidents = [],
+            let incidents: $TSFixMe = [],
                 updatedFilters: $TSFixMe = [];
             const populate: $TSFixMe = [
                 {
@@ -1610,7 +1612,7 @@ export default class Service {
                             data.fieldValue = filterText;
                         }
 
-                        let incidents = [];
+                        let incidents: $TSFixMe = [];
                         if (filterCondition === 'equalTo') {
                             if (data.incidentId) {
                                 incidents = await IncidentService.findBy({
@@ -1846,7 +1848,7 @@ export default class Service {
             if (filters || filters.length > 0) {
                 const newIncidentList: $TSFixMe = [];
                 incidents.forEach((incident: $TSFixMe) => {
-                    let matchedFields = 0;
+                    let matchedFields: $TSFixMe = 0;
                     const incidentCustomFields: $TSFixMe =
                         incident.customFields || [];
                     // automatically create incident id custom field
@@ -2094,10 +2096,10 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
             return variable;
         }
 
-        let ctx = Object.create(null); // fix against prototype vulnerability
+        let ctx: $TSFixMe = Object.create(null); // fix against prototype vulnerability
         ctx = { ...data };
 
-        const processedValues = matched.map((item: $TSFixMe) =>
+        const processedValues: $TSFixMe = matched.map((item: $TSFixMe) =>
             vm.runInNewContext(item, ctx)
         );
 
@@ -2114,7 +2116,7 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
         });
 
         // replace variable with processedValues
-        let currentValue = variable;
+        let currentValue: $TSFixMe = variable;
         matched.forEach((item: $TSFixMe, index: $TSFixMe) => {
             currentValue = currentValue.replace(item, processedValues[index]);
         });

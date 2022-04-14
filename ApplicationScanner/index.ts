@@ -6,7 +6,9 @@ import Main from './worker/main';
 
 import cron from 'node-cron';
 
-const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
+const cronApplicationSecurityStartTime: $TSFixMe = Math.floor(
+    Math.random() * 50
+);
 
 app.get(
     ['/application/status', '/status'],

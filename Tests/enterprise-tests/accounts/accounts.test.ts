@@ -16,7 +16,7 @@ const user: $TSFixMe = {
 };
 
 describe('Enterprise Accounts API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -40,10 +40,10 @@ describe('Enterprise Accounts API', () => {
             await init.logout(page);
             await init.loginUser(user, page);
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData: $TSFixMe = await page.evaluate(() => {
                 const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }

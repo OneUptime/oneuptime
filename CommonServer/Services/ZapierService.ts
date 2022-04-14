@@ -66,7 +66,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds = projects.map((project: $TSFixMe) => project._id);
+            const projectIds: $TSFixMe = projects.map(
+                (project: $TSFixMe) => project._id
+            );
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
                 acknowledged: false,
@@ -123,7 +125,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds = projects.map((project: $TSFixMe) => project._id);
+            const projectIds: $TSFixMe = projects.map(
+                (project: $TSFixMe) => project._id
+            );
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
             };
@@ -184,7 +188,7 @@ export default class Service {
             '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
         await Promise.all(
             data.incidents.map(async (incidentId: $TSFixMe) => {
-                let incidentMessage = new IncidentMessageModel();
+                let incidentMessage: $TSFixMe = new IncidentMessageModel();
 
                 incidentMessage.incidentId = incidentId;
 
@@ -231,7 +235,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds = projects.map((project: $TSFixMe) => project._id);
+            const projectIds: $TSFixMe = projects.map(
+                (project: $TSFixMe) => project._id
+            );
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
                 acknowledged: true,
@@ -287,7 +293,9 @@ export default class Service {
                 },
                 select: '_id',
             });
-            const projectIds = projects.map((project: $TSFixMe) => project._id);
+            const projectIds: $TSFixMe = projects.map(
+                (project: $TSFixMe) => project._id
+            );
             const findquery: $TSFixMe = {
                 projectId: { $in: projectIds },
                 acknowledged: true,
@@ -334,7 +342,7 @@ export default class Service {
                     select: 'name projectId _id',
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
-                let incident = new IncidentModel();
+                let incident: $TSFixMe = new IncidentModel();
 
                 incident.projectId = monitorObj.projectId._id;
 
@@ -881,7 +889,7 @@ export default class Service {
             select: 'parentProjectId _id name',
         });
 
-        let zap = [];
+        let zap: $TSFixMe = [];
         if (project) {
             if (project.parentProjectId) {
                 project = await ProjectService.findOneBy({
@@ -909,7 +917,7 @@ export default class Service {
 
         if (zap && zap.length) {
             for (const z of zap) {
-                let zapierResponse = {};
+                let zapierResponse: $TSFixMe = {};
                 if (project) {
                     zapierResponse.projectName = project.name;
 

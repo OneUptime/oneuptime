@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import logger from 'CommonServer/utils/Logger';
 import EncryptionKeys from './encryptionKeys';
-const algorithm = EncryptionKeys.algorithm;
-const key = EncryptionKeys.key;
+const algorithm: $TSFixMe = EncryptionKeys.algorithm;
+const key: $TSFixMe = EncryptionKeys.key;
 import git from 'simple-git/promise';
 
 import { v1 as uuidv1 } from 'uuid';
@@ -10,9 +10,9 @@ import Path from 'path';
 import ErrorService from './errorService';
 import fs from 'fs';
 import { promisify } from 'util';
-const readdir = promisify(fs.readdir);
-const rmdir = promisify(fs.rmdir);
-const unlink = promisify(fs.unlink);
+const readdir: $TSFixMe = promisify(fs.readdir);
+const rmdir: $TSFixMe = promisify(fs.rmdir);
+const unlink: $TSFixMe = promisify(fs.unlink);
 import { spawn } from 'child_process';
 import {
     updateApplicationSecurityToScanning,
@@ -28,7 +28,9 @@ export default {
             security.gitCredential.gitUsername &&
             security.gitCredential.gitPassword
         ) {
-            const decryptedSecurity = await this.decryptPassword(security);
+            const decryptedSecurity: $TSFixMe = await this.decryptPassword(
+                security
+            );
             await this.scanApplicationSecurity(decryptedSecurity);
         }
         if (
@@ -40,11 +42,11 @@ export default {
     },
 
     decryptPassword: async function (security): void {
-        const values = [];
-        for (let i = 0; i <= 15; i++) {
+        const values: $TSFixMe = [];
+        for (let i: $TSFixMe = 0; i <= 15; i++) {
             values.push(security.gitCredential.iv[i]);
         }
-        const iv = Buffer.from(values);
+        const iv: $TSFixMe = Buffer.from(values);
         security.gitCredential.gitPassword = await this.decrypt(
             security.gitCredential.gitPassword,
             iv
@@ -55,8 +57,12 @@ export default {
     decrypt: (encText, iv) => {
         const promise: Promise = new Promise((resolve, reject) => {
             try {
-                const decipher = crypto.createDecipheriv(algorithm, key, iv);
-                let decoded = decipher.update(encText, 'hex', 'utf8');
+                const decipher: $TSFixMe = crypto.createDecipheriv(
+                    algorithm,
+                    key,
+                    iv
+                );
+                let decoded: $TSFixMe = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
                 resolve(decoded);
             } catch (error) {
@@ -67,14 +73,16 @@ export default {
     },
 
     sshScanApplicationSecurity: async security => {
-        let securityDir = 'application_security_dir';
+        let securityDir: $TSFixMe = 'application_security_dir';
 
         securityDir = await createDir(securityDir);
         const cloneDirectory: string = `${uuidv1()}security`; // always create unique paths
-        const repoPath = Path.resolve(securityDir, cloneDirectory);
-        const conn = new Client();
+        const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
+        const conn: $TSFixMe = new Client();
 
-        const url = security.gitRepositoryUrl.split('https://github.com/')[1];
+        const url: $TSFixMe = security.gitRepositoryUrl.split(
+            'https://github.com/'
+        )[1];
 
         conn.on('ready', () => {
             logger.info('SSH Client :: ready');
@@ -83,7 +91,7 @@ export default {
                     .silent(true)
                     .clone(`git@github.com:${url}.git`, cloneDirectory)
                     .then(() => {
-                        const output = spawn('npm', ['install'], {
+                        const output: $TSFixMe = spawn('npm', ['install'], {
                             cwd: repoPath,
                         });
                         output.on('error', error => {
@@ -92,10 +100,14 @@ export default {
                         });
 
                         output.on('close', () => {
-                            let auditOutput = '';
-                            const audit = spawn('npm', ['audit', '--json'], {
-                                cwd: repoPath,
-                            });
+                            let auditOutput: $TSFixMe = '';
+                            const audit: $TSFixMe = spawn(
+                                'npm',
+                                ['audit', '--json'],
+                                {
+                                    cwd: repoPath,
+                                }
+                            );
 
                             audit.on('error', error => {
                                 error.code = 500;
@@ -103,12 +115,12 @@ export default {
                             });
 
                             audit.stdout.on('data', data => {
-                                const strData = data.toString();
+                                const strData: $TSFixMe = data.toString();
                                 auditOutput += strData;
                             });
 
                             audit.on('close', async () => {
-                                let advisories = [];
+                                let advisories: $TSFixMe = [];
                                 auditOutput = JSON.parse(auditOutput); // parse the stringified json
 
                                 for (const key in auditOutput.vulnerabilities) {
@@ -117,7 +129,7 @@ export default {
                                     );
                                 }
 
-                                const criticalArr = [],
+                                const criticalArr: $TSFixMe = [],
                                     highArr = [],
                                     moderateArr = [],
                                     lowArr = [];
@@ -163,7 +175,7 @@ export default {
                                     advisories,
                                 };
 
-                                const resolvedLog =
+                                const resolvedLog: $TSFixMe =
                                     await updateApplicationSecurityLogService({
                                         securityId: security._id,
                                         componentId: security.componentId._id,
@@ -199,17 +211,17 @@ export default {
     },
 
     scanApplicationSecurity: async security => {
-        let securityDir = 'application_security_dir';
+        let securityDir: $TSFixMe = 'application_security_dir';
 
         securityDir = await createDir(securityDir);
 
-        const USER = security.gitCredential.gitUsername;
-        const PASS = security.gitCredential.gitPassword;
+        const USER: $TSFixMe = security.gitCredential.gitUsername;
+        const PASS: $TSFixMe = security.gitCredential.gitPassword;
         // format the url
-        const REPO = formatUrl(security.gitRepositoryUrl);
+        const REPO: $TSFixMe = formatUrl(security.gitRepositoryUrl);
         const remote: string = `https://${USER}:${PASS}@${REPO}`;
         const cloneDirectory: string = `${uuidv1()}security`; // always create unique paths
-        const repoPath = Path.resolve(securityDir, cloneDirectory);
+        const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
 
         // update application security to scanning true
         // to prevent pulling an applicaiton security multiple times by running cron job
@@ -221,7 +233,7 @@ export default {
                 .silent(true)
                 .clone(remote, cloneDirectory)
                 .then(() => {
-                    const output = spawn('npm', ['install'], {
+                    const output: $TSFixMe = spawn('npm', ['install'], {
                         cwd: repoPath,
                     });
                     output.on('error', error => {
@@ -230,10 +242,14 @@ export default {
                     });
 
                     output.on('close', () => {
-                        let auditOutput = '';
-                        const audit = spawn('npm', ['audit', '--json'], {
-                            cwd: repoPath,
-                        });
+                        let auditOutput: $TSFixMe = '';
+                        const audit: $TSFixMe = spawn(
+                            'npm',
+                            ['audit', '--json'],
+                            {
+                                cwd: repoPath,
+                            }
+                        );
 
                         audit.on('error', error => {
                             error.code = 500;
@@ -241,12 +257,12 @@ export default {
                         });
 
                         audit.stdout.on('data', data => {
-                            const strData = data.toString();
+                            const strData: $TSFixMe = data.toString();
                             auditOutput += strData;
                         });
 
                         audit.on('close', async () => {
-                            let advisories = [];
+                            let advisories: $TSFixMe = [];
                             auditOutput = JSON.parse(auditOutput); // parse the stringified json
 
                             for (const key in auditOutput.vulnerabilities) {
@@ -255,7 +271,7 @@ export default {
                                 );
                             }
 
-                            const criticalArr = [],
+                            const criticalArr: $TSFixMe = [],
                                 highArr = [],
                                 moderateArr = [],
                                 lowArr = [];
@@ -299,7 +315,7 @@ export default {
                                 advisories,
                             };
 
-                            const resolvedLog =
+                            const resolvedLog: $TSFixMe =
                                 await updateApplicationSecurityLogService({
                                     securityId: security._id,
                                     componentId: security.componentId._id,
@@ -331,10 +347,10 @@ export default {
 
 async function deleteFolderRecursive(dir): void {
     if (fs.existsSync(dir)) {
-        const entries = await readdir(dir, { withFileTypes: true });
+        const entries: $TSFixMe = await readdir(dir, { withFileTypes: true });
         await Promise.all(
             entries.map(entry => {
-                const fullPath = Path.join(dir, entry.name);
+                const fullPath: $TSFixMe = Path.join(dir, entry.name);
                 return entry.isDirectory()
                     ? deleteFolderRecursive(fullPath)
                     : unlink(fullPath);
@@ -371,7 +387,7 @@ function formatUrl(url): void {
 
 function createDir(dirPath): void {
     return new Promise((resolve, reject) => {
-        const workPath = Path.resolve(process.cwd(), dirPath);
+        const workPath: $TSFixMe = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {
             resolve(workPath);
         }

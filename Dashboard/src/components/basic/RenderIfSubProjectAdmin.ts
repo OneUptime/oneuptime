@@ -10,7 +10,7 @@ export const RenderIfSubProjectAdmin: Function = (props: $TSFixMe): void => {
     const { children, currentProject, subProjects, subProjectId }: $TSFixMe =
         props;
     const userId: $TSFixMe = User.getUserId();
-    let renderItems = null;
+    let renderItems: $TSFixMe = null;
     if (
         userId &&
         currentProject &&

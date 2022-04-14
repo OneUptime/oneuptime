@@ -267,7 +267,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
             page
         );
         // create multiple notes
-        for (let i = 0; i < 15; i++) {
+        for (let i: $TSFixMe = 0; i < 15; i++) {
             const noteDescription: string = utils.generateRandomString();
             await init.addScheduledMaintenanceNote(
                 page,

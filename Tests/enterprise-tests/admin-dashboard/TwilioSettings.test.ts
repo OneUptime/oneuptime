@@ -11,7 +11,7 @@ const password: string = '1234567890';
 const phoneNumber: string = '+19173976235';
 
 describe('Twilio Settings API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -50,10 +50,14 @@ describe('Twilio Settings API', () => {
             await init.pageWaitForSelector(page, '#twilio-form');
 
             await init.pageClick(page, 'button[type=submit]');
-            const error = await init.pageWaitForSelector(page, '.field-error', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const error: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '.field-error',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(error).toBeDefined();
 
             done();
@@ -109,7 +113,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const errorMessage = await init.page$Eval(
+            const errorMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#errors',
                 (element: $TSFixMe) => element.textContent
@@ -121,7 +125,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const value = await init.page$Eval(
+            const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=account-sid]',
                 (e: $TSFixMe) => e.value
@@ -178,7 +182,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const errorMessage = await init.page$Eval(
+            const errorMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#errors',
                 (element: $TSFixMe) => element.textContent
@@ -192,7 +196,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const value = await init.page$Eval(
+            const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=account-sid]',
                 (e: $TSFixMe) => e.value
@@ -265,7 +269,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const value = await init.page$Eval(
+            const value: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=account-sid]',
                 (e: $TSFixMe) => e.value
@@ -310,7 +314,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#smsVerificationErrors',
                 (e: $TSFixMe) => e.textContent
@@ -360,7 +364,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
                 (e: $TSFixMe) => e.textContent
@@ -416,7 +420,7 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await init.page$Eval(
+            const message: $TSFixMe = await init.page$Eval(
                 page,
                 '#successMessage',
                 (e: $TSFixMe) => e.textContent

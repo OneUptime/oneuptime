@@ -1,13 +1,19 @@
 import { lazy } from 'react';
 
-const Login = lazy((): $TSFixMe => import('./Login'));
-const SsoLogin = lazy((): $TSFixMe => import('./SsoLogin'));
-const Register = lazy((): $TSFixMe => import('./Register'));
-const ResetPassword = lazy((): $TSFixMe => import('./ResetPassword'));
-const ChangePassword = lazy((): $TSFixMe => import('./ChangePassword'));
-const ResendToken = lazy((): $TSFixMe => import('./ResendToken'));
-const VerifyAuthToken = lazy((): $TSFixMe => import('./VerifyAuthToken'));
-const VerifyBackupCode = lazy((): $TSFixMe => import('./VerifyBackupCode'));
+const Login: $TSFixMe = lazy((): $TSFixMe => import('./Login'));
+const SsoLogin: $TSFixMe = lazy((): $TSFixMe => import('./SsoLogin'));
+const Register: $TSFixMe = lazy((): $TSFixMe => import('./Register'));
+const ResetPassword: $TSFixMe = lazy((): $TSFixMe => import('./ResetPassword'));
+const ChangePassword: $TSFixMe = lazy(
+    (): $TSFixMe => import('./ChangePassword')
+);
+const ResendToken: $TSFixMe = lazy((): $TSFixMe => import('./ResendToken'));
+const VerifyAuthToken: $TSFixMe = lazy(
+    (): $TSFixMe => import('./VerifyAuthToken')
+);
+const VerifyBackupCode: $TSFixMe = lazy(
+    (): $TSFixMe => import('./VerifyBackupCode')
+);
 
 export default {
     ResetPassword,

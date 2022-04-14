@@ -25,7 +25,7 @@ router.post(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            let data = req.body;
+            let data: $TSFixMe = req.body;
             if (data.smtpToUse === 'customSmtp') {
                 if (!data.user) {
                     return sendErrorResponse(req, res, {

@@ -129,7 +129,7 @@ router.delete('/site', async (req: ExpressRequest, res: ExpressResponse) => {
         const { subject }: $TSFixMe = req.query; // still handle this for legacy code
         const { domains }: $TSFixMe = req.body;
 
-        let site = null;
+        let site: $TSFixMe = null;
 
         if (subject && subject.trim()) {
             site = await SiteManagerService.hardDelete({ subject });

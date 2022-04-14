@@ -260,7 +260,7 @@ const getUsers: Function = async (projectIds: $TSFixMe, val: $TSFixMe): void => 
     projects.forEach((project: $TSFixMe) => {
         projectUsers.push(project.users);
     });
-    const userIds = projectUsers.flat().map((user: $TSFixMe) => user.userId);
+    const userIds: $TSFixMe = projectUsers.flat().map((user: $TSFixMe) => user.userId);
     const users: $TSFixMe = await UserService.findBy({
         query: {
             _id: { $in: userIds },
@@ -466,7 +466,7 @@ const getErrorTrackers: $TSFixMe: Function = async (
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds = components.map((component: $TSFixMe) => component._id);
+    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => component._id);
     const select: $TSFixMe =
         'componentId name slug key showQuickStart resourceCategory createdById createdAt';
     const populate: $TSFixMe = [
@@ -518,7 +518,7 @@ const getLogContainers: $TSFixMe: Function = async (
         query: { projectId: { $in: projectIds }, deleted: false },
         select: '_id',
     });
-    const componentIds = components.map((component: $TSFixMe) => component._id);
+    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => component._id);
     const populateAppLogs: $TSFixMe = [
         {
             path: 'componentId',
@@ -575,7 +575,7 @@ const getPerformanceTrackers: $TSFixMe: Function = async (
         select: 'id',
     });
 
-    const componentIds = components.map((component: $TSFixMe) => component._id);
+    const componentIds: $TSFixMe = components.map((component: $TSFixMe) => component._id);
     const selectPerfTracker: $TSFixMe =
         'componentId name slug key showQuickStart createdById';
 

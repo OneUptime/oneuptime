@@ -45,7 +45,7 @@ export function getProjectIncidents(
     limit = parseInt(limit);
 
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         if (skip >= 0 && limit >= 0) {
             promise = BackendAPI.get(
                 `incident/${projectId}/incident?skip=${skip}&limit=${limit}`
@@ -79,7 +79,7 @@ export function getProjectComponentIncidents(
     limit = parseInt(limit);
 
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         if (skip >= 0 && limit >= 0) {
             promise = BackendAPI.get(
                 `incident/${projectId}/incidents/${componentId}?skip=${skip}&limit=${limit}`
@@ -328,7 +328,7 @@ export const getIncident: Function = (
 ): void => {
     //This fucntion will switch to incidentSlug of the params beig passed.
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(
             `incident/${projectId}/incident/${incidentSlug}`
         );
@@ -360,7 +360,7 @@ export function getIncidentTimeline(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(
             `incident/${projectId}/timeline/${incidentId}?skip=${skip}&limit=${limit}`
         );
@@ -414,7 +414,7 @@ export function acknowledgeIncident(
 ) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         const data: $TSFixMe = {
             decoded: userId,
             projectId,
@@ -512,7 +512,7 @@ export function resolveIncident(
 ) {
     //This function will switch to incidentId of the params being passed.
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         const data: $TSFixMe = {
             decoded: userId,
             projectId,
@@ -687,7 +687,7 @@ export const fetchUnresolvedIncidents: Function = (
 ): void => {
     //This fucntion will switch to incidentId of the params beig passed.
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
 
         promise = BackendAPI.get(
             `incident/${projectId}/unresolvedincidents?isHome=${isHome}`
@@ -751,7 +751,7 @@ export function setInvestigationNote(
     body: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
 
         promise = BackendAPI.post(
             `incident/${projectId}/incident/${incidentId}/message`,
@@ -807,7 +807,7 @@ export function setInternalNote(
     body: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.post(
             `incident/${projectId}/incident/${incidentId}/message`,
             body

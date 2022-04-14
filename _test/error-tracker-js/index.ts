@@ -9,7 +9,7 @@ const options: $TSFixMe = {
 };
 
 // constructor                    
-const tracker = new oneuptime.ErrorTracker(                    
+const tracker: $TSFixMe = new oneuptime.ErrorTracker(                    
     'https://staging.oneuptime.com/api',
     '605bad70ae110c0013e14005',
     'cb4b107a-7f28-464d-9fda-32715fa4cd68',

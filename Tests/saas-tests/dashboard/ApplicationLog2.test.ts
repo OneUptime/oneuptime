@@ -11,7 +11,7 @@ const user: $TSFixMe = {
 };
 const componentName: string = utils.generateRandomString();
 const applicationLogName: string = utils.generateRandomString();
-let applicationLogKey = '';
+let applicationLogKey: $TSFixMe = '';
 
 describe('Log Containers', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

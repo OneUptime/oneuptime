@@ -112,7 +112,7 @@ router.get(
         const { performanceTrackerId }: $TSFixMe = req.params;
         const { slug }: $TSFixMe = req.query;
         try {
-            let performanceTracker = null;
+            let performanceTracker: $TSFixMe = null;
             const select: $TSFixMe =
                 'componentId name slug key showQuickStart createdById';
             const populate: $TSFixMe = [

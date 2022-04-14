@@ -41,7 +41,7 @@ export function fetchSchedules(
     limit: PositiveNumber
 ): void {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
         );
@@ -99,7 +99,7 @@ export const fetchSubProjectSchedules: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(`schedule/${projectId}/schedules`);
 
         dispatch(subProjectScheduleRequest());
@@ -151,7 +151,7 @@ export function fetchProjectSchedule(
     limit: PositiveNumber
 ): void {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
         );

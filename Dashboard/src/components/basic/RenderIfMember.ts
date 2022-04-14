@@ -9,7 +9,7 @@ function RenderIfMember(props: $TSFixMe): void {
     const { currentProject, children, currentUserId }: $TSFixMe = props;
     const userId: $TSFixMe = User.getUserId();
 
-    let renderItems = null;
+    let renderItems: $TSFixMe = null;
     if (
         userId &&
         userId === currentUserId &&

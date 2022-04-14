@@ -243,8 +243,8 @@ router.get(
                 query: { 'users.userId': userId },
                 select: 'parentProjectId _id',
             });
-            let parentProjectIds = [];
-            let projectIds = [];
+            let parentProjectIds: $TSFixMe = [];
+            let projectIds: $TSFixMe = [];
             if (userProjects.length > 0) {
                 const subProjects: $TSFixMe = userProjects
                     .map((project: $TSFixMe) =>
@@ -445,7 +445,7 @@ router.put(
                 });
             }
 
-            let data = req.body;
+            let data: $TSFixMe = req.body;
 
             const minimumBalance: $TSFixMe = Number(data.minimumBalance);
             const rechargeToBalance: $TSFixMe = Number(data.rechargeToBalance);
@@ -602,7 +602,7 @@ router.delete(
                 });
             }
 
-            let userId = null;
+            let userId: $TSFixMe = null;
 
             let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -1127,7 +1127,7 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
-            let limit = req.body.alertLimit;
+            let limit: $TSFixMe = req.body.alertLimit;
             if (!limit) {
                 return sendErrorResponse(req, res, {
                     code: 400,

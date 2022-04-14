@@ -47,7 +47,7 @@ describe('HTTP Settings page', () => {
         await page.waitForSelector('#save-btn');
 
         await page.waitForSelector('#errorMsg > label > span');
-        const html = await init.page$Eval(
+        const html: $TSFixMe = await init.page$Eval(
             page,
             '#errorMsg > label > span',
             (e: $TSFixMe) => {
@@ -84,7 +84,7 @@ describe('HTTP Settings page', () => {
         await page.waitForSelector('#save-btn');
 
         await page.waitForSelector('#errorMsg > label > span');
-        const html = await init.page$Eval(
+        const html: $TSFixMe = await init.page$Eval(
             page,
             '#errorMsg > label > span',
             (e: $TSFixMe) => {
@@ -121,7 +121,7 @@ describe('HTTP Settings page', () => {
         await page.waitForSelector('#save-btn');
 
         await page.waitForSelector('#errorMsg > label > span');
-        const html = await init.page$Eval(
+        const html: $TSFixMe = await init.page$Eval(
             page,
             '#errorMsg > label > span',
             (e: $TSFixMe) => {
@@ -164,7 +164,7 @@ describe('HTTP Settings page', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#html > span');
-        const html = await init.page$Eval(
+        const html: $TSFixMe = await init.page$Eval(
             page,
             '#html > span',
             (e: $TSFixMe) => {

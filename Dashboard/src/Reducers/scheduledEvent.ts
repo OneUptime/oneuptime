@@ -171,8 +171,8 @@ export default function scheduledEvent(
 ): void {
     switch (action.type) {
         case CREATE_SCHEDULED_EVENT_SUCCESS: {
-            let existingPayload = false;
-            let existingOngoingEvent = false;
+            let existingPayload: $TSFixMe = false;
+            let existingOngoingEvent: $TSFixMe = false;
             const currentDate: $TSFixMe = moment().format();
             const startDate: $TSFixMe = moment(
                 action.payload.startDate
@@ -189,7 +189,9 @@ export default function scheduledEvent(
                 ? []
                 : [action.payload];
 
-            let events = [...state.subProjectOngoingScheduledEvent.events];
+            let events: $TSFixMe = [
+                ...state.subProjectOngoingScheduledEvent.events,
+            ];
 
             state.subProjectOngoingScheduledEvent.events.forEach(eventData => {
                 if (
@@ -524,7 +526,7 @@ export default function scheduledEvent(
             };
 
         case DELETE_SCHEDULED_EVENT_SUCCESS: {
-            let deleted = true;
+            let deleted: $TSFixMe = true;
 
             const scheduledEvents: $TSFixMe =
                 state.subProjectScheduledEventList.scheduledEvents.map(
@@ -887,11 +889,11 @@ export default function scheduledEvent(
             };
 
         case CREATE_SCHEDULED_EVENT_NOTE_SUCCESS: {
-            let scheduledEventInternalList = {
+            let scheduledEventInternalList: $TSFixMe = {
                 ...state.scheduledEventInternalList,
             };
 
-            let existingPayload = false;
+            let existingPayload: $TSFixMe = false;
             scheduledEventInternalList.scheduledEventNotes.map(note => {
                 if (String(note._id) === String(action.payload._id)) {
                     existingPayload = true;

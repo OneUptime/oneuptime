@@ -14,7 +14,7 @@ const masterAdmin: $TSFixMe = {
 };
 
 describe('Enterprise User API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -92,8 +92,11 @@ describe('Enterprise User API', () => {
 
             await init.pageWaitForSelector(page, 'a.db-UserListRow');
 
-            const userRows = await init.page$$(page, 'a.db-UserListRow');
-            const countUsers = userRows.length;
+            const userRows: $TSFixMe = await init.page$$(
+                page,
+                'a.db-UserListRow'
+            );
+            const countUsers: $TSFixMe = userRows.length;
 
             expect(countUsers).toBeGreaterThanOrEqual(2);
 
@@ -112,7 +115,7 @@ describe('Enterprise User API', () => {
 
             await init.loginAdminUser(masterAdmin, page);
 
-            for (let i = 0; i < 10; i++) {
+            for (let i: $TSFixMe = 0; i < 10; i++) {
                 // add new user
                 await page.goto(utils.ADMIN_DASHBOARD_URL, {
                     waitUntil: 'networkidle0',
@@ -171,11 +174,11 @@ describe('Enterprise User API', () => {
                 page,
                 'a.db-UserListRow'
             );
-            let countUsers = userRows.length;
+            let countUsers: $TSFixMe = userRows.length;
 
             expect(countUsers).toEqual(10);
 
-            const nextSelector = await init.page$(page, '#btnNext');
+            const nextSelector: $TSFixMe = await init.page$(page, '#btnNext');
 
             await nextSelector.click();
 
@@ -183,7 +186,7 @@ describe('Enterprise User API', () => {
             countUsers = userRows.length;
             expect(countUsers).toBeGreaterThanOrEqual(2);
 
-            const prevSelector = await init.page$(page, '#btnPrev');
+            const prevSelector: $TSFixMe = await init.page$(page, '#btnPrev');
 
             await prevSelector.click();
 
@@ -252,7 +255,7 @@ describe('Enterprise User API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#frmUser',
                 (e: $TSFixMe) => {

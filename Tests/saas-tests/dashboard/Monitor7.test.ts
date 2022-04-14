@@ -13,7 +13,7 @@ const componentName: string = utils.generateRandomString();
 const testServerMonitorName: string = utils.generateRandomString();
 
 describe('Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(600000);

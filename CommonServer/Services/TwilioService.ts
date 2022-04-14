@@ -259,7 +259,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -393,7 +393,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -527,7 +527,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -661,7 +661,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -736,7 +736,7 @@ export default class TwilioService {
 
             return message;
         } catch (error) {
-            let err = Object.assign({}, error);
+            let err: $TSFixMe = Object.assign({}, error);
             if (
                 (err && err.status) ||
                 error.message === 'accountSid must start with AC'
@@ -826,7 +826,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -952,7 +952,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -1074,7 +1074,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -1196,7 +1196,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -1319,7 +1319,7 @@ export default class TwilioService {
                     creds['account-sid'],
                     creds['authentication-token']
                 );
-                let alertLimit = true;
+                let alertLimit: $TSFixMe = true;
 
                 alertLimit = await AlertService.checkPhoneAlertsLimit(
                     projectId
@@ -1537,7 +1537,7 @@ export default class TwilioService {
         const defaultTemplate: $TSFixMe = defaultSmsTemplates.filter(
             template => template.smsType === smsTemplateType
         )[0];
-        let smsContent = defaultTemplate.body;
+        let smsContent: $TSFixMe = defaultTemplate.body;
         if (
             smsTemplate != null &&
             smsTemplate != undefined &&
@@ -1675,8 +1675,8 @@ export default class TwilioService {
         countryCode: $TSFixMe,
         numberType: $TSFixMe
     ): void {
-        let accountSid = null;
-        let authToken = null;
+        let accountSid: $TSFixMe = null;
+        let authToken: $TSFixMe = null;
         let numbers;
         const data: $TSFixMe = {
             phoneNumber: '',
@@ -1773,8 +1773,8 @@ export default class TwilioService {
     }
 
     async buyPhoneNumber(projectId: ObjectID, phoneNumber: $TSFixMe): void {
-        let accountSid = null;
-        let authToken = null;
+        let accountSid: $TSFixMe = null;
+        let authToken: $TSFixMe = null;
         const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
@@ -1803,8 +1803,8 @@ export default class TwilioService {
     }
 
     async releasePhoneNumber(projectId: ObjectID, sid: $TSFixMe): void {
-        let accountSid = null;
-        let authToken = null;
+        let accountSid: $TSFixMe = null;
+        let authToken: $TSFixMe = null;
         const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
@@ -1826,8 +1826,8 @@ export default class TwilioService {
     }
 
     async getCallDetails(projectId: ObjectID, CallSid: $TSFixMe): void {
-        let accountSid = null;
-        let authToken = null;
+        let accountSid: $TSFixMe = null;
+        let authToken: $TSFixMe = null;
         const customTwilioSettings: $TSFixMe = await this.findByOne({
             query: { projectId, enabled: true },
             select: 'accountSid authToken',
@@ -1847,7 +1847,7 @@ export default class TwilioService {
     }
 
     async calculatePrice(currentPrice: $TSFixMe, basePrice: $TSFixMe): void {
-        let price =
+        let price: $TSFixMe =
             currentPrice && basePrice
                 ? currentPrice > basePrice
                     ? currentPrice * 10

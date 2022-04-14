@@ -455,7 +455,7 @@ router.get(
                 ],
             });
 
-            let domainObj = {};
+            let domainObj: $TSFixMe = {};
             statusPage &&
                 statusPage.domains &&
                 statusPage.domains.forEach((eachDomain: $TSFixMe) => {
@@ -550,7 +550,7 @@ router.put(
                 });
             }
 
-            for (let i = 0; i < data.links.length; i++) {
+            for (let i: $TSFixMe = 0; i < data.links.length; i++) {
                 if (!data.links[i].name) {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -913,7 +913,7 @@ router.get(
         const url: $TSFixMe = req.query.url;
 
         const user: $TSFixMe = req.user;
-        let statusPage = {};
+        let statusPage: $TSFixMe = {};
         const populateStatusPage: $TSFixMe = [
             {
                 path: 'projectId',
@@ -991,8 +991,8 @@ router.post(
                 });
             }
 
-            let statusPageProjectId = projectId;
-            let filterMonitors = false;
+            let statusPageProjectId: $TSFixMe = projectId;
+            let filterMonitors: $TSFixMe = false;
             if (subProjectId) {
                 statusPageProjectId = subProjectId;
                 filterMonitors = true;
@@ -1020,7 +1020,7 @@ router.get(
         const url: $TSFixMe = req.query.url;
 
         const user: $TSFixMe = req.user;
-        let statusPage = {};
+        let statusPage: $TSFixMe = {};
 
         try {
             // Call the StatusPageService.
@@ -1226,7 +1226,7 @@ router.get(
     '/:projectId/:monitorId/individualnotes',
     checkUser,
     async (req, res): void => {
-        let date = req.query.date;
+        let date: $TSFixMe = req.query.date;
 
         date = new Date(date);
         const theme: $TSFixMe = req.query.theme;
@@ -1266,7 +1266,7 @@ router.get(
                 skip,
                 limit
             );
-            let notes = response.investigationNotes;
+            let notes: $TSFixMe = response.investigationNotes;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedNotes: $TSFixMe = [];
                 if (notes.length > 0) {
@@ -1319,7 +1319,7 @@ router.get(
                 theme
             );
 
-            let events = response.events;
+            let events: $TSFixMe = response.events;
             const count: $TSFixMe = response.count;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const results: $TSFixMe = await fetchNotes(events, limit);
@@ -1435,7 +1435,7 @@ router.get(
     '/:projectId/:monitorId/individualevents',
     checkUser,
     async (req, res): void => {
-        let date = req.query.date;
+        let date: $TSFixMe = req.query.date;
 
         date = moment(date).endOf('day').format();
 
@@ -1461,7 +1461,7 @@ router.get(
                 skip,
                 limit
             );
-            let events = response.scheduledEvents;
+            let events: $TSFixMe = response.scheduledEvents;
             const count: $TSFixMe = response.count;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedEvents: $TSFixMe = [];
@@ -2173,7 +2173,7 @@ router.get(
                     statusPageId,
                 }),
             ]);
-            let announcementLogs = logs;
+            let announcementLogs: $TSFixMe = logs;
 
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedLogs: $TSFixMe = [];
@@ -2297,7 +2297,7 @@ const formatNotes: Function = (data = [], days: $TSFixMe): void => {
     const result: $TSFixMe = [];
     const limit: $TSFixMe = days - 1;
 
-    for (let i = 0; i <= limit; i++) {
+    for (let i: $TSFixMe = 0; i <= limit; i++) {
         const date: $TSFixMe = new Date();
         date.setDate(date.getDate() - i);
 
@@ -2646,7 +2646,7 @@ async function getStatusPage(
 ): void {
     const url: $TSFixMe = req.query.url;
     const user: $TSFixMe = req.user;
-    let statusPage = {};
+    let statusPage: $TSFixMe = {};
     const populateStatusPage: $TSFixMe = [
         {
             path: 'projectId',
@@ -2719,7 +2719,7 @@ async function getOngoingScheduledEvents(
         theme
     );
 
-    let events = response.events;
+    let events: $TSFixMe = response.events;
     const count: $TSFixMe = response.count;
     if ((theme && typeof theme === 'boolean') || theme === 'true') {
         const results: $TSFixMe = await fetchNotes(events, limit);
@@ -2897,7 +2897,7 @@ async function getStatusPageNote(
     const skip: $TSFixMe = req.query['skip'] || 0;
     const limit: $TSFixMe = req.query['limit'] || 10;
     const days: $TSFixMe = req.query.days || 14;
-    const newTheme = theme: $TSFixMe === 'Clean Theme';
+    const newTheme: $TSFixMe = theme: $TSFixMe === 'Clean Theme';
     // Call the StatusPageService.
     const response: $TSFixMe = await StatusPageService.getNotes(
         { slug: statusPageSlug },
@@ -2938,7 +2938,7 @@ async function getAnnouncementLogs(
     limit = 5,
     skip = 0
 ): void {
-    const theme = statusPage.theme: $TSFixMe === 'Clean Theme';
+    const theme: $TSFixMe = statusPage.theme: $TSFixMe === 'Clean Theme';
     if (theme) {
         limit = statusPage.announcementLogsHistory || 14;
     }
@@ -2981,7 +2981,7 @@ async function calculateTime(
 ): void {
     const result: $TSFixMe = {};
     const start: $TSFixMe = Date.now();
-    const theme = statusPage.theme: $TSFixMe === 'Clean Theme';
+    const theme: $TSFixMe = statusPage.theme: $TSFixMe === 'Clean Theme';
     if (!theme) {
         range = 90;
     }

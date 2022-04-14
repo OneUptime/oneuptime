@@ -185,7 +185,7 @@ app.get(
         }
 
         try {
-            const subscriptions = await axios({
+            const subscriptions: $TSFixMe = await axios({
                 method: 'GET',
                 url: `${apiHost}/subscriber/monitorList/${subscriberId}`,
             });
@@ -707,7 +707,9 @@ app.get(
 );
 
 app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig = productCompare(req.params['product'] as string);
+    const productConfig: $TSFixMe = productCompare(
+        req.params['product'] as string
+    );
 
     if (!productConfig) {
         res.status(404);
@@ -732,7 +734,9 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
-    const productConfig = productCompare(req.params['product'] as string);
+    const productConfig: $TSFixMe = productCompare(
+        req.params['product'] as string
+    );
 
     if (!productConfig) {
         res.status(404);
@@ -807,7 +811,7 @@ app.get(
 
 // generate sitemap
 app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
-    const siteUrls = [
+    const siteUrls: $TSFixMe = [
         'https://oneuptime.com/',
         'https://oneuptime.com/pricing',
         'https://oneuptime.com/support',
@@ -860,7 +864,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     ];
 
     // build xml
-    const urlsetAttr = [
+    const urlsetAttr: $TSFixMe = [
         { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
         { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
         {
@@ -870,12 +874,12 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
     ];
 
     // get previous day's date/timestamp
-    const today = new Date();
+    const today: $TSFixMe = new Date();
     today.setDate(today.getDate() - 1);
 
-    const timestamp = today.toISOString();
+    const timestamp: $TSFixMe = today.toISOString();
 
-    const urlset = builder.create().ele('urlset');
+    const urlset: $TSFixMe = builder.create().ele('urlset');
 
     // apply attributes to root element
     urlsetAttr.forEach(attr => {
@@ -884,13 +888,13 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
 
     //append urls to root element
     siteUrls.forEach(url => {
-        const urlElement = urlset.ele('url');
+        const urlElement: $TSFixMe = urlset.ele('url');
         urlElement.ele('loc').txt(url);
         urlElement.ele('lastmod').txt(timestamp);
     });
 
     // generate xml file
-    const xml = urlset.end({ prettyPrint: true });
+    const xml: $TSFixMe = urlset.end({ prettyPrint: true });
 
     res.setHeader('Content-Type', 'text/xml');
     res.send(xml);

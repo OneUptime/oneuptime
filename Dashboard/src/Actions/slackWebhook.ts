@@ -88,7 +88,7 @@ export const getSlack: Function = (
     limit: PositiveNumber
 ): void => {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks?skip=${skip || 0}&limit=${
                 limit || 10
@@ -116,7 +116,7 @@ export function getSlackMonitor(
     limit: PositiveNumber
 ) {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(
             `webhook/${projectId}/hooks/${monitorId}?skip=${skip || 0}&limit=${
                 limit || 10

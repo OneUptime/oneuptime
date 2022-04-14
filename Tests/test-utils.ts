@@ -11,7 +11,7 @@ user.message = 'Test message';
 const agent: $TSFixMe =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36';
 
-let slomo = 20;
+let slomo: $TSFixMe = 20;
 
 if (
     process.env.SLOMO &&
@@ -81,7 +81,7 @@ function generateRandomString(): void {
     const result: $TSFixMe = [];
     const characters: string = 'abcdefghijklmnopqrstuvwxyz';
     const charactersLength: $TSFixMe = characters.length;
-    for (let i = 0; i < 5; i++) {
+    for (let i: $TSFixMe = 0; i < 5; i++) {
         result.push(
             characters.charAt(Math.floor(Math.random() * charactersLength))
         );

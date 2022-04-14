@@ -1,6 +1,6 @@
 export default class Service {
     async create(data: $TSFixMe): void {
-        let incidentMessage = new IncidentMessageModel();
+        let incidentMessage: $TSFixMe = new IncidentMessageModel();
 
         incidentMessage.content = data.content;
 

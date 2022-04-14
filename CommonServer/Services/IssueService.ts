@@ -12,7 +12,7 @@ import Query from '../Types/DB/Query';
 export default class Service {
     async create(data: $TSFixMe): void {
         // prepare issue model
-        let issue = new IssueModel();
+        let issue: $TSFixMe = new IssueModel();
 
         issue.name = data.exception ? data.exception.type : 'Unknown Error';
 

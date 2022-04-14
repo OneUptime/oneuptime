@@ -144,12 +144,12 @@ router.post(
                     ? null
                     : req.user.id
                 : null;
-            let createdByApi = false;
+            let createdByApi: $TSFixMe = false;
 
             if (req.user && req.user.id === 'API') {
                 createdByApi = true;
             }
-            let oldIncidentsCount = null;
+            let oldIncidentsCount: $TSFixMe = null;
 
             // monitors should be an array containing id of monitor(s)
             if (monitors && !Array.isArray(monitors)) {
@@ -254,7 +254,7 @@ router.post(
         // include date range
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
-            let query = {
+            let query: $TSFixMe = {
                 'monitors.monitorId': { $in: [monitorId] },
             };
 
@@ -415,7 +415,9 @@ router.get(
                 query: { projectId },
                 select: '_id',
             });
-            const monitorIds = monitors.map((monitor: $TSFixMe) => monitor._id);
+            const monitorIds: $TSFixMe = monitors.map(
+                (monitor: $TSFixMe) => monitor._id
+            );
 
             const query: $TSFixMe = {
                 'monitors.monitorId': { $in: monitorIds },
@@ -562,7 +564,7 @@ router.post(
                     ? null
                     : req.user.id
                 : null;
-            let acknowledgedByApi = false;
+            let acknowledgedByApi: $TSFixMe = false;
 
             if (req.user && req.user.id === 'API') {
                 acknowledgedByApi = true;
@@ -728,7 +730,7 @@ router.post(
                     ? null
                     : req.user.id
                 : null;
-            let resolvedByApi = false;
+            let resolvedByApi: $TSFixMe = false;
 
             if (req.user && req.user.id === 'API') {
                 resolvedByApi = true;
@@ -1062,7 +1064,7 @@ router.post(
                     });
                 }
             }
-            let incidentMessage = null;
+            let incidentMessage: $TSFixMe = null;
             if (incident && incident._id) {
                 data.incidentId = incidentId;
 
@@ -1542,7 +1544,7 @@ router.get(
     getUser,
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
-        let type = 'investigation';
+        let type: $TSFixMe = 'investigation';
         if (req.query.type && req.query.type === 'internal') {
             type = 'internal';
         }
@@ -1558,7 +1560,7 @@ router.get(
             });
             if (incidentId) {
                 incidentId = incidentId._id;
-                let skip = 0,
+                let skip: $TSFixMe = 0,
                     limit = 0;
                 if (type === 'investigation') {
                     skip = req.query['skip'] || 0;

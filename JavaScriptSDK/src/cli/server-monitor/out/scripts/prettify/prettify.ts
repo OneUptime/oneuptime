@@ -1,12 +1,12 @@
-const q = null;
+const q: $TSFixMe = null;
 window.PR_SHOULD_USE_CONTINUATION = !0;
 
 (function ():void {
     function L(a: $TSFixMe):void {
         function m(a: $TSFixMe):void {
-            let f = a.charCodeAt(0);
+            let f: $TSFixMe = a.charCodeAt(0);
             if (f !== 92) return f;
-            const b = a.charAt(1);
+            const b: $TSFixMe = a.charAt(1);
             return (f = r[b])
                 ? f
                 : '0' <= b && b <= '7'
@@ -247,7 +247,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 d += f.length;
                 if (c) {
                     c = o[1];
-                    let j = f.indexOf(c),
+                    let j: $TSFixMe = f.indexOf(c),
                         k = j + c.length;
                     o[2] && ((k = f.length - o[2].length), (j = k - c.length));
                     b = b.substring(5);
@@ -266,9 +266,9 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 d < g;
                 ++d
             ) {
-                let r = e[d],
+                let r: $TSFixMe = e[d],
                     n = r[3];
-                if (n) for (let k = n.length; --k >= 0; ) h[n.charAt(k)] = r;
+                if (n) for (let k: $TSFixMe = n.length; --k >= 0; ) h[n.charAt(k)] = r;
                 r = r[1];
                 n = '' + r;
                 p.hasOwnProperty(n) || (l.push(r), (p[n] = q));
@@ -280,7 +280,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         return e;
     }
     function u(a: $TSFixMe):void {
-        const m = [],
+        const m: $TSFixMe = [],
             e = [];
         a.tripleQuotedStrings
             ? m.push([
@@ -303,7 +303,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                   '"\'',
               ]);
         a.verbatimStrings && e.push(['str', /^@"(?:[^"]|"")*(?:"|$)/, q]);
-        let h = a.hashComments;
+        let h: $TSFixMe = a.hashComments;
         h &&
             (a.cStyleComments
                 ? (h > 1
@@ -369,10 +369,10 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 case 3:
                 case 4:
                     if (p) {
-                        let b = a.nodeValue,
+                        let b: $TSFixMe = a.nodeValue,
                             d = b.match(t);
                         if (d) {
-                            const c = b.substring(0, d.index);
+                            const c: $TSFixMe = b.substring(0, d.index);
                             a.nodeValue = c;
                             (b = b.substring(d.index + d[0].length)) &&
                                 a.parentNode.insertBefore(
@@ -393,7 +393,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                     var f = b(f, 1),
                         g = a.nextSibling;
                     f.appendChild(e);
-                    for (let h = g; h; h = g)
+                    for (let h: $TSFixMe = g; h; h = g)
                         (g = h.nextSibling), f.appendChild(h);
                 }
                 return e;
@@ -428,7 +428,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
 
                 m
             );
-        const r = s.createElement('OL');
+        const r: $TSFixMe = s.createElement('OL');
         r.className = 'linenums';
         for (
             var n = Math.max(0, (m - 1) | 0) || 0, g = 0, z = d.length;
@@ -442,8 +442,8 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
         a.appendChild(r);
     }
     function k(a: $TSFixMe, m: $TSFixMe):void {
-        for (let e = m.length; --e >= 0; ) {
-            const h = m[e];
+        for (let e: $TSFixMe = m.length; --e >= 0; ) {
+            const h: $TSFixMe = m[e];
             A.hasOwnProperty(h)
                 ? window.console &&
                   console.warn('cannot override language handler %s', h)
@@ -502,10 +502,10 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                 if (i.nodeType !== 1 && (j = t.substring(e, b))) {
                     k && (j = j.replace(m, '\r'));
                     i.nodeValue = j;
-                    const u = i.ownerDocument,
+                    const u: $TSFixMe = i.ownerDocument,
                         v = u.createElement('SPAN');
                     v.className = d[a + 1];
-                    const x = i.parentNode;
+                    const x: $TSFixMe = i.parentNode;
                     x.replaceChild(v, i);
                     v.appendChild(i);
                     e < o &&
@@ -682,7 +682,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
     );
     k(x([], [['str', /^[\S\s]+/]]), ['regex']);
     window.prettyPrintOne = function (a: $TSFixMe, m: $TSFixMe, e: $TSFixMe):void {
-        const h = document.createElement('PRE');
+        const h: $TSFixMe = document.createElement('PRE');
         h.innerHTML = a;
         e && D(h, e);
         E({ g: m, i: e, h: h });
@@ -691,7 +691,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
     window.prettyPrint = function (a: $TSFixMe):void {
         function m():void {
             for (
-                let e = window.PR_SHOULD_USE_CONTINUATION
+                let e: $TSFixMe = window.PR_SHOULD_USE_CONTINUATION
                     ? l.now() + 250
                     : Infinity;
                 p < h.length && l.now() < e;
@@ -766,7 +766,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
             k < e.length;
             ++k
         )
-            for (let t = 0, s = e[k].length; t < s; ++t) h.push(e[k][t]);
+            for (let t: $TSFixMe = 0, s = e[k].length; t < s; ++t) h.push(e[k][t]);
         var e = q,
             l = Date;
         l.now ||

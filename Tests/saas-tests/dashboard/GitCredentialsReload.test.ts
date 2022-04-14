@@ -7,8 +7,8 @@ const user: $TSFixMe = {
     email: utils.generateRandomBusinessEmail(),
     password: '1234567890',
 };
-const gitUsername = utils.gitCredential.gitUsername;
-const gitPassword = utils.gitCredential.gitPassword;
+const gitUsername: $TSFixMe = utils.gitCredential.gitUsername;
+const gitPassword: $TSFixMe = utils.gitCredential.gitPassword;
 
 /** This is a test to check:
  * No errors on page reload
@@ -16,7 +16,7 @@ const gitPassword = utils.gitCredential.gitPassword;
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut: $TSFixMe = 100000;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(100000);
@@ -54,7 +54,7 @@ describe('OneUptime Page Reload', () => {
 
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#gitUsername_${gitUsername}`
             );

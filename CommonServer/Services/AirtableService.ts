@@ -130,9 +130,11 @@ export default class Service {
             .firstPage();
 
         if (records && records.length > 0) {
-            const recordIds = records.map((record: $TSFixMe): void => {
-                return record.id;
-            });
+            const recordIds: $TSFixMe = records.map(
+                (record: $TSFixMe): void => {
+                    return record.id;
+                }
+            );
 
             return await base(tableName).destroy(recordIds);
         }

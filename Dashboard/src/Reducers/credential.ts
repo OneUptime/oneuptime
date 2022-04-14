@@ -60,7 +60,7 @@ export default function credential(state = initialState, action: Action): void {
             };
 
         case types.UPDATE_GIT_CREDENTIAL_SUCCESS: {
-            const gitCredentials = state.gitCredentials.map(gitCredential: $TSFixMe => {
+            const gitCredentials: $TSFixMe = state.gitCredentials.map(gitCredential: $TSFixMe => {
                 if (String(gitCredential._id) === String(action.payload._id)) {
                     gitCredential = action.payload;
                 }

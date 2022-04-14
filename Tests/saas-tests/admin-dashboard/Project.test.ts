@@ -17,7 +17,7 @@ const user: $TSFixMe = {
 let projectId: ObjectID = null;
 
 describe('Project', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -58,13 +58,17 @@ describe('Project', () => {
 
             await init.pageWaitForSelector(page, '.Table > tbody tr');
 
-            const project = await init.pageWaitForSelector(page, '.projectId');
+            const project: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '.projectId'
+            );
             projectId = await (
                 await project.getProperty('innerText')
             ).jsonValue();
 
             await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
+                let elem: $TSFixMe =
+                    document.querySelectorAll('.Table > tbody tr');
 
                 elem = Array.from(elem);
 
@@ -89,7 +93,7 @@ describe('Project', () => {
 
             await page.reload({ waitUntil: 'networkidle0' });
 
-            const checked = await init.page$Eval(
+            const checked: $TSFixMe = await init.page$Eval(
                 page,
                 '#Enterprise',
                 (elem: $TSFixMe) => elem.checked
@@ -127,13 +131,17 @@ describe('Project', () => {
                 elem.click()
             );
 
-            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+            const loader: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '.ball-beat',
+                {
+                    hidden: true,
+                }
+            );
 
             await page.reload({ waitUntil: 'networkidle0' });
 
-            const checked = await init.page$Eval(
+            const checked: $TSFixMe = await init.page$Eval(
                 page,
                 '#Growth_annual',
                 (elem: $TSFixMe) => elem.checked

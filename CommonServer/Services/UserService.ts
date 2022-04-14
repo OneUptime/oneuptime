@@ -341,7 +341,7 @@ class Service extends DatabaseService<typeof Model> {
         hotp.options = { digits: 8 };
         const backupCodes: $TSFixMe = [];
 
-        for (let i = 0; i < numberOfCodes; i++) {
+        for (let i: $TSFixMe = 0; i < numberOfCodes; i++) {
             const counter: $TSFixMe = firstCounter + i;
             const token: $TSFixMe = hotp.generate(secretKey, counter);
             backupCodes.push({ code: token, counter });
@@ -364,12 +364,14 @@ class Service extends DatabaseService<typeof Model> {
                 query: { twoFactorSecretCode: secretKey },
                 select,
             });
-            const backupCodes = user.backupCodes.map((backupCode: $TSFixMe) => {
-                if (backupCode.code === code) {
-                    backupCode.used = true;
+            const backupCodes: $TSFixMe = user.backupCodes.map(
+                (backupCode: $TSFixMe) => {
+                    if (backupCode.code === code) {
+                        backupCode.used = true;
+                    }
+                    return backupCode;
                 }
-                return backupCode;
-            });
+            );
             await this.updateOneBy(
                 { twoFactorSecretCode: secretKey },
                 { backupCodes }
@@ -432,7 +434,7 @@ class Service extends DatabaseService<typeof Model> {
         clientIP: $TSFixMe,
         userAgent: $TSFixMe
     ): void {
-        let user = null;
+        let user: $TSFixMe = null;
         if (util.isEmailValid(email)) {
             // find user if present in db.
 
@@ -835,8 +837,8 @@ class Service extends DatabaseService<typeof Model> {
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
                 });
-                let parentProjectIds = [];
-                let projectIds = [];
+                let parentProjectIds: $TSFixMe = [];
+                let projectIds: $TSFixMe = [];
                 if (userProjects.length > 0) {
                     const subProjects: $TSFixMe = userProjects
                         .map((project: $TSFixMe) =>
@@ -941,8 +943,8 @@ class Service extends DatabaseService<typeof Model> {
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
                 });
-                let parentProjectIds = [];
-                let projectIds = [];
+                let parentProjectIds: $TSFixMe = [];
+                let projectIds: $TSFixMe = [];
                 if (userProjects.length > 0) {
                     const subProjects: $TSFixMe = userProjects
                         .map((project: $TSFixMe) =>

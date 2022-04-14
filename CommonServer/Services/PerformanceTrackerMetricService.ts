@@ -121,7 +121,7 @@ export default class Service {
                     method,
                 };
 
-                let avgTime = 0,
+                let avgTime: $TSFixMe = 0,
                     maxTime = 0,
                     throughput = 0,
                     errorCount = 0;
@@ -415,7 +415,7 @@ export default class Service {
 function calcAvgTime(metric: $TSFixMe): void {
     const length: $TSFixMe = metric.length;
 
-    let avgTimeCount = 0,
+    let avgTimeCount: $TSFixMe = 0,
         avgMaxTimeCount = 0;
     metric.forEach((data: $TSFixMe) => {
         avgTimeCount += data.metrics.avgTime;
@@ -431,7 +431,7 @@ function calcAvgTime(metric: $TSFixMe): void {
 function calcAvgThroughput(metric: $TSFixMe): void {
     const length: $TSFixMe = metric.length;
 
-    let sum = 0;
+    let sum: $TSFixMe = 0;
     metric.forEach((data: $TSFixMe) => {
         sum += data.metrics.throughput;
     });
@@ -444,7 +444,7 @@ function calcAvgThroughput(metric: $TSFixMe): void {
 function calcAvgError(metric: $TSFixMe): void {
     const length: $TSFixMe = metric.length;
 
-    let cumulative = 0;
+    let cumulative: $TSFixMe = 0;
     metric.forEach((data: $TSFixMe) => {
         cumulative += data.metrics.errorCount;
     });

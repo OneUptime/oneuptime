@@ -102,7 +102,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async reserveNumber(data: $TSFixMe, projectId: ObjectID): void {
-        let confirmBuy = null;
+        let confirmBuy: $TSFixMe = null;
         const hasCustomTwilioSettings: $TSFixMe =
             await TwilioService.hasCustomSettings(projectId);
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
@@ -110,7 +110,7 @@ class Service extends DatabaseService<typeof Model> {
                 query: { _id: projectId },
                 select: 'users',
             });
-            let owner = project.users.filter(
+            let owner: $TSFixMe = project.users.filter(
                 (user: $TSFixMe) => user.role === 'Owner'
             );
             owner = owner && owner.length ? owner[0] : owner;
@@ -213,7 +213,7 @@ class Service extends DatabaseService<typeof Model> {
                 activeTeam.teamMembers &&
                 activeTeam.teamMembers.length
             ) {
-                let dutyCheck = 0;
+                let dutyCheck: $TSFixMe = 0;
                 for (const teamMember of activeTeam.teamMembers) {
                     const [isOnDuty, user]: $TSFixMe = await Promise.all([
                         AlertService.checkIsOnDuty(
@@ -285,7 +285,7 @@ class Service extends DatabaseService<typeof Model> {
         );
         if (callDetails && callDetails.price) {
             const duration: $TSFixMe = callDetails.duration;
-            let price = callDetails.price;
+            let price: $TSFixMe = callDetails.price;
             if (price && price.includes('-')) {
                 price = price.replace('-', '');
             }
@@ -297,7 +297,7 @@ class Service extends DatabaseService<typeof Model> {
                     query: { _id: projectId },
                     select: 'users',
                 });
-                let owner = project.users.filter(
+                let owner: $TSFixMe = project.users.filter(
                     (user: $TSFixMe) => user.role === 'Owner'
                 );
                 owner = owner && owner.length ? owner[0] : owner;
@@ -313,7 +313,7 @@ class Service extends DatabaseService<typeof Model> {
                     select: 'callSid dialTo _id',
                 });
             if (callRoutingLog && callRoutingLog.callSid) {
-                let dialTo =
+                let dialTo: $TSFixMe =
                     callRoutingLog.dialTo && callRoutingLog.dialTo.length
                         ? callRoutingLog.dialTo
                         : [];
@@ -379,7 +379,7 @@ class Service extends DatabaseService<typeof Model> {
             data && data.routingSchema && data.routingSchema.type
                 ? data.routingSchema
                 : {};
-        let memberId = null;
+        let memberId: $TSFixMe = null;
         const response: $TSFixMe = new twilio.twiml.VoiceResponse();
         let forwardingNumber, error, userId, scheduleId;
 
@@ -514,7 +514,7 @@ class Service extends DatabaseService<typeof Model> {
             select: '_id dialTo callSid',
         });
         if (callRoutingLog && callRoutingLog.callSid) {
-            let dialTo =
+            let dialTo: $TSFixMe =
                 callRoutingLog.dialTo && callRoutingLog.dialTo.length
                     ? callRoutingLog.dialTo
                     : [];
@@ -678,7 +678,7 @@ class Service extends DatabaseService<typeof Model> {
         if (callRouting && callRouting.length) {
             const select: $TSFixMe =
                 'callRoutingId callSid price calledFrom calledTo duration dialTo';
-            for (let i = 0; i < callRouting.length; i++) {
+            for (let i: $TSFixMe = 0; i < callRouting.length; i++) {
                 const callRoutingId: $TSFixMe = callRouting[i]._id;
                 const callLogs: $TSFixMe = await CallRoutingLogService.findBy({
                     query: { callRoutingId },

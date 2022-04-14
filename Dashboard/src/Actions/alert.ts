@@ -206,7 +206,7 @@ export function fetchSubscriberAlert(
     return function (dispatch: Dispatch): void {
         skip = skip < 0 ? 0 : skip;
         limit = limit < 0 ? 0 : limit;
-        let promise = null;
+        let promise: $TSFixMe = null;
         if (skip >= 0 && limit >= 0) {
             promise = BackendAPI.get(
                 `subscriberAlert/${projectId}/incident/${incidentSlug}?skip=${skip}&limit=${limit}`

@@ -127,7 +127,7 @@ export default class Service {
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
-        let applicationSecurity =
+        let applicationSecurity: $TSFixMe =
             await ApplicationSecurityModel.findOneAndUpdate(
                 query,
                 {
@@ -264,7 +264,7 @@ export default class Service {
 
     async decryptPassword(security: $TSFixMe): void {
         const values: $TSFixMe = [];
-        for (let i = 0; i <= 15; i++) {
+        for (let i: $TSFixMe = 0; i <= 15; i++) {
             values.push(security.gitCredential.iv[i]);
         }
         const iv: $TSFixMe = Buffer.from(values);

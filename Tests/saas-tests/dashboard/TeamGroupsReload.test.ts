@@ -14,7 +14,7 @@ const groupName: string = utils.generateRandomString();
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = 100000;
+    const operationTimeOut: $TSFixMe = 100000;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(100000);
@@ -50,7 +50,7 @@ describe('OneUptime Page Reload', () => {
             await init.selectDropdownValue('#componentList', 'Test Name', page);
 
             await init.pageClick(page, '#btnAddGroup');
-            const spanElement = await page.waitForSelector(
+            const spanElement: $TSFixMe = await page.waitForSelector(
                 `#sub_project_name_${groupName}`
             );
             expect(spanElement).toBeDefined();

@@ -15,7 +15,7 @@ describe('ScriptMonitor V2', function ():void {
     before(function ():void {
 
       import express from "express"
-      const app = express.getExpressApp();
+      const app: $TSFixMe = express.getExpressApp();
       app.get("/test", (req: ExpressRequest, res: ExpressResponse) => res.send("yipee!"));
       server = app.listen(5050);
     });
@@ -32,12 +32,12 @@ describe('ScriptMonitor V2', function ():void {
 
 
 
-        const res = await axios.get("http://localhost:5050/test");
+        const res: $TSFixMe = await axios.get("http://localhost:5050/test");
 
         done();
       }
 
-      const result = await runScript(someFunction.toString(), true);
+      const result: $TSFixMe = await runScript(someFunction.toString(), true);
       expect(result).to.not.be.undefined;
       expect(result.success).to.be.true;
       expect(result.status).eq("completed");
@@ -57,7 +57,7 @@ describe('ScriptMonitor V2', function ():void {
         logger.error('Bad Error');
         throw new Error("Bad error");
       }
-      const result = await runScript(someFunction.toString(), true);
+      const result: $TSFixMe = await runScript(someFunction.toString(), true);
 
       expect(result).to.not.be.undefined;
       expect(result.success).to.be.false;
@@ -76,7 +76,7 @@ describe('ScriptMonitor V2', function ():void {
       const someFunction: Function = async (done: $TSFixMe): void => {
         done("Some Error");
       }
-      const result = await runScript(someFunction.toString(), true);
+      const result: $TSFixMe = await runScript(someFunction.toString(), true);
 
       expect(result).to.be.ok;
       expect(result.success).to.be.false;
@@ -94,7 +94,7 @@ describe('ScriptMonitor V2', function ():void {
           setTimeout(() => "All timed out", 7000);
         })
       }
-      const result = await runScript(someFunction.toString(), true, { maxScriptRunTime: 1500 });
+      const result: $TSFixMe = await runScript(someFunction.toString(), true, { maxScriptRunTime: 1500 });
 
       expect(result).to.be.ok;
       expect(result.success).to.be.false;
@@ -111,7 +111,7 @@ describe('ScriptMonitor V2', function ():void {
           // statement stuck in loop or too busy
         }
       }
-      const result = await runScript(someFunction.toString(), true, { maxSyncStatementDuration: 300 });
+      const result: $TSFixMe = await runScript(someFunction.toString(), true, { maxSyncStatementDuration: 300 });
 
       expect(result).to.be.ok;
       expect(result.success).to.be.false;

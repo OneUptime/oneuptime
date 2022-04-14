@@ -35,7 +35,7 @@ export default class Service {
         const createdMonitorSla: $TSFixMe = await MonitorSlaModel.create(data);
 
         if (data.monitors && data.monitors.length > 0) {
-            let monitorIds = [...data.monitors];
+            let monitorIds: $TSFixMe = [...data.monitors];
             monitorIds = [...new Set(monitorIds)];
 
             await MonitorService.updateManyMonitorSla(
@@ -142,7 +142,7 @@ export default class Service {
 
             const removedMonitors: $TSFixMe = [];
             if (data.monitors && data.monitors.length > 0) {
-                let monitorIds = [...data.monitors];
+                let monitorIds: $TSFixMe = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
                 monitorIds = monitorIds.map(id => String(id));
                 initialMonitorIds.forEach((monitorId: $TSFixMe) => {

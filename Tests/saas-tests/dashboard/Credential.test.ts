@@ -11,9 +11,9 @@ const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Credential Page', () => {
-    const operationTimeOut = init.timeout;
-    const gitUsername = utils.gitCredential.gitUsername;
-    const gitPassword = utils.gitCredential.gitPassword;
+    const operationTimeOut: $TSFixMe = init.timeout;
+    const gitUsername: $TSFixMe = utils.gitCredential.gitUsername;
+    const gitPassword: $TSFixMe = utils.gitCredential.gitPassword;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(operationTimeOut);
@@ -151,7 +151,7 @@ describe('Credential Page', () => {
 
             await init.pageClick(page, '#addCredentialModalBtn');
 
-            const credentialModal = await init.pageWaitForSelector(
+            const credentialModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#gitCredentialForm',
                 { hidden: true }
@@ -201,7 +201,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
             });
-            const updatedCredential = await init.pageWaitForSelector(
+            const updatedCredential: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#gitUsername_${gitUsername}`,
                 { visible: true, timeout: init.timeout }
@@ -239,7 +239,10 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            const initialTableRow = await init.page$$(page, 'tbody tr');
+            const initialTableRow: $TSFixMe = await init.page$$(
+                page,
+                'tbody tr'
+            );
 
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
@@ -253,7 +256,7 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            const finalTableRow = await init.page$$(page, 'tbody tr');
+            const finalTableRow: $TSFixMe = await init.page$$(page, 'tbody tr');
 
             expect(initialTableRow.length).toEqual(finalTableRow.length);
 

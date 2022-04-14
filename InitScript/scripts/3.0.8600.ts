@@ -12,7 +12,7 @@ async function run(): void {
             ],
         }
     );
-    for (let i = 0; i < containerSecurities.length; i++) {
+    for (let i: $TSFixMe = 0; i < containerSecurities.length; i++) {
         const { name }: $TSFixMe = containerSecurities[i];
         containerSecurities[i].slug = getSlug(name);
         await update(

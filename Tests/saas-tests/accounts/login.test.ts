@@ -53,13 +53,13 @@ describe('Login API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const email = await init.page$Eval(
+            const email: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=email]',
                 (element: $TSFixMe) => element.value
             );
             expect(email).toEqual('');
-            const password = await init.page$Eval(
+            const password: $TSFixMe = await init.page$Eval(
                 page,
                 'input[name=password]',
                 (element: $TSFixMe) => element.value
@@ -89,7 +89,7 @@ describe('Login API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             await init.pageWaitForSelector(page, '#loginError');
-            const html = await init.page$Eval(
+            const html: $TSFixMe = await init.page$Eval(
                 page,
                 '#main-body',
                 (e: $TSFixMe) => {
@@ -114,10 +114,10 @@ describe('Login API', () => {
                 timeout: init.timeout,
             });
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData: $TSFixMe = await page.evaluate(() => {
                 const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }
@@ -134,7 +134,8 @@ describe('Login API', () => {
     it(
         'Should login valid User (even if the user uses 127.0.0.1 instead of localhost) ',
         async () => {
-            const context = await browser.createIncognitoBrowserContext();
+            const context: $TSFixMe =
+                await browser.createIncognitoBrowserContext();
             page = await context.newPage();
 
             await init.loginUser(
@@ -149,10 +150,10 @@ describe('Login API', () => {
                 timeout: init.timeout,
             });
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData: $TSFixMe = await page.evaluate(() => {
                 const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }

@@ -11,7 +11,7 @@ const userEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Enterprise License API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -61,7 +61,7 @@ describe('Enterprise License API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const expiredError = await init.page$Eval(
+            const expiredError: $TSFixMe = await init.page$Eval(
                 page,
                 '#licenseError',
                 (e: $TSFixMe) => {

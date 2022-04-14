@@ -22,7 +22,7 @@ describe('Check Backend', () => {
         await page.goto(utils.BACKEND_URL + '/api', {
             waitUntil: 'networkidle2',
         });
-        const response = await init.page$Eval(
+        const response: $TSFixMe = await init.page$Eval(
             page,
             'body > pre',
             (e: $TSFixMe) => {

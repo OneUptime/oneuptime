@@ -480,7 +480,7 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            // let idNumber =
+            // let idNumber: $TSFixMe =
             //     action.payload.incidentId && action.payload.incidentId.idNumber;
             // idNumber = idNumber - 1;
             const incidentSlug: $TSFixMe = action.payload.incidentId.slug;
@@ -886,7 +886,7 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case types.INVESTIGATION_NOTE_SUCCESS: {
-            let noteFound = false;
+            let noteFound: $TSFixMe = false;
             incidentMessages =
                 state.incidentMessages[action.payload.incidentId._id][
                     action.payload.type
@@ -979,11 +979,11 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case 'ADD_INCIDENT_NOTE': {
-            let incidentFound = false;
-            let incidentMessages = [];
+            let incidentFound: $TSFixMe = false;
+            let incidentMessages: $TSFixMe = [];
 
             if (state.incidentMessages[action.payload.incidentId.slug]) {
-                let msg =
+                let msg: $TSFixMe =
                     state.incidentMessages[action.payload.incidentId.slug];
                 msg = msg ? msg[action.payload.type] : null;
                 msg = msg ? msg.incidentMessages : null;
@@ -1192,7 +1192,7 @@ export default function incident(state = initialState, action: Action): void {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            let monitors = incident.monitors;
+                            let monitors: $TSFixMe = incident.monitors;
                             if (monitors && monitors.length > 0) {
                                 monitors = monitors.map((monitor: $TSFixMe) => {
                                     if (

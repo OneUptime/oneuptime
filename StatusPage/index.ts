@@ -54,7 +54,7 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 
 app.use(cors());
 
-let apiHost = 'http://localhost:3002/api';
+let apiHost: $TSFixMe = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
 }
@@ -93,7 +93,7 @@ app.get(
                 /(http:\/\/|https:\/\/)/,
                 ''
             ); // remove any protocol that might have been added
-            let protocol = 'http:';
+            let protocol: $TSFixMe = 'http:';
             if (process.env.BACKEND_PROTOCOL) {
                 protocol = process.env.BACKEND_PROTOCOL + ':';
             } else if (req.secure) {
@@ -143,7 +143,7 @@ async function handleCustomDomain(
             deleted: false,
         });
 
-    let domainObj = {};
+    let domainObj: $TSFixMe = {};
     statusPage &&
         statusPage.domains &&
         statusPage.domains.forEach((eachDomain: $TSFixMe) => {
@@ -281,7 +281,7 @@ async function fetchCredential(
 function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
     return new Promise(resolve => {
         const command: string = `echo ${content} | base64 -d`;
-        let output = '';
+        let output: $TSFixMe = '';
 
         const commandOutput: $TSFixMe = spawn(command, {
             cwd: process.cwd(),
@@ -318,10 +318,10 @@ function createDir(dirPath: $TSFixMe): void {
 function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
     const M: $TSFixMe = pat.length;
     const N: $TSFixMe = txt.length;
-    let res = 0;
+    let res: $TSFixMe = 0;
 
     // A loop to slide pat[] one by one
-    for (let i = 0; i <= N - M; i++) {
+    for (let i: $TSFixMe = 0; i <= N - M; i++) {
         // For current index i, check for
         // pattern match
         let j;
@@ -426,7 +426,7 @@ function countFreq(pat: $TSFixMe, txt: $TSFixMe): void {
 
                             // check if the certificate is container chain
                             // if not, add anc show update view for the frontend
-                            let fullCert = certificate.cert;
+                            let fullCert: $TSFixMe = certificate.cert;
                             if (
                                 countFreq(
                                     'BEGIN CERTIFICATE',

@@ -9,7 +9,7 @@ import 'should';
 const password: string = '1234567890';
 
 describe('API Monitor API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     const componentName: string = utils.generateRandomString();
     const testMonitorName: string = utils.generateRandomString();
@@ -102,7 +102,10 @@ describe('API Monitor API', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(testMonitorName);
 
-            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
+            const probeTabs: $TSFixMe = await init.page$$(
+                page,
+                'button[id^=probes-btn]'
+            );
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
@@ -151,12 +154,12 @@ describe('API Monitor API', () => {
 
             // for online criteria
 
-            const upFields = await init.page$$(
+            const upFields: $TSFixMe = await init.page$$(
                 page,
                 `input[name*="up_"][name*=".field1"]`
             );
-            const lastUpField = upFields[upFields.length - 1];
-            const upExpression = await (
+            const lastUpField: $TSFixMe = upFields[upFields.length - 1];
+            const upExpression: $TSFixMe = await (
                 await lastUpField.getProperty('value')
             ).jsonValue();
 
@@ -164,12 +167,13 @@ describe('API Monitor API', () => {
 
             // for degraded criteria
 
-            const degradedFields = await init.page$$(
+            const degradedFields: $TSFixMe = await init.page$$(
                 page,
                 `input[name*="degraded_"][name*=".field1"]`
             );
-            const lastDegradedField = degradedFields[degradedFields.length - 1];
-            const degradedExpression = await (
+            const lastDegradedField: $TSFixMe =
+                degradedFields[degradedFields.length - 1];
+            const degradedExpression: $TSFixMe = await (
                 await lastDegradedField.getProperty('value')
             ).jsonValue();
             expect(degradedExpression).toEqual(
@@ -233,7 +237,10 @@ describe('API Monitor API', () => {
                 page
             );
 
-            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
+            const probeTabs: $TSFixMe = await init.page$$(
+                page,
+                'button[id^=probes-btn]'
+            );
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
@@ -311,7 +318,10 @@ describe('API Monitor API', () => {
                 page
             );
 
-            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
+            const probeTabs: $TSFixMe = await init.page$$(
+                page,
+                'button[id^=probes-btn]'
+            );
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
@@ -383,7 +393,10 @@ describe('API Monitor API', () => {
             page
         );
 
-        const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
+        const probeTabs: $TSFixMe = await init.page$$(
+            page,
+            'button[id^=probes-btn]'
+        );
         for (const probeTab of probeTabs) {
             await probeTab.click();
 
@@ -485,7 +498,7 @@ describe('API Monitor API', () => {
             });
 
             const selector: string = `span#monitor-title-${testMonitorName}`;
-            const spanElement = await init.page$(page, selector, {
+            const spanElement: $TSFixMe = await init.page$(page, selector, {
                 hidden: true,
             });
             expect(spanElement).toBeNull();

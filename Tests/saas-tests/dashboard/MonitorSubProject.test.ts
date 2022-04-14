@@ -16,7 +16,7 @@ const newPassword: string = '1234567890';
 const subProjectName: string = utils.generateRandomString();
 
 describe('Monitor API With SubProjects', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -85,16 +85,20 @@ describe('Monitor API With SubProjects', () => {
             });
 
             await init.pageClick(page, '#components');
-            const newComponentForm = await init.page$(
+            const newComponentForm: $TSFixMe = await init.page$(
                 page,
                 '#form-new-component',
                 { hidden: true }
             );
             expect(newComponentForm).toEqual(null);
 
-            const newMonitorForm = await init.page$(page, '#form-new-monitor', {
-                hidden: true,
-            });
+            const newMonitorForm: $TSFixMe = await init.page$(
+                page,
+                '#form-new-monitor',
+                {
+                    hidden: true,
+                }
+            );
             expect(newMonitorForm).toEqual(null);
             await init.saasLogout(page);
 

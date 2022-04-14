@@ -39,10 +39,11 @@ export default {
             //    - To access 'res.logBody' which is added in 'response' middlewares.
             //    - Also for some resason when run inside docker container only req.end and res.finish get emmited.
             res.on('finish', async () => {
-                let userId = req.user && req.user.id ? req.user.id : null;
+                let userId: $TSFixMe =
+                    req.user && req.user.id ? req.user.id : null;
                 userId = isValidMongoObjectId(userId) ? userId : null;
 
-                let projectId = getProjectId(req, res);
+                let projectId: $TSFixMe = getProjectId(req, res);
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
                 if (shouldStoreLogs === null) {

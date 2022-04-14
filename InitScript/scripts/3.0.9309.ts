@@ -25,7 +25,7 @@ async function run(): void {
             { startTime: 1 }
         );
 
-        for (let i = 0; i < monitorStatuses.length; i++) {
+        for (let i: $TSFixMe = 0; i < monitorStatuses.length; i++) {
             if (
                 !monitorStatuses[i].endTime ||
                 monitorStatuses[i].endTime === null

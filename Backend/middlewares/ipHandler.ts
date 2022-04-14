@@ -64,7 +64,7 @@ const _this: $TSFixMe = {
             );
         }
 
-        let clientIp = this.getClientIp(req); // returns client ip or null
+        let clientIp: $TSFixMe = this.getClientIp(req); // returns client ip or null
         if (Array.isArray(clientIp)) {
             clientIp = clientIp[0]; // get the first item on the list
         }
@@ -78,9 +78,9 @@ const _this: $TSFixMe = {
         }
 
         clientIp = clientIp.trim();
-        const ipFound = ipWhitelist.some(ip: $TSFixMe => {
+        const ipFound: $TSFixMe = ipWhitelist.some(ip: $TSFixMe => {
             if (ip.indexOf('-') !== -1) {
-                const ipRange = ip.split('-').map((ip: $TSFixMe) => ip.trim());
+                const ipRange: $TSFixMe = ip.split('-').map((ip: $TSFixMe) => ip.trim());
                 return this.inRange(clientIp, ipRange);
             }
 
@@ -104,7 +104,7 @@ const _this: $TSFixMe = {
     getClientIp: function (req: $TSFixMe): void {
         // Cloudflare Connecting Ip.
         // https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses
-        let ip =
+        let ip: $TSFixMe =
             req.headers['cf-connecting-ip'] ||
             req.headers['x-original-forwarded-for'] ||
             req.headers['x-forwarded-for'] ||

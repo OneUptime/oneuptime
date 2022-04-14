@@ -12,7 +12,7 @@ const urlMonitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(600000);
@@ -105,12 +105,12 @@ describe('Monitor Detail API', () => {
             expect(probe0).toBeDefined();
             expect(probe1).toBeDefined();
 
-            const monitorStatus = await init.pageWaitForSelector(
+            const monitorStatus: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-status-${urlMonitorName}`,
                 { visible: true, timeout: operationTimeOut }
             );
-            const sslStatus = await init.pageWaitForSelector(
+            const sslStatus: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#ssl-status-${urlMonitorName}`,
                 { visible: true, timeout: operationTimeOut }
@@ -195,16 +195,16 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, `#lighthouseUrl_${urlMonitorName}_0`);
 
-            const websiteIssuesSelector =
+            const websiteIssuesSelector: $TSFixMe =
                 '#performance #websiteIssuesList > tbody >tr.websiteIssuesListItem';
 
             await init.pageWaitForSelector(page, websiteIssuesSelector);
 
-            const websiteIssuesRows = await init.page$$(
+            const websiteIssuesRows: $TSFixMe = await init.page$$(
                 page,
                 websiteIssuesSelector
             );
-            const countWebsiteIssues = websiteIssuesRows.length;
+            const countWebsiteIssues: $TSFixMe = websiteIssuesRows.length;
 
             expect(countWebsiteIssues).toBeGreaterThanOrEqual(1);
             done();

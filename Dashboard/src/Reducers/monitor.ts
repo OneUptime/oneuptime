@@ -239,9 +239,9 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
 
         case CREATE_MONITOR_SUCCESS:
         case 'CREATE_MONITOR': {
-            let monitorFound = false;
-            const monitors = state.monitorsList.monitors.map(monitorData: $TSFixMe => {
-                let output = {
+            let monitorFound: $TSFixMe = false;
+            const monitors: $TSFixMe = state.monitorsList.monitors.map(monitorData: $TSFixMe => {
+                let output: $TSFixMe = {
                     ...monitorData,
                     monitors: monitorData.monitors.map(monitor => {
                         if (
@@ -1946,7 +1946,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                               if (
                                                   monitor._id === monitorObj._id
                                               ) {
-                                                  let incidents =
+                                                  let incidents: $TSFixMe =
                                                       monitor.incidents || [];
 
                                                   if (
@@ -1961,7 +1961,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                                               1
                                                           );
                                                       }
-                                                      let found = false;
+                                                      let found: $TSFixMe = false;
                                                       for (const incident of incidents) {
                                                           if (
                                                               String(

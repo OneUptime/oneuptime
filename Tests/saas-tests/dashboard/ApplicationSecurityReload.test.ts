@@ -10,9 +10,9 @@ const user: $TSFixMe = {
 const componentName: string = utils.generateRandomString();
 const applicationSecurityName: string = utils.generateRandomString();
 
-const gitUsername = utils.gitCredential.gitUsername;
-const gitPassword = utils.gitCredential.gitPassword;
-const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
+const gitUsername: $TSFixMe = utils.gitCredential.gitUsername;
+const gitPassword: $TSFixMe = utils.gitCredential.gitPassword;
+const gitRepositoryUrl: $TSFixMe = utils.gitCredential.gitRepositoryUrl;
 
 /** This is a test to check:
  * No errors on page reload
@@ -20,7 +20,7 @@ const gitRepositoryUrl = utils.gitCredential.gitRepositoryUrl;
  */
 
 describe('OneUptime Page Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -108,11 +108,12 @@ describe('OneUptime Page Reload', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const applicationSecurity = await init.pageWaitForSelector(
-                page,
-                `#applicationSecurityHeader_${applicationSecurityName}`,
-                { visible: true, timeout: init.timeout }
-            );
+            const applicationSecurity: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#applicationSecurityHeader_${applicationSecurityName}`,
+                    { visible: true, timeout: init.timeout }
+                );
             expect(applicationSecurity).toBeDefined();
 
             // To confirm no errors and stays on the same page on reload
@@ -134,7 +135,7 @@ describe('OneUptime Page Reload', () => {
                 }
             );
 
-            const spanElement = await init.pageWaitForSelector(
+            const spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#applicationSecurityTitle_${applicationSecurityName}`
             );

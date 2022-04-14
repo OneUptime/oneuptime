@@ -3,11 +3,11 @@ export default {
         if (!length) {
             length = 10;
         }
-        let result = '';
+        let result: $TSFixMe = '';
         const characters: $TSFixMe =
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const charactersLength: $TSFixMe = characters.length;
-        for (let i = 0; i < length; i++) {
+        for (let i: $TSFixMe = 0; i < length; i++) {
             result += characters.charAt(
                 Math.floor(Math.random() * charactersLength)
             );
@@ -16,8 +16,8 @@ export default {
     },
 
     generateBulkEmails: function (numberOfEmails = 10): void {
-        let emails = '';
-        for (let i = 0; i < numberOfEmails; i++) {
+        let emails: $TSFixMe = '';
+        for (let i: $TSFixMe = 0; i < numberOfEmails; i++) {
             emails += this.generateRandomString(10) + '@oneuptime.com,';
         }
         // remove the last comma

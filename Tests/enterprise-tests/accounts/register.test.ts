@@ -35,10 +35,10 @@ describe('Enterprise Registration API', () => {
         async () => {
             await init.registerEnterpriseUser(user, page);
 
-            const localStorageData = await page.evaluate(() => {
+            const localStorageData: $TSFixMe = await page.evaluate(() => {
                 const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }
@@ -67,7 +67,7 @@ describe('Enterprise Registration API', () => {
                 .url()
                 .should.containEql(utils.ACCOUNTS_URL + '/accounts/login');
 
-            const signUp = await otherPage.$('#signUpLink');
+            const signUp: $TSFixMe = await otherPage.$('#signUpLink');
             should.not.exist(signUp);
         },
         init.timeout
@@ -78,10 +78,10 @@ describe('Enterprise Registration API', () => {
         async () => {
             await init.loginAdminUser(user, otherPage);
 
-            const localStorageData = await otherPage.evaluate(() => {
+            const localStorageData: $TSFixMe = await otherPage.evaluate(() => {
                 const json: $TSFixMe = {};
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
+                for (let i: $TSFixMe = 0; i < localStorage.length; i++) {
+                    const key: $TSFixMe = localStorage.key(i);
 
                     json[key] = localStorage.getItem(key);
                 }

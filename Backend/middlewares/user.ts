@@ -69,7 +69,7 @@ const _this: $TSFixMe = {
         const token: $TSFixMe = accessToken.split(' ')[1] || accessToken;
 
         //Decode the token
-        let decoded = null;
+        let decoded: $TSFixMe = null;
         try {
             decoded = await jwt.verify(token, jwtSecretKey);
         } catch (err) {
@@ -214,9 +214,13 @@ const _this: $TSFixMe = {
                                 { lastActive: Date.now() }
                             ),
                         ]);
-                        let isUserPresentInProject = false;
+                        let isUserPresentInProject: $TSFixMe = false;
                         if (project) {
-                            for (let i = 0; i < project.users.length; i++) {
+                            for (
+                                let i: $TSFixMe = 0;
+                                i < project.users.length;
+                                i++
+                            ) {
                                 if (project.users[i].userId === userId) {
                                     isUserPresentInProject = true;
                                     break;

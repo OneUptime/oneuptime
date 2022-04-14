@@ -10,7 +10,7 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Users Component (IS_SAAS_SERVICE=false)', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -44,10 +44,14 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
             });
 
             // if element does not exist it will timeout and throw
-            const elem = await init.pageWaitForSelector(page, '#add_user', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#add_user',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elem).toBeTruthy();
 
             done();

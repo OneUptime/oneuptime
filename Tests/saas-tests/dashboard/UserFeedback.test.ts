@@ -10,7 +10,7 @@ const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('User Feedback', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -51,7 +51,7 @@ describe('User Feedback', () => {
 
             await init.pageWaitForSelector(page, '#feedback-div');
 
-            const feedbackMessage = await init.page$Eval(
+            const feedbackMessage: $TSFixMe = await init.page$Eval(
                 page,
                 '#feedback-div',
                 (el: $TSFixMe) => el.textContent

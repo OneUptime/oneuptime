@@ -41,7 +41,7 @@ export default class Service {
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
     async create(data: $TSFixMe): void {
-        let subProject = null;
+        let subProject: $TSFixMe = null;
 
         const query: $TSFixMe = {
             name: data.name,
@@ -89,7 +89,7 @@ export default class Service {
                     select: selectResourceCat,
                 }),
             ]);
-        let userCount = 0;
+        let userCount: $TSFixMe = 0;
         if (subProjects && subProjects.length > 0) {
             const userId: ObjectID = [];
             subProjectIds = subProjects.map((project: $TSFixMe) => project._id);
@@ -107,7 +107,7 @@ export default class Service {
             userCount = project.users.length;
         }
         subProjectIds.push(project._id);
-        let plan = Plans.getPlanById(project.stripePlanId);
+        let plan: $TSFixMe = Plans.getPlanById(project.stripePlanId);
         // null plan => enterprise plan
 
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
@@ -647,7 +647,7 @@ export default class Service {
         ).populate('deletedById', 'name');
 
         if (monitor) {
-            let subProject = null;
+            let subProject: $TSFixMe = null;
 
             let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
@@ -664,7 +664,7 @@ export default class Service {
                     });
                 }
 
-                let subProjectIds = [];
+                let subProjectIds: $TSFixMe = [];
 
                 const subProjects: $TSFixMe = await ProjectService.findBy({
                     query: { parentProjectId: project._id },
@@ -685,7 +685,7 @@ export default class Service {
                             parentProjectId: project._id,
                         }),
                     ]);
-                let projectSeats = project.seats;
+                let projectSeats: $TSFixMe = project.seats;
                 if (typeof projectSeats === 'string') {
                     projectSeats = parseInt(projectSeats);
                 }
@@ -1461,7 +1461,7 @@ export default class Service {
             query,
             select: 'seats stripeSubscriptionId _id',
         });
-        let projectSeats = project.seats;
+        let projectSeats: $TSFixMe = project.seats;
         if (typeof projectSeats === 'string') {
             projectSeats = parseInt(projectSeats);
         }
@@ -1537,7 +1537,7 @@ export default class Service {
             }),
         ]);
         const dateNow: $TSFixMe = moment().utc();
-        let days = moment(dateNow)
+        let days: $TSFixMe = moment(dateNow)
             .utc()
             .startOf('day')
             .diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
@@ -1546,10 +1546,10 @@ export default class Service {
             days = 89;
         }
         const times: $TSFixMe = [];
-        for (let i = days; i >= 0; i--) {
-            let incidents = [];
+        for (let i: $TSFixMe = days; i >= 0; i--) {
+            let incidents: $TSFixMe = [];
             const temp: $TSFixMe = {};
-            let status = 'online';
+            let status: $TSFixMe = 'online';
 
             temp.date = moment(dateNow).utc().subtract(i, 'days');
 
@@ -1689,7 +1689,7 @@ export default class Service {
     // then update the monitor => breachedMonitorSla
     async updateMonitorSlaStat(query: Query): void {
         const currentDate: $TSFixMe = moment().format();
-        let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
+        let startDate: $TSFixMe = moment(currentDate).subtract(30, 'days'); // default frequency
         const populate: $TSFixMe = [
             { path: 'monitorSla', select: 'frequency monitorUptime' },
         ];
@@ -1778,14 +1778,14 @@ export default class Service {
 
     calculateTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
         const timeBlock: $TSFixMe = [];
-        let totalUptime = 0;
-        let totalTime = 0;
+        let totalUptime: $TSFixMe = 0;
+        let totalTime: $TSFixMe = 0;
 
-        let dayStart = moment(start).startOf('day');
+        let dayStart: $TSFixMe = moment(start).startOf('day');
 
         const reversedStatuses: $TSFixMe = statuses.slice().reverse();
 
-        for (let i = 0; i < range; i++) {
+        for (let i: $TSFixMe = 0; i < range; i++) {
             const dayStartIn: $TSFixMe = dayStart;
             const dayEnd: $TSFixMe =
                 i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
@@ -1850,7 +1850,11 @@ export default class Service {
                     : -1
             );
             //Third step
-            for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
+            for (
+                let i: $TSFixMe = 0;
+                i < incidentsHappenedDuringTheDay.length - 1;
+                i++
+            ) {
                 const firstIncidentIndex: $TSFixMe = i;
                 const nextIncidentIndex: $TSFixMe = i + 1;
                 const firstIncident: $TSFixMe =
@@ -1892,7 +1896,7 @@ export default class Service {
                                 nextIncidentIndex,
                                 1
                             );
-                            let j = nextIncidentIndex;
+                            let j: $TSFixMe = nextIncidentIndex;
                             while (j < incidentsHappenedDuringTheDay.length) {
                                 if (
                                     moment(nextIncident.start).isBefore(
@@ -1928,7 +1932,7 @@ export default class Service {
                                 status: firstIncident.status,
                             };
                             firstIncident.end = nextIncident.start;
-                            let j = nextIncidentIndex + 1;
+                            let j: $TSFixMe = nextIncidentIndex + 1;
                             while (j < incidentsHappenedDuringTheDay.length) {
                                 if (
                                     moment(newIncident.start).isBefore(
@@ -2044,14 +2048,14 @@ export default class Service {
 
     calcTime(statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe): void {
         const timeBlock: $TSFixMe = [];
-        let totalUptime = 0;
-        let totalTime = 0;
+        let totalUptime: $TSFixMe = 0;
+        let totalTime: $TSFixMe = 0;
 
-        let dayStart = moment(start).startOf('day');
+        let dayStart: $TSFixMe = moment(start).startOf('day');
 
         const reversedStatuses: $TSFixMe = statuses.slice().reverse();
 
-        for (let i = 0; i < range; i++) {
+        for (let i: $TSFixMe = 0; i < range; i++) {
             const dayStartIn: $TSFixMe = dayStart;
             const dayEnd: $TSFixMe =
                 i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
@@ -2147,7 +2151,11 @@ export default class Service {
                     : -1
             );
             //Third step
-            for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
+            for (
+                let i: $TSFixMe = 0;
+                i < incidentsHappenedDuringTheDay.length - 1;
+                i++
+            ) {
                 const firstIncidentIndex: $TSFixMe = i;
                 const nextIncidentIndex: $TSFixMe = i + 1;
                 const firstIncident: $TSFixMe =
@@ -2191,7 +2199,7 @@ export default class Service {
                                 nextIncidentIndex,
                                 1
                             );
-                            let j = nextIncidentIndex;
+                            let j: $TSFixMe = nextIncidentIndex;
                             while (j < incidentsHappenedDuringTheDay.length) {
                                 if (
                                     moment(nextIncident.start).isBefore(
@@ -2227,7 +2235,7 @@ export default class Service {
                                 status: firstIncident.status,
                             };
                             firstIncident.end = nextIncident.start;
-                            let j = nextIncidentIndex + 1;
+                            let j: $TSFixMe = nextIncidentIndex + 1;
                             while (j < incidentsHappenedDuringTheDay.length) {
                                 if (
                                     moment(newIncident.start).isBefore(

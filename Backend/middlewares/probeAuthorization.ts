@@ -90,7 +90,7 @@ export default {
             probeVersion = req.body.probeVersion;
         }
 
-        let probeId = null;
+        let probeId: $TSFixMe = null;
 
         const selectProbe: string = '_id probeKey version probeName';
         if (clusterKey && clusterKey === CLUSTER_KEY) {

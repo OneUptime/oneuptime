@@ -23,21 +23,24 @@ class IncomingListener {
         override(Https);
 
         function override(module): void {
-            const emit = module.Server.prototype.emit;
+            const emit: $TSFixMe = module.Server.prototype.emit;
 
             module.Server.prototype.emit = function (type, req, res): void {
                 if (type === 'request') {
-                    const path = req.pathname || req.path || req.url || '/';
-                    const method = req.method;
-                    let finalPattern = path;
+                    const path: $TSFixMe =
+                        req.pathname || req.path || req.url || '/';
+                    const method: $TSFixMe = req.method;
+                    let finalPattern: $TSFixMe = path;
 
                     // this will only work with express application
                     if (this.app && this.app._router) {
-                        const routes = getRoutes(this.app);
+                        const routes: $TSFixMe = getRoutes(this.app);
                         for (const [key, value] of Object.entries(routes)) {
                             if (key === String(method).toLowerCase()) {
                                 for (const val of value) {
-                                    const pattern = new UrlPattern(val);
+                                    const pattern: $TSFixMe = new UrlPattern(
+                                        val
+                                    );
 
                                     if (pattern.match(path)) {
                                         // path pattern found
@@ -51,7 +54,7 @@ class IncomingListener {
 
                     req.apm = {};
                     req.apm.uuid = uuidv4();
-                    const result = this.start(req.apm.uuid, {
+                    const result: $TSFixMe = this.start(req.apm.uuid, {
                         path: finalPattern,
                         type: 'incoming',
                         method,
@@ -64,7 +67,7 @@ class IncomingListener {
                             res.statusCode < 600
                         ) {
                             // error must have occurred
-                            const originalValue = this.store.getValue(
+                            const originalValue: $TSFixMe = this.store.getValue(
                                 req.apm.uuid
                             );
                             if (originalValue && originalValue !== undefined) {

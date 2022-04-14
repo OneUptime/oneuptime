@@ -55,7 +55,7 @@ export default class Service {
                 select: '_id stripePlanId seats',
             });
         }
-        let subProjectIds = [];
+        let subProjectIds: $TSFixMe = [];
 
         const subProjects: $TSFixMe = await ProjectService.findBy({
             query: { parentProjectId: project._id },
@@ -68,12 +68,12 @@ export default class Service {
         const count: $TSFixMe = await this.countBy({
             projectId: { $in: subProjectIds },
         });
-        let plan = Plans.getPlanById(project.stripePlanId);
+        let plan: $TSFixMe = Plans.getPlanById(project.stripePlanId);
         // null plan => enterprise plan
 
         plan = plan && plan.category ? plan : { category: 'Enterprise' };
 
-        let projectSeats = project.seats;
+        let projectSeats: $TSFixMe = project.seats;
         if (typeof projectSeats === 'string') {
             projectSeats = parseInt(projectSeats);
         }
@@ -298,7 +298,7 @@ export default class Service {
         ).populate('deletedById', 'name');
 
         if (component) {
-            let subProject = null;
+            let subProject: $TSFixMe = null;
 
             let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: component.projectId },
@@ -313,7 +313,7 @@ export default class Service {
                 });
             }
 
-            let subProjectIds = [];
+            let subProjectIds: $TSFixMe = [];
 
             const subProjects: $TSFixMe = await ProjectService.findBy({
                 query: { parentProjectId: project._id },
@@ -328,7 +328,7 @@ export default class Service {
             const componentsCount: $TSFixMe = await this.countBy({
                 projectId: { $in: subProjectIds },
             });
-            let projectSeats = project.seats;
+            let projectSeats: $TSFixMe = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
@@ -454,7 +454,7 @@ export default class Service {
             query,
             select: 'seats stripeSubscriptionId _id',
         });
-        let projectSeats = project.seats;
+        let projectSeats: $TSFixMe = project.seats;
         if (typeof projectSeats === 'string') {
             projectSeats = parseInt(projectSeats);
         }

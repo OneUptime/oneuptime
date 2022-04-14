@@ -43,7 +43,7 @@ export function getProbes(
     limit = parseInt(limit);
 
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         if (skip >= 0 && limit >= 0) {
             promise = BackendAPI.get(
                 `probe/${projectId}/probes?skip=${skip}&limit=${limit}`

@@ -1,9 +1,9 @@
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
-let apiUrl = window.location.origin + '/api';
-let dashboardUrl = window.location.origin + '/dashboard';
-let accountsUrl = window.location.origin + '/accounts';
-let realtimeUrl = window.location.origin + '/realtime';
+let apiUrl: $TSFixMe = window.location.origin + '/api';
+let dashboardUrl: $TSFixMe = window.location.origin + '/dashboard';
+let accountsUrl: $TSFixMe = window.location.origin + '/accounts';
+let realtimeUrl: $TSFixMe = window.location.origin + '/realtime';
 
 export const env: Function = (value: $TSFixMe): void => {
     const { _env }: $TSFixMe = window;
@@ -13,7 +13,7 @@ export const env: Function = (value: $TSFixMe): void => {
     );
 };
 
-let protocol = window.location.protocol;
+let protocol: $TSFixMe = window.location.protocol;
 if (env('BACKEND_PROTOCOL')) {
     protocol = env('BACKEND_PROTOCOL') + ':';
 }
@@ -195,8 +195,8 @@ export const getServiceStatus: Function = (
     const probesLength: $TSFixMe = probes && probes.length;
 
     const totalServices: $TSFixMe = monitorsLength * probesLength;
-    let onlineServices = totalServices;
-    let degraded = 0;
+    let onlineServices: $TSFixMe = totalServices;
+    let degraded: $TSFixMe = 0;
 
     monitorsData.forEach((monitor: $TSFixMe) => {
         probes.forEach((probe: $TSFixMe) => {
@@ -276,7 +276,7 @@ export const handleResources: Function = (
     announcement: $TSFixMe
 ): void => {
     const affectedMonitors: $TSFixMe = [];
-    let monitorCount = 0;
+    let monitorCount: $TSFixMe = 0;
 
     if (announcement.monitors.length <= 0) {
         return 'No resource is affected';

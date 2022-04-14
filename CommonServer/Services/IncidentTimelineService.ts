@@ -1,6 +1,6 @@
 export default class Service {
     async create(data: $TSFixMe): void {
-        let incidentTimeline = new IncidentTimelineModel();
+        let incidentTimeline: $TSFixMe = new IncidentTimelineModel();
 
         incidentTimeline.incidentId = data.incidentId;
         if (data.createdById) {

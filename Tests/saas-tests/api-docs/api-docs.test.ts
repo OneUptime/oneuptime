@@ -25,7 +25,7 @@ describe('Check ApiDocs up', () => {
             await page.goto(utils.APIDOCS_URL, {
                 waitUntil: 'domcontentloaded',
             });
-            const response = await init.page$Eval(
+            const response: $TSFixMe = await init.page$Eval(
                 page,
                 'head > title',
                 (e: $TSFixMe) => {

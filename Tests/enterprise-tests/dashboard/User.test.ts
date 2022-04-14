@@ -18,7 +18,7 @@ const user: $TSFixMe = {
 };
 
 describe('Users', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -103,10 +103,14 @@ describe('Users', () => {
             });
 
             await init.pageClick(page, '#restore');
-            const delBtn = await init.pageWaitForSelector(page, '#delete', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const delBtn: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#delete',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(delBtn).toBeDefined();
             done();
         },

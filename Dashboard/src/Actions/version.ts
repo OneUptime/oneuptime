@@ -32,7 +32,7 @@ export const resetGetVersion: Function = (): void => {
 
 export const getVersion: Function = (): void => {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         promise = BackendAPI.get(new Route('version'));
 
         dispatch(getVersionRequest(promise));

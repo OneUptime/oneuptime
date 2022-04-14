@@ -83,7 +83,9 @@ export default function incomingRequest(
             };
 
         case types.CREATE_INCOMING_REQUEST_SUCCESS: {
-            let incomingRequests = [...state.incomingRequests.incomingRequests];
+            let incomingRequests: $TSFixMe = [
+                ...state.incomingRequests.incomingRequests,
+            ];
             if (action.payload.isDefault) {
                 incomingRequests = incomingRequests.map(request => {
                     if (request.isDefault) {
@@ -129,7 +131,9 @@ export default function incomingRequest(
             };
 
         case types.EDIT_INCOMING_REQUEST_SUCCESS: {
-            let incomingRequests = [...state.incomingRequests.incomingRequests];
+            let incomingRequests: $TSFixMe = [
+                ...state.incomingRequests.incomingRequests,
+            ];
             if (action.payload.isDefault) {
                 incomingRequests = incomingRequests.map(request => {
                     if (request.isDefault) {

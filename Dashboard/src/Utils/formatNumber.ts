@@ -4,8 +4,8 @@ const format: Function = (number: $TSFixMe): void => {
     if (!isNumber(number)) {
         return null;
     }
-    let formattedValue = '';
-    let index = 0;
+    let formattedValue: $TSFixMe = '';
+    let index: $TSFixMe = 0;
     const formats: $TSFixMe = [
         { index: 'T', value: 1e12 },
         { index: 'B', value: 1e9 },
@@ -20,11 +20,11 @@ const format: Function = (number: $TSFixMe): void => {
     while (formattedValue === '' && formats[index]) {
         const currentFormat: $TSFixMe = formats[index];
 
-        let val = (number / currentFormat.value).toFixed(2);
+        let val: $TSFixMe = (number / currentFormat.value).toFixed(2);
         const remainder: $TSFixMe = number % currentFormat.value;
 
         const isValueLessThanOne: $TSFixMe = val < 1;
-        let formattedRemainder = '';
+        let formattedRemainder: $TSFixMe = '';
 
         if (!isValueLessThanOne) {
             // this is a success we try to format the value and the remainder

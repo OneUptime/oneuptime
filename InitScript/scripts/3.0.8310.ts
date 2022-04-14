@@ -7,7 +7,7 @@ async function run(): void {
         theme: { $exists: false },
     });
 
-    for (let i = 0; i < statusPages.length; i++) {
+    for (let i: $TSFixMe = 0; i < statusPages.length; i++) {
         const statusPage: $TSFixMe = statusPages[i];
         await update(
             statusPageCollection,

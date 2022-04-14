@@ -10,7 +10,7 @@ export default class Service {
     //Param 3: userId: User Id.
     //Returns: promise
     async create(data: $TSFixMe): void {
-        let lead = new LeadsModel();
+        let lead: $TSFixMe = new LeadsModel();
 
         lead.type = data.type;
 

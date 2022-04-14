@@ -73,7 +73,7 @@ export default class Service {
         }
 
         const { projectId, _id }: $TSFixMe = query;
-        let incidentNoteTemplate = null;
+        let incidentNoteTemplate: $TSFixMe = null;
         if (data.name) {
             incidentNoteTemplate = await this.findOneBy({
                 projectId,

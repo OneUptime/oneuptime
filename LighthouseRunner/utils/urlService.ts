@@ -15,7 +15,7 @@ export default {
     },
 
     body: async (val: $TSFixMe, type: $TSFixMe) => {
-        let bodyContent = {};
+        let bodyContent: $TSFixMe = {};
         if (type && type === 'formData' && val && val[0] && val[0].key) {
             val.forEach((bod: $TSFixMe) => {
                 bodyContent[bod.key] = bod.value;

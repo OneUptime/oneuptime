@@ -23,8 +23,8 @@ export default {
                         : 'formData'
                 );
 
-                let retry = true;
-                let retryCount = 0;
+                let retry: $TSFixMe = true;
+                let retryCount: $TSFixMe = 0;
                 while (retry || retryCount > 2) {
                     const { res, resp, rawResp }: $TSFixMe = await pingfetch(
                         monitor.data.url,

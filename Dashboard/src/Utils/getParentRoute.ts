@@ -118,7 +118,7 @@ function getParentRoute(
         const urlParts: $TSFixMe = childRoute.split('/');
         urlParts.pop();
         urlParts.pop();
-        let url = '';
+        let url: $TSFixMe = '';
         childRoute.includes('events')
             ? (url = urlParts.join('/'))
             : (url = urlParts.join('/').concat('/error-tracker'));

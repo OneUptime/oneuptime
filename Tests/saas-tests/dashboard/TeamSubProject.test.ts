@@ -18,7 +18,7 @@ const anotherEmail: Email = utils.generateRandomBusinessEmail();
 const subProjectName: string = utils.generateRandomString();
 
 describe('Team API With SubProjects', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -89,7 +89,7 @@ describe('Team API With SubProjects', () => {
             });
 
             await init.pageWaitForSelector(page, `#count_${projectName}`);
-            const memberCount = await init.page$Eval(
+            const memberCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${projectName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -118,7 +118,7 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `#btn_${projectName}`);
 
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
-            const elementHandle = await init.page$(
+            const elementHandle: $TSFixMe = await init.page$(
                 page,
                 `#${role}_${projectName}`,
                 { hidden: true }
@@ -146,7 +146,7 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `#btn_${projectName}`);
 
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
-            const elementHandle = await init.page$(
+            const elementHandle: $TSFixMe = await init.page$(
                 page,
                 `#${role}_${projectName}`,
                 { hidden: true }
@@ -204,7 +204,7 @@ describe('Team API With SubProjects', () => {
             );
 
             await init.pageWaitForSelector(page, `#count_${subProjectName}`);
-            const memberCount = await init.page$Eval(
+            const memberCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${subProjectName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -220,7 +220,7 @@ describe('Team API With SubProjects', () => {
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
         async (done: $TSFixMe) => {
             const newRole: string = 'Member';
-            const emailSelector = anotherEmail.split('@')[0];
+            const emailSelector: $TSFixMe = anotherEmail.split('@')[0];
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -244,7 +244,7 @@ describe('Team API With SubProjects', () => {
 
             await init.pageClick(page, `#${newRole}`);
 
-            const member = await init.pageWaitForSelector(
+            const member: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${newRole}_${emailSelector}`,
                 {
@@ -261,7 +261,7 @@ describe('Team API With SubProjects', () => {
     test(
         'should remove user from project Team Members and all sub-projects.',
         async (done: $TSFixMe) => {
-            const emailSelector = anotherEmail.split('@')[0];
+            const emailSelector: $TSFixMe = anotherEmail.split('@')[0];
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -288,7 +288,7 @@ describe('Team API With SubProjects', () => {
             });
 
             await init.pageWaitForSelector(page, `#count_${projectName}`);
-            const memberCount = await init.page$Eval(
+            const memberCount: $TSFixMe = await init.page$Eval(
                 page,
                 `#count_${projectName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -304,7 +304,7 @@ describe('Team API With SubProjects', () => {
         'should not add team members without business emails',
         async (done: $TSFixMe) => {
             const role: string = 'Member';
-            const nonBusinessEmail =
+            const nonBusinessEmail: $TSFixMe =
                 utils.generateRandomString() + '@gmail.com';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
@@ -356,8 +356,8 @@ describe('Team API With SubProjects', () => {
         'should assign a new owner of the project',
         async (done: $TSFixMe) => {
             const newRole: string = 'Owner';
-            const memberEmailSelector = anotherEmail.split('@')[0];
-            const ownerEmailSelector = email.split('@')[0];
+            const memberEmailSelector: $TSFixMe = anotherEmail.split('@')[0];
+            const ownerEmailSelector: $TSFixMe = email.split('@')[0];
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
@@ -398,13 +398,13 @@ describe('Team API With SubProjects', () => {
                 page,
                 `#changeRole_${memberEmailSelector}`
             );
-            const oldMemberRole = await init.page$Eval(
+            const oldMemberRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Member_${memberEmailSelector}`,
                 (elem: $TSFixMe) => elem.innerHTML
             );
             expect(oldMemberRole).toEqual('Member');
-            const oldOwnerRole = await init.page$Eval(
+            const oldOwnerRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Owner_${ownerEmailSelector}`,
                 (elem: $TSFixMe) => elem.innerHTML
@@ -421,13 +421,13 @@ describe('Team API With SubProjects', () => {
 
             await init.pageClick(page, '#confirmRoleChange');
 
-            const newMemberRole = await init.page$Eval(
+            const newMemberRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Owner_${memberEmailSelector}`,
                 (elem: $TSFixMe) => elem.innerHTML
             );
             expect(newMemberRole).toEqual('Owner');
-            const newOwnerRole = await init.page$Eval(
+            const newOwnerRole: $TSFixMe = await init.page$Eval(
                 page,
                 `#Administrator_${ownerEmailSelector}`,
                 (elem: $TSFixMe) => elem.innerHTML

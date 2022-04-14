@@ -38,7 +38,7 @@ export default class Service {
                 _id: data.resourceCategory,
             });
         // prepare error tracker model
-        let errorTracker = new ErrorTrackerModel();
+        let errorTracker: $TSFixMe = new ErrorTrackerModel();
 
         errorTracker.name = data.name;
 

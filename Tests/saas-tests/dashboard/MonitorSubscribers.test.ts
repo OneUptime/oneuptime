@@ -253,7 +253,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '#react-tabs-2');
 
-            let initialSubscribers = '.subscriber-list-item';
+            let initialSubscribers: $TSFixMe = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, initialSubscribers);
 
@@ -276,7 +276,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#subscribersList');
 
-            let finalSubscribers = '.subscriber-list-item';
+            let finalSubscribers: $TSFixMe = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, finalSubscribers);
 
@@ -305,7 +305,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '#react-tabs-2');
 
-            let initialSubscribers = '.subscriber-list-item';
+            let initialSubscribers: $TSFixMe = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, initialSubscribers);
 
@@ -325,7 +325,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#subscribersList');
 
-            let finalSubscribers = '.subscriber-list-item';
+            let finalSubscribers: $TSFixMe = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, finalSubscribers);
 

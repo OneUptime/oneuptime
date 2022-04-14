@@ -14,7 +14,7 @@ const user: $TSFixMe = {
 };
 
 describe('New Monitor API', () => {
-    const operationTimeOut = 1000000; // Custom Timeout is needed
+    const operationTimeOut: $TSFixMe = 1000000; // Custom Timeout is needed
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -47,7 +47,7 @@ describe('New Monitor API', () => {
                 firstMonitorName
             );
 
-            for (let i = 0; i < 4; i++) {
+            for (let i: $TSFixMe = 0; i < 4; i++) {
                 // This adds 4 more monitors
                 // The Interface for adding additional monitor has been updated
                 const monitorName: string = utils.generateRandomString();
@@ -113,7 +113,7 @@ describe('New Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await init.pageWaitForSelector(
+            const pricingPlanModal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 { visible: true, timeout: init.timeout }

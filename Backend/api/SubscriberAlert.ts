@@ -129,7 +129,7 @@ router.get(
             const skip: $TSFixMe = req.query['skip'] || 0;
             const limit: $TSFixMe = req.query['limit'] || 10;
 
-            let subscriberAlerts = [],
+            let subscriberAlerts: $TSFixMe = [],
                 count = 0;
             if (incidentId) {
                 incidentId = incidentId._id;

@@ -3,7 +3,7 @@ import logger from '../Utils/Logger';
 
 import { DatabaseUrl, IsMongoReplicaSet } from '../Config';
 
-let options = {};
+let options: $TSFixMe = {};
 
 if (IsMongoReplicaSet) {
     options = {

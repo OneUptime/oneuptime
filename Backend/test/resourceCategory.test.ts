@@ -272,8 +272,8 @@ describe('User from other project have access to read / write and delete API.', 
 describe('Non-admin user access to create, delete and access resource category.', function (): void {
     this.timeout(60000);
 
-    let projectIdSecondUser = '';
-    let emailToBeInvited = '';
+    let projectIdSecondUser: $TSFixMe = '';
+    let emailToBeInvited: $TSFixMe = '';
 
     before(function (done): void {
         this.timeout(40000);

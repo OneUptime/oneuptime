@@ -18,7 +18,7 @@ const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
 
 describe('Schedule', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
@@ -69,7 +69,8 @@ describe('Schedule', () => {
             await init.pageWaitForSelector(page, '#name', { hidden: true });
 
             await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
+                let elem: $TSFixMe =
+                    document.querySelectorAll('.Table > tbody tr');
 
                 elem = Array.from(elem);
 
@@ -80,7 +81,7 @@ describe('Schedule', () => {
 
             await init.pageClick(page, '#enableTeamRotation');
 
-            const modal = await init.pageWaitForSelector(
+            const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 {
@@ -110,7 +111,8 @@ describe('Schedule', () => {
 
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
+                let elem: $TSFixMe =
+                    document.querySelectorAll('.Table > tbody tr');
 
                 elem = Array.from(elem);
 
@@ -121,7 +123,7 @@ describe('Schedule', () => {
 
             await init.pageClick(page, '#addOnCallDutyTimes');
 
-            const modal = await init.pageWaitForSelector(
+            const modal: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
                 {
@@ -160,7 +162,8 @@ describe('Schedule', () => {
 
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
+                let elem: $TSFixMe =
+                    document.querySelectorAll('.Table > tbody tr');
 
                 elem = Array.from(elem);
 
@@ -218,7 +221,7 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const onCallScheduleName = await init.page$Eval(
+            const onCallScheduleName: $TSFixMe = await init.page$Eval(
                 page,
                 `#cb${newScheduleName}`,
                 (el: $TSFixMe) => el.textContent

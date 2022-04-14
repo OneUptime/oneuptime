@@ -166,8 +166,8 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 token: req.query.token,
             }),
         ]);
-        let user = userData;
-        let verified = true;
+        let user: $TSFixMe = userData;
+        let verified: $TSFixMe = true;
         if (token) {
             user = await UserModel.findOne({
                 _id: token.userId,
@@ -665,7 +665,7 @@ router.post(
         try {
             const data: $TSFixMe = req.body;
             const token: $TSFixMe = data.token;
-            let userId = data.userId;
+            let userId: $TSFixMe = data.userId;
             if (data.email && !data.userId) {
                 const foundUser: $TSFixMe = await UserService.findOneBy({
                     query: { email: data.email },
@@ -855,7 +855,7 @@ router.post(
             );
         }
         const numberOfCodes: $TSFixMe = 8;
-        let firstCounter = 0;
+        let firstCounter: $TSFixMe = 0;
         if (Array.isArray(backupCodes) && backupCodes.length) {
             firstCounter = backupCodes[backupCodes.length - 1].counter + 1;
         }
@@ -1415,7 +1415,7 @@ router.get(
                         global.accountsHost + '/login?status=already-verified'
                     );
                 }
-                let dataUpdate = { isVerified: true };
+                let dataUpdate: $TSFixMe = { isVerified: true };
                 if (user.tempEmail && user.tempEmail !== user.email) {
                     dataUpdate = {
                         isVerified: true,

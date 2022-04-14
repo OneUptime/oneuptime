@@ -21,7 +21,7 @@ const stripe: $TSFixMe = Stripe(payment.paymentPrivateKey);
 describe('Disable Sign up test', function (): void {
     this.timeout(200000);
 
-    let token = null;
+    let token: $TSFixMe = null;
 
     this.beforeAll(async function (): void {
         this.timeout(400000);

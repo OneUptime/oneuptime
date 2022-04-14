@@ -291,7 +291,7 @@ export default class Service {
         const project: $TSFixMe = await ProjectModel.findById(projectId).lean();
         const currentBalance: $TSFixMe = project.balance;
         const { minimumBalance, rechargeToBalance }: $TSFixMe = data.alertOptions;
-        let updatedProject = {};
+        let updatedProject: $TSFixMe = {};
 
         if (!data.alertEnable) {
             updatedProject = await ProjectModel.findByIdAndUpdate(
@@ -355,7 +355,7 @@ export default class Service {
         const projects: $TSFixMe = await this.findBy({ query, select: '_id' });
         const projectsId: $TSFixMe = [];
 
-        for (let i = 0; i < projects.length; i++) {
+        for (let i: $TSFixMe = 0; i < projects.length; i++) {
             projectsId.push(projects[i]._id);
         }
         return projectsId;
@@ -439,13 +439,13 @@ export default class Service {
             select: '_id',
         });
 
-        const subProjectId = subProject.map(sub: $TSFixMe => String(sub._id));
+        const subProjectId: $TSFixMe = subProject.map(sub: $TSFixMe => String(sub._id));
         const projectIdArr: $TSFixMe = [projectId, ...subProjectId];
         return projectIdArr;
     }
 
     async getUniqueMembersIndividualProject({ isFlatenArr, members }): void {
-        let result = [];
+        let result: $TSFixMe = [];
         if (!isFlatenArr) {
             for (const member of members) {
                 const track: $TSFixMe = {},
@@ -473,7 +473,7 @@ export default class Service {
 
     async exitProject(projectId, userId, deletedById, saveUserSeat): void {
         const returnVal: string = 'User successfully exited the project';
-        let teamMember = {};
+        let teamMember: $TSFixMe = {};
 
         const userProject: $TSFixMe = await this.findOneBy({
             query: { _id: projectId },
@@ -482,8 +482,8 @@ export default class Service {
         teamMember = userProject.users.find(
             user => String(user.userId) === String(userId)
         );
-        let subProject = null;
-        let subProjects = null;
+        let subProject: $TSFixMe = null;
+        let subProjects: $TSFixMe = null;
 
         let project: $TSFixMe = await this.findOneBy({
             query: { _id: projectId, 'users.userId': userId },
@@ -504,7 +504,7 @@ export default class Service {
         });
         const allMembers: $TSFixMe = subProjects.concat(project);
 
-        let subMembers = subProjects.map(user => user.users);
+        let subMembers: $TSFixMe = subProjects.map(user => user.users);
         subMembers = await this.getUniqueMembersIndividualProject({
             members: subMembers,
             isFlatenArr: false,
@@ -523,7 +523,7 @@ export default class Service {
         const teamByUserId: $TSFixMe = teams.filter(
             user => String(user.userId) === String(userId)
         );
-        const isViewer = filteredTeam.every(data => data.role: $TSFixMe === 'Viewer');
+        const isViewer: $TSFixMe = filteredTeam.every(data => data.role: $TSFixMe === 'Viewer');
         if (project) {
             const users: $TSFixMe = subProject ? subProject.users : project.users;
             projectId = subProject ? subProject._id : project._id;
@@ -550,7 +550,7 @@ export default class Service {
                 select: '_id',
             });
             if (!saveUserSeat) {
-                let projectSeats = project.seats;
+                let projectSeats: $TSFixMe = project.seats;
                 if (typeof projectSeats === 'string') {
                     projectSeats = parseInt(projectSeats);
                 }
@@ -558,7 +558,7 @@ export default class Service {
                     countUserInSubProjects &&
                     countUserInSubProjects.length < 1
                 ) {
-                    let count = 0;
+                    let count: $TSFixMe = 0;
                     const user_member: $TSFixMe = await UserService.findOneBy({
                         query: { _id: userId },
                         select: 'email',
@@ -568,7 +568,7 @@ export default class Service {
                             count++;
                         }
                     });
-                    let subProjectIds = [];
+                    let subProjectIds: $TSFixMe = [];
                     if (subProjects && subProjects.length > 0) {
                         subProjectIds = subProjects.map(project => project._id);
                     }
@@ -655,8 +655,8 @@ export default class Service {
             query: { 'users.userId': userId, deleted: { $ne: null } },
             select: 'parentProjectId',
         });
-        let parentProjectIds = [];
-        let projectIds = [];
+        let parentProjectIds: $TSFixMe = [];
+        let projectIds: $TSFixMe = [];
         if (userProjects.length > 0) {
             const subProjects: $TSFixMe = userProjects
 
@@ -703,7 +703,7 @@ export default class Service {
         const projects: $TSFixMe = await Promise.all(
             allProjects.map(async project => {
                 // get both sub-project users and project users
-                let users = [];
+                let users: $TSFixMe = [];
                 if (project.parentProjectId) {
                     users = await TeamService.getTeamMembersBy({
                         parentProjectId:

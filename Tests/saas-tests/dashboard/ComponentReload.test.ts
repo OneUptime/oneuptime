@@ -15,7 +15,7 @@ const componentName: string = utils.generateRandomString();
  */
 
 describe('OneUptime Component Reload', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);

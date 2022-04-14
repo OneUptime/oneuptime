@@ -11,12 +11,14 @@ async function run(): void {
     });
 
     for (const statusPage of statusPages) {
-        const domains = statusPage.domains.map((eachDomain: $TSFixMe) => {
-            if (eachDomain.cert && eachDomain.privateKey) {
-                eachDomain.enableHttps = true;
+        const domains: $TSFixMe = statusPage.domains.map(
+            (eachDomain: $TSFixMe) => {
+                if (eachDomain.cert && eachDomain.privateKey) {
+                    eachDomain.enableHttps = true;
+                }
+                return eachDomain;
             }
-            return eachDomain;
-        });
+        );
         await update(
             statusPageCollection,
             { _id: statusPage._id },

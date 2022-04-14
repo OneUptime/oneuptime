@@ -50,7 +50,7 @@ export default class Service {
         });
 
         const response: $TSFixMe = [];
-        for (let i = 0; i < users.length; i++) {
+        for (let i: $TSFixMe = 0; i < users.length; i++) {
             const memberDetail: $TSFixMe = projectMembers.filter(
                 member => member.userId === users[i]._id.toString()
             )[0];
@@ -72,7 +72,7 @@ export default class Service {
         teamMemberUserId: ObjectID
     ): void {
         let index;
-        let subProject = null;
+        let subProject: $TSFixMe = null;
 
         let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -87,7 +87,7 @@ export default class Service {
             });
         }
         if (subProject) {
-            for (let i = 0; i < subProject.users.length; i++) {
+            for (let i: $TSFixMe = 0; i < subProject.users.length; i++) {
                 if (teamMemberUserId == subProject.users[i].userId) {
                     index = i;
                     break;
@@ -96,7 +96,7 @@ export default class Service {
                 }
             }
         } else {
-            for (let i = 0; i < project.users.length; i++) {
+            for (let i: $TSFixMe = 0; i < project.users.length; i++) {
                 if (teamMemberUserId == project.users[i].userId) {
                     index = i;
                     break;
@@ -120,8 +120,8 @@ export default class Service {
     }
 
     async getSeats(members: $TSFixMe): void {
-        let seats = members.filter(async (user: $TSFixMe) => {
-            let count = 0;
+        let seats: $TSFixMe = members.filter(async (user: $TSFixMe) => {
+            let count: $TSFixMe = 0;
             const user_member: $TSFixMe = await UserService.findOneBy({
                 query: { _id: user.userId },
                 select: 'email',
@@ -160,10 +160,10 @@ export default class Service {
         });
         emails = emails.toLowerCase().split(',');
 
-        let subProject = null;
+        let subProject: $TSFixMe = null;
 
         //Checks if users to be added to project are not duplicate.
-        let duplicateEmail = false;
+        let duplicateEmail: $TSFixMe = false;
         emails.forEach((element: $TSFixMe, index: $TSFixMe): void => {
             // Find if there is a duplicate or not
             if (emails.indexOf(element, index + 1) > -1) {
@@ -189,7 +189,7 @@ export default class Service {
                 });
             }
             const teamMembers: $TSFixMe = await this.getTeamMembers(projectId);
-            let projectSeats = project.seats;
+            let projectSeats: $TSFixMe = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
@@ -215,7 +215,7 @@ export default class Service {
                         (proj: $TSFixMe) =>
                             proj._id.toString() === projectId.toString()
                     );
-                    let isHiddenAdminUser = false;
+                    let isHiddenAdminUser: $TSFixMe = false;
 
                     if (isAdminInProject) {
                         isHiddenAdminUser = isAdminInProject[0]?.users.filter(
@@ -276,9 +276,9 @@ export default class Service {
     }
 
     isValidBusinessEmails(emails: $TSFixMe): void {
-        let valid = true;
+        let valid: $TSFixMe = true;
         if (emails && emails.length > 0) {
-            for (let i = 0; i < emails.length; i++) {
+            for (let i: $TSFixMe = 0; i < emails.length; i++) {
                 if (!emaildomains.test(emails[i])) {
                     valid = false;
                     break;
@@ -291,7 +291,7 @@ export default class Service {
     async checkUser(teamMembers: $TSFixMe, emails: $TSFixMe): void {
         const teamMembersEmail: $TSFixMe = [];
 
-        for (let i = 0; i < teamMembers.length; i++) {
+        for (let i: $TSFixMe = 0; i < teamMembers.length; i++) {
             const user: $TSFixMe = await UserService.findOneBy({
                 query: { _id: teamMembers[i].userId },
                 select: 'email',
@@ -299,7 +299,7 @@ export default class Service {
             teamMembersEmail.push(user.email);
         }
 
-        for (let i = 0; i < teamMembersEmail.length; i++) {
+        for (let i: $TSFixMe = 0; i < teamMembersEmail.length; i++) {
             if (
                 emails.filter(
                     (email: $TSFixMe) => email === teamMembersEmail[i]
@@ -327,9 +327,9 @@ export default class Service {
         extraUsersToAdd: $TSFixMe
     ): void {
         const invitedTeamMembers: $TSFixMe = [];
-        let projectUsers = [];
+        let projectUsers: $TSFixMe = [];
 
-        let subProject = null;
+        let subProject: $TSFixMe = null;
 
         let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -344,7 +344,7 @@ export default class Service {
             });
         }
 
-        for (let i = 0; i < emails.length; i++) {
+        for (let i: $TSFixMe = 0; i < emails.length; i++) {
             const email: $TSFixMe = emails[i];
             if (!email) {
                 continue;
@@ -366,7 +366,7 @@ export default class Service {
             }
         }
         await Promise.all(invitedTeamMembers);
-        let members = [];
+        let members: $TSFixMe = [];
 
         for (const member of invitedTeamMembers) {
             let registerUrl: string = `${global.accountsHost}/register`;
@@ -508,7 +508,7 @@ export default class Service {
             parentProjectId: project._id,
         });
 
-        let projectSeats = project.seats;
+        let projectSeats: $TSFixMe = project.seats;
         if (typeof projectSeats === 'string') {
             projectSeats = parseInt(projectSeats);
         }
@@ -520,7 +520,7 @@ export default class Service {
                 extraUsersToAdd = extraUsersToAdd - 1;
             }
         }
-        let newProjectSeats = projectSeats;
+        let newProjectSeats: $TSFixMe = projectSeats;
 
         if (role !== 'Viewer') {
             newProjectSeats = projectSeats + extraUsersToAdd;
@@ -538,9 +538,9 @@ export default class Service {
             { seats: newProjectSeats.toString() }
         );
 
-        let response = [];
+        let response: $TSFixMe = [];
         let team: $TSFixMe = await this.getTeamMembersBy({ _id: project._id });
-        let teamusers = {
+        let teamusers: $TSFixMe = {
             projectId: project._id,
             team: team,
         };
@@ -581,7 +581,7 @@ export default class Service {
         teamMemberUserId: ObjectID
     ): void {
         let index;
-        let subProject = null;
+        let subProject: $TSFixMe = null;
 
         if (userId === teamMemberUserId) {
             throw new BadDataException('Admin User cannot delete himself');
@@ -599,7 +599,7 @@ export default class Service {
                 });
             }
             if (subProject) {
-                for (let i = 0; i < subProject.users.length; i++) {
+                for (let i: $TSFixMe = 0; i < subProject.users.length; i++) {
                     if (teamMemberUserId == subProject.users[i].userId) {
                         index = i;
                         break;
@@ -608,7 +608,7 @@ export default class Service {
                     }
                 }
             } else {
-                for (let i = 0; i < project.users.length; i++) {
+                for (let i: $TSFixMe = 0; i < project.users.length; i++) {
                     if (teamMemberUserId == project.users[i].userId) {
                         index = i;
                         break;
@@ -709,8 +709,8 @@ export default class Service {
                 });
 
                 // send response
-                let response = [];
-                let teamusers = {
+                let response: $TSFixMe = [];
+                let teamusers: $TSFixMe = {
                     projectId: project._id,
                     team: team,
                 };
@@ -761,11 +761,11 @@ export default class Service {
         teamMemberUserId: ObjectID,
         role: $TSFixMe
     ): void {
-        let previousRole = '';
+        let previousRole: $TSFixMe = '';
         const nextRole: $TSFixMe = role;
         let index;
-        let subProject = null;
-        let subProjects = null;
+        let subProject: $TSFixMe = null;
+        let subProjects: $TSFixMe = null;
 
         let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
@@ -886,11 +886,11 @@ export default class Service {
                 }
 
                 // send response
-                let response = [];
+                let response: $TSFixMe = [];
                 let team: $TSFixMe = await this.getTeamMembersBy({
                     _id: project._id,
                 });
-                let teamusers = {
+                let teamusers: $TSFixMe = {
                     projectId: project._id,
                     team: team,
                 };
@@ -924,7 +924,7 @@ export default class Service {
                     teamMembers: team,
                     projectId,
                 });
-                const teams = response.map(res: $TSFixMe => res.team);
+                const teams: $TSFixMe = response.map(res: $TSFixMe => res.team);
                 const flatTeams: $TSFixMe = flatten(teams);
                 const teamArr: $TSFixMe = flatTeams.filter(
                     team => String(team.userId) === String(teamMemberUserId)
@@ -932,7 +932,7 @@ export default class Service {
                 const checkCurrentViewer: $TSFixMe = teamArr.every(
                     data => data.role === 'Viewer'
                 );
-                let projectSeats = project.seats;
+                let projectSeats: $TSFixMe = project.seats;
 
                 if (typeof projectSeats === 'string') {
                     projectSeats = parseInt(projectSeats);

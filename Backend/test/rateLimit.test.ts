@@ -27,7 +27,7 @@ describe('API limit rate', function (): void {
     });
 
     it('should get too many requests response after 3 requests', async (): void => {
-        for (let i = 1; i <= 3; i++) {
+        for (let i: $TSFixMe = 1; i <= 3; i++) {
             requests.push(request.get('/'));
         }
         await Promise.all(requests);

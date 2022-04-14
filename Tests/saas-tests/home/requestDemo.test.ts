@@ -5,13 +5,13 @@ import init from '../../test-init';
 
 import axios from 'axios';
 
-let page, browser: $TSFixMe;
+let page: $TSFixMe, browser: $TSFixMe;
 
 // user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const queryString: string =
     '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
-let queryObj = {};
+let queryObj: $TSFixMe = {};
 
 describe('Demo form', () => {
     beforeAll(async (done: $TSFixMe) => {
@@ -58,7 +58,7 @@ describe('Demo form', () => {
             timeout: init.timeout,
         });
 
-        const params = new URLSearchParams(queryString);
+        const params: $TSFixMe = new URLSearchParams(queryString);
         // formating query string to an object
         for (const param of params) {
             queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
@@ -86,8 +86,8 @@ describe('Demo form', () => {
                 },
                 data: data,
             };
-            const res = await axios(config);
-            const sourceObj = res.data[0].source;
+            const res: $TSFixMe = await axios(config);
+            const sourceObj: $TSFixMe = res.data[0].source;
             for (const key in sourceObj) {
                 expect(sourceObj[key]).toEqual(queryObj[key]);
             }

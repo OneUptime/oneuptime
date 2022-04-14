@@ -45,7 +45,7 @@ export const getActiveMembers: $TSFixMe =
 
             dispatch(getActiveMembersSuccess(members.data));
         } catch (error) {
-            let newerror = error;
+            let newerror: $TSFixMe = error;
             if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
             }
@@ -104,7 +104,7 @@ export const getActiveMonitors: $TSFixMe =
 
             dispatch(getActiveMonitorsSuccess(monitors.data));
         } catch (error) {
-            let newerror = error;
+            let newerror: $TSFixMe = error;
             if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
             }
@@ -158,7 +158,7 @@ export const getIncidents: $TSFixMe =
 
             dispatch(getIncidentsSuccess(reports.data));
         } catch (error) {
-            let newerror = error;
+            let newerror: $TSFixMe = error;
             if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
             }
@@ -212,7 +212,7 @@ export const getResolveTime: $TSFixMe =
 
             dispatch(getResolveTimeSuccess(reports.data));
         } catch (error) {
-            let newerror = error;
+            let newerror: $TSFixMe = error;
             if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
             }

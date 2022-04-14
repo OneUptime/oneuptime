@@ -34,11 +34,11 @@ class DataStore {
         errorCount: $TSFixMe
     ): void {
         if (store.has(path)) {
-            const s = store.get(path);
-            const avg = s.avgTime,
+            const s: $TSFixMe = store.get(path);
+            const avg: $TSFixMe = s.avgTime,
                 rq = s.requests,
                 ct = time;
-            let avgTime = avg * rq + ct;
+            let avgTime: $TSFixMe = avg * rq + ct;
             avgTime = avgTime / (rq + 1);
             return {
                 requests: s.requests + 1,
@@ -84,12 +84,12 @@ class DataStore {
         return {};
     }
     setData(value: $TSFixMe): void {
-        const type = value.type;
-        const path = value.path;
-        const time = value.duration;
-        const method = value.method;
-        const errorCount = value.errorCount || 0;
-        let val = {};
+        const type: $TSFixMe = value.type;
+        const path: $TSFixMe = value.path;
+        const time: $TSFixMe = value.duration;
+        const method: $TSFixMe = value.method;
+        const errorCount: $TSFixMe = value.errorCount || 0;
+        let val: $TSFixMe = {};
         if (type === 'incoming') {
             val = this.mapValue(path, this.incoming, time, method, errorCount);
             return this.incoming.set(path, val);

@@ -11,7 +11,7 @@ const user: $TSFixMe = {
 };
 const componentName: string = utils.generateRandomString();
 const errorTrackerName: string = utils.generateRandomString();
-let errorTrackerKey = '';
+let errorTrackerKey: $TSFixMe = '';
 
 describe('Error Trackers', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

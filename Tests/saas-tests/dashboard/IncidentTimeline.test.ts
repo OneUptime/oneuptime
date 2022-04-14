@@ -14,7 +14,7 @@ const componentName: string = utils.generateRandomString();
 const message: string = utils.generateRandomString();
 
 describe('Incident Timeline API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(360000);
@@ -156,7 +156,7 @@ describe('Incident Timeline API', () => {
                 }
             );
 
-            const investigationMessage = await init.page$(
+            const investigationMessage: $TSFixMe = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
             );
@@ -224,7 +224,7 @@ describe('Incident Timeline API', () => {
                 }
             );
 
-            const investigationMessage = await init.page$(
+            const investigationMessage: $TSFixMe = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
             );
@@ -300,7 +300,7 @@ describe('Incident Timeline API', () => {
                 }
             );
 
-            const incidentMessage = await init.page$(
+            const incidentMessage: $TSFixMe = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
             );
@@ -375,7 +375,7 @@ describe('Incident Timeline API', () => {
                 }
             );
 
-            const incidentMessage = await init.page$(
+            const incidentMessage: $TSFixMe = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
             );
@@ -427,7 +427,7 @@ describe('Incident Timeline API', () => {
                 hidden: true,
             });
 
-            const incidentMessage = await init.pageWaitForSelector(
+            const incidentMessage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#content_${type}_incident_message_0`,
                 { hidden: true }
@@ -461,7 +461,7 @@ describe('Incident Timeline API', () => {
             await init.page$Eval(page, `#incident_0`, (e: $TSFixMe) =>
                 e.click()
             );
-            for (let i = 0; i < 10; i++) {
+            for (let i: $TSFixMe = 0; i < 10; i++) {
                 // add internal note
                 await init.pageWaitForSelector(page, `#add-${type}-message`, {
                     visible: true,
@@ -498,11 +498,11 @@ describe('Incident Timeline API', () => {
 
             await init.pageWaitForSelector(page, '.internal-list');
 
-            const incidentTimelineRow = await init.page$$(
+            const incidentTimelineRow: $TSFixMe = await init.page$$(
                 page,
                 '.internal-list'
             );
-            const countIncidentTimelines = incidentTimelineRow.length;
+            const countIncidentTimelines: $TSFixMe = incidentTimelineRow.length;
             expect(countIncidentTimelines).toEqual(11); // An internal mesage has been exist in the previous test
         },
         init.timeout
@@ -541,11 +541,12 @@ describe('Incident Timeline API', () => {
 
             await init.pageWaitForSelector(page, '.internal-list');
 
-            const incidentTimelineRows = await init.page$$(
+            const incidentTimelineRows: $TSFixMe = await init.page$$(
                 page,
                 '.internal-list'
             );
-            const countIncidentTimelines = incidentTimelineRows.length;
+            const countIncidentTimelines: $TSFixMe =
+                incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(11);
         },
 
@@ -581,11 +582,12 @@ describe('Incident Timeline API', () => {
 
             await init.pageWaitForSelector(page, '.internal-list');
 
-            const incidentTimelineRows = await init.page$$(
+            const incidentTimelineRows: $TSFixMe = await init.page$$(
                 page,
                 '.internal-list'
             );
-            const countIncidentTimelines = incidentTimelineRows.length;
+            const countIncidentTimelines: $TSFixMe =
+                incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(11);
         },
 

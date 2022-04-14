@@ -9,7 +9,7 @@ async function run(): void {
         statusBubbleId: { $exists: false },
     });
 
-    for (let i = 0; i < statusPages.length; i++) {
+    for (let i: $TSFixMe = 0; i < statusPages.length; i++) {
         const statusPage: $TSFixMe = statusPages[i];
         const statusBubbleId: $TSFixMe = uuid.v4();
         await update(

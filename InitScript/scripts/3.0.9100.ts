@@ -8,7 +8,7 @@ async function run(): void {
         interval: { $exists: false },
     });
 
-    for (let i = 0; i < events.length; i++) {
+    for (let i: $TSFixMe = 0; i < events.length; i++) {
         const event: $TSFixMe = events[i];
         await update(
             scheduledCollection,

@@ -15,7 +15,7 @@ const newUser: $TSFixMe = {
 };
 
 describe('Enterprise Team SubProject API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);

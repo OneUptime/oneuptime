@@ -45,7 +45,7 @@ program
     .parse(process.argv);
 
 /** The questions to get project id, api url, api key and monitor id. */
-const questions = [
+const questions: $TSFixMe = [
     {
         type: 'input',
         name: 'projectId',
@@ -84,7 +84,7 @@ const questions = [
  */
 
 const checkParams: Function = (params): void => {
-    const values = [];
+    const values: $TSFixMe = [];
 
     return new Promise(resolve => {
         resolve(
@@ -111,7 +111,7 @@ const checkParams: Function = (params): void => {
  */
 
 const getParamValue: Function = (params, name): void => {
-    const options = program.opts();
+    const options: $TSFixMe = program.opts();
     return new Promise(resolve => {
         if (options[name] === true || options[name] === undefined) {
             if (name === 'monitorId') {
@@ -160,7 +160,7 @@ checkParams(questions).then(values => {
                 break;
         }
 
-        const svc = new Service({
+        const svc: $TSFixMe = new Service({
             name: 'OneUptime Server Monitor',
             description: 'OneUptime Monitoring Shell',
             script: require('path').join(__dirname, 'server-monitor.js'),
@@ -260,7 +260,7 @@ checkParams(questions).then(values => {
                 monitorId ||
                 (data => {
                     return new Promise(resolve => {
-                        const question = questions.filter(
+                        const question: $TSFixMe = questions.filter(
                             param => param.name === 'monitorId'
                         );
 

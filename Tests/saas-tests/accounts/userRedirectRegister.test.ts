@@ -5,14 +5,14 @@ import init from '../../test-init';
 
 import axios from 'axios';
 
-let page, browser: $TSFixMe;
+let page: $TSFixMe, browser: $TSFixMe;
 
 // user credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 const queryString: string =
     '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
-let queryObj = {};
+let queryObj: $TSFixMe = {};
 
 describe('Home redirect', () => {
     beforeAll(async (done: $TSFixMe) => {

@@ -112,7 +112,7 @@ class OneUptimeListener {
     }
     // set up xhr listener
     _setUpXhrListener(): void {
-        const open = window.XMLHttpRequest.prototype.open;
+        const open: $TSFixMe = window.XMLHttpRequest.prototype.open;
 
         function openReplacement(
             this: $TSFixMe,
@@ -148,7 +148,7 @@ class OneUptimeListener {
     }
     // set up fetch listener
     _setUpFetchListener(): void {
-        const currentFetch = global.fetch;
+        const currentFetch: $TSFixMe = global.fetch;
 
         global.fetch = function (url, options): void {
             const obj: $TSFixMe = {
@@ -179,13 +179,13 @@ class OneUptimeListener {
         override(Https);
 
         function override(module: $TSFixMe): void {
-            const original = module.request;
+            const original: $TSFixMe = module.request;
 
             function wrapper(this: $TSFixMe, outgoing: $TSFixMe): void {
                 // Store a call to the original in req
-                const req = original.apply(this, arguments);
-                const log = requestDetails(outgoing);
-                const emit = req.emit;
+                const req: $TSFixMe = original.apply(this, arguments);
+                const log: $TSFixMe = requestDetails(outgoing);
+                const emit: $TSFixMe = req.emit;
                 req.emit = function (
                     eventName: $TSFixMe,
                     response: $TSFixMe
@@ -222,7 +222,7 @@ class OneUptimeListener {
                 status: '',
                 url: '',
             };
-            const portDetails = log.port !== '' ? `:${log.port}` : '';
+            const portDetails: $TSFixMe = log.port !== '' ? `:${log.port}` : '';
             const absoluteUrl: string = `${log.protocol}//${log.host}${portDetails}${log.path}`;
             log.url = absoluteUrl;
             return log;
@@ -296,7 +296,7 @@ class OneUptimeListener {
     }
     _logClickEvent(event: $TSFixMe, type: $TSFixMe): void {
         // preepare the event tree
-        const content = this._getEventTree(event);
+        const content: $TSFixMe = this._getEventTree(event);
         const timelineObj: $TSFixMe = {
             category: `ui.${event.type}`,
             data: {
@@ -309,15 +309,15 @@ class OneUptimeListener {
         this.timelineObj.addToTimeline(timelineObj);
     }
     _getEventTree(event: $TSFixMe): void {
-        const tree = [];
+        const tree: $TSFixMe = [];
         const MAX_UP_TREE = 5; // we just want to go up the DOM for 5 times
-        let current = 0;
-        const fullPath = [];
+        let current: $TSFixMe = 0;
+        const fullPath: $TSFixMe = [];
         while (current < MAX_UP_TREE && event.path[current]) {
             // the current element has a path and we havent got up to 5 items, and its not an html tag
-            const currentElem = event.path[current];
+            const currentElem: $TSFixMe = event.path[current];
             if (currentElem.localName !== 'html') {
-                let elementPath = '';
+                let elementPath: $TSFixMe = '';
 
                 elementPath += `${currentElem.localName}`;
                 // attach ID if it has
@@ -325,18 +325,19 @@ class OneUptimeListener {
                     elementPath += `${currentElem.id}`;
                 }
                 // for classes
-                let classes = [];
+                let classes: $TSFixMe = [];
                 classes = currentElem.classList; // get all classes
-                let classesForElement = '';
+                let classesForElement: $TSFixMe = '';
                 classes.forEach((element: $TSFixMe) => {
                     classesForElement += `.${element}`;
                 });
                 elementPath += classesForElement;
 
                 // get attributes
-                const attributes = this._getElementAttributes(currentElem);
+                const attributes: $TSFixMe =
+                    this._getElementAttributes(currentElem);
                 if (attributes.length > 0) {
-                    let attributesForElement = '';
+                    let attributesForElement: $TSFixMe = '';
                     attributes.forEach(element => {
                         if (element.key !== 'id') {
                             attributesForElement += `${element.key}=${element.value},`;
@@ -362,21 +363,21 @@ class OneUptimeListener {
             // increate the counter
             current = current + 1;
         }
-        let path = fullPath.reverse();
+        let path: $TSFixMe = fullPath.reverse();
 
         path = path.join(' > ');
         return { tree, path }; // return the final tree which contains a max of 5 elements
     }
     _getElementAttributes(elem: $TSFixMe): void {
-        const attributes = [];
-        const elementAtrributes = elem.attributes; // get all the attritubtes related to the element
-        const excludedAttributes = ['class', 'value']; // exclude items that are nnot needed
+        const attributes: $TSFixMe = [];
+        const elementAtrributes: $TSFixMe = elem.attributes; // get all the attritubtes related to the element
+        const excludedAttributes: $TSFixMe = ['class', 'value']; // exclude items that are nnot needed
 
         for (const [, value] of Object.entries(elementAtrributes)) {
             if (!excludedAttributes.includes(value.name)) {
                 // if each attribute doesnt exist in the excluded one, we get the value and make an object
 
-                const attribute = elem[value.name];
+                const attribute: $TSFixMe = elem[value.name];
                 attributes.push({
                     key: value.name,
                     value: attribute,

@@ -10,7 +10,7 @@ export default {
         code: $TSFixMe,
         invoiceUrl: URL
     ) => {
-        let data = {
+        let data: $TSFixMe = {
             blocks: [
                 {
                     type: 'header',

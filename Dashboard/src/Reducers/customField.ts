@@ -150,7 +150,7 @@ export default function customField(
             };
 
         case types.UPDATE_CUSTOM_FIELD_SUCCESS: {
-            const fields = state.customFields.fields.map(field: $TSFixMe => {
+            const fields: $TSFixMe = state.customFields.fields.map(field: $TSFixMe => {
                 if (String(field._id) === String(action.payload._id)) {
                     field = action.payload;
                 }

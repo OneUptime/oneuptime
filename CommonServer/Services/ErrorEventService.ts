@@ -139,7 +139,7 @@ export default class Service {
         });
 
         const totalErrorEvents: $TSFixMe = [];
-        let index = 0;
+        let index: $TSFixMe = 0;
 
         // if the next index is available in the issue tracker, proceed
         while (
@@ -213,7 +213,7 @@ export default class Service {
         totalErrorEvents.sort((eventA, eventB) =>
             moment(eventB.latestOccurennce).isAfter(eventA.latestOccurennce)
         );
-        let dateRange = { startDate: '', endDate: '' };
+        let dateRange: $TSFixMe = { startDate: '', endDate: '' };
         // set the date time range
         if (query.createdAt) {
             dateRange = {

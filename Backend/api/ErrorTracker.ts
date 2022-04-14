@@ -644,7 +644,7 @@ router.post(
                 });
             }
 
-            let updateData = {};
+            let updateData: $TSFixMe = {};
 
             switch (action) {
                 case 'ignore':
@@ -695,7 +695,7 @@ router.post(
             }
 
             const issues: $TSFixMe = [];
-            for (let index = 0; index < issueId.length; index++) {
+            for (let index: $TSFixMe = 0; index < issueId.length; index++) {
                 const currentIssueId: $TSFixMe = issueId[index];
                 const query: $TSFixMe = {
                     _id: currentIssueId,

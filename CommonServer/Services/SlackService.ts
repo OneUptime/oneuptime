@@ -28,7 +28,7 @@ export default class Service {
         if (project && project.parentProjectId) {
             projectId = project.parentProjectId._id || project.parentProjectId;
         }
-        let query = {
+        let query: $TSFixMe = {
             projectId: projectId,
             integrationType: 'slack',
             monitors: { $elemMatch: { monitorId: monitor._id } },

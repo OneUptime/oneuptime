@@ -260,7 +260,7 @@ router.post(
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const scheduleId: $TSFixMe = req.params.scheduleId;
             const escalations: $TSFixMe = [];
-            let escalationPolicyCount = 0;
+            let escalationPolicyCount: $TSFixMe = 0;
             for (const value of req.body) {
                 escalationPolicyCount++;
                 const storagevalue: $TSFixMe = {};

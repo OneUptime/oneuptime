@@ -49,7 +49,7 @@ describe('New Monitor API', () => {
                 firstMonitorName
             );
 
-            for (let i = 0; i < 9; i++) {
+            for (let i: $TSFixMe = 0; i < 9; i++) {
                 // This adds 9 more monitors
                 // The Interface for adding additional monitor has been updated
                 const monitorName: string = utils.generateRandomString();

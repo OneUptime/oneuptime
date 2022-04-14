@@ -52,7 +52,7 @@ export default class Service {
         escalations,
         incidentAcknowledged,
     }: $TSFixMe): void {
-        let item = new OnCallScheduleStatusModel();
+        let item: $TSFixMe = new OnCallScheduleStatusModel();
 
         item.project = project;
 

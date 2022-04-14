@@ -112,7 +112,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        let securityLog = this.findOneBy({ query, select: '_id' });
+        let securityLog: $TSFixMe = this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
             const error: $TSFixMe = new Error(

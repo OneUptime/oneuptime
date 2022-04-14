@@ -9,7 +9,7 @@ export const RenderIfUserInSubProject: Function = (props: $TSFixMe): void => {
     const { children, currentProject, subProjectId, subProjects }: $TSFixMe =
         props;
     const userId: $TSFixMe = User.getUserId();
-    let renderItems = null;
+    let renderItems: $TSFixMe = null;
     if (
         currentProject &&
         currentProject.users.filter(

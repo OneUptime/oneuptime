@@ -11,7 +11,7 @@ const email: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 
 describe('Audit Logs', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -59,7 +59,7 @@ describe('Audit Logs', () => {
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
             });
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr',
                 (row: $TSFixMe) => row.textContent
@@ -95,7 +95,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#cancelAuditDelete');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
                 (rows: $TSFixMe) => rows.length
@@ -143,7 +143,7 @@ describe('Audit Logs', () => {
 
             await init.pageClick(page, '#auditLogs');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
                 (rows: $TSFixMe) => rows.length
@@ -177,7 +177,7 @@ describe('Audit Logs', () => {
 
             await init.pageType(page, '#searchAuditLog', 'probe');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr.Table-row',
                 (rows: $TSFixMe) => rows.length
@@ -211,7 +211,7 @@ describe('Audit Logs', () => {
 
             await init.pageType(page, '#searchAuditLog', 'somerandom');
 
-            const rowNum = await init.page$$Eval(
+            const rowNum: $TSFixMe = await init.page$$Eval(
                 page,
                 'tbody tr',
                 (row: $TSFixMe) => row.textContent
@@ -326,7 +326,7 @@ describe('Audit Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#auditLogDisabled`
             );
@@ -350,7 +350,7 @@ describe('Audit Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#auditLogDisabled`
             );
@@ -422,7 +422,7 @@ describe('Audit Logs', () => {
 
             // look for the alert panel
 
-            const alertPanelElement = await init.pageWaitForSelector(
+            const alertPanelElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#auditLogDisabled`
             );

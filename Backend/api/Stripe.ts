@@ -32,7 +32,7 @@ router.post('/events', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const event: $TSFixMe = req.body;
         const customerId: $TSFixMe = event.data.object.customer;
-        let subscriptionId = event.data.object.subscription;
+        let subscriptionId: $TSFixMe = event.data.object.subscription;
         const chargeAttemptCount: $TSFixMe = event.data.object.attempt_count;
         const invoiceUrl: $TSFixMe = event.data.object.hosted_invoice_url;
         const webhookType: $TSFixMe = event.type;

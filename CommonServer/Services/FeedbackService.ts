@@ -17,7 +17,7 @@ export default class Service {
         page: $TSFixMe,
         createdById: $TSFixMe
     ): void {
-        let feedback = new FeedbackModel();
+        let feedback: $TSFixMe = new FeedbackModel();
 
         feedback.message = message;
 

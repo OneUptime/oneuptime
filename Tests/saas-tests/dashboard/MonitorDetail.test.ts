@@ -15,7 +15,7 @@ const incidentTitle: string = utils.generateRandomString();
 const newIncidentTitle: string = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
@@ -108,7 +108,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#numberOfIncidents');
 
-            const selector = await init.page$Eval(
+            const selector: $TSFixMe = await init.page$Eval(
                 page,
                 '#numberOfIncidents',
                 (elem: $TSFixMe) => elem.textContent
@@ -120,7 +120,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
             const selector1: string = `#name_${priorityName}`;
-            const rowContent = await init.page$Eval(
+            const rowContent: $TSFixMe = await init.page$Eval(
                 page,
                 selector1,
                 (e: $TSFixMe) => e.textContent
@@ -223,13 +223,13 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const nextSelector = await init.pageWaitForSelector(
+            const nextSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#btnNext'
             );
             await nextSelector.click();
 
-            let incidentRows = '#numberOfIncidents';
+            let incidentRows: $TSFixMe = '#numberOfIncidents';
 
             let countIncidents: $TSFixMe = await init.page$Eval(
                 page,
@@ -238,7 +238,7 @@ describe('Monitor Detail API', () => {
             );
             expect(countIncidents).toEqual('1');
 
-            const prevSelector = await init.pageWaitForSelector(
+            const prevSelector: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#btnPrev'
             );

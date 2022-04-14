@@ -38,7 +38,7 @@ export const getProbes: Function = (skip = 0, limit = 10): void => {
     limit = parseInt(limit);
 
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
 
         promise = BackendAPI.get(`probe/?skip=${skip}&limit=${limit}`);
         dispatch(probeRequest(promise));

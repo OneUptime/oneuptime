@@ -243,7 +243,7 @@ router.post(
                     project.seoIssues = seoIssues;
                     project.pwaIssues = pwaIssues;
 
-                    for (let i = 0; i < userIds.length; i++) {
+                    for (let i: $TSFixMe = 0; i < userIds.length; i++) {
                         const userId: $TSFixMe = userIds[i].id;
                         const user: $TSFixMe = await UserService.findOneBy({
                             query: { _id: userId },

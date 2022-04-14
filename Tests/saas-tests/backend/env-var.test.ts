@@ -21,7 +21,7 @@ describe('Check Server', () => {
         await page.goto(`${utils.BACKEND_URL}/server/hosts`, {
             waitUntil: 'networkidle2',
         });
-        const response = await init.page$Eval(
+        const response: $TSFixMe = await init.page$Eval(
             page,
             'body > pre',
             (e: $TSFixMe) => {
@@ -55,7 +55,7 @@ describe('Check Server', () => {
         await page.goto(`${utils.BACKEND_URL}/server/is-saas-service`, {
             waitUntil: 'networkidle2',
         });
-        const response = await init.page$Eval(
+        const response: $TSFixMe = await init.page$Eval(
             page,
             'body > pre',
             (e: $TSFixMe) => {

@@ -17,7 +17,7 @@ const user1: $TSFixMe = {
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Incident Created test', () => {
-    const operationTimeOut = init.timeout;
+    const operationTimeOut: $TSFixMe = init.timeout;
 
     const monitorName: string = utils.generateRandomString();
     const monitorName2: string = utils.generateRandomString();
@@ -95,7 +95,7 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            const closeAllButton = await init.pageWaitForSelector(
+            const closeAllButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incidents-close-all-btn',
                 { hidden: true }
@@ -118,7 +118,7 @@ describe('Incident Created test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const closeAllButton = await init.pageWaitForSelector(
+            const closeAllButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#incidents-close-all-btn',
                 { visible: true, timeout: init.timeout }
@@ -139,7 +139,7 @@ describe('Incident Created test', () => {
                 '#incidents-close-all-btn',
                 (elem: $TSFixMe) => elem.click()
             );
-            const closeButton = await init.pageWaitForSelector(
+            const closeButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#closeIncidentButton_0',
                 {
@@ -157,7 +157,7 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
 
-            const viewIncidentButton = await init.pageWaitForSelector(
+            const viewIncidentButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'button[id=viewIncident-0]',
                 { visible: true, timeout: init.timeout }
@@ -224,7 +224,7 @@ describe('Incident Created test', () => {
             await init.loginUser(user1, page);
             // Switch projects
             await init.switchProject(projectName, page);
-            const viewIncidentButton = await init.page$(
+            const viewIncidentButton: $TSFixMe = await init.page$(
                 page,
                 'button[id=viewIncident-0]',
                 { hidden: true }
@@ -276,7 +276,7 @@ describe('Incident Created test', () => {
             await init.loginUser(user1, page);
             // Switch projects
             await init.switchProject(projectName, page);
-            const viewIncidentButton = await init.page$(
+            const viewIncidentButton: $TSFixMe = await init.page$(
                 page,
                 'button[id=viewIncident-0]',
                 { hidden: true }
@@ -300,7 +300,7 @@ describe('Incident Created test', () => {
             await init.loginUser(user1, page);
             // Switch projects
             await init.switchProject(projectName, page);
-            const viewIncidentButton = await init.pageWaitForSelector(
+            const viewIncidentButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'button[id=viewIncident-0]',
                 { visible: true, timeout: init.timeout }
@@ -355,7 +355,7 @@ describe('Incident Created test', () => {
             await init.page$Eval(page, '#closeIncident_0', (elem: $TSFixMe) =>
                 elem.click()
             );
-            const closeButton = await init.pageWaitForSelector(
+            const closeButton: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#closeIncident_0',
                 {
@@ -377,7 +377,7 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.switchProject(projectName, page);
 
-            const viewIncidentButton = await init.page$(
+            const viewIncidentButton: $TSFixMe = await init.page$(
                 page,
                 'button[id=viewIncident-0]'
             );
@@ -400,7 +400,7 @@ describe('Incident Created test', () => {
             await init.pageClick(page, '#activeIncidents');
 
             await init.pageWaitForSelector(page, '.activeIncidentList');
-            const activeIncidents = await init.page$$Eval(
+            const activeIncidents: $TSFixMe = await init.page$$Eval(
                 page,
                 '.activeIncidentList',
                 (rows: $TSFixMe) => rows.length
@@ -480,11 +480,11 @@ describe('Incident Created test', () => {
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
-            const filteredIncidents = await init.page$$(
+            const filteredIncidents: $TSFixMe = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'
             );
-            const filteredIncidentsCount = filteredIncidents.length;
+            const filteredIncidentsCount: $TSFixMe = filteredIncidents.length;
 
             expect(filteredIncidentsCount).toEqual(2);
         },
@@ -591,11 +591,11 @@ describe('Incident Created test', () => {
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
-            const filteredIncidents = await init.page$$(
+            const filteredIncidents: $TSFixMe = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'
             );
-            const filteredIncidentsCount = filteredIncidents.length;
+            const filteredIncidentsCount: $TSFixMe = filteredIncidents.length;
 
             expect(filteredIncidentsCount).toEqual(3);
         },
@@ -632,11 +632,11 @@ describe('Incident Created test', () => {
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
-            const filteredIncidents = await init.page$$(
+            const filteredIncidents: $TSFixMe = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'
             );
-            const filteredIncidentsCount = filteredIncidents.length;
+            const filteredIncidentsCount: $TSFixMe = filteredIncidents.length;
 
             expect(filteredIncidentsCount).toEqual(5);
         },
@@ -667,11 +667,11 @@ describe('Incident Created test', () => {
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
-            const filteredIncidents = await init.page$$(
+            const filteredIncidents: $TSFixMe = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'
             );
-            const filteredIncidentsCount = filteredIncidents.length;
+            const filteredIncidentsCount: $TSFixMe = filteredIncidents.length;
             expect(filteredIncidentsCount).toEqual(7);
         },
         operationTimeOut
@@ -717,11 +717,11 @@ describe('Incident Created test', () => {
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
 
-            const filteredIncidents = await init.page$$(
+            const filteredIncidents: $TSFixMe = await init.page$$(
                 page,
                 'tr.createdIncidentListItem'
             );
-            const filteredIncidentsCount = filteredIncidents.length;
+            const filteredIncidentsCount: $TSFixMe = filteredIncidents.length;
             expect(filteredIncidentsCount).toEqual(8);
         },
         operationTimeOut
@@ -738,7 +738,7 @@ describe('Incident Created test', () => {
     //             await init.page$Eval(page, '#closeIncident_0', elem => elem.click());
     //             await init.pageWaitForSelector(page, '#closeIncidentButton_0');
     //             await init.page$Eval(page, '#closeIncidentButton_0',e=>e.click());
-    //             const elementHandle = await init.page$(page, '#modal-ok');
+    //             const elementHandle: $TSFixMe = await init.page$(page, '#modal-ok');
     //             expect(elementHandle).not.toBe(null);
     //         });
     //     },

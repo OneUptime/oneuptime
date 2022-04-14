@@ -395,7 +395,7 @@ describe('Check scheduled maintenace', () => {
                 page,
                 `#event-name-${scheduledMaintenanceName}`
             );
-            const eventName = await init.page$Eval(
+            const eventName: $TSFixMe = await init.page$Eval(
                 page,
                 `#event-name-${scheduledMaintenanceName}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -408,7 +408,7 @@ describe('Check scheduled maintenace', () => {
                 `#event-description-${scheduledMaintenanceDescription}`,
                 { visible: true, timeout: init.timeout }
             );
-            const eventDescription = await init.page$Eval(
+            const eventDescription: $TSFixMe = await init.page$Eval(
                 page,
                 `#event-description-${scheduledMaintenanceDescription}`,
                 (elem: $TSFixMe) => elem.textContent
@@ -420,7 +420,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const eventDate = await init.page$Eval(
+            const eventDate: $TSFixMe = await init.page$Eval(
                 page,
                 '#event-date',
                 (elem: $TSFixMe) => elem.textContent
@@ -432,7 +432,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const futureEvent = await init.page$Eval(
+            const futureEvent: $TSFixMe = await init.page$Eval(
                 page,
                 '#ongoing-event',
                 (elem: $TSFixMe) => elem.textContent

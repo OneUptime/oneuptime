@@ -9,7 +9,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 export default class Service {
     async create(data: $TSFixMe): void {
         // prepare  log model
-        let log = new LogModel();
+        let log: $TSFixMe = new LogModel();
         let content;
 
         try {
@@ -18,7 +18,7 @@ export default class Service {
             content = data.content;
         }
 
-        let stringifiedTags = '';
+        let stringifiedTags: $TSFixMe = '';
         if (data.tags) {
             typeof data.tags === 'string'
                 ? (stringifiedTags = data.tags)
@@ -228,7 +228,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let dateRange = { startDate: '', endDate: '' };
+        let dateRange: $TSFixMe = { startDate: '', endDate: '' };
         // if date range is given, it returns it
         if (query.createdAt) {
             dateRange = {

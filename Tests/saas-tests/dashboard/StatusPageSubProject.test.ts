@@ -188,7 +188,7 @@ describe('StatusPage API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            for (let i = 0; i < 10; i++) {
+            for (let i: $TSFixMe = 0; i < 10; i++) {
                 const statuspageName: string = utils.generateRandomString();
                 await init.addStatusPageToProject(
                     statuspageName,
@@ -205,7 +205,7 @@ describe('StatusPage API With SubProjects', () => {
                 page,
                 'tr.statusPageListItem'
             );
-            let countStatusPages = statusPageRows.length;
+            let countStatusPages: $TSFixMe = statusPageRows.length;
 
             expect(countStatusPages).toEqual(10);
 

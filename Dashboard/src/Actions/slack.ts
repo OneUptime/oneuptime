@@ -91,7 +91,7 @@ export function getSlackTeams(
     limit: PositiveNumber
 ): void {
     return function (dispatch: Dispatch): void {
-        let promise = null;
+        let promise: $TSFixMe = null;
         if (skip && limit) {
             promise = BackendAPI.get(
                 `slack/${projectId}/teams?skip=${skip}&limit=${limit}`

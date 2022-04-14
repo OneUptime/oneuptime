@@ -10,7 +10,7 @@ async function run(): void {
             { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
-    for (let i = 0; i < items.length; i++) {
+    for (let i: $TSFixMe = 0; i < items.length; i++) {
         const { name }: $TSFixMe = items[i];
         items[i].slug = getSlug(name);
         await update(
