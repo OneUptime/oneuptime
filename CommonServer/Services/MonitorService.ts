@@ -1700,7 +1700,7 @@ export default class Service {
         });
         if (monitor) {
             // eslint-disable-next-line prefer-const
-            let { monitorSla, projectId } = monitor;
+            let {monitorSla, projectId}: $TSFixMe = monitor;
 
             if (!monitorSla) {
                 monitorSla = await MonitorSlaService.findOneBy({

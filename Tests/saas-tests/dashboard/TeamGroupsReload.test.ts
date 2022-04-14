@@ -58,7 +58,7 @@ describe('OneUptime Page Reload', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
             await page.waitForSelector('#cbTeamGroups', { visible: true });
-            const spanElement2 = await page.waitForSelector(
+            const spanElement2: $TSFixMe = await page.waitForSelector(
                 `#sub_project_name_${groupName}`
             );
             expect(spanElement2).toBeDefined();

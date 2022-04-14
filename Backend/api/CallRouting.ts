@@ -107,7 +107,7 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            let { skip, limit } = req.query;
+            let {skip, limit}: $TSFixMe = req.query;
             const { projectId }: $TSFixMe = req.params;
 
             if (typeof skip === 'string') {

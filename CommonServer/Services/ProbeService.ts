@@ -925,7 +925,7 @@ class Service extends DatabaseService<typeof Model> {
 
     async processHttpRequest(data): void {
         const { monitor, body }: $TSFixMe = data;
-        let { queryParams, headers } = data;
+        let {queryParams, headers}: $TSFixMe = data;
         queryParams = this.toArray(queryParams);
         headers = this.toArray(headers);
         let status, reason;

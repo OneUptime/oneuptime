@@ -80,7 +80,7 @@ router.post(
     checkUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            let { handle } = req.body;
+            let {handle}: $TSFixMe = req.body;
 
             if (handle.includes('https://twitter.com/')) {
                 handle = handle.replace('https://twitter.com/', '');

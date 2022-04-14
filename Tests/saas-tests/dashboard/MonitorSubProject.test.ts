@@ -313,14 +313,14 @@ describe('Monitor API With SubProjects', () => {
             await init.pageClick(page, '#cbMonitors');
             /* UI CHANGES: Badge has been removed! */
 
-            const additionalMonitor1 = await init.pageWaitForSelector(
+            const additionalMonitor1: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
 
             expect(additionalMonitor1).toBeDefined();
 
-            const additionalMonitor2 = await init.pageWaitForSelector(
+            const additionalMonitor2: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}1`
             );

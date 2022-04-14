@@ -70,7 +70,7 @@ describe('OneUptime Page Reload', () => {
                 timeout: init.timeout,
             });
 
-            const spanElement2 = await init.pageWaitForSelector(
+            const spanElement2: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#gitUsername_${gitUsername}`
             );
