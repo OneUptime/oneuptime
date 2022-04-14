@@ -336,7 +336,7 @@ describe('Team API With SubProjects', () => {
 
             await init.pageClick(page, `#btnConfirmInvite`);
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#businessEmailError`
             );

@@ -8,7 +8,7 @@ import AlertService from '../Services/alertService';
 
 import { IS_SAAS_SERVICE } from '../config/server';
 
-const handleFetchingUnpaidSubscriptions = async (startAfter): void => {
+const handleFetchingUnpaidSubscriptions: Function = async (startAfter): void => {
     if (startAfter) {
         return await stripe.subscriptions.list({
             status: 'unpaid',

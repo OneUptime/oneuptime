@@ -20,7 +20,7 @@ const router: $TSFixMe = express.getRouter();
 import multer from 'multer';
 import storage from '../middlewares/upload';
 
-const callForward = async (req: ExpressRequest, res: ExpressResponse): void => {
+const callForward: Function = async (req: ExpressRequest, res: ExpressResponse): void => {
     try {
         const body: $TSFixMe = req.body;
         const to: $TSFixMe = body['To'];
@@ -43,7 +43,7 @@ const callForward = async (req: ExpressRequest, res: ExpressResponse): void => {
     }
 };
 
-const backupCallForward: $TSFixMe = async (
+const backupCallForward: $TSFixMe: Function = async (
     req: ExpressRequest,
     res: ExpressResponse
 ): void => {
@@ -69,7 +69,7 @@ const backupCallForward: $TSFixMe = async (
     }
 };
 
-const callStatus = async (req: ExpressRequest, res: ExpressResponse): void => {
+const callStatus: Function = async (req: ExpressRequest, res: ExpressResponse): void => {
     try {
         const body: $TSFixMe = req.body;
         const to: $TSFixMe = body['To'];
@@ -283,7 +283,7 @@ router.delete(
                     message: 'Call Routing Id is required.',
                 });
             }
-            let data = await CallRoutingService.deleteBy(
+            let data: $TSFixMe = await CallRoutingService.deleteBy(
                 { _id: callRoutingId, projectId },
                 userId
             );
@@ -310,7 +310,7 @@ router.delete(
                     message: 'Call Routing Id is required.',
                 });
             }
-            let routingSchema = await CallRoutingService.findOneBy({
+            let routingSchema: $TSFixMe = await CallRoutingService.findOneBy({
                 query: { _id: callRoutingId },
                 select: 'routingSchema',
             });

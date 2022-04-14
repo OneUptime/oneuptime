@@ -18,7 +18,7 @@ export default class Service {
             throw new BadDataException('Please provide a scan log');
         }
 
-        let securityLog = await this.findOneBy({
+        let securityLog: $TSFixMe = await this.findOneBy({
             query: { securityId },
             select: '_id',
         });

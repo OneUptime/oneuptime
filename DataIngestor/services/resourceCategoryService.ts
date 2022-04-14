@@ -28,7 +28,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        let resourceCategories = await resourceCategoryCollection
+        let resourceCategories: $TSFixMe = await resourceCategoryCollection
             .find(query)
             .limit(limit.toNumber())
             .skip(skip.toNumber())

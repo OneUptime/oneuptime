@@ -125,7 +125,7 @@ describe('Schedule API With SubProjects', () => {
                 `#schedule_count_${subProjectName}`,
                 { visible: true, timeout: init.timeout }
             );
-            let textContent = await scheduleCountSelector.getProperty(
+            let textContent: $TSFixMe = await scheduleCountSelector.getProperty(
                 'innerText'
             );
 
@@ -162,7 +162,7 @@ describe('Schedule API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            let scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
+            let scheduleRows: $TSFixMe = await init.page$$(page, 'tr.scheduleListItem');
             let countSchedules = scheduleRows.length;
 
             expect(countSchedules).toEqual(10);

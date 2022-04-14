@@ -11,7 +11,7 @@ export default class Service {
         }
 
         const select: string = '_id status lastStatus';
-        let previousMonitorStatus = await this.findBy({
+        let previousMonitorStatus: $TSFixMe = await this.findBy({
             query,
             limit: 1,
             select,
@@ -83,7 +83,7 @@ export default class Service {
             }
 
             const select: string = '_id status lastStatus';
-            let previousMonitorStatus = await this.findBy({
+            let previousMonitorStatus: $TSFixMe = await this.findBy({
                 query,
                 limit: 1,
                 select,
@@ -157,7 +157,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        let updatedData = await MonitorStatusModel.updateMany(query, {
+        let updatedData: $TSFixMe = await MonitorStatusModel.updateMany(query, {
             $set: data,
         });
         const select: $TSFixMe =

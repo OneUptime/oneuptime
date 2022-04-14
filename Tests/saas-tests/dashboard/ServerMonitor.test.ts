@@ -62,7 +62,7 @@ describe('Server Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -75,7 +75,7 @@ describe('Server Monitor API', () => {
                 timeout: init.timeout,
             });
 
-            let activeIncidents = await init.page$(
+            let activeIncidents: $TSFixMe = await init.page$(
                 page,
                 'span#activeIncidentsText'
             );
@@ -101,14 +101,14 @@ describe('Server Monitor API', () => {
 
             await init.pageClick(page, '#api a');
 
-            let projectId = await init.page$(page, '#projectId', {
+            let projectId: $TSFixMe = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await init.page$(page, '#apiUrl', {
+            let apiUrl: $TSFixMe = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -116,7 +116,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await init.page$(page, '#apiKey', {
+            let apiKey: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -130,7 +130,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -152,7 +152,7 @@ describe('Server Monitor API', () => {
                 timeout: init.timeout,
             });
 
-            let activeIncidents = await init.page$(
+            let activeIncidents: $TSFixMe = await init.page$(
                 page,
                 'span#activeIncidentsText'
             );
@@ -180,14 +180,14 @@ describe('Server Monitor API', () => {
 
             await init.pageClick(page, '#api a');
 
-            let projectId = await init.page$(page, '#projectId', {
+            let projectId: $TSFixMe = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await init.page$(page, '#apiUrl', {
+            let apiUrl: $TSFixMe = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -195,7 +195,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await init.page$(page, '#apiKey', {
+            let apiKey: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -209,7 +209,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -254,14 +254,14 @@ describe('Server Monitor API', () => {
 
             await init.pageClick(page, '#api a');
 
-            let projectId = await init.page$(page, '#projectId', {
+            let projectId: $TSFixMe = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await init.page$(page, '#apiUrl', {
+            let apiUrl: $TSFixMe = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -269,7 +269,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await init.page$(page, '#apiKey', {
+            let apiKey: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -283,7 +283,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -328,14 +328,14 @@ describe('Server Monitor API', () => {
 
             await init.pageClick(page, '#api a');
 
-            let projectId = await init.page$(page, '#projectId', {
+            let projectId: $TSFixMe = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await init.page$(page, '#apiUrl', {
+            let apiUrl: $TSFixMe = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -343,7 +343,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await init.page$(page, '#apiKey', {
+            let apiKey: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -357,7 +357,7 @@ describe('Server Monitor API', () => {
                 page
             );
 
-            let monitorId = await init.pageWaitForSelector(page, '#monitorId', {
+            let monitorId: $TSFixMe = await init.pageWaitForSelector(page, '#monitorId', {
                 visible: true,
                 timeout: operationTimeOut,
             });
@@ -381,7 +381,7 @@ describe('Server Monitor API', () => {
                 timeout: init.timeout,
             });
 
-            let activeIncidents = await init.page$(
+            let activeIncidents: $TSFixMe = await init.page$(
                 page,
                 'span#activeIncidentsText'
             );
@@ -419,7 +419,7 @@ describe('Server Monitor API', () => {
                 timeout: init.timeout,
             });
 
-            let activeIncidents = await init.page$(
+            let activeIncidents: $TSFixMe = await init.page$(
                 page,
                 'span#activeIncidentsText'
             );

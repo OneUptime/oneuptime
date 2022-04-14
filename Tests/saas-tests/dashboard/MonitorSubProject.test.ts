@@ -139,7 +139,7 @@ describe('Monitor API With SubProjects', () => {
             await init.pageType(page, '#url', 'https://google.com');
 
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${subProjectMonitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -185,7 +185,7 @@ describe('Monitor API With SubProjects', () => {
             await init.pageClick(page, '[data-testId=type_manual]');
 
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: operationTimeOut }
@@ -218,7 +218,7 @@ describe('Monitor API With SubProjects', () => {
 
             // This confirms that we have switched to the Subproject section
 
-            let subProject = await init.pageWaitForSelector(
+            let subProject: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#projectFilterToggle'
             );
@@ -226,7 +226,7 @@ describe('Monitor API With SubProjects', () => {
             subProject = await subProject.jsonValue();
             expect(subProject).toEqual(subProjectName);
 
-            let subProjectComponent = await init.pageWaitForSelector(
+            let subProjectComponent: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#component-title-${componentName}`
             );

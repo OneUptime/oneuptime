@@ -57,7 +57,7 @@ describe('Log Containers', () => {
 
             await init.pageClickNavigate(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `span#application-log-title-${applicationLogName}`
             );
@@ -91,7 +91,7 @@ describe('Log Containers', () => {
 
             await init.pageClick(page, `#edit_${applicationLogName}`);
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application-log-edit-title-${applicationLogName}`
             );
@@ -134,7 +134,7 @@ describe('Log Containers', () => {
 
             // get log container key
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application_log_key_${applicationLogName}`
             );
@@ -184,7 +184,7 @@ describe('Log Containers', () => {
                 `#show_application_log_key_${applicationLogName}`
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application_log_key_${applicationLogName}`
             );
@@ -244,7 +244,7 @@ describe('Log Containers', () => {
 
             // get log container key
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application_log_key_${applicationLogName}`
             );
@@ -343,7 +343,7 @@ describe('Log Containers', () => {
 
             await init.pageClickNavigate(page, '#logs');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application-log-title-${applicationLogName}New`
             );
@@ -398,7 +398,7 @@ describe('Log Containers', () => {
                 }
             );
             // confirm the new category shows in the details page.
-            let spanElement = await page.$(`#${applicationLogName}NewBadge`);
+            let spanElement: $TSFixMe = await page.$(`#${applicationLogName}NewBadge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -420,7 +420,7 @@ describe('Log Containers', () => {
                 page
             );
 
-            let spanElement = await page.$(`#${applicationLogName}NewBadge`);
+            let spanElement: $TSFixMe = await page.$(`#${applicationLogName}NewBadge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());

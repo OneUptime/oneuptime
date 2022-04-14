@@ -351,7 +351,7 @@ router.post(
             data.errorTrackerId = errorTrackerId;
 
             // try to fetch the particular issue with the fingerprint of the error event and the error tracker id
-            let issue = await IssueService.findOneByHashAndErrorTracker(
+            let issue: $TSFixMe = await IssueService.findOneByHashAndErrorTracker(
                 data.fingerprint,
                 errorTrackerId
             );
@@ -713,7 +713,7 @@ router.post(
                         status: action,
                     };
 
-                    let [issue] = await Promise.all([
+                    let [issue]: $TSFixMe = await Promise.all([
                         IssueService.updateOneBy(query, updateData),
                         IssueTimelineService.create(timelineData),
                     ]);
@@ -1003,7 +1003,7 @@ router.post(
                             createdById: req.user ? req.user.id : null,
                         };
                         // find if the issue member exist in the project
-                        let issueMember = await IssueMemberService.findOneBy({
+                        let issueMember: $TSFixMe = await IssueMemberService.findOneBy({
                             issueId,
                             userId: teamMemberUserId,
                         });

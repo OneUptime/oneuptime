@@ -13,7 +13,7 @@ const monitorName1: string = 'testoneuptime';
 const customDomain = utils.generateRandomString();
 
 let browser: $TSFixMe, page: $TSFixMe;
-const gotoTheFirstStatusPage = async (page: $TSFixMe): void => {
+const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
         timeout: init.timeout,
@@ -122,7 +122,7 @@ describe('Status Page', () => {
         await gotoTheFirstStatusPage(page);
         await init.themeNavigationAndConfirmation(page, 'Classic');
 
-        let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+        let link: $TSFixMe = await init.page$(page, '#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);
@@ -143,7 +143,7 @@ describe('Status Page', () => {
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );

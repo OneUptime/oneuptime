@@ -49,7 +49,7 @@ router.get(
                 select: '_id',
             });
             const projectIds = projects.map((project: $TSFixMe) => project._id);
-            let monitors = await MonitorService.findBy({
+            let monitors: $TSFixMe = await MonitorService.findBy({
                 query: { projectId: { $in: projectIds } },
                 select: '_id name',
             });

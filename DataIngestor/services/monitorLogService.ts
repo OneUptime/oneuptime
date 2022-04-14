@@ -240,7 +240,7 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        let monitorLog = await monitorLogCollection
+        let monitorLog: $TSFixMe = await monitorLogCollection
             .aggregate([
                 { $match: query },
                 { $addFields: { probeId: { $toObjectId: '$probeId' } } },

@@ -1384,7 +1384,7 @@ router.get(
     }
 );
 
-const fetchNotes = async (events: $TSFixMe, limit: PositiveNumber): void => {
+const fetchNotes: Function = async (events: $TSFixMe, limit: PositiveNumber): void => {
     const updatedEvents: $TSFixMe = [];
     if (events.length > 0) {
         for (const event of events) {
@@ -2942,7 +2942,7 @@ async function getAnnouncementLogs(
     if (theme) {
         limit = statusPage.announcementLogsHistory || 14;
     }
-    let announcementLogs = await StatusPageService.getAnnouncementLogs(
+    let announcementLogs: $TSFixMe = await StatusPageService.getAnnouncementLogs(
         {
             statusPageId: statusPage._id,
         },

@@ -62,22 +62,22 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let sendCreatedIncidentNotification = await init.page$Eval(
+            let sendCreatedIncidentNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendCreatedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.value
             );
-            let sendAcknowledgedIncidentNotification = await init.page$Eval(
+            let sendAcknowledgedIncidentNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendAcknowledgedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.value
             );
-            let sendResolvedIncidentNotification = await init.page$Eval(
+            let sendResolvedIncidentNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendResolvedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.value
             );
-            let sendInvestigationNoteNotification = await init.page$Eval(
+            let sendInvestigationNoteNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#enableInvestigationNoteNotificationEmail',
                 (elem: $TSFixMe) => elem.value
@@ -155,7 +155,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendCreatedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.value
@@ -219,7 +219,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendAcknowledgedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.value
@@ -283,7 +283,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendResolvedIncidentNotificationEmail',
                 (elem: $TSFixMe) => elem.value
@@ -347,7 +347,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#enableInvestigationNoteNotificationEmail',
                 (elem: $TSFixMe) => elem.value
@@ -392,22 +392,22 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let sendCreatedIncidentNotification = await init.page$Eval(
+            let sendCreatedIncidentNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendCreatedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.value
             );
-            let sendAcknowledgedIncidentNotification = await init.page$Eval(
+            let sendAcknowledgedIncidentNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendAcknowledgedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.value
             );
-            let sendResolvedIncidentNotification = await init.page$Eval(
+            let sendResolvedIncidentNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendResolvedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.value
             );
-            let sendInvestigationNoteNotification = await init.page$Eval(
+            let sendInvestigationNoteNotification: $TSFixMe = await init.page$Eval(
                 page,
                 '#enableInvestigationNoteNotificationSMS',
                 (elem: $TSFixMe) => elem.value
@@ -487,7 +487,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendCreatedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.value
@@ -550,7 +550,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendAcknowledgedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.value
@@ -619,7 +619,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#sendResolvedIncidentNotificationSms',
                 (elem: $TSFixMe) => elem.value
@@ -683,7 +683,7 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await init.page$Eval(
+            let checkedState: $TSFixMe = await init.page$Eval(
                 page,
                 '#enableInvestigationNoteNotificationSMS',
                 (elem: $TSFixMe) => elem.value

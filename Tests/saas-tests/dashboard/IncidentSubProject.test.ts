@@ -126,7 +126,7 @@ describe('Incident API With SubProjects', () => {
                 `#incident_${projectMonitorName}_title`
             );
 
-            let textContent = await incidentTitleSelector.getProperty(
+            let textContent: $TSFixMe = await incidentTitleSelector.getProperty(
                 'innerText'
             );
             textContent = await textContent.jsonValue();
@@ -242,7 +242,7 @@ describe('Incident API With SubProjects', () => {
                 `#incident_${projectMonitorName1}_title`
             );
 
-            let textContent = await incidentTitleSelector.getProperty(
+            let textContent: $TSFixMe = await incidentTitleSelector.getProperty(
                 'innerText'
             );
             textContent = await textContent.jsonValue();
@@ -385,7 +385,7 @@ describe('Incident API With SubProjects', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let internalContent = await internalMessage.getProperty(
+            let internalContent: $TSFixMe = await internalMessage.getProperty(
                 'innerText'
             );
 
@@ -471,7 +471,7 @@ describe('Incident API With SubProjects', () => {
     //             '#incidentTimeline tr.incidentListItem',
     //             { visible: true, timeout: init.timeout }
     //         );
-    //         let incidentTimelineRows = await init.page$$(
+    //         let incidentTimelineRows: $TSFixMe = await init.page$$(
     //             page,
     //             '#incidentTimeline tr.incidentListItem'
     //         );

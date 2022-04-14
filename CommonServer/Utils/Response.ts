@@ -64,7 +64,7 @@ export const sendEmptyResponse: Function = (
     return logResponse(req, res, undefined);
 };
 
-export const sendFileResponse: $TSFixMe = async (
+export const sendFileResponse: $TSFixMe: Function = async (
     req: ExpressRequest | ExpressRequest,
     res: ExpressResponse,
     file: File
@@ -109,7 +109,7 @@ export const sendErrorResponse: Function = (
     return logResponse(req, res, { message });
 };
 
-export const sendListResponse: $TSFixMe = async (
+export const sendListResponse: $TSFixMe: Function = async (
     req: ExpressRequest,
     res: ExpressResponse,
     list: JSONArray,
@@ -167,7 +167,7 @@ export const sendListResponse: $TSFixMe = async (
     }
 };
 
-export const sendItemResponse: $TSFixMe = async (
+export const sendItemResponse: $TSFixMe: Function = async (
     req: ExpressRequest,
     res: ExpressResponse,
     item: JSONObject

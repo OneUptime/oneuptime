@@ -72,7 +72,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        let incidentTimeline = await IncidentTimelineModel.findOneAndUpdate(
+        let incidentTimeline: $TSFixMe = await IncidentTimelineModel.findOneAndUpdate(
             query,
             { $set: data },
             {
@@ -104,7 +104,7 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        let incidentTimelines = await IncidentTimelineModel.updateMany(query, {
+        let incidentTimelines: $TSFixMe = await IncidentTimelineModel.updateMany(query, {
             $set: data,
         });
 
@@ -209,7 +209,7 @@ export default class Service {
         ];
         const selectIncTimeline: $TSFixMe =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
-        let timelines = await Promise.all(
+        let timelines: $TSFixMe = await Promise.all(
             incidents.map(async (incident: $TSFixMe) => {
                 const timeline: $TSFixMe = await this.findBy({
                     query: { incidentId: incident._id },

@@ -235,7 +235,7 @@ router.post(
                 });
             }
 
-            let testResult = await test(data);
+            let testResult: $TSFixMe = await test(data);
             testResult = { message: 'SMS sent successfully' };
             return sendItemResponse(req, res, testResult);
         } catch (error) {

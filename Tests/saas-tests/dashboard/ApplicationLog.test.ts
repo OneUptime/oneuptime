@@ -71,7 +71,7 @@ describe('Log Containers', () => {
 
             await init.pageClick(page, '#components');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}`
             );
@@ -109,7 +109,7 @@ describe('Log Containers', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `span#application-log-title-${applicationLogName}`
             );
@@ -174,7 +174,7 @@ describe('Log Containers', () => {
                 timeout: init.timeout,
             });
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${appLogName}Badge`
             );
@@ -222,7 +222,7 @@ describe('Log Containers', () => {
                 { visible: true, timeout: init.timeout }
             );
 
-            let spanElement = await init.page$(
+            let spanElement: $TSFixMe = await init.page$(
                 page,
                 '#form-new-application-log span#field-error'
             );
@@ -244,7 +244,7 @@ describe('Log Containers', () => {
                 page
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application-log-title-${applicationLogName}`
             );
@@ -300,7 +300,7 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#filter_${applicationLogName}`);
 
             // select the drop down and confirm the current value as all
-            let logTypeElement = await init.pageWaitForSelector(
+            let logTypeElement: $TSFixMe = await init.pageWaitForSelector(
                 /** React-Select Library is used in the dashboard
                  * This reminds puppeteer that the <input /> is hidden
                  * as init.pageWaitForSelector is 'visible : true' by default  */

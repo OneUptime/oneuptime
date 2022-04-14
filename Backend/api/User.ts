@@ -506,7 +506,7 @@ router.post(
                     });
                 }
 
-                let user = await UserService.findOneBy({
+                let user: $TSFixMe = await UserService.findOneBy({
                     query: { email },
                     select: '_id name email stripeCustomerId jwtRefreshToken role',
                 });

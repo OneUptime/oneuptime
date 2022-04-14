@@ -57,7 +57,7 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '.bs-Modal-content > span');
 
-            let info = await init.page$(page, '.bs-Modal-content > span');
+            let info: $TSFixMe = await init.page$(page, '.bs-Modal-content > span');
             expect(info).toBeDefined();
             info = await info.getProperty('innerText');
             info = await info.jsonValue();

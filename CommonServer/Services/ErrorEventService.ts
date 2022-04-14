@@ -260,7 +260,7 @@ export default class Service {
             { path: 'resourceCategory', select: 'name' },
             { path: 'issueId', select: 'name' },
         ];
-        let errorEvent = await this.findOneBy({
+        let errorEvent: $TSFixMe = await this.findOneBy({
             query: { _id: errorEventId, errorTrackerId: errorTrackerId },
             select: selectErrorTracker,
             populate: populateErrorTracker,
@@ -369,7 +369,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let errorEvent = await ErrorEventModel.findOneAndUpdate(
+        let errorEvent: $TSFixMe = await ErrorEventModel.findOneAndUpdate(
             query,
             { $set: data },
             {

@@ -94,7 +94,7 @@ describe('API Monitor API', () => {
             //const newMonitorName = utils.generateRandomString();
             await init.addAPIMonitorWithJSExpression(page, testMonitorName);
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${testMonitorName}`
             );
@@ -106,7 +106,7 @@ describe('API Monitor API', () => {
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await init.page$(
+                let monitorStatusElement: $TSFixMe = await init.page$(
                     page,
                     `#monitor-status-${testMonitorName}`
                 );
@@ -239,7 +239,7 @@ describe('API Monitor API', () => {
 
                 await init.pageWaitForSelector(page, '#monitor-color-yellow');
 
-                let monitorStatusElement = await init.page$(
+                let monitorStatusElement: $TSFixMe = await init.page$(
                     page,
                     `#monitor-status-${testMonitorName}`
                 );
@@ -317,7 +317,7 @@ describe('API Monitor API', () => {
 
                 await init.pageWaitForSelector(page, '#monitor-color-red');
 
-                let monitorStatusElement = await init.page$(
+                let monitorStatusElement: $TSFixMe = await init.page$(
                     page,
                     `#monitor-status-${testMonitorName}`
                 );
@@ -389,7 +389,7 @@ describe('API Monitor API', () => {
 
             await init.pageWaitForSelector(page, '#monitor-color-red');
 
-            let monitorStatusElement = await init.page$(
+            let monitorStatusElement: $TSFixMe = await init.page$(
                 page,
                 `#monitor-status-${testMonitorName}`
             );
@@ -427,7 +427,7 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, '#viewIncident-0');
 
-            let monitorIncidentReportElement = await init.pageWaitForSelector(
+            let monitorIncidentReportElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#${newMonitorName}_IncidentReport_0`
             );
@@ -446,7 +446,7 @@ describe('API Monitor API', () => {
 
             await init.pageClick(page, `#${newMonitorName}_ShowResponse_0`);
 
-            let monitorIncidentModalElement = await init.pageWaitForSelector(
+            let monitorIncidentModalElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#API_Response'
             );

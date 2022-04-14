@@ -45,7 +45,7 @@ export default class Service {
             integrationModel.notificationOptions = notificationOptions;
         }
 
-        let integration = await integrationModel.save();
+        let integration: $TSFixMe = await integrationModel.save();
         const select: $TSFixMe =
             'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
         const populate: $TSFixMe = [
@@ -129,7 +129,7 @@ export default class Service {
         } else {
             query['deleted'] = false;
 
-            let updatedIntegration = await IntegrationModel.findOneAndUpdate(
+            let updatedIntegration: $TSFixMe = await IntegrationModel.findOneAndUpdate(
                 query,
                 {
                     $set: {
@@ -178,7 +178,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await IntegrationModel.updateMany(query, {
+        let updatedData: $TSFixMe = await IntegrationModel.updateMany(query, {
             $set: data,
         });
         const select: $TSFixMe =

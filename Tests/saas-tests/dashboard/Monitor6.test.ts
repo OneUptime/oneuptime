@@ -112,7 +112,7 @@ describe('Monitor API', () => {
                 page
             );
 
-            let monitorStatusElement = await init.pageWaitForSelector(
+            let monitorStatusElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-status-${testServerMonitorName}`,
                 { visible: true, timeout: operationTimeOut }

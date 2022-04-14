@@ -60,7 +60,7 @@ export default class Service {
             );
         }
 
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'parentProjectId _id users stripePlanId',
         });
@@ -521,7 +521,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await MonitorModel.updateMany(query, {
+        let updatedData: $TSFixMe = await MonitorModel.updateMany(query, {
             $set: data,
         });
         const select: $TSFixMe =
@@ -649,7 +649,7 @@ export default class Service {
         if (monitor) {
             let subProject = null;
 
-            let project = await ProjectService.findOneBy({
+            let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProjectId _id seats stripeSubscriptionId',
             });
@@ -1219,7 +1219,7 @@ export default class Service {
         deviceId: $TSFixMe
     ): void {
         const thisObj: $TSFixMe = this;
-        let monitor = await thisObj.findOneBy({
+        let monitor: $TSFixMe = await thisObj.findOneBy({
             query: { projectId: projectId, data: { deviceId: deviceId } },
             select: '_id',
         });
@@ -1480,7 +1480,7 @@ export default class Service {
     }
 
     async addSiteUrl(query: Query, data: $TSFixMe): void {
-        let monitor = await this.findOneBy({ query, select: 'siteUrls' });
+        let monitor: $TSFixMe = await this.findOneBy({ query, select: 'siteUrls' });
 
         if (
             monitor.siteUrls &&
@@ -1498,7 +1498,7 @@ export default class Service {
     }
 
     async removeSiteUrl(query: Query, data: $TSFixMe): void {
-        let monitor = await this.findOneBy({ query, select: 'siteUrls' });
+        let monitor: $TSFixMe = await this.findOneBy({ query, select: 'siteUrls' });
         const siteUrlIndex: $TSFixMe =
             monitor.siteUrls && monitor.siteUrls.length > 0
                 ? monitor.siteUrls.indexOf(data.siteUrl)

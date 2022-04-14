@@ -159,7 +159,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent = await investigationMessage.getProperty(
+            let messageContent: $TSFixMe = await investigationMessage.getProperty(
                 'innerText'
             );
             messageContent = await messageContent.jsonValue();
@@ -228,7 +228,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent = await investigationMessage.getProperty(
+            let messageContent: $TSFixMe = await investigationMessage.getProperty(
                 'innerText'
             );
             messageContent = await messageContent.jsonValue();
@@ -305,7 +305,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent = await incidentMessage.getProperty('innerText');
+            let messageContent: $TSFixMe = await incidentMessage.getProperty('innerText');
             messageContent = await messageContent.jsonValue();
 
             expect(messageContent).toMatch(`${message}`);
@@ -378,7 +378,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#content_${type}_incident_message_0`
             );
-            let messageContent = await incidentMessage.getProperty('innerText');
+            let messageContent: $TSFixMe = await incidentMessage.getProperty('innerText');
             messageContent = await messageContent.jsonValue();
             expect(messageContent).toEqual(`${message}-updated`);
 

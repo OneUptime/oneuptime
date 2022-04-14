@@ -132,7 +132,7 @@ describe('StatusPage API With SubProjects', () => {
                 page,
                 `#status_page_count_${subProjectName}`
             );
-            let textContent = await statusPageCountSelector.getProperty(
+            let textContent: $TSFixMe = await statusPageCountSelector.getProperty(
                 'innerText'
             );
 
@@ -166,7 +166,7 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageClick(page, `#viewStatusPage_${statuspageName}`);
             await page.reload({ waitUntil: 'networkidle2' });
 
-            let statusPageNameOnStatusPage = await init.pageWaitForSelector(
+            let statusPageNameOnStatusPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#cb${statuspageName}`,
                 { visible: true, timeout: init.timeout }
@@ -201,7 +201,7 @@ describe('StatusPage API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
 
-            let statusPageRows = await init.page$$(
+            let statusPageRows: $TSFixMe = await init.page$$(
                 page,
                 'tr.statusPageListItem'
             );

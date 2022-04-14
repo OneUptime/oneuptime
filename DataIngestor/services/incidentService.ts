@@ -71,7 +71,7 @@ export default {
             data.reason = data.reason.join('\n');
         }
 
-        let updatedIncident = await incidentCollection.updateOne(query, {
+        let updatedIncident: $TSFixMe = await incidentCollection.updateOne(query, {
             $set: data,
         });
 

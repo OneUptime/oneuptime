@@ -104,7 +104,7 @@ describe('Incident Priority API', function (): void {
 
     it('Should create a new incident priority.', async () => {
         const authorization: string = `Basic ${token}`;
-        let res = await request
+        let res: $TSFixMe = await request
             .post(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -135,7 +135,7 @@ describe('Incident Priority API', function (): void {
         const newIncidentPriorityName: string = 'Intermediate Updated';
         const authorization: string = `Basic ${token}`;
 
-        let res = await request
+        let res: $TSFixMe = await request
             .put(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
             .send({
@@ -161,7 +161,7 @@ describe('Incident Priority API', function (): void {
 
     it('Should delete incident priority.', async () => {
         const authorization: string = `Basic ${token}`;
-        let res = await request
+        let res: $TSFixMe = await request
             .delete(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
             .send({ _id: newIncidentPriorityId });

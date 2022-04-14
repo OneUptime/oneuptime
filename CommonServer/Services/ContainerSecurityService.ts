@@ -148,7 +148,7 @@ export default class Service {
             data.slug = getSlug(data.name);
         }
 
-        let containerSecurity = await ContainerSecurityModel.findOneAndUpdate(
+        let containerSecurity: $TSFixMe = await ContainerSecurityModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -194,7 +194,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        let containerSecurity = await this.findOneBy({
+        let containerSecurity: $TSFixMe = await this.findOneBy({
             query,
             select: '_id',
         });

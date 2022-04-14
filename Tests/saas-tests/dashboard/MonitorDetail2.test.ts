@@ -134,7 +134,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            let subscriberRows = await init.page$Eval(
+            let subscriberRows: $TSFixMe = await init.page$Eval(
                 page,
                 createdSubscriberSelector,
                 (elem: $TSFixMe) => elem.textContent
@@ -331,7 +331,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            let newWebhookRows = await init.pageWaitForSelector(
+            let newWebhookRows: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#No_MsTeam'
             );
@@ -405,7 +405,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await init.page$$(page, createdWebhookSelector);
+            let webhookRows: $TSFixMe = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);

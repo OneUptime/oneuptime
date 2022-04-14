@@ -91,7 +91,7 @@ router.post(
             });
 
             if (countProject < 1) {
-                let user = await UserService.findOneBy({
+                let user: $TSFixMe = await UserService.findOneBy({
                     query: { _id: userId },
                     select: 'stripeCustomerId email name',
                 });
@@ -604,7 +604,7 @@ router.delete(
 
             let userId = null;
 
-            let project = await ProjectService.findOneBy({
+            let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'users _id',
             });
@@ -924,7 +924,7 @@ router.post(
                 parentProjectId,
             };
 
-            let subProjects = await ProjectService.create(data);
+            let subProjects: $TSFixMe = await ProjectService.create(data);
             const populate: $TSFixMe = [
                 { path: 'parentProjectId', select: 'name' },
             ];

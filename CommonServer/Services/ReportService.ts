@@ -163,7 +163,7 @@ export default class Service {
         const arr: $TSFixMe = [];
         const wrapper: $TSFixMe = {};
         for (const monitor of result[0].monitors) {
-            let response = await MonitorService.findOneBy({
+            let response: $TSFixMe = await MonitorService.findOneBy({
                 query: { _id: monitor._id },
                 select: 'name',
             });

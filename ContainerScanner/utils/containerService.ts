@@ -104,7 +104,7 @@ export default {
             });
 
             output.on('close', async () => {
-                let auditLogs = await readFileContent(exactFilePath);
+                let auditLogs: $TSFixMe = await readFileContent(exactFilePath);
                 // if auditLogs is empty, then scanning was unsuccessful
                 // the provided credentials or image path must have been wrong
                 if (

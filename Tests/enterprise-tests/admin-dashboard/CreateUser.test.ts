@@ -166,7 +166,7 @@ describe('Enterprise User API', () => {
                 await init.pageClick(page, 'button[type=submit]');
             }
 
-            let userRows = await init.page$$(page, 'a.db-UserListRow');
+            let userRows: $TSFixMe = await init.page$$(page, 'a.db-UserListRow');
             let countUsers = userRows.length;
 
             expect(countUsers).toEqual(10);

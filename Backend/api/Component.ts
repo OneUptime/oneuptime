@@ -322,7 +322,7 @@ router.post(
 
             // fetch monitors
             const select: string = '_id name';
-            let monitors = await MonitorService.findBy({
+            let monitors: $TSFixMe = await MonitorService.findBy({
                 query: { componentId: componentId },
                 select,
             });

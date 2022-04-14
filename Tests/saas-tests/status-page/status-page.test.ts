@@ -113,7 +113,7 @@ describe('Check StatusPage up', () => {
             });
 
             // To confirm the StatusPage name.
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#header-${statusPageName}`,
                 { visible: true, timeout: init.timeout }
@@ -147,7 +147,7 @@ describe('Check StatusPage up', () => {
             const description: string = 'My Manual Monitor';
             await init.addMonitor(monitorName, description, page);
             // To confirm the manual monitor is created.
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -211,7 +211,7 @@ describe('Check StatusPage up', () => {
             await init.clickStatusPageUrl(page);
 
             // To confirm the monitor is present in the StatusPage
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-${monitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -367,7 +367,7 @@ describe('Check StatusPage up', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#status-note',
                 {
@@ -407,7 +407,7 @@ describe('Check StatusPage up', () => {
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#status-note',
                 {
@@ -470,7 +470,7 @@ describe('Check StatusPage up', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#status-note',
                 {
@@ -510,7 +510,7 @@ describe('Check StatusPage up', () => {
                 waitUntil: 'networkidle2',
             });
             await init.navigateToStatusPage(page);
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#status-note',
                 {
@@ -579,7 +579,7 @@ describe('Check StatusPage up', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            let spanElement = await init.pageWaitForSelector(page, '#note-0', {
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(page, '#note-0', {
                 visible: true,
                 timeout: init.timeout,
             });

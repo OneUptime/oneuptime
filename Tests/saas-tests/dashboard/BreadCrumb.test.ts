@@ -82,7 +82,7 @@ describe('BreadCrumb Component test', () => {
             });
 
             await init.pageClick(page, '#cbUnnamedProject');
-            let currentPage = await init.pageWaitForSelector(
+            let currentPage: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#cbUnnamedProject',
                 {

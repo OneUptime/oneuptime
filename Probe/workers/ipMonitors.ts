@@ -38,7 +38,7 @@ export default {
     },
 };
 
-const pingfetch = async (IPAddress: $TSFixMe): void => {
+const pingfetch: Function = async (IPAddress: $TSFixMe): void => {
     const now: $TSFixMe = new Date().getTime();
     let resp = null;
     let rawResp = null;

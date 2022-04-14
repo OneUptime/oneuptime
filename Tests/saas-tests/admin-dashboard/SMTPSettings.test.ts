@@ -235,7 +235,7 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '#test-result');
 
-            let elem = await init.page$(page, '#test-result');
+            let elem: $TSFixMe = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 
@@ -276,7 +276,7 @@ describe('SMTP Settings API', () => {
 
             await init.pageWaitForSelector(page, '#test-result');
 
-            let elem = await init.page$(page, '#test-result');
+            let elem: $TSFixMe = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 

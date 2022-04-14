@@ -1552,7 +1552,7 @@ router.get(
                 count = 0;
             const incidentSlug: $TSFixMe = req.params.incidentSlug;
             const projectId: $TSFixMe = req.params.projectId;
-            let incidentId = await IncidentService.findOneBy({
+            let incidentId: $TSFixMe = await IncidentService.findOneBy({
                 query: { slug: incidentSlug },
                 select: '_id',
             });

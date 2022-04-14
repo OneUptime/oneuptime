@@ -63,7 +63,7 @@ describe('Monitor API', () => {
 
         await init.pageClick(page, 'button[type=submit]');
 
-        let sslStatusElement = await init.pageWaitForSelector(
+        let sslStatusElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#ssl-status-${testServerMonitorName}`,
             { visible: true, timeout: 600000 }

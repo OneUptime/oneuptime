@@ -921,7 +921,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject = await TeamMembers.addTeamMembersToProject(
+            let updatedProject: $TSFixMe = await TeamMembers.addTeamMembersToProject(
                 projectId,
                 members
             );
@@ -1072,7 +1072,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject = await TeamMembers.addTeamMembersToProject(
+            let updatedProject: $TSFixMe = await TeamMembers.addTeamMembersToProject(
                 projectId,
                 members
             );
@@ -1243,7 +1243,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
                 },
             ];
 
-            let updatedProject = await TeamMembers.addTeamMembersToProject(
+            let updatedProject: $TSFixMe = await TeamMembers.addTeamMembersToProject(
                 projectId,
                 members
             );

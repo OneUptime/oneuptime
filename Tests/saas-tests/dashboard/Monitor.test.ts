@@ -74,7 +74,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -126,7 +126,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, '#advanceOptions');
 
-            let criterionAdvancedOptions = await init.pageWaitForSelector(
+            let criterionAdvancedOptions: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '[data-testId=criterionAdvancedOptions_up]'
             );
@@ -139,7 +139,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -211,7 +211,7 @@ describe('Monitor API', () => {
                 .length
         ).toEqual(1);
 
-        let criterionAdvancedOption = await init.pageWaitForSelector(
+        let criterionAdvancedOption: $TSFixMe = await init.pageWaitForSelector(
             page,
             '[data-testId=criterionAdvancedOptions_up]'
         );
@@ -272,7 +272,7 @@ describe('Monitor API', () => {
 
         await init.pageClick(page, 'button[type=submit]');
 
-        let spanElement = await init.pageWaitForSelector(
+        let spanElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#monitor-title-${monitorName}`
         );

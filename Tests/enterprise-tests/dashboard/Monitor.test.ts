@@ -71,7 +71,7 @@ describe('Enterprise Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }

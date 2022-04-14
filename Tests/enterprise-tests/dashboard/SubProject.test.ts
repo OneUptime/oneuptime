@@ -239,7 +239,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, 'button[id=removeSubProject]');
 
-            let modalTitle = await init.page$(page, 'span#modalTitle');
+            let modalTitle: $TSFixMe = await init.page$(page, 'span#modalTitle');
             modalTitle = await modalTitle.getProperty('innerText');
             modalTitle = await modalTitle.jsonValue();
             expect(modalTitle).toEqual('Confirm API Reset');
@@ -267,7 +267,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, 'span#apiKey');
 
-            let oldApiKey = await init.page$(page, 'span#apiKey');
+            let oldApiKey: $TSFixMe = await init.page$(page, 'span#apiKey');
             oldApiKey = await oldApiKey.getProperty('innerText');
             oldApiKey = await oldApiKey.jsonValue();
 
@@ -294,7 +294,7 @@ describe('Sub-Project API', () => {
 
             await init.pageClick(page, 'span#apiKey');
 
-            let newApiKey = await init.page$(page, 'span#apiKey');
+            let newApiKey: $TSFixMe = await init.page$(page, 'span#apiKey');
             newApiKey = await newApiKey.getProperty('innerText');
             newApiKey = await newApiKey.jsonValue();
             expect(oldApiKey).not.toEqual(newApiKey);

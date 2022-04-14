@@ -227,7 +227,7 @@ describe('Monitor Detail API', () => {
 
             const selector: string = `#monitor-title-${newMonitorName}`;
 
-            let spanElement = await init.pageWaitForSelector(page, selector);
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(page, selector);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
 

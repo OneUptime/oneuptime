@@ -236,7 +236,7 @@ describe('Audit Logs', () => {
 
             // count currently available logs
 
-            let logCount = await init.pageWaitForSelector(
+            let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
             );
@@ -261,7 +261,7 @@ describe('Audit Logs', () => {
 
             // get the new log count
 
-            let newLogCount = await init.pageWaitForSelector(
+            let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
             );
@@ -357,7 +357,7 @@ describe('Audit Logs', () => {
 
             // count currently available logs
 
-            let logCount = await init.pageWaitForSelector(
+            let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
             );
@@ -383,7 +383,7 @@ describe('Audit Logs', () => {
 
             // validate that the number doesnt change
 
-            let newLogCount = await init.pageWaitForSelector(
+            let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
             );
@@ -411,7 +411,7 @@ describe('Audit Logs', () => {
 
             // count number of logs
 
-            let logCount = await init.pageWaitForSelector(
+            let logCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
             );
@@ -458,7 +458,7 @@ describe('Audit Logs', () => {
 
             // count new number of logs
 
-            let newLogCount = await init.pageWaitForSelector(
+            let newLogCount: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#audit-log-count`
             );

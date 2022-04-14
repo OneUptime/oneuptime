@@ -195,7 +195,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            let newWebhookRows = await init.pageWaitForSelector(
+            let newWebhookRows: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#No_SlackTeam'
             );
@@ -269,7 +269,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await init.page$$(page, createdWebhookSelector);
+            let webhookRows: $TSFixMe = await init.page$$(page, createdWebhookSelector);
             let countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(10);

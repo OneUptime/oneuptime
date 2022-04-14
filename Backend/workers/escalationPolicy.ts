@@ -150,7 +150,7 @@ export default {
 
             const selectSchedule: $TSFixMe =
                 '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-            let schedule = await ScheduleService.findOneBy({
+            let schedule: $TSFixMe = await ScheduleService.findOneBy({
                 query: { _id: notAcknowledgedCallScheduleStatus.schedule },
                 populate: populateSchedule,
                 select: selectSchedule,

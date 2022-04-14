@@ -84,7 +84,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -134,7 +134,7 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#form-new-monitor span#field-error'
             );
@@ -150,7 +150,7 @@ describe('Monitor API', () => {
         // Navigate to Component details
         await init.navigateToMonitorDetails(componentName, monitorName, page);
         //await init.pageWaitForSelector(page, '#website_postscan');
-        let sslStatusElement = await init.pageWaitForSelector(
+        let sslStatusElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#ssl-status-${monitorName}`,
             { visible: true, timeout: 600000 }

@@ -126,7 +126,7 @@ describe('Application Security Page', () => {
 
             // confirm the category shows in the details page.
             //Resource category has been removed
-            // let spanElement = await init.page$(
+            // let spanElement: $TSFixMe = await init.page$(
             //     page,
             //     `#${applicationSecurityName}-badge`
             // );

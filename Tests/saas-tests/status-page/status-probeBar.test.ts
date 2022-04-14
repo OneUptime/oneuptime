@@ -76,7 +76,7 @@ describe('Probe bar test', () => {
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );

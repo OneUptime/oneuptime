@@ -188,7 +188,7 @@ export default class Service {
             );
         }
 
-        let updatedMonitorSla = await MonitorSlaModel.findOneAndUpdate(
+        let updatedMonitorSla: $TSFixMe = await MonitorSlaModel.findOneAndUpdate(
             query,
             {
                 $set: data,

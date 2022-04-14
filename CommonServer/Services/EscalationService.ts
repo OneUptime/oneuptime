@@ -151,7 +151,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await EscalationModel.updateMany(query, {
+        let updatedData: $TSFixMe = await EscalationModel.updateMany(query, {
             $set: data,
         });
 
@@ -261,7 +261,7 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        let escalation = await this.findBy({ query, select: '_id' });
+        let escalation: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {
             const escalations: $TSFixMe = await Promise.all(
                 escalation.map(async (escalation: $TSFixMe) => {

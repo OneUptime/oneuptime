@@ -46,7 +46,7 @@ export default class Service {
             data.slug = getSlug(data.name);
         }
 
-        let scheduledEvent = await ScheduledEventModel.create({
+        let scheduledEvent: $TSFixMe = await ScheduledEventModel.create({
             ...data,
         });
 
@@ -203,7 +203,7 @@ export default class Service {
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
-        let updatedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+        let updatedScheduledEvent: $TSFixMe = await ScheduledEventModel.findOneAndUpdate(
             { _id: query._id },
             {
                 $set: data,
@@ -256,7 +256,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await ScheduledEventModel.updateMany(query, {
+        let updatedData: $TSFixMe = await ScheduledEventModel.updateMany(query, {
             $set: data,
         });
 
@@ -552,7 +552,7 @@ export default class Service {
     async resolveScheduledEvent(query: Query, data: $TSFixMe): void {
         data.resolved = true;
         data.resolvedAt = Date.now();
-        let resolvedScheduledEvent = await ScheduledEventModel.findOneAndUpdate(
+        let resolvedScheduledEvent: $TSFixMe = await ScheduledEventModel.findOneAndUpdate(
             query,
             { $set: data },
             { new: true }

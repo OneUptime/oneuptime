@@ -133,7 +133,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let issue = await IssueModel.findOneAndUpdate(
+        let issue: $TSFixMe = await IssueModel.findOneAndUpdate(
             query,
             { $set: data },
             {

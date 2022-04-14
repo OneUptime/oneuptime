@@ -70,7 +70,7 @@ export default class Service {
             throw error;
         }
 
-        let monitors = await MonitorService.findBy({
+        let monitors: $TSFixMe = await MonitorService.findBy({
             query: { _id: { $in: data.monitors } },
             select: 'disabled name _id shouldNotMonitor',
         });
@@ -511,7 +511,7 @@ export default class Service {
             data.reason = data.reason.join('\n');
         }
 
-        let updatedIncident = await IncidentModel.findOneAndUpdate(
+        let updatedIncident: $TSFixMe = await IncidentModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -563,7 +563,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await IncidentModel.updateMany(query, {
+        let updatedData: $TSFixMe = await IncidentModel.updateMany(query, {
             $set: data,
         });
 
@@ -698,7 +698,7 @@ export default class Service {
         httpRequest = {},
         acknowledgedByApi = false
     ): void {
-        let incident = await this.findOneBy({
+        let incident: $TSFixMe = await this.findOneBy({
             query: { _id: incidentId, acknowledged: false },
             select: '_id',
         });
@@ -883,7 +883,7 @@ export default class Service {
         resolvedByApi = false
     ): void {
         const data: $TSFixMe = {};
-        let incident = await this.findOneBy({
+        let incident: $TSFixMe = await this.findOneBy({
             query: { _id: incidentId },
             select: '_id acknowledged',
         });
@@ -1013,7 +1013,7 @@ export default class Service {
         userId: ObjectID,
         isHome = false
     ): void {
-        let incidentsUnresolved = await this.findBy({
+        let incidentsUnresolved: $TSFixMe = await this.findBy({
             query: { projectId: { $in: subProjectIds }, resolved: false },
             select: '_id notClosedBy',
         });
@@ -1330,7 +1330,7 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        let incident = await this.findBy({ query, select: '_id' });
+        let incident: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (incident && incident.length > 0) {
             const incidents: $TSFixMe = await Promise.all(
                 incident.map(async (incident: $TSFixMe) => {

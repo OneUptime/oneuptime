@@ -39,7 +39,7 @@ router.post(
             ];
             const selectCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField';
-            let customField = await CustomFieldService.findOneBy({
+            let customField: $TSFixMe = await CustomFieldService.findOneBy({
                 query: { projectId, fieldName },
                 populate: populateCustomField,
                 select: selectCustomField,
@@ -123,7 +123,7 @@ router.put(
             ];
             const selectCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField';
-            let customField = await CustomFieldService.findOneBy({
+            let customField: $TSFixMe = await CustomFieldService.findOneBy({
                 query: { projectId, fieldName },
                 select: selectCustomField,
                 populate: populateCustomField,

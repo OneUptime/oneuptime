@@ -136,7 +136,7 @@ export default class Service {
         if (groupExist && String(groupExist._id) !== String(query._id)) {
             throw new BadDataException('Group already exist in this project');
         }
-        let group = await GroupModel.findOneAndUpdate(
+        let group: $TSFixMe = await GroupModel.findOneAndUpdate(
             query,
             {
                 $set: data,

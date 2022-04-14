@@ -32,7 +32,7 @@ export default class Service {
             );
         }
 
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: data.projectId },
             select: 'parentProjectId _id stripePlanId seats',
         });
@@ -144,7 +144,7 @@ export default class Service {
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
-        let component = await ComponentModel.findOneAndUpdate(
+        let component: $TSFixMe = await ComponentModel.findOneAndUpdate(
             query,
             { $set: data },
             {
@@ -189,7 +189,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await ComponentModel.updateMany(query, {
+        let updatedData: $TSFixMe = await ComponentModel.updateMany(query, {
             $set: data,
         });
         const populateComponent: $TSFixMe = [
@@ -300,7 +300,7 @@ export default class Service {
         if (component) {
             let subProject = null;
 
-            let project = await ProjectService.findOneBy({
+            let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: component.projectId },
                 select: 'parentProjectId _id seats stripeSubscriptionId',
             });
@@ -481,7 +481,7 @@ export default class Service {
 
         const selectComponent: $TSFixMe =
             '_id createdAt name createdById projectId slug componentCategoryId';
-        let component = await this.findBy({
+        let component: $TSFixMe = await this.findBy({
             query,
             populate: populateComponent,
             select: selectComponent,

@@ -51,7 +51,7 @@ export default class Service {
             query['deleted'] = false;
         }
         data.updated = true;
-        let incidentMessage = await IncidentMessageModel.findOneAndUpdate(
+        let incidentMessage: $TSFixMe = await IncidentMessageModel.findOneAndUpdate(
             query,
             { $set: data },
             {

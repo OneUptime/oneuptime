@@ -157,7 +157,7 @@ export default class Service {
             if (monitor && monitor.siteUrls && monitor.siteUrls.includes(url)) {
                 siteUrls = [url];
 
-                let log = await this.findBy({
+                let log: $TSFixMe = await this.findBy({
                     query: { monitorId, url },
                     limit: 1,
                     skip: 0,
@@ -176,7 +176,7 @@ export default class Service {
                     skip,
                     limit < siteUrls.length - skip ? limit : siteUrls.length
                 )) {
-                    let log = await this.findBy({
+                    let log: $TSFixMe = await this.findBy({
                         query: { monitorId, url },
                         limit: 1,
                         skip: 0,

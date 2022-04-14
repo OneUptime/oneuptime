@@ -695,7 +695,7 @@ export default class Service {
             }
         }
 
-        let updatedStatusPage = await StatusPageModel.findOneAndUpdate(
+        let updatedStatusPage: $TSFixMe = await StatusPageModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -737,7 +737,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await StatusPageModel.updateMany(query, {
+        let updatedData: $TSFixMe = await StatusPageModel.updateMany(query, {
             $set: data,
         });
 
@@ -1063,7 +1063,7 @@ export default class Service {
             const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            let events = await Promise.all(
+            let events: $TSFixMe = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
                     const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
                         {
@@ -1174,7 +1174,7 @@ export default class Service {
             const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            let events = await Promise.all(
+            let events: $TSFixMe = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
                     const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
                         {
@@ -1282,7 +1282,7 @@ export default class Service {
             const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            let events = await Promise.all(
+            let events: $TSFixMe = await Promise.all(
                 monitorIds.map(async (monitorId: $TSFixMe) => {
                     const scheduledEvents: $TSFixMe = await ScheduledEventsService.findBy(
                         {
@@ -1594,7 +1594,7 @@ export default class Service {
     }
 
     async isPermitted(userId: ObjectID, statusPage: $TSFixMe): void {
-        const fn = async (resolve: $TSFixMe): void => {
+        const fn: Function = async (resolve: $TSFixMe): void => {
             if (statusPage.isPrivate) {
                 if (userId) {
                     const project: $TSFixMe = await ProjectService.findOneBy({
@@ -1705,7 +1705,7 @@ export default class Service {
         limit: PositiveNumber
     ): void {
         // first get the monitor, then scan status page collection containing the monitor
-        let { monitors } = await IncidentModel.findById(incidentId).select(
+        let { monitors }: $TSFixMe = await IncidentModel.findById(incidentId).select(
             'monitors.monitorId'
         );
 

@@ -57,7 +57,7 @@ export default class Service {
 
         // fetch subproject
         if (query.projectId) {
-            let subProjects = await ProjectService.findBy({
+            let subProjects: $TSFixMe = await ProjectService.findBy({
                 query: { parentProjectId: query.projectId },
                 select: '_id',
             });

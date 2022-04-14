@@ -170,7 +170,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        let schedule = await this.findOneBy({
+        let schedule: $TSFixMe = await this.findOneBy({
             query,
             select: '_id userIds monitorIds',
         });
@@ -260,7 +260,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await ScheduleModel.updateMany(query, {
+        let updatedData: $TSFixMe = await ScheduleModel.updateMany(query, {
             $set: data,
         });
 
@@ -411,7 +411,7 @@ export default class Service {
         scheduleId: $TSFixMe,
         userId: ObjectID
     ): void {
-        let scheduleIds = await this.findOneBy({
+        let scheduleIds: $TSFixMe = await this.findOneBy({
             query: { _id: scheduleId },
             select: '_id escalationIds',
         });

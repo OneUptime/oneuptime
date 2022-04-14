@@ -820,7 +820,7 @@ const _this: $TSFixMe = {
     clickStatusPageUrl: async function (page: $TSFixMe): void {
         await this.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-        let link = await this.page$(page, '#publicStatusPageUrl > span > a');
+        let link: $TSFixMe = await this.page$(page, '#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link, { waitUntil: ['networkidle2'] });

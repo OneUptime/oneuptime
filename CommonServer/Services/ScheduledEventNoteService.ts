@@ -10,7 +10,7 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async create(data: $TSFixMe, projectId: ObjectID): void {
-        let scheduledEventMessage = await ScheduledEventNoteModel.create(data);
+        let scheduledEventMessage: $TSFixMe = await ScheduledEventNoteModel.create(data);
 
         const populate: $TSFixMe = [
             { path: 'createdById', select: 'name' },
@@ -73,7 +73,7 @@ export default class Service {
             query['deleted'] = false;
         }
         /** This deletes the scheduled notes*/
-        let eventMessage = await ScheduledEventNoteModel.findOneAndUpdate(
+        let eventMessage: $TSFixMe = await ScheduledEventNoteModel.findOneAndUpdate(
             query,
             { $set: data },
             { new: true }

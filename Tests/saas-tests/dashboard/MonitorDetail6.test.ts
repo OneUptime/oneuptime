@@ -69,7 +69,7 @@ describe('Monitor Detail API', () => {
         await init.pageWaitForSelector(page, '#website_postscan', {
             timeout: 600000,
         });
-        let lighthousePerformanceElement = await init.pageWaitForSelector(
+        let lighthousePerformanceElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#performance_${urlMonitorName}_0`,
             { visible: true, timeout: init.timeout }
@@ -133,7 +133,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#website_postscan');
 
-            let lighthousePerformanceElement = await init.pageWaitForSelector(
+            let lighthousePerformanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#lighthouse-performance-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -144,7 +144,7 @@ describe('Monitor Detail API', () => {
                 await lighthousePerformanceElement.jsonValue();
             lighthousePerformanceElement.should.endWith('%');
 
-            let lighthouseAccessibilityElement = await init.pageWaitForSelector(
+            let lighthouseAccessibilityElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#lighthouse-accessibility-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -155,7 +155,7 @@ describe('Monitor Detail API', () => {
                 await lighthouseAccessibilityElement.jsonValue();
             lighthouseAccessibilityElement.should.endWith('%');
 
-            let lighthouseBestPracticesElement = await init.pageWaitForSelector(
+            let lighthouseBestPracticesElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#lighthouse-bestPractices-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -166,7 +166,7 @@ describe('Monitor Detail API', () => {
                 await lighthouseBestPracticesElement.jsonValue();
             lighthouseBestPracticesElement.should.endWith('%');
 
-            let lighthouseSeoElement = await init.pageWaitForSelector(
+            let lighthouseSeoElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#lighthouse-seo-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -177,7 +177,7 @@ describe('Monitor Detail API', () => {
             lighthouseSeoElement = await lighthouseSeoElement.jsonValue();
             lighthouseSeoElement.should.endWith('%');
 
-            let lighthousePwaElement = await init.pageWaitForSelector(
+            let lighthousePwaElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#lighthouse-pwa-${urlMonitorName}`,
                 { visible: true, timeout: init.timeout }

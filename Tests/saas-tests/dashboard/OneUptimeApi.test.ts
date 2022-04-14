@@ -54,7 +54,7 @@ describe('API test', () => {
             });
 
             await init.pageClick(page, '#api a');
-            let elementHandle = await init.page$(page, '#boxTitle', {
+            let elementHandle: $TSFixMe = await init.page$(page, '#boxTitle', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -86,7 +86,7 @@ describe('API test', () => {
             });
 
             await init.pageClick(page, '#api a');
-            let label = await init.page$(page, '#apiKey', {
+            let label: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -94,7 +94,7 @@ describe('API test', () => {
             label = await label.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let newLabel = await init.page$(page, '#apiKey', {
+            let newLabel: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -128,7 +128,7 @@ describe('API test', () => {
             await init.pageClick(page, '#api a');
 
             await init.pageClick(page, '#apiKey');
-            let oldApiKey = await init.page$(page, '#apiKey', {
+            let oldApiKey: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -148,7 +148,7 @@ describe('API test', () => {
                 hidden: true,
             });
 
-            let newApiKey = await init.page$(page, '#apiKey', {
+            let newApiKey: $TSFixMe = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -255,7 +255,7 @@ describe('API test', () => {
 
             await init.pageClick(page, '#api a');
 
-            let elementHandle = await init.pageWaitForSelector(
+            let elementHandle: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#boxTitle',
                 {

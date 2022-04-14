@@ -271,7 +271,7 @@ describe('Probe API', function (): void {
         });
         //create a second probe server.
         probeServerName2 = generateRandomString();
-        let res = await request.get('/probe/monitors').set(
+        let res: $TSFixMe = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
                 probeName: probeServerName2,
                 probeKey,
@@ -355,7 +355,7 @@ describe('Probe API', function (): void {
             },
         });
 
-        let res = await request.get('/probe/monitors').set(
+        let res: $TSFixMe = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
                 probeName: probeServerName1,
                 probeKey,

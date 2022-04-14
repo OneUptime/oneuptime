@@ -86,7 +86,7 @@ describe('Enterprise Monitor SubProject API', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${subProjectMonitorName}`,
                 { visible: true, timeout: init.timeout }

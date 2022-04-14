@@ -36,7 +36,7 @@ describe('Twilio API', function (): void {
     before(async function (): void {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
-        let res = await createUser(request, userData.user);
+        let res: $TSFixMe = await createUser(request, userData.user);
         expect(res).to.have.status(200);
         projectId = res.body.project._id;
         userId = res.body.id;

@@ -67,7 +67,7 @@ async function run(): void {
 
     logger.info('Connected to MongoDB.');
 
-    let currentVersion = await util.getVersion();
+    let currentVersion: $TSFixMe = await util.getVersion();
 
     logger.info('Current Version: ' + currentVersion);
 

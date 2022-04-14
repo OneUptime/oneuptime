@@ -23,7 +23,7 @@ export default {
             query.probeId = data.probeId;
         }
 
-        let previousMonitorStatus = await this.findBy({
+        let previousMonitorStatus: $TSFixMe = await this.findBy({
             query,
             limit: 1,
         });

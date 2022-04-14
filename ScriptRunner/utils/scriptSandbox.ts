@@ -29,7 +29,7 @@ const {
     maxSyncStatementDuration,
 }: $TSFixMe = runConfig;
 
-const run: $TSFixMe = async (
+const run: $TSFixMe: Function = async (
     functionCode: $TSFixMe,
     isCalled: $TSFixMe, // skip IIFE calls
     options = { maxScriptRunTime, maxSyncStatementDuration }

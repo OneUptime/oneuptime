@@ -137,7 +137,7 @@ describe('Container Security Page', () => {
             expect(editContainerElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            // let spanElement = await init.page$(
+            // let spanElement: $TSFixMe = await init.page$(
             //     page,
             //     `#${containerSecurityName}-badge`
             // );

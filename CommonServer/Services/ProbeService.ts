@@ -99,7 +99,7 @@ class Service extends DatabaseService<typeof Model> {
     async createMonitorDisabledStatus(data): void {
         const select: $TSFixMe =
             '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
-        let monitorStatus = await MonitorStatusService.findBy({
+        let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId },
             select,
             limit: 1,
@@ -117,7 +117,7 @@ class Service extends DatabaseService<typeof Model> {
     }
 
     async saveMonitorLog(data): void {
-        let monitorStatus = await MonitorStatusService.findBy({
+        let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: { monitorId: data.monitorId, probeId: data.probeId },
             select: 'status',
             limit: 1,
@@ -127,7 +127,7 @@ class Service extends DatabaseService<typeof Model> {
         const lastStatus: $TSFixMe =
             monitorStatus && monitorStatus.status ? monitorStatus.status : null;
 
-        let log = await MonitorLogService.create(data);
+        let log: $TSFixMe = await MonitorLogService.create(data);
 
         if (!data.stopPingTimeUpdate) {
             await MonitorService.updateMonitorPingTime(data.monitorId);

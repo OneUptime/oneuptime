@@ -361,7 +361,7 @@ export default class Service {
                 // run in the background
                 RealTimeService.sendCreatedIncident(incident);
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: monitorObj.project._id },
                     select: 'parentProjectId',
                 });
@@ -392,7 +392,7 @@ export default class Service {
         const incidentArr: $TSFixMe = [];
         await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
-                let lastIncident = await IncidentService.findOneBy({
+                let lastIncident: $TSFixMe = await IncidentService.findOneBy({
                     query: {
                         'monitors.monitorId': monitor,
                         acknowledged: false,
@@ -412,7 +412,7 @@ export default class Service {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
@@ -443,7 +443,7 @@ export default class Service {
         let incidentArr: $TSFixMe = [];
         await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
-                let incidents = await IncidentService.findBy({
+                let incidents: $TSFixMe = await IncidentService.findBy({
                     query: {
                         'monitors.monitorId': monitor,
                         acknowledged: false,
@@ -467,7 +467,7 @@ export default class Service {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
@@ -533,7 +533,7 @@ export default class Service {
                     populate,
                 });
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: {
                         _id: incidentObj.projectId._id || incidentObj.projectId,
                     },
@@ -588,7 +588,7 @@ export default class Service {
 
         await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
-                let lastIncident = await IncidentService.findOneBy({
+                let lastIncident: $TSFixMe = await IncidentService.findOneBy({
                     query: {
                         'monitors.monitorId': monitor,
                         resolved: false,
@@ -609,7 +609,7 @@ export default class Service {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
@@ -662,7 +662,7 @@ export default class Service {
 
         await Promise.all(
             monitors.map(async (monitor: $TSFixMe) => {
-                let incidents = await IncidentService.findBy({
+                let incidents: $TSFixMe = await IncidentService.findBy({
                     query: {
                         'monitors.monitorId': monitor,
                         resolved: false,
@@ -687,7 +687,7 @@ export default class Service {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: { _id: monitorObj.projectId._id },
                     select: 'parentProjectId',
                 });
@@ -753,7 +753,7 @@ export default class Service {
                     populate,
                 });
 
-                let project = await ProjectService.findOneBy({
+                let project: $TSFixMe = await ProjectService.findOneBy({
                     query: {
                         _id: incidentObj.projectId._id || incidentObj.projectId,
                     },
@@ -876,7 +876,7 @@ export default class Service {
         const projectId: $TSFixMe =
             incident.projectId._id || incident.projectId;
 
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId _id name',
         });

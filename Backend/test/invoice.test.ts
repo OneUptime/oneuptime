@@ -149,7 +149,7 @@ describe('Invoice API', function (): void {
         }
 
         const authorization: string = `Basic ${token}`;
-        let invoices = await request
+        let invoices: $TSFixMe = await request
 
             .post(`/invoice/${userId}`)
             .set('Authorization', authorization);

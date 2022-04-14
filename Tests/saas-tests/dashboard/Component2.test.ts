@@ -282,7 +282,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement = await init.page$(
+            let spanElement: $TSFixMe = await init.page$(
                 page,
                 '#form-new-component span#field-error'
             );

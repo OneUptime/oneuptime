@@ -49,7 +49,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await EmailTemplateModel.updateMany(query, {
+        let updatedData: $TSFixMe = await EmailTemplateModel.updateMany(query, {
             $set: data,
         });
         const select: string =

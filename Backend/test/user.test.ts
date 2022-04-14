@@ -729,7 +729,7 @@ describe('SSO authentication', function (): void {
     });
 
     it('Should create a new user and return the login details if the user login successfully', async (): void => {
-        let userCount = await UserModel.find({
+        let userCount: $TSFixMe = await UserModel.find({
             email: 'user1@tests.hackerbay.io',
         }).countDocuments();
         expect(userCount).to.eql(0);

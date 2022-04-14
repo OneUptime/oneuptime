@@ -56,7 +56,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let componentSpanElement = await init.pageWaitForSelector(
+            let componentSpanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#resource_type_${monitorName}`
             );
@@ -207,7 +207,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}-two`
             );
@@ -351,7 +351,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let currentPage = await init.pageWaitForSelector(page, '#cbHome', {
+            let currentPage: $TSFixMe = await init.pageWaitForSelector(page, '#cbHome', {
                 visible: true,
                 timeout: init.timeout,
             });

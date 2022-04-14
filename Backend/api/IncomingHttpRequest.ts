@@ -12,7 +12,7 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { isValidMonitor } from '../middlewares/api';
 
-const incomingHttpRequest: $TSFixMe = async (
+const incomingHttpRequest: $TSFixMe: Function = async (
     req: ExpressRequest,
     res: ExpressResponse
 ): void => {

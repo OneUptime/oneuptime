@@ -75,7 +75,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let defaultManager = await DefaultManagerModel.findOneAndUpdate(
+        let defaultManager: $TSFixMe = await DefaultManagerModel.findOneAndUpdate(
             query,
             {
                 $set: data,

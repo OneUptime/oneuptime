@@ -289,7 +289,7 @@ describe('Incident Priority API', () => {
                 page,
                 incidentPrioritiesCountIdentifier
             );
-            let incidentPrioritiesCount = await init.page$Eval(
+            let incidentPrioritiesCount: $TSFixMe = await init.page$Eval(
                 page,
                 incidentPrioritiesCountIdentifier,
                 (e: $TSFixMe) => e.textContent

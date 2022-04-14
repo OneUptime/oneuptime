@@ -55,7 +55,7 @@ describe('Monitor API', () => {
             }
         );
 
-        let lighthousePerformanceElement = await init.pageWaitForSelector(
+        let lighthousePerformanceElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#lighthouse-performance-${monitorName}`,
             { visible: true, timeout: 600000 }
@@ -66,7 +66,7 @@ describe('Monitor API', () => {
             await lighthousePerformanceElement.jsonValue();
         lighthousePerformanceElement.should.endWith('%');
 
-        let lighthouseAccessibilityElement = await init.pageWaitForSelector(
+        let lighthouseAccessibilityElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#lighthouse-accessibility-${monitorName}`,
             { visible: true, timeout: operationTimeOut }
@@ -77,7 +77,7 @@ describe('Monitor API', () => {
             await lighthouseAccessibilityElement.jsonValue();
         lighthouseAccessibilityElement.should.endWith('%');
 
-        let lighthouseBestPracticesElement = await init.pageWaitForSelector(
+        let lighthouseBestPracticesElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#lighthouse-bestPractices-${monitorName}`,
             { visible: true, timeout: operationTimeOut }
@@ -88,7 +88,7 @@ describe('Monitor API', () => {
             await lighthouseBestPracticesElement.jsonValue();
         lighthouseBestPracticesElement.should.endWith('%');
 
-        let lighthouseSeoElement = await init.pageWaitForSelector(
+        let lighthouseSeoElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#lighthouse-seo-${monitorName}`,
             { visible: true, timeout: operationTimeOut }
@@ -99,7 +99,7 @@ describe('Monitor API', () => {
         lighthouseSeoElement = await lighthouseSeoElement.jsonValue();
         lighthouseSeoElement.should.endWith('%');
 
-        let lighthousePwaElement = await init.pageWaitForSelector(
+        let lighthousePwaElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#lighthouse-pwa-${monitorName}`,
             { visible: true, timeout: operationTimeOut }

@@ -132,7 +132,7 @@ export default class Service {
             { path: 'projectId', select: 'name' },
         ];
 
-        let incomingRequest = await IncomingRequestModel.create({
+        let incomingRequest: $TSFixMe = await IncomingRequestModel.create({
             ...data,
         });
 
@@ -455,7 +455,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updateIncomingRequest = await IncomingRequestModel.updateMany(
+        let updateIncomingRequest: $TSFixMe = await IncomingRequestModel.updateMany(
             query,
             {
                 $set: data,

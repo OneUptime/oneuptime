@@ -238,7 +238,7 @@ class Service extends DatabaseService<typeof Model> {
         const paymentIntent: $TSFixMe = data.paymentIntent || null;
 
         if (util.isEmailValid(email)) {
-            let user = await this.findOneBy({
+            let user: $TSFixMe = await this.findOneBy({
                 query: { email: email },
                 select: '_id',
             });
@@ -577,7 +577,7 @@ class Service extends DatabaseService<typeof Model> {
     //Returns: promise.
     async forgotPassword(email: $TSFixMe): void {
         if (util.isEmailValid(email)) {
-            let user = await this.findOneBy({
+            let user: $TSFixMe = await this.findOneBy({
                 query: { email: email },
                 select: 'isAdminMode cachedPassword _id',
             });
@@ -619,7 +619,7 @@ class Service extends DatabaseService<typeof Model> {
     //Param 2:  token: token generated in forgot password function.
     //Returns: promise.
     async resetPassword(password: $TSFixMe, token: $TSFixMe): void {
-        let user = await this.findOneBy({
+        let user: $TSFixMe = await this.findOneBy({
             query: {
                 resetPasswordToken: token,
                 resetPasswordExpires: {
@@ -751,7 +751,7 @@ class Service extends DatabaseService<typeof Model> {
     //Param 1:  refreshToken: Refresh token.
     //Returns: promise.
     async getNewToken(refreshToken: $TSFixMe): void {
-        let user = await this.findOneBy({
+        let user: $TSFixMe = await this.findOneBy({
             query: { jwtRefreshToken: refreshToken },
             select: '_id',
         });
@@ -781,7 +781,7 @@ class Service extends DatabaseService<typeof Model> {
 
     async changePassword(data: $TSFixMe): void {
         const currentPassword: $TSFixMe = data.currentPassword;
-        let user = await this.findOneBy({
+        let user: $TSFixMe = await this.findOneBy({
             query: { _id: data._id },
             select: 'isAdminMode cachedPassword password',
         });
@@ -821,7 +821,7 @@ class Service extends DatabaseService<typeof Model> {
     async getAllUsers(skip: PositiveNumber, limit: PositiveNumber): void {
         const select: $TSFixMe =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        let users = await this.findBy({
+        let users: $TSFixMe = await this.findBy({
             query: { _id: { $ne: null }, deleted: { $ne: null } },
             skip,
             limit,
@@ -831,7 +831,7 @@ class Service extends DatabaseService<typeof Model> {
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
 
-                let userProjects = await ProjectService.findBy({
+                let userProjects: $TSFixMe = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
                 });
@@ -885,7 +885,7 @@ class Service extends DatabaseService<typeof Model> {
         query.deleted = true;
 
         const select: string = '_id';
-        let user = await this.findBy({ query, select });
+        let user: $TSFixMe = await this.findBy({ query, select });
         if (user && user.length > 1) {
             const users: $TSFixMe = await Promise.all(
                 user.map(async (user: $TSFixMe) => {
@@ -932,12 +932,12 @@ class Service extends DatabaseService<typeof Model> {
     ): void {
         const select: $TSFixMe =
             'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
-        let users = await this.findBy({ query, skip, limit, select });
+        let users: $TSFixMe = await this.findBy({ query, skip, limit, select });
         users = await Promise.all(
             users.map(async (user: $TSFixMe) => {
                 // find user subprojects and parent projects
 
-                let userProjects = await ProjectService.findBy({
+                let userProjects: $TSFixMe = await ProjectService.findBy({
                     query: { 'users.userId': user._id },
                     select: 'parentProjectId',
                 });

@@ -351,7 +351,7 @@ export default class StripeService {
                         alertOptions,
                     };
                 }
-                let updatedProject = await ProjectModel.findByIdAndUpdate(
+                let updatedProject: $TSFixMe = await ProjectModel.findByIdAndUpdate(
                     projectId,
                     updateObject,
                     { new: true }
@@ -385,7 +385,7 @@ export default class StripeService {
             projectId,
         };
 
-        let paymentIntent = await this.createInvoice(
+        let paymentIntent: $TSFixMe = await this.createInvoice(
             stripechargeAmount,
             stripeCustomerId,
             description,

@@ -18,7 +18,7 @@ export default class Service {
             throw new BadDataException('Please provide a scan log');
         }
 
-        let securityLog = await this.findOneBy({
+        let securityLog: $TSFixMe = await this.findOneBy({
             query: { securityId },
             select: '_id',
         });
@@ -132,7 +132,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        let securityLog = await this.findOneBy({ query, select: '_id' });
+        let securityLog: $TSFixMe = await this.findOneBy({ query, select: '_id' });
 
         if (!securityLog) {
             const error: $TSFixMe = new Error(

@@ -172,7 +172,7 @@ export default {
         next: NextFunction
     ): void {
         const id: $TSFixMe = req.params.id;
-        let monitor = await MonitorService.findBy({
+        let monitor: $TSFixMe = await MonitorService.findBy({
             query: {
                 type: 'incomingHttpRequest',
 

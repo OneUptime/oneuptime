@@ -13,7 +13,7 @@ const saltRounds: $TSFixMe = 10;
 async function run(): void {
     if (IS_TESTING === 'true' && IS_SAAS_SERVICE === 'true') {
         const password: $TSFixMe = await bcrypt.hash(plainPassword, saltRounds);
-        let result = await find(userCollection, { email });
+        let result: $TSFixMe = await find(userCollection, { email });
         if (result.length > 0) {
             const masterAdmin: $TSFixMe = result[0];
             const { _id }: $TSFixMe = masterAdmin;

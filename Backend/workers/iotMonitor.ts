@@ -26,7 +26,7 @@ export default {
     },
 };
 
-const job = async (monitor: $TSFixMe, res: $TSFixMe): void => {
+const job: Function = async (monitor: $TSFixMe, res: $TSFixMe): void => {
     const populate: $TSFixMe = [
         {
             path: 'monitors.monitorId',
@@ -51,7 +51,7 @@ const job = async (monitor: $TSFixMe, res: $TSFixMe): void => {
 
     if (res) {
         await MonitorService.setMonitorTime(monitor._id, res, 'online');
-        let incident = await IncidentService.findBy({
+        let incident: $TSFixMe = await IncidentService.findBy({
             query: {
                 monitorId: monitor._id,
                 createdById: null,
@@ -70,7 +70,7 @@ const job = async (monitor: $TSFixMe, res: $TSFixMe): void => {
         }
     } else {
         await MonitorService.setMonitorTime(monitor._id, 0, 'offline');
-        let incident1 = await IncidentService.findBy({
+        let incident1: $TSFixMe = await IncidentService.findBy({
             query: {
                 monitorId: monitor._id,
                 createdById: null,

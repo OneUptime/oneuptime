@@ -166,7 +166,7 @@ describe('Schedule', () => {
                 elem[0].click();
             });
 
-            let monitor = await init.page$(
+            let monitor: $TSFixMe = await init.page$(
                 page,
                 `label[id=scheduleMonitor_0] > div.Checkbox-label > span > span[title=${monitorName}]`
             );

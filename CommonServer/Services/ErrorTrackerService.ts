@@ -219,7 +219,7 @@ export default class Service {
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
-        let errorTracker = await ErrorTrackerModel.findOneAndUpdate(
+        let errorTracker: $TSFixMe = await ErrorTrackerModel.findOneAndUpdate(
             query,
             { $set: data },
             {

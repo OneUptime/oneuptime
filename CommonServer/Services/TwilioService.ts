@@ -188,7 +188,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Created'
             );
@@ -322,7 +322,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Investigation note is created'
             );
@@ -456,7 +456,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Acknowledged'
             );
@@ -590,7 +590,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Incident Resolved'
             );
@@ -758,7 +758,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Created'
             );
@@ -884,7 +884,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Note'
             );
@@ -1009,7 +1009,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Resolved'
             );
@@ -1131,7 +1131,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Scheduled Maintenance Cancelled'
             );
@@ -1254,7 +1254,7 @@ export default class TwilioService {
     ): void {
         let smsBody;
         try {
-            let { template } = await this.getTemplate(
+            let { template }: $TSFixMe = await this.getTemplate(
                 smsTemplate,
                 'Subscriber Announcement Notification Created'
             );

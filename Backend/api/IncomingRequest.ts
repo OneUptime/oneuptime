@@ -85,7 +85,7 @@ router.post(
                 },
                 { path: 'projectId', select: 'name' },
             ];
-            let incomingRequest = await IncomingRequestService.findOneBy({
+            let incomingRequest: $TSFixMe = await IncomingRequestService.findOneBy({
                 query: { name: data.name, projectId },
                 select,
                 populate,
@@ -144,7 +144,7 @@ router.put(
                 { path: 'projectId', select: 'name' },
             ];
 
-            let incomingRequest = await IncomingRequestService.findOneBy({
+            let incomingRequest: $TSFixMe = await IncomingRequestService.findOneBy({
                 query: { name: data.name, projectId },
                 select,
                 populate,
@@ -260,7 +260,7 @@ router.post(
                 { path: 'projectId', select: 'name' },
             ];
 
-            let incomingRequest = await IncomingRequestService.findOneBy({
+            let incomingRequest: $TSFixMe = await IncomingRequestService.findOneBy({
                 query: { name: data.name, projectId },
                 select,
                 populate,

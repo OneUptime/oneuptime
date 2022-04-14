@@ -64,7 +64,7 @@ describe('Profile -> Delete Account Component test', () => {
                 hidden: true,
             });
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 'span#userProfileName'
             );
@@ -120,7 +120,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, 'button[type=submit]');
 
             await init.pageClick(page, 'button[type=submit]');
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '.bs-Modal-content',
                 {
@@ -182,7 +182,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#errorMessage'
             );
@@ -261,7 +261,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageClick(page, '#enableTwoFactorAuthButton');
 
             // verify there is an error message
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#modal-message',
                 {

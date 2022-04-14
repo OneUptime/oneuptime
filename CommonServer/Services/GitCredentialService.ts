@@ -141,7 +141,7 @@ export default class Service {
         if (data.sshPrivateKey) {
             data.sshPrivateKey = fs.readFileSync(data.sshPrivateKey);
         }
-        let gitCredential = await GitCredentialModel.findOneAndUpdate(
+        let gitCredential: $TSFixMe = await GitCredentialModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -178,7 +178,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        let gitCredential = await this.findOneBy({ query, select: '_id' });
+        let gitCredential: $TSFixMe = await this.findOneBy({ query, select: '_id' });
 
         if (!gitCredential) {
             const error: $TSFixMe = new Error(

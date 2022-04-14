@@ -50,7 +50,7 @@ describe('OneUptime Monitor Reload', () => {
                 timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle2' });
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -86,7 +86,7 @@ describe('OneUptime Monitor Reload', () => {
                 timeout: init.timeout,
             });
             await page.reload({ waitUntil: 'networkidle2' });
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }

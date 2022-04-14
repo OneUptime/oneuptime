@@ -53,7 +53,7 @@ export default class Service {
         name = `${name}-${generate('1234567890', 8)}`;
         data.slug = name.toLowerCase();
 
-        let performanceTracker = await PerformanceTrackerModel.create(data);
+        let performanceTracker: $TSFixMe = await PerformanceTrackerModel.create(data);
 
         const select: string =
             'componentId name slug key showQuickStart createdById';
@@ -239,7 +239,7 @@ export default class Service {
             name = `${name}-${generate('1234567890', 8)}`;
             data.slug = name.toLowerCase();
         }
-        let performanceTracker = await PerformanceTrackerModel.findOneAndUpdate(
+        let performanceTracker: $TSFixMe = await PerformanceTrackerModel.findOneAndUpdate(
             query,
             { $set: data },
             {

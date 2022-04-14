@@ -90,7 +90,7 @@ describe('Check scheduled maintenace', () => {
             });
 
             // To confirm the StatusPage name.
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#header-${statusPageName}`,
                 { visible: true, timeout: init.timeout }
@@ -162,7 +162,7 @@ describe('Check scheduled maintenace', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             // To confirm the manual monitor is created
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -228,7 +228,7 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );
@@ -237,7 +237,7 @@ describe('Check scheduled maintenace', () => {
             await page.goto(link);
 
             // To confirm the monitor is present in the StatusPage
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-${monitorName}`,
                 { visible: true, timeout: init.timeout }
@@ -337,7 +337,7 @@ describe('Check scheduled maintenace', () => {
                 hidden: true,
             });
             // This is to confirm that the created scheduled maintenance is present and monitor is there.
-            let scheduledMaintenance = await init.pageWaitForSelector(
+            let scheduledMaintenance: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-${monitorName}`,
                 {
@@ -380,7 +380,7 @@ describe('Check scheduled maintenace', () => {
                 timeout: init.timeout,
             });
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );

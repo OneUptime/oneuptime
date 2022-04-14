@@ -72,7 +72,7 @@ describe('Error Trackers', () => {
 
             await init.pageClick(page, '#components');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `span#component-title-${componentName}`
             );
@@ -109,7 +109,7 @@ describe('Error Trackers', () => {
 
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `span#error-tracker-title-${errorTrackerName}`
             );
@@ -172,7 +172,7 @@ describe('Error Trackers', () => {
                 }
             );
 
-            let spanElement = await init.page$(
+            let spanElement: $TSFixMe = await init.page$(
                 page,
                 `#${newErrorTrackerName}-badge`
             );
@@ -219,7 +219,7 @@ describe('Error Trackers', () => {
                 { visible: true, timeout: init.timeout }
             );
 
-            let spanElement = await init.page$(
+            let spanElement: $TSFixMe = await init.page$(
                 page,
                 '#form-new-error-tracker span#field-error'
             );
@@ -240,7 +240,7 @@ describe('Error Trackers', () => {
                 page
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#error-tracker-title-${errorTrackerName}`
             );
@@ -272,7 +272,7 @@ describe('Error Trackers', () => {
                 { visible: true, timeout: init.timeout }
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#error-tracker-edit-title-${errorTrackerName}`
             );
@@ -312,7 +312,7 @@ describe('Error Trackers', () => {
 
             // get error tracker key
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#error_tracker_key_${errorTrackerName}`
             );
@@ -361,7 +361,7 @@ describe('Error Trackers', () => {
                 `#show_error_tracker_key_${errorTrackerName}`
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#error_tracker_key_${errorTrackerName}`
             );
@@ -420,7 +420,7 @@ describe('Error Trackers', () => {
 
             // get error tracker key
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#error_tracker_key_${errorTrackerName}`
             );
@@ -518,7 +518,7 @@ describe('Error Trackers', () => {
 
             await init.pageClick(page, '#errorTracking');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#error-tracker-title-${errorTrackerName}-new`
             );
@@ -575,7 +575,7 @@ describe('Error Trackers', () => {
             );
             // confirm the new category shows in the details page.
 
-            let spanElement = await init.page$(
+            let spanElement: $TSFixMe = await init.page$(
                 page,
                 `#${errorTrackerName}-new-badge`
             );
@@ -599,7 +599,7 @@ describe('Error Trackers', () => {
                 page
             );
 
-            let spanElement = await init.page$(
+            let spanElement: $TSFixMe = await init.page$(
                 page,
                 `#${errorTrackerName}-new-badge`
             );

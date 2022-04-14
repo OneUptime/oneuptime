@@ -61,7 +61,7 @@ describe('Credential Page', () => {
             });
             // When no git credential is added, no 'tr'.
 
-            let noGitCredential = await init.pageWaitForSelector(
+            let noGitCredential: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#noGitCredential'
             );
@@ -92,7 +92,7 @@ describe('Credential Page', () => {
                 hidden: true,
             });
 
-            let noGitCredential2 = await init.pageWaitForSelector(
+            let noGitCredential2: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#noGitCredential'
             );
@@ -301,7 +301,7 @@ describe('Credential Page', () => {
             });
             // When no git credential is added, no 'tr'.
 
-            let noGitCredential3 = await init.pageWaitForSelector(
+            let noGitCredential3: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#noGitCredential'
             );

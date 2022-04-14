@@ -99,7 +99,7 @@ describe('Sub-Project API', () => {
         });
 
         await init.pageClick(page, '#teamMembers');
-        let prevMemberCount = await init.page$Eval(
+        let prevMemberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${subProjectName}`,
             (elem: $TSFixMe) => elem.textContent
@@ -133,7 +133,7 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${subProjectName}`, {
             visible: true,
         });
-        let memberCount = await init.page$Eval(
+        let memberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${subProjectName}`,
             (elem: $TSFixMe) => elem.textContent
@@ -156,7 +156,7 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
-        let prevMemberCount = await init.page$Eval(
+        let prevMemberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${newProjectName}`,
             (elem: $TSFixMe) => elem.textContent
@@ -197,7 +197,7 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
-        let memberCount = await init.page$Eval(
+        let memberCount: $TSFixMe = await init.page$Eval(
             page,
             `#count_${newProjectName}`,
             (elem: $TSFixMe) => elem.textContent
@@ -224,7 +224,7 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        let oldStatusPageCounter = await init.page$Eval(
+        let oldStatusPageCounter: $TSFixMe = await init.page$Eval(
             page,
             `#status_page_count_${newProjectName}`,
             (elem: $TSFixMe) => elem.textContent
@@ -239,7 +239,7 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        let statusPageCounter = await init.page$Eval(
+        let statusPageCounter: $TSFixMe = await init.page$Eval(
             page,
             `#status_page_count_${newProjectName}`,
             (elem: $TSFixMe) => elem.textContent

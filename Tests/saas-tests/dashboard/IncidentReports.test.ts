@@ -96,7 +96,7 @@ describe('Incident Reports API', () => {
             visible: true,
             timeout: 600000,
         });
-        let incidentReportElement = await init.pageWaitForSelector(
+        let incidentReportElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#${monitorName}_IncidentReport_0`,
             { visible: true, timeout: operationTimeOut }
@@ -145,7 +145,7 @@ describe('Incident Reports API', () => {
             visible: true,
             timeout: 600000,
         });
-        let incidentReportElement = await init.pageWaitForSelector(
+        let incidentReportElement: $TSFixMe = await init.pageWaitForSelector(
             page,
             `#${monitorName}_IncidentReport_0`,
             { visible: true, timeout: operationTimeOut }

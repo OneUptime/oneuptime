@@ -25,7 +25,7 @@ export default class Service {
     }
 
     async create(data: $TSFixMe): void {
-        let customField = await MonitorCustomFieldModel.create({
+        let customField: $TSFixMe = await MonitorCustomFieldModel.create({
             ...data,
         });
 
@@ -53,7 +53,7 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        let customField = await MonitorCustomFieldModel.findOneAndUpdate(
+        let customField: $TSFixMe = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
             {
                 $set: data,
@@ -159,7 +159,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedCustomField = await MonitorCustomFieldModel.updateMany(
+        let updatedCustomField: $TSFixMe = await MonitorCustomFieldModel.updateMany(
             query,
             {
                 $set: data,

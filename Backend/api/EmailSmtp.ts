@@ -84,7 +84,7 @@ router.post(
                 };
             }
 
-            let response = await MailService.testSmtpConfig(data);
+            let response: $TSFixMe = await MailService.testSmtpConfig(data);
             response = { message: 'Email sent successfully' };
             return sendItemResponse(req, res, response);
         } catch (error) {

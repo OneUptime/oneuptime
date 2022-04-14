@@ -62,7 +62,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let notification = await this.findOneBy({
+        let notification: $TSFixMe = await this.findOneBy({
             query,
             select: 'read closed',
         });

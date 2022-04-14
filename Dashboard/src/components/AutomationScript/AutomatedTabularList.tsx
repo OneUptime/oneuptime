@@ -60,7 +60,7 @@ const AutomatedTabularList: Function = (props: AutomatedTabularListProps) => {
         canPrev = false;
     }
 
-    const nextClicked = async (): $TSFixMe => {
+    const nextClicked: Function = async (): $TSFixMe => {
         const projectId: $TSFixMe = props.currentProject && props.currentProject._id;
         const { skip }: $TSFixMe = props.scriptsObj;
         await props.fetchAutomatedScript(
@@ -70,7 +70,7 @@ const AutomatedTabularList: Function = (props: AutomatedTabularListProps) => {
         );
     };
 
-    const prevClicked = async (): $TSFixMe => {
+    const prevClicked: Function = async (): $TSFixMe => {
         const projectId: $TSFixMe = props.currentProject && props.currentProject._id;
         const { skip }: $TSFixMe = props.scriptsObj;
         await props.fetchAutomatedScript(

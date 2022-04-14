@@ -410,7 +410,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await AlertModel.updateMany(query, {
+        let updatedData: $TSFixMe = await AlertModel.updateMany(query, {
             $set: data,
         });
         const populateAlert: $TSFixMe = [
@@ -1889,7 +1889,7 @@ export default class Service {
             projectId,
         });
 
-        const sendSubscriberAlert: $TSFixMe = async ({
+        const sendSubscriberAlert: $TSFixMe: Function = async ({
             subscriber,
             monitor,
             statusPageSlug,
@@ -1973,7 +1973,7 @@ export default class Service {
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
         const track: $TSFixMe = {};
-        const sendSubscriberAlert: $TSFixMe = async ({
+        const sendSubscriberAlert: $TSFixMe: Function = async ({
             subscriber,
             monitor,
             enabledStatusPage,
@@ -2779,7 +2779,7 @@ export default class Service {
         const selectStatusPage: $TSFixMe =
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const sendSubscriberAlert: $TSFixMe = async ({
+        const sendSubscriberAlert: $TSFixMe: Function = async ({
             subscriber,
             monitor,
             enabledStatusPage,
@@ -2882,7 +2882,7 @@ export default class Service {
         const selectStatusPage: $TSFixMe =
             'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
-        const sendSubscriberAlert: $TSFixMe = async ({
+        const sendSubscriberAlert: $TSFixMe: Function = async ({
             subscriber,
             monitor,
             enabledStatusPage,
@@ -3068,7 +3068,7 @@ export default class Service {
 
         let webhookNotificationSent = true;
 
-        const sendAlerts = async (): void => {
+        const sendAlerts: Function = async (): void => {
             if (subscriber.alertVia === AlertType.Webhook) {
                 const investigationNoteNotificationWebhookDisabled: $TSFixMe =
                     isStatusPageNoteAlert &&
@@ -3925,7 +3925,7 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        let alert = await this.findBy({ query, select: '_id' });
+        let alert: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (alert && alert.length > 1) {
             const alerts: $TSFixMe = await Promise.all(
                 alert.map(async (alert: $TSFixMe) => {
@@ -4045,7 +4045,7 @@ export default class Service {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             const track: $TSFixMe = {};
-            const sendSubscribersAlert: $TSFixMe = async ({
+            const sendSubscribersAlert: $TSFixMe: Function = async ({
                 subscriber,
                 component,
                 subscribers,
@@ -4095,7 +4095,7 @@ export default class Service {
         const uuid: $TSFixMe = new Date().getTime();
         if (schedule) {
             const track: $TSFixMe = {};
-            const sendSubscribersAlert: $TSFixMe = async ({
+            const sendSubscribersAlert: $TSFixMe: Function = async ({
                 subscriber,
                 component,
                 subscribers,
@@ -4607,7 +4607,7 @@ export default class Service {
                 ? 'Scheduled maintenance resolved'
                 : 'Scheduled maintenance cancelled';
 
-        const sendAlerts = async (): void => {
+        const sendAlerts: Function = async (): void => {
             if (subscriber.alertVia === AlertType.Email) {
                 const [
                     hasGlobalSmtpSettings,
@@ -5044,7 +5044,7 @@ export default class Service {
 
         if (message) {
             const track: $TSFixMe = {};
-            const sendAlerts: $TSFixMe = async ({
+            const sendAlerts: $TSFixMe: Function = async ({
                 project,
                 subscriber,
                 projectId,

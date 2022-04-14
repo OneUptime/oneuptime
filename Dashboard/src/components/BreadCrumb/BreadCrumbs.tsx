@@ -28,7 +28,7 @@ function BreadCrumbs({
 }: BreadCrumbsProps) {
     const [loading, setLoading]: $TSFixMe = useState(true);
 
-    const close = async (): $TSFixMe => {
+    const close: Function = async (): $TSFixMe => {
         const projectId: $TSFixMe = currentProjectId;
         for (const incident of incidents) {
             if (incident.resolved) {
@@ -37,7 +37,7 @@ function BreadCrumbs({
         }
     };
 
-    const closeAllIncidents = async (): $TSFixMe => {
+    const closeAllIncidents: Function = async (): $TSFixMe => {
         await close();
         setLoading(false);
     };

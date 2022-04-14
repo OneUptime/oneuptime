@@ -74,7 +74,7 @@ export default class Service {
         let index;
         let subProject = null;
 
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId users',
         });
@@ -176,7 +176,7 @@ export default class Service {
                 'Duplicate email present. Please check.'
             );
         } else {
-            let project = await ProjectService.findOneBy({
+            let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId seats',
             });
@@ -331,7 +331,7 @@ export default class Service {
 
         let subProject = null;
 
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId seats _id users stripeSubscriptionId name',
         });
@@ -539,7 +539,7 @@ export default class Service {
         );
 
         let response = [];
-        let team = await this.getTeamMembersBy({ _id: project._id });
+        let team: $TSFixMe = await this.getTeamMembersBy({ _id: project._id });
         let teamusers = {
             projectId: project._id,
             team: team,
@@ -586,7 +586,7 @@ export default class Service {
         if (userId === teamMemberUserId) {
             throw new BadDataException('Admin User cannot delete himself');
         } else {
-            let project = await ProjectService.findOneBy({
+            let project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: 'parentProjectId users _id',
             });
@@ -704,7 +704,7 @@ export default class Service {
                         'information'
                     );
                 }
-                let team = await this.getTeamMembersBy({
+                let team: $TSFixMe = await this.getTeamMembersBy({
                     _id: project._id,
                 });
 
@@ -767,7 +767,7 @@ export default class Service {
         let subProject = null;
         let subProjects = null;
 
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'parentProjectId users _id name seats stripeSubscriptionId',
         });
@@ -887,7 +887,7 @@ export default class Service {
 
                 // send response
                 let response = [];
-                let team = await this.getTeamMembersBy({
+                let team: $TSFixMe = await this.getTeamMembersBy({
                     _id: project._id,
                 });
                 let teamusers = {

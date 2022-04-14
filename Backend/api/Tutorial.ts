@@ -34,7 +34,7 @@ router.get('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
 router.put('/', getUser, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const userId: $TSFixMe = req.user ? req.user.id : null;
-        let user = await UserService.findOneBy({
+        let user: $TSFixMe = await UserService.findOneBy({
             query: { _id: userId },
             select: 'tutorial _id',
         });

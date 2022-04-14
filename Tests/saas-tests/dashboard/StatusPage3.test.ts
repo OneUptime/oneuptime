@@ -13,7 +13,7 @@ const monitorName1: string = 'testoneuptime';
 const customDomain: string = `${utils.generateRandomString()}.com`;
 
 let browser: $TSFixMe, page: $TSFixMe;
-const gotoTheFirstStatusPage = async (page: $TSFixMe): void => {
+const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
     });
@@ -90,7 +90,7 @@ describe('Status Page', () => {
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );
@@ -100,7 +100,7 @@ describe('Status Page', () => {
 
             await init.pageWaitForSelector(page, '#customHeaderHTML > div');
 
-            let spanElement = await init.page$(page, '#customHeaderHTML > div');
+            let spanElement: $TSFixMe = await init.page$(page, '#customHeaderHTML > div');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('My header');
@@ -139,7 +139,7 @@ describe('Status Page', () => {
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );

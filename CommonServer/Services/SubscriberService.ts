@@ -73,7 +73,7 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        let updatedData = await SubscriberModel.updateMany(query, {
+        let updatedData: $TSFixMe = await SubscriberModel.updateMany(query, {
             $set: data,
         });
 
@@ -369,7 +369,7 @@ export default class Service {
 
     async restoreBy(query: Query): void {
         query.deleted = true;
-        let subscriber = await this.findBy({ query, select: '_id' });
+        let subscriber: $TSFixMe = await this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {
             const subscribers: $TSFixMe = await Promise.all(
                 subscriber.map(async subscriber => {

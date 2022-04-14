@@ -108,7 +108,7 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
         canPrev = false;
     }
 
-    const nextClicked = async (): $TSFixMe => {
+    const nextClicked: Function = async (): $TSFixMe => {
         const projectId: $TSFixMe = props.activeProject;
         const automatedSlug: $TSFixMe = props.match.params.automatedScriptslug;
         const skip: $TSFixMe = props.script && props.script.skip;
@@ -120,7 +120,7 @@ const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
         );
     };
 
-    const prevClicked = async (): $TSFixMe => {
+    const prevClicked: Function = async (): $TSFixMe => {
         const projectId: $TSFixMe = props.activeProject;
         const automatedSlug: $TSFixMe = props.match.params.automatedScriptslug;
         const skip: $TSFixMe = props.script && props.script.skip;

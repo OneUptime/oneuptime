@@ -84,7 +84,7 @@ const Form: Function = ({
             { value: 'Viewer', label: 'Viewer' },
         ],
     ];
-    const submitForm = async (data: $TSFixMe) => {
+    const submitForm: Function = async (data: $TSFixMe) => {
         const { _id: id } = data;
         const success: $TSFixMe = await onSubmit({ id, data });
         if (!success) return;

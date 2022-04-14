@@ -105,7 +105,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -159,7 +159,7 @@ describe('Components', () => {
                 e.click()
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${newMonitorName}`
             );
@@ -377,7 +377,7 @@ describe('Components', () => {
             );
             expect(firstResourceCount).toEqual('3 Resources');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#resource_type_${monitorName}`
             );
@@ -439,7 +439,7 @@ describe('Components', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#application-log-title-${applicationLogName}`
             );

@@ -19,7 +19,7 @@ const _this: $TSFixMe = {
     runJob: async function (): void {
         logger.info(`Getting a list of ${limit} monitors`);
 
-        let monitors = await ProbeAPI.get('probe/monitors', limit);
+        let monitors: $TSFixMe = await ProbeAPI.get('probe/monitors', limit);
         monitors = JSON.parse(monitors.data); // parse the stringified data
 
         logger.info(`Number of Monitors fetched - ${monitors.length} monitors`);

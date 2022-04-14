@@ -40,7 +40,7 @@ router.post(
                 { path: 'projectId', select: 'name' },
             ];
 
-            let customField = await MonitorCustomFieldService.findOneBy({
+            let customField: $TSFixMe = await MonitorCustomFieldService.findOneBy({
                 query: { projectId, fieldName },
                 select: selectMonCustomField,
                 populate: populateMonCustomField,
@@ -120,7 +120,7 @@ router.put(
                 throw new BadDataException('Field type is required');
             }
 
-            let customField = await MonitorCustomFieldService.findOneBy({
+            let customField: $TSFixMe = await MonitorCustomFieldService.findOneBy({
                 query: { projectId, fieldName },
                 select: '_id',
             });

@@ -74,7 +74,7 @@ describe('Project Setting: Change Plan', () => {
 
             // get current balance as $0
 
-            let spanBalanceElement = await init.pageWaitForSelector(
+            let spanBalanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
             );
@@ -137,7 +137,7 @@ describe('Project Setting: Change Plan', () => {
 
             // get current balance as $0
 
-            let spanBalanceElement = await init.pageWaitForSelector(
+            let spanBalanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
             );
@@ -172,7 +172,7 @@ describe('Project Setting: Change Plan', () => {
 
             // confirm a pop up comes up and the message is a successful
 
-            let spanModalElement = await init.pageWaitForSelector(
+            let spanModalElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#message-modal-message'
             );
@@ -225,7 +225,7 @@ describe('Project Setting: Change Plan', () => {
 
             // get current balance as $0
 
-            let spanBalanceElement = await init.pageWaitForSelector(
+            let spanBalanceElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#currentBalance'
             );

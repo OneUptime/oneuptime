@@ -75,7 +75,7 @@ export default class Service {
 
         // if (!query['deleted']) query['deleted'] = false;
 
-        let certificate = await CertificateModel.findOneAndUpdate(
+        let certificate: $TSFixMe = await CertificateModel.findOneAndUpdate(
             query,
             {
                 $set: data,

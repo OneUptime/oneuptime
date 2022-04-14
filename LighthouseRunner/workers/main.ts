@@ -5,7 +5,7 @@ import Route from 'Common/Types/api/route';
 
 export default {
     runJob: async function (): void {
-        let monitors = await BackendAPI.get(new Route('lighthouse/monitors'));
+        let monitors: $TSFixMe = await BackendAPI.get(new Route('lighthouse/monitors'));
         monitors = JSON.parse(monitors.data); // parse the stringified data
         await Promise.all(
             monitors.map((monitor: $TSFixMe) => {

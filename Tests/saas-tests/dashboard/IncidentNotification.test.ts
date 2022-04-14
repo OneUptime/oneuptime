@@ -333,7 +333,7 @@ describe('Incident Created test', () => {
                 timeout: init.timeout,
             });
 
-            let pageTitle = await init.page$(page, '#cbIncident');
+            let pageTitle: $TSFixMe = await init.page$(page, '#cbIncident');
             pageTitle = await pageTitle.getProperty('innerText');
             pageTitle = await pageTitle.jsonValue();
             pageTitle.should.be.exactly('Incident');
@@ -425,7 +425,7 @@ describe('Incident Created test', () => {
             );
 
             await init.pageWaitForSelector(page, '#incident_header_modal');
-            let activeIncidents = await init.page$(
+            let activeIncidents: $TSFixMe = await init.page$(
                 page,
                 '#incident_header_modal',
                 {
@@ -545,7 +545,7 @@ describe('Incident Created test', () => {
                 e.click()
             );
 
-            let filteredIncidents = await init.page$(
+            let filteredIncidents: $TSFixMe = await init.page$(
                 page,
                 'span#noIncidentsInnerText'
             );

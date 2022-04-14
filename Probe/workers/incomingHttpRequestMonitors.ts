@@ -30,7 +30,7 @@ export default {
     },
 };
 
-const checkCondition = async (condition: $TSFixMe): void => {
+const checkCondition: Function = async (condition: $TSFixMe): void => {
     let response = false;
     if (condition && condition.and && condition.and.length) {
         for (let i = 0; i < condition.and.length; i++) {

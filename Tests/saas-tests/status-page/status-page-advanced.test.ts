@@ -80,7 +80,7 @@ describe('StatusPage Advanced Options', () => {
 
             // To confirm the StatusPage name.
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#header-${statusPageName}`
             );
@@ -145,7 +145,7 @@ describe('StatusPage Advanced Options', () => {
 
             // To confirm the manual monitor is created.
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -200,7 +200,7 @@ describe('StatusPage Advanced Options', () => {
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );
@@ -210,7 +210,7 @@ describe('StatusPage Advanced Options', () => {
 
             // To confirm the monitor is present in the StatusPage.
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-${monitorName}`
             );
@@ -393,7 +393,7 @@ describe('StatusPage Advanced Options', () => {
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(
+            let link: $TSFixMe = await init.page$(
                 page,
                 '#publicStatusPageUrl > span > a'
             );
@@ -436,7 +436,7 @@ describe('StatusPage Advanced Options', () => {
             await init.pageClick(page, '#subscribe-btn-email');
             // To confirm successful subscription
 
-            let subscribeSuccess = await init.pageWaitForSelector(
+            let subscribeSuccess: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 '#monitor-subscribe-success-message'
             );

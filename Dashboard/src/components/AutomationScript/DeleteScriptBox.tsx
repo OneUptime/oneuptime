@@ -21,7 +21,7 @@ const DeleteScriptBox: Function = (props: DeleteScriptBoxProps) => {
     const { name, openModal }: $TSFixMe = props;
     const deleteModalId: $TSFixMe = uuidv4();
 
-    const deleteScript = async (): $TSFixMe => {
+    const deleteScript: Function = async (): $TSFixMe => {
         const automatedSlug: $TSFixMe = props.automatedSlug;
         const projectId: $TSFixMe = props.currentProject._id;
         await props.deleteAutomatedScript(projectId, automatedSlug).then(() => {

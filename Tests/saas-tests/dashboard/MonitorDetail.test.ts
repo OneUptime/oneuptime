@@ -51,7 +51,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`
             );
@@ -149,7 +149,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let currentTitle = await init.page$Eval(
+            let currentTitle: $TSFixMe = await init.page$Eval(
                 page,
                 incidentTitleSelector,
                 (e: $TSFixMe) => e.textContent
@@ -200,7 +200,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, '#incidentTitleLabel');
 
-            let spanElement = await init.pageWaitForSelector(
+            let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#incidentTitleLabel`
             );
@@ -230,7 +230,7 @@ describe('Monitor Detail API', () => {
 
             let incidentRows = '#numberOfIncidents';
 
-            let countIncidents = await init.page$Eval(
+            let countIncidents: $TSFixMe = await init.page$Eval(
                 page,
                 incidentRows,
                 (elem: $TSFixMe) => elem.textContent
@@ -296,7 +296,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.basic-tab');
 
-            let incidentCountSpanElement = await init.pageWaitForSelector(
+            let incidentCountSpanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
                 `#numberOfIncidents`
             );

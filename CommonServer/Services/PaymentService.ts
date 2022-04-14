@@ -291,7 +291,7 @@ export default class Service {
             return;
         }
 
-        let subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        let subscription: $TSFixMe = await stripe.subscriptions.retrieve(subscriptionId);
 
         let plan = null;
         const items: $TSFixMe = [];
@@ -411,7 +411,7 @@ export default class Service {
     }
 
     async chargeAlert(userId, projectId, chargeAmount): void {
-        let project = await ProjectService.findOneBy({
+        let project: $TSFixMe = await ProjectService.findOneBy({
             query: { _id: projectId },
             select: 'balance alertOptions _id',
         });

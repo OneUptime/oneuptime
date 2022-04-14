@@ -50,7 +50,7 @@ export default class Service {
 
     async create(data: $TSFixMe): void {
         const { projectId, name }: $TSFixMe = data;
-        let incidentNoteTemplate = await this.findOneBy({
+        let incidentNoteTemplate: $TSFixMe = await this.findOneBy({
             projectId,
             name,
         });

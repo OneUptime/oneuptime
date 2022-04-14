@@ -94,7 +94,7 @@ export default {
     },
 
     createMonitorDisabledStatus: async function (data): void {
-        let monitorStatus = await MonitorStatusService.findBy({
+        let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
             },
@@ -116,7 +116,7 @@ export default {
     },
 
     saveMonitorLog: async function (data): void {
-        let monitorStatus = await MonitorStatusService.findBy({
+        let monitorStatus: $TSFixMe = await MonitorStatusService.findBy({
             query: {
                 monitorId: data.monitorId,
                 probeId: data.probeId,
@@ -128,7 +128,7 @@ export default {
         const lastStatus: $TSFixMe =
             monitorStatus && monitorStatus.status ? monitorStatus.status : null;
 
-        let log = await MonitorLogService.create(data);
+        let log: $TSFixMe = await MonitorLogService.create(data);
 
         if (!data.stopPingTimeUpdate) {
             await MonitorService.updateMonitorPingTime(data.monitorId);

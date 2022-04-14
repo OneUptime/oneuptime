@@ -38,7 +38,7 @@ router.get('/', async (req: ExpressRequest, res: ExpressResponse) => {
 
         // handle db related operation to test the health
         try {
-            let status = await ApiStatusService.findOneBy({
+            let status: $TSFixMe = await ApiStatusService.findOneBy({
                 query: {
                     status: 'online',
                 },

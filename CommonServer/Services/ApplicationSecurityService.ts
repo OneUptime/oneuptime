@@ -177,7 +177,7 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        let applicationSecurity = await this.countBy(query);
+        let applicationSecurity: $TSFixMe = await this.countBy(query);
 
         if (!applicationSecurity) {
             const error: $TSFixMe = new Error(

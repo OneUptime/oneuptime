@@ -127,7 +127,7 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        let project = await ProjectModel.findOne(query);
+        let project: $TSFixMe = await ProjectModel.findOne(query);
         if (project) {
             if (project.stripeSubscriptionId && cancelSub) {
                 await PaymentService.removeSubscription(
@@ -395,7 +395,7 @@ export default class Service {
     }
 
     async changePlan(projectId, userId, planId): void {
-        let project = await this.updateOneBy(
+        let project: $TSFixMe = await this.updateOneBy(
             { _id: projectId },
             { stripePlanId: planId }
         );
@@ -485,7 +485,7 @@ export default class Service {
         let subProject = null;
         let subProjects = null;
 
-        let project = await this.findOneBy({
+        let project: $TSFixMe = await this.findOneBy({
             query: { _id: projectId, 'users.userId': userId },
             select: 'parentProjectId users _id seats stripeSubscriptionId',
         });
@@ -620,7 +620,7 @@ export default class Service {
         const select: $TSFixMe =
             '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
-        let projects = await this.findBy({
+        let projects: $TSFixMe = await this.findBy({
             query: { parentProjectId: null, deleted: { $ne: null } },
             limit,
             skip,
@@ -631,7 +631,7 @@ export default class Service {
         projects = await Promise.all(
             projects.map(async project => {
                 // get both sub-project users and project users
-                let users = await TeamService.getTeamMembersBy({
+                let users: $TSFixMe = await TeamService.getTeamMembersBy({
                     parentProjectId: project._id,
                 });
                 if (users.length < 1) {
@@ -741,7 +741,7 @@ export default class Service {
     async restoreBy(query): void {
         query.deleted = true;
 
-        let project = await this.findOneBy({
+        let project: $TSFixMe = await this.findOneBy({
             query,
             select: '_id users stripeCustomerId',
         });
@@ -827,12 +827,12 @@ export default class Service {
     async searchProjects(query, skip, limit): void {
         const select: string = '_id slug name';
 
-        let projects = await this.findBy({ query, limit, skip, select });
+        let projects: $TSFixMe = await this.findBy({ query, limit, skip, select });
 
         projects = await Promise.all(
             projects.map(async project => {
                 // get both sub-project users and project users
-                let users = await TeamService.getTeamMembersBy({
+                let users: $TSFixMe = await TeamService.getTeamMembersBy({
                     parentProjectId: project._id,
                 });
                 if (users.length < 1) {
