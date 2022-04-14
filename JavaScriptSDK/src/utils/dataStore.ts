@@ -134,7 +134,7 @@ class DataStore {
         }
     }
     _makeApiRequest(data: $TSFixMe): void {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios
                 .post(
                     `${this.apiUrl}/performanceMetric/${this.appId}/key/${this.appKey}`,

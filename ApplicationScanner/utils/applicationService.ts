@@ -55,20 +55,26 @@ export default {
     },
 
     decrypt: (encText, iv) => {
-        const promise: Promise = new Promise((resolve, reject) => {
-            try {
-                const decipher: $TSFixMe = crypto.createDecipheriv(
-                    algorithm,
-                    key,
-                    iv
-                );
-                let decoded: $TSFixMe = decipher.update(encText, 'hex', 'utf8');
-                decoded += decipher.final('utf8');
-                resolve(decoded);
-            } catch (error) {
-                reject(error);
+        const promise: Promise = new Promise(
+            (resolve: Function, reject: Function) => {
+                try {
+                    const decipher: $TSFixMe = crypto.createDecipheriv(
+                        algorithm,
+                        key,
+                        iv
+                    );
+                    let decoded: $TSFixMe = decipher.update(
+                        encText,
+                        'hex',
+                        'utf8'
+                    );
+                    decoded += decipher.final('utf8');
+                    resolve(decoded);
+                } catch (error) {
+                    reject(error);
+                }
             }
-        });
+        );
         return promise;
     },
 
@@ -86,7 +92,7 @@ export default {
 
         conn.on('ready', () => {
             logger.info('SSH Client :: ready');
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve: Function, reject: Function) => {
                 git(securityDir)
                     .silent(true)
                     .clone(`git@github.com:${url}.git`, cloneDirectory)
@@ -133,7 +139,7 @@ export default {
                                     highArr = [],
                                     moderateArr = [],
                                     lowArr = [];
-                                advisories.map(advisory => {
+                                advisories.map((advisory: $TSFixMe) => {
                                     if (advisory.severity === 'critical') {
                                         criticalArr.push(advisory);
                                     }
@@ -228,7 +234,7 @@ export default {
         // due to network delay
         await updateApplicationSecurityToScanning(security);
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             git(securityDir)
                 .silent(true)
                 .clone(remote, cloneDirectory)
@@ -275,7 +281,7 @@ export default {
                                 highArr = [],
                                 moderateArr = [],
                                 lowArr = [];
-                            advisories.map(advisory => {
+                            advisories.map((advisory: $TSFixMe) => {
                                 if (advisory.severity === 'critical') {
                                     criticalArr.push(advisory);
                                 }
@@ -349,7 +355,7 @@ async function deleteFolderRecursive(dir): void {
     if (fs.existsSync(dir)) {
         const entries: $TSFixMe = await readdir(dir, { withFileTypes: true });
         await Promise.all(
-            entries.map(entry => {
+            entries.map((entry: $TSFixMe) => {
                 const fullPath: $TSFixMe = Path.join(dir, entry.name);
                 return entry.isDirectory()
                     ? deleteFolderRecursive(fullPath)
@@ -386,7 +392,7 @@ function formatUrl(url): void {
 }
 
 function createDir(dirPath): void {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: Function, reject: Function) => {
         const workPath: $TSFixMe = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {
             resolve(workPath);

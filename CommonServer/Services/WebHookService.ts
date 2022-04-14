@@ -366,7 +366,7 @@ export default class Service {
                     },
                     timeout: 5000,
                 })
-                .then(response => response.status)
+                .then((response: $TSFixME) => response.status)
                 .catch(() => {
                     return 500;
                 });

@@ -1095,7 +1095,7 @@ export default class Service {
             events = flattenArray(events);
             // do not repeat the same event two times
 
-            events = eventIds.map(id => {
+            events = eventIds.map((id: $TSFixMe) =>  {
                 return events.find(event => String(event._id) === String(id));
             });
             const count: $TSFixMe = events.length;
@@ -1202,7 +1202,7 @@ export default class Service {
             events = flattenArray(events);
             // do not repeat the same event two times
 
-            events = eventIds.map(id => {
+            events = eventIds.map((id: $TSFixMe) =>  {
                 return events.find(event => String(event._id) === String(id));
             });
 
@@ -1310,7 +1310,7 @@ export default class Service {
             events = flattenArray(events);
             // do not repeat the same event two times
 
-            events = eventIds.map(id => {
+            events = eventIds.map((id: $TSFixMe) =>  {
                 return events.find(event => String(event._id) === String(id));
             });
 

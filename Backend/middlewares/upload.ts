@@ -12,7 +12,7 @@ export default new GridFsStorage({
         useUnifiedTopology: true,
     },
     file: () => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             crypto.randomBytes(16, (err, random) => {
                 if (err) {
                     return reject(err);

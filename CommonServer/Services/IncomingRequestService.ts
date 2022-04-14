@@ -109,7 +109,7 @@ export default class Service {
 
         if (data.customFields && data.customFields.length > 0) {
             const customFields: $TSFixMe = [...data.customFields];
-            data.customFields = customFields.map(field => ({
+            data.customFields = customFields.map((field: $TSFixMe) => ({
                 fieldName: field.fieldName,
                 fieldType: field.fieldType,
                 uniqueField: field.uniqueField,
@@ -304,7 +304,7 @@ export default class Service {
 
         if (data.customFields && data.customFields.length > 0) {
             const customFields: $TSFixMe = [...data.customFields];
-            data.customFields = customFields.map(field => ({
+            data.customFields = customFields.map((field: $TSFixMe) => ({
                 fieldName: field.fieldName,
                 fieldType: field.fieldType,
                 uniqueField: field.uniqueField,
@@ -950,7 +950,7 @@ export default class Service {
             }
 
             let created_incidents = new Set(
-                incidentResponse.map(response => response.idNumber)
+                incidentResponse.map((response: $TSFixMe) => response.idNumber)
             );
 
             created_incidents = [...created_incidents];
@@ -1491,7 +1491,9 @@ export default class Service {
 
             return {
                 status: 'success',
-                notes_addedTo: noteResponse.map(res => res.idNumber),
+                notes_addedTo: noteResponse.map(
+                    (res: $TSFixMe) => res.idNumber
+                ),
             };
         }
 

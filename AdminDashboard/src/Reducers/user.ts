@@ -281,7 +281,7 @@ export default function user(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map(user =>
+                    users: state.users.users.map((user: $TSFixMe) =>
                         user._id === action.payload._id ? action.payload : user
                     ),
                     count: action.payload.count,
@@ -571,7 +571,7 @@ export default function user(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    users: state.users.users.map(user => {
+                    users: state.users.users.map((user: $TSFixMe) => {
                         if (user._id === action.payload._id) {
                             user = action.payload;
                         }

@@ -216,17 +216,19 @@ export default function schedule(state = initialState, action: Action): void {
                     error: null,
                     success: true,
                 },
-                subProjectSchedules: state.subProjectSchedules.map(schedule => {
-                    return schedule._id === action.payload.projectId
-                        ? {
-                              _id: action.payload.projectId,
-                              schedules: [...action.payload.data],
-                              count: action.payload.count,
-                              skip: action.payload.skip,
-                              limit: action.payload.limit,
-                          }
-                        : schedule;
-                }),
+                subProjectSchedules: state.subProjectSchedules.map(
+                    (schedule: $TSFixMe) => {
+                        return schedule._id === action.payload.projectId
+                            ? {
+                                  _id: action.payload.projectId,
+                                  schedules: [...action.payload.data],
+                                  count: action.payload.count,
+                                  skip: action.payload.skip,
+                                  limit: action.payload.limit,
+                              }
+                            : schedule;
+                    }
+                ),
             });
 
         case PROJECT_SCHEDULE_FETCH_REQUEST:
@@ -264,30 +266,32 @@ export default function schedule(state = initialState, action: Action): void {
                 },
                 subProjectSchedules: isExistingSchedule
                     ? state.subProjectSchedules.length > 0
-                        ? state.subProjectSchedules.map(schedule => {
-                              return schedule._id ===
-                                  action.payload.projectId._id
-                                  ? {
-                                        _id: action.payload.projectId._id,
-                                        schedules: [
-                                            action.payload,
+                        ? state.subProjectSchedules.map(
+                              (schedule: $TSFixMe) => {
+                                  return schedule._id ===
+                                      action.payload.projectId._id
+                                      ? {
+                                            _id: action.payload.projectId._id,
+                                            schedules: [
+                                                action.payload,
 
-                                            ...schedule.schedules.filter(
-                                                (
-                                                    status: $TSFixMe,
-                                                    index: $TSFixMe
-                                                ) => index < 9
-                                            ),
-                                        ],
+                                                ...schedule.schedules.filter(
+                                                    (
+                                                        status: $TSFixMe,
+                                                        index: $TSFixMe
+                                                    ) => index < 9
+                                                ),
+                                            ],
 
-                                        count: schedule.count + 1,
+                                            count: schedule.count + 1,
 
-                                        skip: schedule.skip,
+                                            skip: schedule.skip,
 
-                                        limit: schedule.limit,
-                                    }
-                                  : schedule;
-                          })
+                                            limit: schedule.limit,
+                                        }
+                                      : schedule;
+                              }
+                          )
                         : [
                               {
                                   _id: action.payload.projectId._id,
@@ -342,26 +346,28 @@ export default function schedule(state = initialState, action: Action): void {
                     success: true,
                     error: null,
                 },
-                subProjectSchedules: state.subProjectSchedules.map(schedule => {
-                    return schedule._id === action.payload[0].projectId._id
-                        ? {
-                              _id: action.payload[0].projectId._id,
+                subProjectSchedules: state.subProjectSchedules.map(
+                    (schedule: $TSFixMe) => {
+                        return schedule._id === action.payload[0].projectId._id
+                            ? {
+                                  _id: action.payload[0].projectId._id,
 
-                              schedules: schedule.schedules.map(
-                                  (schedule: $TSFixMe) =>
-                                      schedule._id === action.payload[0]._id
-                                          ? action.payload[0]
-                                          : schedule
-                              ),
+                                  schedules: schedule.schedules.map(
+                                      (schedule: $TSFixMe) =>
+                                          schedule._id === action.payload[0]._id
+                                              ? action.payload[0]
+                                              : schedule
+                                  ),
 
-                              count: schedule.count,
+                                  count: schedule.count,
 
-                              skip: schedule.skip,
+                                  skip: schedule.skip,
 
-                              limit: schedule.limit,
-                          }
-                        : schedule;
-                }),
+                                  limit: schedule.limit,
+                              }
+                            : schedule;
+                    }
+                ),
             });
 
         case RENAME_SCHEDULE_REQUEST:
@@ -458,7 +464,7 @@ export default function schedule(state = initialState, action: Action): void {
 
         case ADD_MONITOR_SUCCESS:
             data = Object.assign([], state.schedules.data);
-            data = data.map(schedule => {
+            data = data.map((schedule: $TSFixMe) => {
                 return schedule._id === action.payload[0]._id
                     ? action.payload[0]
                     : schedule;
@@ -476,26 +482,28 @@ export default function schedule(state = initialState, action: Action): void {
                     success: false,
                     data,
                 },
-                subProjectSchedules: state.subProjectSchedules.map(schedule => {
-                    return schedule._id === action.payload[0].projectId._id
-                        ? {
-                              _id: action.payload[0].projectId._id,
+                subProjectSchedules: state.subProjectSchedules.map(
+                    (schedule: $TSFixMe) => {
+                        return schedule._id === action.payload[0].projectId._id
+                            ? {
+                                  _id: action.payload[0].projectId._id,
 
-                              schedules: schedule.schedules.map(
-                                  (schedule: $TSFixMe) =>
-                                      schedule._id === action.payload[0]._id
-                                          ? action.payload[0]
-                                          : schedule
-                              ),
+                                  schedules: schedule.schedules.map(
+                                      (schedule: $TSFixMe) =>
+                                          schedule._id === action.payload[0]._id
+                                              ? action.payload[0]
+                                              : schedule
+                                  ),
 
-                              count: schedule.count,
+                                  count: schedule.count,
 
-                              skip: schedule.skip,
+                                  skip: schedule.skip,
 
-                              limit: schedule.limit,
-                          }
-                        : schedule;
-                }),
+                                  limit: schedule.limit,
+                              }
+                            : schedule;
+                    }
+                ),
             });
 
         case ADD_MONITOR_REQUEST:

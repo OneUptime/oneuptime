@@ -33,7 +33,7 @@ export default class Service {
                 select: 'users',
             });
 
-            projectModel.users = parentProject.users.map(user => ({
+            projectModel.users = parentProject.users.map((user: $TSFixMe) =>  ({
                 ...user,
                 show: false,
             }));
@@ -504,7 +504,7 @@ export default class Service {
         });
         const allMembers: $TSFixMe = subProjects.concat(project);
 
-        let subMembers: $TSFixMe = subProjects.map(user => user.users);
+        let subMembers: $TSFixMe = subProjects.map((user: $TSFixMe) =>  user.users);
         subMembers = await this.getUniqueMembersIndividualProject({
             members: subMembers,
             isFlatenArr: false,
@@ -570,7 +570,7 @@ export default class Service {
                     });
                     let subProjectIds: $TSFixMe = [];
                     if (subProjects && subProjects.length > 0) {
-                        subProjectIds = subProjects.map(project => project._id);
+                        subProjectIds = subProjects.map((project: $TSFixMe) =>  project._id);
                     }
                     subProjectIds.push(project._id);
                     const countMonitor: $TSFixMe = await MonitorService.countBy({
@@ -660,7 +660,7 @@ export default class Service {
         if (userProjects.length > 0) {
             const subProjects: $TSFixMe = userProjects
 
-                .map(project => (project.parentProjectId ? project : null))
+                .map((project: $TSFixMe) =>  (project.parentProjectId ? project : null))
 
                 .filter(subProject => subProject !== null);
             parentProjectIds = subProjects.map(
@@ -669,11 +669,11 @@ export default class Service {
             );
             const projects: $TSFixMe = userProjects
 
-                .map(project => (project.parentProjectId ? null : project))
+                .map((project: $TSFixMe) =>  (project.parentProjectId ? null : project))
 
                 .filter(project => project !== null);
 
-            projectIds = projects.map(project => project._id);
+            projectIds = projects.map((project: $TSFixMe) =>  project._id);
         }
 
         // query data

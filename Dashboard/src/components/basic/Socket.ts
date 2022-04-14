@@ -59,7 +59,7 @@ interface ComponentProps {
 }
 
 class SocketApp extends Component<ComponentProps> {
-    override shouldComponentUpdate(nextProps: ComponentProps): boolean {
+    private override shouldComponentUpdate(nextProps: ComponentProps): boolean {
         if (
             this.props.project !== nextProps.project ||
             this.props.activeProjectId !== nextProps.activeProjectId
@@ -99,7 +99,7 @@ class SocketApp extends Component<ComponentProps> {
         }
     }
 
-    override render(): void {
+    public override render(): void {
         const thisObj: $TSFixMe = this;
         const loggedInUser: $TSFixMe = User.getUserId();
 

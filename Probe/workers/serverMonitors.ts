@@ -35,7 +35,7 @@ export default {
             } else {
                 await fetch(`${serverUrl}/file/${identityFile}`).then(
                     res =>
-                        new Promise((resolve, reject) => {
+                        new Promise((resolve: Function, reject: Function) => {
                             const dest: $TSFixMe = fs.createWriteStream(
                                 `./${identityFile}`
                             );

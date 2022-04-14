@@ -187,20 +187,22 @@ export default function incidentCommunicationSla(
 
         case types.UPDATE_COMMUNICATION_SLA_SUCCESS: {
             const incidentSlas: $TSFixMe =
-                state.incidentCommunicationSlas.incidentSlas.map(sla => {
-                    if (
-                        action.payload.isDefault &&
-                        String(sla._id) !== String(action.payload._id)
-                    ) {
-                        sla.isDefault = false;
-                    }
+                state.incidentCommunicationSlas.incidentSlas.map(
+                    (sla: $TSFixMe) => {
+                        if (
+                            action.payload.isDefault &&
+                            String(sla._id) !== String(action.payload._id)
+                        ) {
+                            sla.isDefault = false;
+                        }
 
-                    if (String(sla._id) === String(action.payload._id)) {
-                        sla = action.payload;
-                    }
+                        if (String(sla._id) === String(action.payload._id)) {
+                            sla = action.payload;
+                        }
 
-                    return sla;
-                });
+                        return sla;
+                    }
+                );
             return {
                 ...state,
                 incidentCommunicationSlas: {

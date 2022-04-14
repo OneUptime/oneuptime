@@ -87,7 +87,7 @@ export default function incomingRequest(
                 ...state.incomingRequests.incomingRequests,
             ];
             if (action.payload.isDefault) {
-                incomingRequests = incomingRequests.map(request => {
+                incomingRequests = incomingRequests.map((request: $TSFixMe) => {
                     if (request.isDefault) {
                         request.isDefault = false;
                     }
@@ -135,7 +135,7 @@ export default function incomingRequest(
                 ...state.incomingRequests.incomingRequests,
             ];
             if (action.payload.isDefault) {
-                incomingRequests = incomingRequests.map(request => {
+                incomingRequests = incomingRequests.map((request: $TSFixMe) => {
                     if (request.isDefault) {
                         request.isDefault = false;
                     }
@@ -143,7 +143,7 @@ export default function incomingRequest(
                 });
             }
 
-            incomingRequests = incomingRequests.map(request => {
+            incomingRequests = incomingRequests.map((request: $TSFixMe) => {
                 if (String(request._id) === String(action.payload._id)) {
                     request = action.payload;
                 }

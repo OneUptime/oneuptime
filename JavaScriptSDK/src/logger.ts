@@ -80,7 +80,7 @@ class Logger {
         if (tags) {
             requestData.tags = tags;
         }
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios
                 .post(this.apiUrl, requestData)
                 .then(res => {

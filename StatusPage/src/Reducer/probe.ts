@@ -109,7 +109,7 @@ export default function probes(state = INITIAL_STATE, action: Action): void {
 
                 probes:
                     state.probes.length > 0
-                        ? state.probes.map(probe => {
+                        ? state.probes.map((probe: $TSFixMe) => {
                               return probe._id === action.payload._id
                                   ? action.payload
                                   : probe;

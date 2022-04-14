@@ -230,37 +230,40 @@ export default function incident(state = initialState, action: Action): void {
                 incidents: {
                     incidents: isExistingIncident
                         ? state.incidents.incidents.length > 0
-                            ? state.incidents.incidents.map(incident => {
-                                  return incident._id ===
-                                      (action.payload.projectId._id ||
-                                          action.payload.projectId)
-                                      ? {
-                                            _id:
-                                                action.payload.projectId._id ||
-                                                action.payload.projectId,
-                                            incidents: [
-                                                action.payload,
+                            ? state.incidents.incidents.map(
+                                  (incident: $TSFixMe) => {
+                                      return incident._id ===
+                                          (action.payload.projectId._id ||
+                                              action.payload.projectId)
+                                          ? {
+                                                _id:
+                                                    action.payload.projectId
+                                                        ._id ||
+                                                    action.payload.projectId,
+                                                incidents: [
+                                                    action.payload,
 
-                                                ...incident.incidents.filter(
-                                                    (
-                                                        inc: $TSFixMe,
-                                                        index: $TSFixMe
-                                                    ) =>
-                                                        inc._id !==
-                                                            action.payload
-                                                                ._id ||
-                                                        index < 9
-                                                ),
-                                            ],
+                                                    ...incident.incidents.filter(
+                                                        (
+                                                            inc: $TSFixMe,
+                                                            index: $TSFixMe
+                                                        ) =>
+                                                            inc._id !==
+                                                                action.payload
+                                                                    ._id ||
+                                                            index < 9
+                                                    ),
+                                                ],
 
-                                            count: incident.count + 1,
+                                                count: incident.count + 1,
 
-                                            skip: incident.skip,
+                                                skip: incident.skip,
 
-                                            limit: incident.limit,
-                                        }
-                                      : incident;
-                              })
+                                                limit: incident.limit,
+                                            }
+                                          : incident;
+                                  }
+                              )
                             : [
                                   {
                                       _id:
@@ -537,17 +540,19 @@ export default function incident(state = initialState, action: Action): void {
         case types.PROJECT_INCIDENTS_SUCCESS:
             return Object.assign({}, state, {
                 incidents: {
-                    incidents: state.incidents.incidents.map(incident => {
-                        return incident._id === action.payload.projectId
-                            ? {
-                                  _id: action.payload.projectId,
-                                  incidents: [...action.payload.data],
-                                  count: action.payload.count,
-                                  skip: action.payload.skip,
-                                  limit: action.payload.limit,
-                              }
-                            : incident;
-                    }),
+                    incidents: state.incidents.incidents.map(
+                        (incident: $TSFixMe) => {
+                            return incident._id === action.payload.projectId
+                                ? {
+                                      _id: action.payload.projectId,
+                                      incidents: [...action.payload.data],
+                                      count: action.payload.count,
+                                      skip: action.payload.skip,
+                                      limit: action.payload.limit,
+                                  }
+                                : incident;
+                        }
+                    ),
                     error: null,
                     requesting: false,
                     success: true,
@@ -1079,24 +1084,29 @@ export default function incident(state = initialState, action: Action): void {
                 },
                 incidents: {
                     ...state.incidents,
-                    incidents: state.incidents.incidents.map(incident => {
-                        if (
-                            incident._id ===
-                            (action.payload.data.projectId._id ||
-                                action.payload.data.projectId)
-                        ) {
-                            incident.incidents = incident.incidents.map(
-                                (inObj: $TSFixMe) => {
-                                    if (inObj._id === action.payload.data._id) {
-                                        inObj = action.payload.data;
+                    incidents: state.incidents.incidents.map(
+                        (incident: $TSFixMe) => {
+                            if (
+                                incident._id ===
+                                (action.payload.data.projectId._id ||
+                                    action.payload.data.projectId)
+                            ) {
+                                incident.incidents = incident.incidents.map(
+                                    (inObj: $TSFixMe) => {
+                                        if (
+                                            inObj._id ===
+                                            action.payload.data._id
+                                        ) {
+                                            inObj = action.payload.data;
+                                        }
+                                        return inObj;
                                     }
-                                    return inObj;
-                                }
-                            );
-                        }
+                                );
+                            }
 
-                        return incident;
-                    }),
+                            return incident;
+                        }
+                    ),
                 },
             });
 
@@ -1131,24 +1141,29 @@ export default function incident(state = initialState, action: Action): void {
                 },
                 incidents: {
                     ...state.incidents,
-                    incidents: state.incidents.incidents.map(incident => {
-                        if (
-                            incident._id ===
-                            (action.payload.data.projectId._id ||
-                                action.payload.data.projectId)
-                        ) {
-                            incident.incidents = incident.incidents.map(
-                                (inObj: $TSFixMe) => {
-                                    if (inObj._id === action.payload.data._id) {
-                                        inObj = action.payload.data;
+                    incidents: state.incidents.incidents.map(
+                        (incident: $TSFixMe) => {
+                            if (
+                                incident._id ===
+                                (action.payload.data.projectId._id ||
+                                    action.payload.data.projectId)
+                            ) {
+                                incident.incidents = incident.incidents.map(
+                                    (inObj: $TSFixMe) => {
+                                        if (
+                                            inObj._id ===
+                                            action.payload.data._id
+                                        ) {
+                                            inObj = action.payload.data;
+                                        }
+                                        return inObj;
                                     }
-                                    return inObj;
-                                }
-                            );
-                        }
+                                );
+                            }
 
-                        return incident;
-                    }),
+                            return incident;
+                        }
+                    ),
                 },
             });
 

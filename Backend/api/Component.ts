@@ -729,7 +729,7 @@ router.get(
                 );
             let allComponents: $TSFixMe = [];
 
-            components.map(component => {
+            components.map((component: $TSFixMe) => {
                 allComponents = [...allComponents, ...component.components];
                 return component;
             });

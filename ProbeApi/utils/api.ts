@@ -14,7 +14,7 @@ const _this: $TSFixMe = {
     post: (url: URL, data: $TSFixMe, withBaseUrl = false) => {
         const headers: $TSFixMe = this.getHeaders();
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
             axios({
@@ -25,7 +25,7 @@ const _this: $TSFixMe = {
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {

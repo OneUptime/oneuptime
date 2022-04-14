@@ -719,34 +719,36 @@ export default function statusPage(
                 },
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
-                        ? state.subProjectStatusPages.map(statusPage => {
-                              return statusPage._id ===
-                                  action.payload.projectId ||
-                                  statusPage._id ===
-                                      action.payload.projectId._id
-                                  ? {
-                                        _id: action.payload.projectId._id
-                                            ? action.payload.projectId._id
-                                            : action.payload.projectId,
-                                        statusPages: [
-                                            action.payload,
+                        ? state.subProjectStatusPages.map(
+                              (statusPage: $TSFixMe) => {
+                                  return statusPage._id ===
+                                      action.payload.projectId ||
+                                      statusPage._id ===
+                                          action.payload.projectId._id
+                                      ? {
+                                            _id: action.payload.projectId._id
+                                                ? action.payload.projectId._id
+                                                : action.payload.projectId,
+                                            statusPages: [
+                                                action.payload,
 
-                                            ...statusPage.statusPages.filter(
-                                                (
-                                                    status: $TSFixMe,
-                                                    index: $TSFixMe
-                                                ) => index < 9
-                                            ),
-                                        ],
+                                                ...statusPage.statusPages.filter(
+                                                    (
+                                                        status: $TSFixMe,
+                                                        index: $TSFixMe
+                                                    ) => index < 9
+                                                ),
+                                            ],
 
-                                        count: statusPage.count + 1,
+                                            count: statusPage.count + 1,
 
-                                        skip: statusPage.skip,
+                                            skip: statusPage.skip,
 
-                                        limit: statusPage.limit,
-                                    }
-                                  : statusPage;
-                          })
+                                            limit: statusPage.limit,
+                                        }
+                                      : statusPage;
+                              }
+                          )
                         : [
                               {
                                   _id: action.payload.projectId._id

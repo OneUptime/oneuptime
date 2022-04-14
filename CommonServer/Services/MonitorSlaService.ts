@@ -144,7 +144,7 @@ export default class Service {
             if (data.monitors && data.monitors.length > 0) {
                 let monitorIds: $TSFixMe = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
-                monitorIds = monitorIds.map(id => String(id));
+                monitorIds = monitorIds.map((id: $TSFixMe) => String(id));
                 initialMonitorIds.forEach((monitorId: $TSFixMe) => {
                     if (!monitorIds.includes(String(monitorId))) {
                         removedMonitors.push(monitorId);

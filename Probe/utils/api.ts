@@ -17,7 +17,7 @@ const _this: $TSFixMe = {
     post: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
 
@@ -29,7 +29,7 @@ const _this: $TSFixMe = {
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -46,13 +46,13 @@ const _this: $TSFixMe = {
 
     get: (url: URL, limit = 10) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'GET',
                 url: `${config.probeApiUrl}/${url}?limit=${limit}`,
                 headers,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -69,7 +69,7 @@ const _this: $TSFixMe = {
 
     put: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             // Error [ERR_FR_MAX_BODY_LENGTH_EXCEEDED]: Request body larger than maxBodyLength limit
             // https://stackoverflow.com/questions/58655532/increasing-maxcontentlength-and-maxbodylength-in-axios
 
@@ -81,7 +81,7 @@ const _this: $TSFixMe = {
                 maxContentLength: Infinity,
                 maxBodyLength: Infinity,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -98,14 +98,14 @@ const _this: $TSFixMe = {
 
     delete: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'DELETE',
                 url: `${config.dataIngestorUrl}/${url}`,
                 headers,
                 data,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {

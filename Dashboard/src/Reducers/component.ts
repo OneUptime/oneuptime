@@ -200,7 +200,7 @@ export default function component(state = INITIAL_STATE, action: Action): void {
 
         case FETCH_PAGINATED_COMPONENTS_SUCCESS: {
             const updatedComponents: $TSFixMe =
-                state.componentList.components.map(componentObj => {
+                state.componentList.components.map((componentObj: $TSFixMe) => {
                     if (componentObj._id === action.payload._id) {
                         componentObj = action.payload;
                     }
@@ -275,65 +275,74 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: false,
-                    components: state.componentList.components.map(project => {
-                        const subProject: $TSFixMe = Object.assign({}, project);
-                        const subProjectComponents: $TSFixMe =
-                            subProject.components &&
-                            subProject.components.slice();
-
-                        const newComponent: $TSFixMe = Object.assign(
-                            {},
-                            action.payload
-                        );
-
-                        const componentIndex: $TSFixMe =
-                            subProjectComponents &&
-                            subProjectComponents.findIndex(
-                                (component: $TSFixMe) =>
-                                    component._id === newComponent._id
+                    components: state.componentList.components.map(
+                        (project: $TSFixMe) => {
+                            const subProject: $TSFixMe = Object.assign(
+                                {},
+                                project
                             );
-                        const isSubProjectComponent: $TSFixMe =
-                            componentIndex > -1;
+                            const subProjectComponents: $TSFixMe =
+                                subProject.components &&
+                                subProject.components.slice();
 
-                        if (subProject._id === newComponent.projectId._id) {
-                            if (isSubProjectComponent) {
-                                const oldComponent: $TSFixMe = Object.assign(
-                                    {},
-                                    subProjectComponents[componentIndex]
+                            const newComponent: $TSFixMe = Object.assign(
+                                {},
+                                action.payload
+                            );
+
+                            const componentIndex: $TSFixMe =
+                                subProjectComponents &&
+                                subProjectComponents.findIndex(
+                                    (component: $TSFixMe) =>
+                                        component._id === newComponent._id
                                 );
+                            const isSubProjectComponent: $TSFixMe =
+                                componentIndex > -1;
 
-                                if (!newComponent.skip) {
-                                    newComponent.skip = oldComponent.skip;
-                                }
-                                if (!newComponent.limit) {
-                                    newComponent.limit = oldComponent.limit;
-                                }
-                                if (!newComponent.count) {
-                                    newComponent.count = oldComponent.count;
-                                }
+                            if (subProject._id === newComponent.projectId._id) {
+                                if (isSubProjectComponent) {
+                                    const oldComponent: $TSFixMe =
+                                        Object.assign(
+                                            {},
+                                            subProjectComponents[componentIndex]
+                                        );
 
-                                subProjectComponents[componentIndex] =
-                                    newComponent;
+                                    if (!newComponent.skip) {
+                                        newComponent.skip = oldComponent.skip;
+                                    }
+                                    if (!newComponent.limit) {
+                                        newComponent.limit = oldComponent.limit;
+                                    }
+                                    if (!newComponent.count) {
+                                        newComponent.count = oldComponent.count;
+                                    }
+
+                                    subProjectComponents[componentIndex] =
+                                        newComponent;
+                                } else {
+                                    newComponent.skip = 0;
+                                    newComponent.limit = 0;
+                                    newComponent.count = 0;
+
+                                    subProjectComponents.unshift(newComponent);
+
+                                    subProject.count += 1;
+                                }
                             } else {
-                                newComponent.skip = 0;
-                                newComponent.limit = 0;
-                                newComponent.count = 0;
+                                if (isSubProjectComponent) {
+                                    subProjectComponents.splice(
+                                        componentIndex,
+                                        1
+                                    );
 
-                                subProjectComponents.unshift(newComponent);
-
-                                subProject.count += 1;
+                                    subProject.count -= 1;
+                                }
                             }
-                        } else {
-                            if (isSubProjectComponent) {
-                                subProjectComponents.splice(componentIndex, 1);
 
-                                subProject.count -= 1;
-                            }
+                            subProject.components = subProjectComponents;
+                            return subProject;
                         }
-
-                        subProject.components = subProjectComponents;
-                        return subProject;
-                    }),
+                    ),
                 },
                 editComponent: {
                     requesting: false,

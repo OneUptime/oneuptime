@@ -260,7 +260,7 @@ async function fetchCredential(
     credentialName: $TSFixMe,
     configPath: $TSFixMe
 ): void {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: Function, reject: Function) => {
         fetch(`${apiHost}/file/${credentialName}`).then(
             (res: ExpressResponse) => {
                 const dest: $TSFixMe = fs.createWriteStream(configPath);
@@ -300,7 +300,7 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
 }
 
 function createDir(dirPath: $TSFixMe): void {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: Function, reject: Function) => {
         const workPath: $TSFixMe = path.resolve(process.cwd(), 'src', dirPath);
         if (fs.existsSync(workPath)) {
             resolve(workPath);

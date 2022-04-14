@@ -13,14 +13,14 @@ const _this: $TSFixMe = {
     post: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'POST',
                 url: `${config.serverUrl}/${url}`,
                 headers,
                 data,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -37,13 +37,13 @@ const _this: $TSFixMe = {
 
     get: (url: URL) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'GET',
                 url: `${config.serverUrl}/${url}`,
                 headers,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -60,14 +60,14 @@ const _this: $TSFixMe = {
 
     put: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'PUT',
                 url: `${config.serverUrl}/${url}`,
                 headers,
                 data,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {
@@ -84,14 +84,14 @@ const _this: $TSFixMe = {
 
     delete: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'DELETE',
                 url: `${config.serverUrl}/${url}`,
                 headers,
                 data,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {

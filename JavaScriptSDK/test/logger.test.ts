@@ -108,7 +108,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog.key
         );
         const logMessage: string = 'This is a simple log';
-        validLog.log(logMessage).then(response => {
+        validLog.log(logMessage).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -129,7 +129,7 @@ describe('OneUptimeLogger', function (): void {
             message: 'This is a simple log',
             user: { name: 'Jon', email: 'accurate@y.co.uk' },
         };
-        validLog.log(logMessage).then(response => {
+        validLog.log(logMessage).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -157,7 +157,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog.key
         );
         const logMessage: string = 'This is a simple log';
-        validLog.error(logMessage).then(response => {
+        validLog.error(logMessage).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -175,7 +175,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog.key
         );
         const logMessage: string = 'This is a simple log';
-        validLog.warning(logMessage).then(response => {
+        validLog.warning(logMessage).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -195,7 +195,7 @@ describe('OneUptimeLogger', function (): void {
         const logMessage: string = 'This is a simple log';
         const tag: string = 'trial';
 
-        validLog.log(logMessage, tag).then(response => {
+        validLog.log(logMessage, tag).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -219,7 +219,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog.key
         );
         const logMessage: string = 'This is a simple log';
-        validLog.warning(logMessage).then(response => {
+        validLog.warning(logMessage).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -239,7 +239,7 @@ describe('OneUptimeLogger', function (): void {
         const logMessage: string = 'This is a simple log';
         const tags: $TSFixMe = ['auction', 'trial', 'famous'];
 
-        validLog.error(logMessage, tags).then(response => {
+        validLog.error(logMessage, tags).then((response: $TSFixME) => {
             expect(response.status).to.equal(200);
 
             expect(response.data).to.be.an('object');
@@ -266,7 +266,7 @@ describe('OneUptimeLogger', function (): void {
         const logMessage: string = 'This is a simple log';
         const tags: $TSFixMe = { type: 'trying things' };
 
-        validLog.error(logMessage, tags).then(response => {
+        validLog.error(logMessage, tags).then((response: $TSFixME) => {
             expect(response).to.equal('Invalid Content Tags to be logged');
         });
     });

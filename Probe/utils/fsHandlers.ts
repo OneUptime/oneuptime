@@ -10,7 +10,7 @@ const unlink: $TSFixMe = promisify(fs.unlink);
  * @param {string} filePath path to file
  */
 function readFileContent(filePath: $TSFixMe): void {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: Function, reject: Function) => {
         if (fs.existsSync(filePath)) {
             fs.readFile(filePath, { encoding: 'utf8' }, (error, data): void => {
                 if (error) {
@@ -40,7 +40,7 @@ async function deleteFolderRecursive(dir: $TSFixMe): void {
     if (fs.existsSync(dir)) {
         const entries: $TSFixMe = await readdir(dir, { withFileTypes: true });
         await Promise.all(
-            entries.map(entry => {
+            entries.map((entry: $TSFixMe) => {
                 const fullPath: $TSFixMe = Path.join(dir, entry.name);
                 return entry.isDirectory()
                     ? deleteFolderRecursive(fullPath)

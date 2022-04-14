@@ -293,7 +293,7 @@ class Service extends DatabaseService<typeof Model> {
             matchedCriterion.scripts &&
             matchedCriterion.scripts.length > 0
         ) {
-            scripts = matchedCriterion.scripts.map(script => {
+            scripts = matchedCriterion.scripts.map((script: $TSFixMe) =>  {
                 return {
                     automatedScript: script.scriptId,
                 };
@@ -526,7 +526,7 @@ class Service extends DatabaseService<typeof Model> {
             }
         }
         // incidentIds = await Promise.all(incidentIds);
-        incidentIds = incidentIds.map(i => i._id);
+        incidentIds = incidentIds.map((i: $TSFixMe) =>  i._id);
 
         return incidentIds;
     }

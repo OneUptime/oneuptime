@@ -99,7 +99,7 @@ export default (state = initialState, action: Action): void => {
                     requesting: false,
                     error: null,
                     success: true,
-                    data: state.alerts.data.map(alert => {
+                    data: state.alerts.data.map((alert: $TSFixMe) => {
                         return alert._id === action.payload.projectId ||
                             alert._id === action.payload.projectId._id
                             ? {

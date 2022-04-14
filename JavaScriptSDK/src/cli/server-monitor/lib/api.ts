@@ -120,7 +120,10 @@ const ping: Function = (
                                 storageUsed:
                                     storage && storage.length > 0
                                         ? storage
-                                              .map(partition => partition.used)
+                                              .map(
+                                                  (partition: $TSFixMe) =>
+                                                      partition.used
+                                              )
                                               .reduce(
                                                   (used, partitionUsed) =>
                                                       used + partitionUsed
@@ -133,7 +136,10 @@ const ping: Function = (
                                 storageUsage:
                                     storage && storage.length > 0
                                         ? storage
-                                              .map(partition => partition.use)
+                                              .map(
+                                                  (partition: $TSFixMe) =>
+                                                      partition.use
+                                              )
                                               .reduce(
                                                   (use, partitionUse) =>
                                                       use + partitionUse
@@ -213,7 +219,7 @@ export default function (
             }?type=server-monitor`;
 
             return get(apiUrl, url, apiKey, (response: $TSFixMe) => {
-                return new Promise((resolve, reject) => {
+                return new Promise((resolve: Function, reject: Function) => {
                     const data: $TSFixMe = response.data;
 
                     if (data && data !== null) {
@@ -248,33 +254,37 @@ export default function (
                 });
             })
                 .then((monitorId: $TSFixMe) => {
-                    return new Promise((resolve, reject) => {
-                        if (monitorId) {
-                            logger.info('Starting Server Monitor...');
-                            pingServer = ping(
-                                projectId,
-                                monitorId,
-                                apiUrl,
-                                apiKey,
-                                interval,
-                                simulate,
-                                simulateData
-                            );
-                            pingServer.start();
+                    return new Promise(
+                        (resolve: Function, reject: Function) => {
+                            if (monitorId) {
+                                logger.info('Starting Server Monitor...');
+                                pingServer = ping(
+                                    projectId,
+                                    monitorId,
+                                    apiUrl,
+                                    apiKey,
+                                    interval,
+                                    simulate,
+                                    simulateData
+                                );
+                                pingServer.start();
 
-                            if (timeout) {
-                                setTimeout(() => {
-                                    logger.info('Stopping Server Monitor...');
-                                    pingServer.stop();
-                                }, timeout);
+                                if (timeout) {
+                                    setTimeout(() => {
+                                        logger.info(
+                                            'Stopping Server Monitor...'
+                                        );
+                                        pingServer.stop();
+                                    }, timeout);
+                                }
+
+                                resolve(pingServer);
+                            } else {
+                                logger.error('Server Monitor ID is required');
+                                reject(1);
                             }
-
-                            resolve(pingServer);
-                        } else {
-                            logger.error('Server Monitor ID is required');
-                            reject(1);
                         }
-                    });
+                    );
                 })
                 .catch((error: $TSFixMe) => {
                     if (typeof error !== 'number') {

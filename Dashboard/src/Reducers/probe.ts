@@ -75,7 +75,7 @@ export default function probes(state = initialState, action: Action): void {
 
                     data:
                         state.probes.data.length > 0
-                            ? state.probes.data.map(probe => {
+                            ? state.probes.data.map((probe: $TSFixMe) => {
                                   return probe?._id === action?.payload?._id
                                       ? action.payload
                                       : probe;

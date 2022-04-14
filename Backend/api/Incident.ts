@@ -319,7 +319,7 @@ router.get(
     async (req, res): void => {
         try {
             // const subProjectIds: $TSFixMe = req.user.subProjects
-            //     ? req.user.subProjects.map(project => project._id)
+            //     ? req.user.subProjects.map((project: $TSFixMe) =>  project._id)
             //     : null;
             const { projectId }: $TSFixMe = req.params;
             const incidents: $TSFixMe =

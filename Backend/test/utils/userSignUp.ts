@@ -1,6 +1,6 @@
 export default {
     createUser: function (request, userData, callback): void {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             request
                 .post('/stripe/checkCard')
                 .send({

@@ -93,7 +93,7 @@ export default function groups(state = initialState, action: Action): void {
                 },
             };
         case types.UPDATE_GROUP_SUCCESS:
-            updatedGroup = state.groups.map(projectGroup => {
+            updatedGroup = state.groups.map((projectGroup: $TSFixMe) => {
                 if (projectGroup.project.id === action.payload.projectId._id) {
                     const groups: $TSFixMe = projectGroup.groups.groups.map(
                         (group: $TSFixMe) => {
@@ -153,7 +153,7 @@ export default function groups(state = initialState, action: Action): void {
                     error: null,
                 },
                 oncallDuty: action.payload,
-                groups: state.groups.map(projectGroup => {
+                groups: state.groups.map((projectGroup: $TSFixMe) => {
                     const projectId: $TSFixMe =
                         action.payload.groups[0].projectId._id;
 

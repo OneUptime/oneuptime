@@ -39,20 +39,26 @@ export default {
     },
 
     decrypt: (encText, iv) => {
-        const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
-            try {
-                const decipher: $TSFixMe = crypto.createDecipheriv(
-                    algorithm,
-                    key,
-                    iv
-                );
-                let decoded: $TSFixMe = decipher.update(encText, 'hex', 'utf8');
-                decoded += decipher.final('utf8');
-                resolve(decoded);
-            } catch (error) {
-                reject(error);
+        const promise: Promise = new Promise(
+            (resolve: Function, reject: Function): $TSFixMe => {
+                try {
+                    const decipher: $TSFixMe = crypto.createDecipheriv(
+                        algorithm,
+                        key,
+                        iv
+                    );
+                    let decoded: $TSFixMe = decipher.update(
+                        encText,
+                        'hex',
+                        'utf8'
+                    );
+                    decoded += decipher.final('utf8');
+                    resolve(decoded);
+                } catch (error) {
+                    reject(error);
+                }
             }
-        });
+        );
         return promise;
     },
 
@@ -71,7 +77,7 @@ export default {
         // since the cron job runs every minute
         await updateContainerSecurityToScanning(security);
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             // use trivy open source package to audit a container
             const scanCommand: string = `trivy image -f json -o ${outputFile} ${testPath}`;
             const clearCommand: string = `trivy image --clear-cache ${testPath}`;
@@ -167,7 +173,7 @@ export default {
                         critical: 0,
                     };
 
-                    auditLogs.map(auditLog => {
+                    auditLogs.map((auditLog: $TSFixMe) => {
                         const log: $TSFixMe = {
                             type: auditLog.Type,
                             vulnerabilities: [],
@@ -177,41 +183,44 @@ export default {
                             auditLog.Vulnerabilities &&
                             auditLog.Vulnerabilities.length > 0
                         ) {
-                            auditLog.Vulnerabilities.map(vulnerability => {
-                                let severity: $TSFixMe;
-                                if (vulnerability.Severity === 'LOW') {
-                                    counter.low += 1;
-                                    severity = 'low';
-                                }
-                                if (vulnerability.Severity === 'MEDIUM') {
-                                    counter.moderate += 1;
-                                    severity = 'moderate';
-                                }
-                                if (vulnerability.Severity === 'HIGH') {
-                                    counter.high += 1;
-                                    severity = 'high';
-                                }
-                                if (vulnerability.Severity === 'CRITICAL') {
-                                    counter.critical += 1;
-                                    severity = 'critical';
-                                }
+                            auditLog.Vulnerabilities.map(
+                                (vulnerability: $TSFixMe) => {
+                                    let severity: $TSFixMe;
+                                    if (vulnerability.Severity === 'LOW') {
+                                        counter.low += 1;
+                                        severity = 'low';
+                                    }
+                                    if (vulnerability.Severity === 'MEDIUM') {
+                                        counter.moderate += 1;
+                                        severity = 'moderate';
+                                    }
+                                    if (vulnerability.Severity === 'HIGH') {
+                                        counter.high += 1;
+                                        severity = 'high';
+                                    }
+                                    if (vulnerability.Severity === 'CRITICAL') {
+                                        counter.critical += 1;
+                                        severity = 'critical';
+                                    }
 
-                                const vulObj: $TSFixMe = {
-                                    vulnerabilityId:
-                                        vulnerability.VulnerabilityID,
-                                    library: vulnerability.PkgName,
-                                    installedVersion:
-                                        vulnerability.InstalledVersion,
-                                    fixedVersions: vulnerability.FixedVersion,
-                                    title: vulnerability.Title,
-                                    description: vulnerability.Description,
-                                    severity,
-                                };
+                                    const vulObj: $TSFixMe = {
+                                        vulnerabilityId:
+                                            vulnerability.VulnerabilityID,
+                                        library: vulnerability.PkgName,
+                                        installedVersion:
+                                            vulnerability.InstalledVersion,
+                                        fixedVersions:
+                                            vulnerability.FixedVersion,
+                                        title: vulnerability.Title,
+                                        description: vulnerability.Description,
+                                        severity,
+                                    };
 
-                                log.vulnerabilities.push(vulObj);
+                                    log.vulnerabilities.push(vulObj);
 
-                                return vulnerability;
-                            });
+                                    return vulnerability;
+                                }
+                            );
                         }
 
                         auditData.vulnerabilityData.push(log);
@@ -230,24 +239,26 @@ export default {
                         highArr = [],
                         moderateArr = [],
                         lowArr = [];
-                    auditData.vulnerabilityData.map(vulnerability => {
-                        if (vulnerability.severity === 'critical') {
-                            criticalArr.push(vulnerability);
-                        }
+                    auditData.vulnerabilityData.map(
+                        (vulnerability: $TSFixMe) => {
+                            if (vulnerability.severity === 'critical') {
+                                criticalArr.push(vulnerability);
+                            }
 
-                        if (vulnerability.severity === 'high') {
-                            highArr.push(vulnerability);
-                        }
+                            if (vulnerability.severity === 'high') {
+                                highArr.push(vulnerability);
+                            }
 
-                        if (vulnerability.severity === 'moderate') {
-                            moderateArr.push(vulnerability);
-                        }
+                            if (vulnerability.severity === 'moderate') {
+                                moderateArr.push(vulnerability);
+                            }
 
-                        if (vulnerability.severity === 'low') {
-                            lowArr.push(vulnerability);
+                            if (vulnerability.severity === 'low') {
+                                lowArr.push(vulnerability);
+                            }
+                            return vulnerability;
                         }
-                        return vulnerability;
-                    });
+                    );
 
                     auditData.vulnerabilityData = [
                         ...criticalArr,
@@ -280,7 +291,7 @@ export default {
 };
 
 function createDir(dirPath): void {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: Function, reject: Function) => {
         const workPath: $TSFixMe = Path.resolve(process.cwd(), dirPath);
         if (fs.existsSync(workPath)) {
             resolve(workPath);
@@ -296,7 +307,7 @@ function createDir(dirPath): void {
 }
 
 function readFileContent(filePath): void {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: Function, reject: Function) => {
         if (fs.existsSync(filePath)) {
             fs.readFile(filePath, { encoding: 'utf8' }, (error, data): void => {
                 if (error) {

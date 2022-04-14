@@ -291,7 +291,7 @@ class ErrorTracker {
     async sendErrorEventToServer(): void {
         let content: $TSFixMe;
         await this._makeApiRequest(this.event)
-            .then(response => {
+            .then((response: $TSFixME) => {
                 content = response;
                 // generate a new event Id
                 this._setEventId();
@@ -302,7 +302,7 @@ class ErrorTracker {
         return content;
     }
     _makeApiRequest(data: $TSFixMe): void {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios
                 .post(this.apiUrl, data)
                 .then(res => {

@@ -36,7 +36,7 @@ export default class Service {
         let usersId: $TSFixMe = [];
 
         // eslint-disable-next-line array-callback-return
-        projectMembers.map(user => {
+        projectMembers.map((user: $TSFixMe) =>  {
             if (user.show) {
                 usersId.push(user.userId.toString());
             }
@@ -496,7 +496,7 @@ export default class Service {
             // add user to all subProjects
             for (const subProject of subProjects) {
                 const subProjectMembers: $TSFixMe = members
-                    .map(user => ({ ...user, show: false }))
+                    .map((user: $TSFixMe) =>  ({ ...user, show: false }))
                     .concat(subProject.users);
                 await ProjectService.updateOneBy(
                     { _id: subProject._id },

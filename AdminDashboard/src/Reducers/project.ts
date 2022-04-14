@@ -946,12 +946,14 @@ export default function project(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    projects: state.projects.projects.map(project => {
-                        if (project._id === action.payload._id) {
-                            project = action.payload;
+                    projects: state.projects.projects.map(
+                        (project: $TSFixMe) => {
+                            if (project._id === action.payload._id) {
+                                project = action.payload;
+                            }
+                            return project;
                         }
-                        return project;
-                    }),
+                    ),
                 },
                 project: {
                     requesting: false,

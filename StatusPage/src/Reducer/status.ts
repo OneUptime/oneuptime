@@ -584,7 +584,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 String(state.incident.incident._id) ===
                 String(action.payload.incidentId._id)
             ) {
-                notes = state.incidentNotes.notes.map(note => {
+                notes = state.incidentNotes.notes.map((note: $TSFixMe) =>  {
                     if (String(note._id) === String(action.payload._id)) {
                         return action.payload;
                     }
@@ -1280,7 +1280,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             monitorTimeRequest = {};
             monitorTimeSuccess = {};
 
-            Object.keys(action.payload.time).map(id => {
+            Object.keys(action.payload.time).map((id: $TSFixMe) =>  {
                 monitorTimeRequest[id] = false;
                 monitorTimeSuccess[id] = true;
                 return id;
@@ -1372,7 +1372,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
         case FETCH_MONITOR_LOGS_REQUEST:
             return Object.assign({}, state, {
                 logs: state.logs.some(log => log.monitorId === action.payload)
-                    ? state.logs.map(log =>
+                    ? state.logs.map((log: $TSFixMe) => 
                           log.monitorId !== action.payload
                               ? log
                               : {
@@ -1394,7 +1394,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
         case FETCH_MONITOR_LOGS_SUCCESS:
             return Object.assign({}, state, {
-                logs: state.logs.map(log =>
+                logs: state.logs.map((log: $TSFixMe) => 
                     log.monitorId !== action.payload.monitorId
                         ? log
                         : {
@@ -1410,7 +1410,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             });
         case FETCH_MONITOR_LOGS_FAILURE:
             return Object.assign({}, state, {
-                logs: state.logs.map(log =>
+                logs: state.logs.map((log: $TSFixMe) => 
                     log.monitorId !== action.payload
                         ? log
                         : {
@@ -1532,7 +1532,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
                 String(state.scheduledEvent.event._id) ===
                 String(action.payload.scheduledEventId._id)
             ) {
-                eventNotes = state.eventNoteList.eventNotes.map(note => {
+                eventNotes = state.eventNoteList.eventNotes.map((note: $TSFixMe) =>  {
                     if (String(note._id) === String(action.payload._id)) {
                         return action.payload;
                     }
@@ -1690,7 +1690,7 @@ export default (state = INITIAL_STATE, action: Action): void => {
             const statusPageMonitorIds: $TSFixMe = state.statusPage.monitors.map(
                 (monitorData: $TSFixMe) => String(monitorData.monitor._id)
             );
-            let notes: $TSFixMe = state.notes.notes.map(note => {
+            let notes: $TSFixMe = state.notes.notes.map((note: $TSFixMe) =>  {
                 if (String(note._id) === String(action.payload._id)) {
                     incidentFound = true;
                 }

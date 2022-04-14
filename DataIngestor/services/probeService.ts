@@ -250,7 +250,7 @@ export default {
             matchedCriterion.scripts &&
             matchedCriterion.scripts.length > 0
         ) {
-            scripts = matchedCriterion.scripts.map(script => {
+            scripts = matchedCriterion.scripts.map((script: $TSFixMe) =>  {
                 return {
                     automatedScript: script.scriptId,
                 };
@@ -497,7 +497,7 @@ export default {
             }
         }
 
-        incidentIds = incidentIds.map(i => i._id);
+        incidentIds = incidentIds.map((i: $TSFixMe) =>  i._id);
         return incidentIds;
     },
 

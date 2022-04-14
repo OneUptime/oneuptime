@@ -243,7 +243,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
             const monitors: $TSFixMe = state.monitorsList.monitors.map(monitorData: $TSFixMe => {
                 let output: $TSFixMe = {
                     ...monitorData,
-                    monitors: monitorData.monitors.map(monitor => {
+                    monitors: monitorData.monitors.map((monitor: $TSFixMe) =>  {
                         if (
                             String(monitor._id) === String(action.payload._id)
                         ) {
@@ -357,7 +357,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: false,
-                    monitors: state.monitorsList.monitors.map(project => {
+                    monitors: state.monitorsList.monitors.map((project: $TSFixMe) =>  {
                         const subProject: $TSFixMe = Object.assign({}, project);
                         const subProjectMonitors: $TSFixMe =
                             subProject.monitors && subProject.monitors.slice();
@@ -469,7 +469,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: false,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors = monitor.monitors.map(
                             (monitor: $TSFixMe, i: $TSFixMe) => {
                                 if (
@@ -505,7 +505,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -593,7 +593,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -652,7 +652,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -735,7 +735,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -813,7 +813,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -992,7 +992,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -1219,7 +1219,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(subProject => {
+                    monitors: state.monitorsList.monitors.map((subProject: $TSFixMe) =>  {
                         subProject.monitors =
                             subProject._id === action.payload.status.projectId
                                 ? subProject.monitors.map(
@@ -1388,7 +1388,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -1449,7 +1449,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId
                                 ? monitor.monitors.map((monitor: $TSFixMe) => {
@@ -1566,7 +1566,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors.find(
                             (targetMonitor: $TSFixMe, index: $TSFixMe) => {
                                 if (
@@ -1772,7 +1772,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId._id ||
                             action.payload.projectId
@@ -1806,7 +1806,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.projectId._id ||
                             action.payload.projectId
@@ -1840,7 +1840,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.data.projectId._id ||
                             action.payload.data.projectId
@@ -1875,7 +1875,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                     requesting: false,
                     error: null,
                     success: true,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id === action.payload.data.projectId._id ||
                             action.payload.data.projectId
@@ -1930,7 +1930,7 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
             return Object.assign({}, state, {
                 monitorsList: {
                     ...state.monitorsList,
-                    monitors: state.monitorsList.monitors.map(monitor => {
+                    monitors: state.monitorsList.monitors.map((monitor: $TSFixMe) =>  {
                         monitor.monitors =
                             monitor._id ===
                             (action.payload.projectId._id ||

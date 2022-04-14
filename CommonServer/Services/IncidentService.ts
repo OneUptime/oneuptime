@@ -316,9 +316,11 @@ export default class Service {
             const notifications: $TSFixMe =
                 await this._sendIncidentCreatedAlert(populatedIncident);
 
-            incident.notifications = notifications.map(notification => ({
-                notificationId: notification._id,
-            }));
+            incident.notifications = notifications.map(
+                (notification: $TSFixMe) => ({
+                    notificationId: notification._id,
+                })
+            );
             incident = await incident.save();
 
             populate = [

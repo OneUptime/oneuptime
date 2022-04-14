@@ -31,23 +31,23 @@ class OneUptimeListener {
             this._setUpHttpsListener();
         }
     }
-    _init(): void {
+    private _init(): void {
         this._setUpDomListener();
         this._setUpFetchListener();
         this._setUpXhrListener();
     }
-    getTimeline(): void {
+public getTimeline(): void {
         // this always get the current state of the timeline array
         return this.timelineObj.getTimeline();
     }
-    clearTimeline(eventId: $TSFixMe): void {
+public clearTimeline(eventId: $TSFixMe): void {
         // set a new eventId
         this.currentEventId = eventId;
         // this will reset the state of the timeline array
         return this.timelineObj.clearTimeline();
     }
     // set up console listener
-    _setUpConsoleListener(): void {
+    private _setUpConsoleListener(): void {
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
         const console: Function = (function (oldCons): void {
             return {
@@ -83,7 +83,7 @@ class OneUptimeListener {
         global.console = console;
     }
     // set up dom listener
-    _setUpDomListener(): void {
+    private _setUpDomListener(): void {
         Object.keys(window).forEach(key => {
             if (/^on(keypress|click)/.test(key)) {
                 window.addEventListener(key.slice(2), event => {
@@ -101,7 +101,7 @@ class OneUptimeListener {
                     }
                     // not logging cus of timeout
 
-                    clearTimeout(this.keypressTimeout);
+                public clearTimeout(this.keypressTimeout);
 
                     this.keypressTimeout = setTimeout(() => {
                         this.keypressTimeout = undefined;
@@ -111,7 +111,7 @@ class OneUptimeListener {
         });
     }
     // set up xhr listener
-    _setUpXhrListener(): void {
+    private _setUpXhrListener(): void {
         const open: $TSFixMe = window.XMLHttpRequest.prototype.open;
 
         function openReplacement(
@@ -147,7 +147,7 @@ class OneUptimeListener {
         window.XMLHttpRequest.prototype.open = openReplacement;
     }
     // set up fetch listener
-    _setUpFetchListener(): void {
+    private _setUpFetchListener(): void {
         const currentFetch: $TSFixMe = global.fetch;
 
         global.fetch = function (url, options): void {
@@ -174,7 +174,7 @@ class OneUptimeListener {
             return promise;
         };
     }
-    _setUpHttpsListener(): void {
+    private _setUpHttpsListener(): void {
         override(Http);
         override(Https);
 
@@ -228,7 +228,7 @@ class OneUptimeListener {
             return log;
         }
     }
-    _logConsoleEvent(content: $TSFixMe, type: $TSFixMe): void {
+    private _logConsoleEvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj: $TSFixMe = {
             category: 'console',
             data: {
@@ -240,7 +240,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logXHREvent(content: $TSFixMe, type: $TSFixMe): void {
+    private _logXHREvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj: $TSFixMe = {
             category: 'xhr',
             data: {
@@ -252,7 +252,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logFetchEvent(content: $TSFixMe, type: $TSFixMe): void {
+    private _logFetchEvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj: $TSFixMe = {
             category: 'fetch',
             data: {
@@ -264,7 +264,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe): void {
+    private _logHttpRequestEvent(content: $TSFixMe, type: $TSFixMe): void {
         const timelineObj: $TSFixMe = {
             category: type, // HTTP
             data: {
@@ -276,7 +276,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logErrorEvent(content: $TSFixMe, category = 'exception'): void {
+public logErrorEvent(content: $TSFixMe, category = 'exception'): void {
         const timelineObj: $TSFixMe = {
             category,
             data: {
@@ -288,13 +288,13 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    logCustomTimelineEvent(timelineObj: $TSFixMe): void {
+public logCustomTimelineEvent(timelineObj: $TSFixMe): void {
         timelineObj.eventId = this.currentEventId;
 
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _logClickEvent(event: $TSFixMe, type: $TSFixMe): void {
+    private _logClickEvent(event: $TSFixMe, type: $TSFixMe): void {
         // preepare the event tree
         const content: $TSFixMe = this._getEventTree(event);
         const timelineObj: $TSFixMe = {
@@ -308,7 +308,7 @@ class OneUptimeListener {
         // add timeline to the stack
         this.timelineObj.addToTimeline(timelineObj);
     }
-    _getEventTree(event: $TSFixMe): void {
+    private _getEventTree(event: $TSFixMe): void {
         const tree: $TSFixMe = [];
         const MAX_UP_TREE = 5; // we just want to go up the DOM for 5 times
         let current: $TSFixMe = 0;
@@ -368,7 +368,7 @@ class OneUptimeListener {
         path = path.join(' > ');
         return { tree, path }; // return the final tree which contains a max of 5 elements
     }
-    _getElementAttributes(elem: $TSFixMe): void {
+    private _getElementAttributes(elem: $TSFixMe): void {
         const attributes: $TSFixMe = [];
         const elementAtrributes: $TSFixMe = elem.attributes; // get all the attritubtes related to the element
         const excludedAttributes: $TSFixMe = ['class', 'value']; // exclude items that are nnot needed

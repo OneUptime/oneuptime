@@ -12,20 +12,22 @@ export const post: Function = (url: URL, data: $TSFixMe): void => {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
-        axios({
-            method: 'POST',
-            url: `${API_URL}/${url}`,
-            headers,
-            data,
-        })
-            .then(response => {
-                resolve(response);
+    const promise: Promise = new Promise(
+        (resolve: Function, reject: Function): $TSFixMe => {
+            axios({
+                method: 'POST',
+                url: `${API_URL}/${url}`,
+                headers,
+                data,
             })
-            .then((error: Error) => {
-                reject(error);
-            });
-    });
+                .then((response: $TSFixME) => {
+                    resolve(response);
+                })
+                .then((error: Error) => {
+                    reject(error);
+                });
+        }
+    );
     return promise;
 };
 
@@ -34,19 +36,21 @@ export const get: Function = (url: URL): void => {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
-        axios({
-            method: 'GET',
-            url: `${API_URL}/${url}`,
-            headers,
-        })
-            .then(response => {
-                resolve(response);
+    const promise: Promise = new Promise(
+        (resolve: Function, reject: Function): $TSFixMe => {
+            axios({
+                method: 'GET',
+                url: `${API_URL}/${url}`,
+                headers,
             })
-            .then((error: Error) => {
-                reject(error);
-            });
-    });
+                .then((response: $TSFixME) => {
+                    resolve(response);
+                })
+                .then((error: Error) => {
+                    reject(error);
+                });
+        }
+    );
     return promise;
 };
 
@@ -55,19 +59,21 @@ export const put: Function = (url: URL, data: $TSFixMe): void => {
         headers['Authorization'] = 'Basic ' + User.getAccessToken();
     }
 
-    const promise: Promise = new Promise((resolve, reject): $TSFixMe => {
-        axios({
-            method: 'PUT',
-            url: `${API_URL}/${url}`,
-            headers,
-            data,
-        })
-            .then(response => {
-                resolve(response);
+    const promise: Promise = new Promise(
+        (resolve: Function, reject: Function): $TSFixMe => {
+            axios({
+                method: 'PUT',
+                url: `${API_URL}/${url}`,
+                headers,
+                data,
             })
-            .then((error: Error) => {
-                reject(error);
-            });
-    });
+                .then((response: $TSFixME) => {
+                    resolve(response);
+                })
+                .then((error: Error) => {
+                    reject(error);
+                });
+        }
+    );
     return promise;
 };

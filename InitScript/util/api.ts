@@ -13,14 +13,14 @@ const _this: $TSFixMe = {
 
     delete: (url: URL, data: $TSFixMe) => {
         const headers: $TSFixMe = this.getHeaders();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: Function, reject: Function) => {
             axios({
                 method: 'DELETE',
                 url: `${config.serverUrl}/${url}`,
                 headers,
                 data,
             })
-                .then(response => {
+                .then((response: $TSFixME) => {
                     resolve(response.data);
                 })
                 .then((error: Error) => {

@@ -417,7 +417,7 @@ router.get(
 
             const filteredSubscriptions: $TSFixMe = [];
 
-            subscriptions.map(subscription => {
+            subscriptions.map((subscription: $TSFixMe) => {
                 return subscriberMonitors.map((subscriberMonitor: $TSFixMe) => {
                     if (
                         String(subscription.monitorId) ===

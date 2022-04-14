@@ -307,7 +307,7 @@ export const handleResources: Function = (
     } else {
         const result: $TSFixMe = affectedMonitors
 
-            .map(monitor => capitalize(monitor.name))
+            .map((monitor: $TSFixMe) => capitalize(monitor.name))
             .join(', ')
             .replace(/, ([^,]*)$/, ' and $1');
         return result;

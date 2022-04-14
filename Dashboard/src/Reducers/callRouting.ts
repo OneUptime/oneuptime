@@ -256,7 +256,7 @@ export default function card(state = initialState, action: Action): void {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    numbers: state.allNumbers.numbers.map(n => {
+                    numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -386,7 +386,7 @@ export default function card(state = initialState, action: Action): void {
                     },
                     allNumbers: {
                         ...state.allNumbers,
-                        numbers: state.allNumbers.numbers.map(n => {
+                        numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                             if (
                                 String(n._id) ===
                                 String(action.payload.data._id)
@@ -414,7 +414,7 @@ export default function card(state = initialState, action: Action): void {
                     },
                     allNumbers: {
                         ...state.allNumbers,
-                        numbers: state.allNumbers.numbers.map(n => {
+                        numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                             if (
                                 String(n._id) ===
                                 String(action.payload.data._id)
@@ -487,7 +487,7 @@ export default function card(state = initialState, action: Action): void {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    numbers: state.allNumbers.numbers.map(n => {
+                    numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {
@@ -530,7 +530,7 @@ export default function card(state = initialState, action: Action): void {
                 },
                 allNumbers: {
                     ...state.allNumbers,
-                    numbers: state.allNumbers.numbers.map(n => {
+                    numbers: state.allNumbers.numbers.map((n: $TSFixMe) => {
                         if (String(n._id) === String(action.payload._id)) {
                             return action.payload;
                         } else {

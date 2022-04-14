@@ -824,7 +824,7 @@ export default class Service {
         const groupUsers: $TSFixMe = teamGroup.map(group: $TSFixMe => group.teams);
         const groupUserIds: $TSFixMe = [].concat
             .apply([], groupUsers)
-            .map(id => ({ userId: id }));
+            .map((id: $TSFixMe) =>  ({ userId: id }));
         const filterdUserIds: $TSFixMe = groupUserIds.filter(user: $TSFixMe =>
             activeTeam.teamMembers.some(
                 (team: $TSFixMe) => team.userId !== user.userId

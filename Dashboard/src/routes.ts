@@ -766,7 +766,7 @@ export const allRoutes: $TSFixMe = groups
             newRoutes.push(route);
         }
         const subRoutes: $TSFixMe = newRoutes
-            .map(route => {
+            .map((route: $TSFixMe) => {
                 const newSubRoutes: $TSFixMe = [];
                 for (const subRoute of route.subRoutes) {
                     newSubRoutes.push(subRoute);
