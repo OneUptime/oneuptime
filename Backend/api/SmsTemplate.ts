@@ -55,7 +55,9 @@ router.get(
             const projectId: $TSFixMe = req.params.projectId;
             const templateId: $TSFixMe = req.params.templateId;
             await SmsTemplateService.resetTemplate(projectId, templateId);
-            const templates: $TSFixMe = await SmsTemplateService.getTemplates(projectId);
+            const templates: $TSFixMe = await SmsTemplateService.getTemplates(
+                projectId
+            );
             return sendItemResponse(req, res, templates);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -70,7 +72,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const projectId: $TSFixMe = req.params.projectId;
-            const templates: $TSFixMe = await SmsTemplateService.getTemplates(projectId);
+            const templates: $TSFixMe = await SmsTemplateService.getTemplates(
+                projectId
+            );
             return sendItemResponse(req, res, templates);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -143,13 +147,14 @@ router.put(
 
             const templateData: $TSFixMe = [];
             for (const value of data) {
-                const smsTemplate: $TSFixMe = await SmsTemplateService.findOneBy({
-                    query: {
-                        projectId: value.projectId,
-                        smsType: value.smsType,
-                    },
-                    select: '_id',
-                });
+                const smsTemplate: $TSFixMe =
+                    await SmsTemplateService.findOneBy({
+                        query: {
+                            projectId: value.projectId,
+                            smsType: value.smsType,
+                        },
+                        select: '_id',
+                    });
                 if (smsTemplate) {
                     await SmsTemplateService.updateOneBy(
                         { _id: value._id },
@@ -161,9 +166,8 @@ router.put(
             }
             await SmsTemplateService.createMany(templateData);
 
-            const smsTemplates: $TSFixMe = await SmsTemplateService.getTemplates(
-                projectId
-            );
+            const smsTemplates: $TSFixMe =
+                await SmsTemplateService.getTemplates(projectId);
             return sendItemResponse(req, res, smsTemplates);
         } catch (error) {
             sendErrorResponse(req, res, error);

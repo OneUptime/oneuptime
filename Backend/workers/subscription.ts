@@ -36,9 +36,8 @@ const _this: $TSFixMe = {
 
     handleUnpaidSubscription: async startAfter => {
         if (IS_SAAS_SERVICE) {
-            const subscriptions: $TSFixMe = await handleFetchingUnpaidSubscriptions(
-                startAfter
-            );
+            const subscriptions: $TSFixMe =
+                await handleFetchingUnpaidSubscriptions(startAfter);
             // apply recursion here in order to fetch all the unpaid subscriptions and store it in data array
             // since stripe have a limit on the amount of items to return in the subscription list
             // and also because, if we cancel a subscription and the subscription happens to be the last item in the subscription data array
@@ -47,7 +46,8 @@ const _this: $TSFixMe = {
             data = [...data, ...subscriptions.data];
             if (subscriptions && subscriptions.has_more) {
                 const lastIndex: $TSFixMe = subscriptions.data.length - 1;
-                const subscriptionId: $TSFixMe = subscriptions.data[lastIndex].id;
+                const subscriptionId: $TSFixMe =
+                    subscriptions.data[lastIndex].id;
                 await this.handleUnpaidSubscription(subscriptionId);
             }
 
@@ -57,7 +57,10 @@ const _this: $TSFixMe = {
                 const stripeSubscriptionId: $TSFixMe = unpaidSubscription.id;
                 let subscriptionEndDate = unpaidSubscription.ended_at; // unix timestamp
                 subscriptionEndDate = moment(subscriptionEndDate * 1000);
-                const timeDiff: $TSFixMe = moment().diff(subscriptionEndDate, 'days');
+                const timeDiff: $TSFixMe = moment().diff(
+                    subscriptionEndDate,
+                    'days'
+                );
 
                 const [user, project]: $TSFixMe = await Promise.all([
                     UserService.findOneBy({

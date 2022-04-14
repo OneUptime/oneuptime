@@ -83,11 +83,15 @@ describe('SSO DEFAULT ROLES API', function (): void {
     before(async function (): void {
         this.timeout(40000);
         await GlobalConfig.initTestConfig();
-        const response: $TSFixMe = await createUser(request, userData.adminUser);
+        const response: $TSFixMe = await createUser(
+            request,
+            userData.adminUser
+        );
         adminId = response.body.id;
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId: adminId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId: adminId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
@@ -156,7 +160,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
             project: projectId1,
             role: 'Owner',
         };
-        const response: $TSFixMe = await testUtils.createSsoDefaultRole({ payload });
+        const response: $TSFixMe = await testUtils.createSsoDefaultRole({
+            payload,
+        });
         expect(response).to.have.status(400);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('message');
@@ -169,7 +175,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
             project: projectId1,
             role: 'Member',
         };
-        const response: $TSFixMe = await testUtils.createSsoDefaultRole({ payload });
+        const response: $TSFixMe = await testUtils.createSsoDefaultRole({
+            payload,
+        });
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('_id');
@@ -186,7 +194,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
         };
         for (const role of roles) {
             payload.role = role;
-            const response: $TSFixMe = await testUtils.createSsoDefaultRole({ payload });
+            const response: $TSFixMe = await testUtils.createSsoDefaultRole({
+                payload,
+            });
             expect(response).to.have.status(400);
         }
     });
@@ -197,7 +207,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
             project: projectId1,
             role: 'Member',
         };
-        const response: $TSFixMe = await testUtils.createSsoDefaultRole({ payload });
+        const response: $TSFixMe = await testUtils.createSsoDefaultRole({
+            payload,
+        });
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('_id');
@@ -221,16 +233,18 @@ describe('SSO DEFAULT ROLES API', function (): void {
             project: projectId1,
             role: 'Administrator',
         };
-        const updateEndpointResponse: $TSFixMe = await testUtils.updateSsoDefaultRole({
-            id: ssoDefaultRole1,
-            payload,
-        });
+        const updateEndpointResponse: $TSFixMe =
+            await testUtils.updateSsoDefaultRole({
+                id: ssoDefaultRole1,
+                payload,
+            });
         expect(updateEndpointResponse).to.have.status(200);
         expect(updateEndpointResponse.body).to.be.an('Object');
 
-        const getEndpointResponse: $TSFixMe = await testUtils.fetchSsoDefaultRole({
-            id: ssoDefaultRole1,
-        });
+        const getEndpointResponse: $TSFixMe =
+            await testUtils.fetchSsoDefaultRole({
+                id: ssoDefaultRole1,
+            });
         expect(getEndpointResponse).to.have.status(200);
         expect(getEndpointResponse.body).to.be.an('Object');
         expect(getEndpointResponse.body).to.have.property('role');
@@ -241,7 +255,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
         const user: $TSFixMe = ssoUsers[0];
 
         testUtils.unsetShared('authorization');
-        const ssoLoginRequest: $TSFixMe = await testUtils.ssoLogin({ email: user.email });
+        const ssoLoginRequest: $TSFixMe = await testUtils.ssoLogin({
+            email: user.email,
+        });
         expect(ssoLoginRequest).to.have.status(200);
         expect(ssoLoginRequest.body).to.have.property('url');
         const { url: SAMLRequest } = ssoLoginRequest.body;
@@ -263,7 +279,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
         const projectRequest: $TSFixMe = await testUtils.fetchProject({
             projectId: projectId1,
         });
-        const parsedQuery: $TSFixMe = queryString.parse(loginLink.split('?')[1]);
+        const parsedQuery: $TSFixMe = queryString.parse(
+            loginLink.split('?')[1]
+        );
         expect(!!parsedQuery.id).to.equal(true);
         userId = parsedQuery.id;
         expect(projectRequest).to.have.status(200);
@@ -289,7 +307,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
             project: projectId2,
             role: 'Member',
         };
-        const response: $TSFixMe = await testUtils.createSsoDefaultRole({ payload });
+        const response: $TSFixMe = await testUtils.createSsoDefaultRole({
+            payload,
+        });
         expect(response).to.have.status(200);
         expect(response.body).to.be.an('Object');
         expect(response.body).to.have.property('_id');
@@ -334,7 +354,9 @@ describe('SSO DEFAULT ROLES API', function (): void {
     });
 
     it('should delete all default SSO roles related to a SSO, when the SSO is deleted', async () => {
-        const deleteResponse: $TSFixMe = await testUtils.deleteSso({ id: ssoId2 });
+        const deleteResponse: $TSFixMe = await testUtils.deleteSso({
+            id: ssoId2,
+        });
         expect(deleteResponse).to.have.status(200);
         const fetchResponse: $TSFixMe = await testUtils.fetchSsoDefaultRole({
             id: ssoDefaultRole2,

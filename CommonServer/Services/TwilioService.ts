@@ -68,7 +68,8 @@ export default class TwilioService {
             });
             if (customTwilioSettings) {
                 options.from = customTwilioSettings.phoneNumber;
-                const incidentSMSAction: $TSFixMe = new incidentSMSActionModel();
+                const incidentSMSAction: $TSFixMe =
+                    new incidentSMSActionModel();
 
                 incidentSMSAction.incidentId = incidentId;
 
@@ -84,7 +85,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     userId,
@@ -115,13 +118,13 @@ export default class TwilioService {
                     );
                     return error;
                 }
-                const alertLimit: $TSFixMe = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
+                const alertLimit: $TSFixMe =
+                    await AlertService.checkPhoneAlertsLimit(projectId);
                 if (alertLimit) {
                     options.from = creds.phone;
                     // create incidentSMSAction entry for matching sms from twilio.
-                    const incidentSMSAction: $TSFixMe = new incidentSMSActionModel();
+                    const incidentSMSAction: $TSFixMe =
+                        new incidentSMSActionModel();
 
                     incidentSMSAction.incidentId = incidentId;
 
@@ -132,7 +135,8 @@ export default class TwilioService {
                     incidentSMSAction.name = name;
                     await incidentSMSAction.save();
 
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         userId,
@@ -218,7 +222,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -260,7 +266,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -349,7 +356,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -391,7 +400,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -480,7 +490,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -522,7 +534,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -611,7 +624,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -653,7 +668,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -706,7 +722,9 @@ export default class TwilioService {
                 data.authToken
             );
 
-            const message: $TSFixMe = await twilioClient.messages.create(options);
+            const message: $TSFixMe = await twilioClient.messages.create(
+                options
+            );
 
             await SmsCountService.create(
                 null,
@@ -771,7 +789,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -813,7 +833,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -894,7 +915,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -936,7 +959,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1013,7 +1037,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -1055,7 +1081,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1132,7 +1159,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -1174,7 +1203,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1252,7 +1282,9 @@ export default class TwilioService {
                     customTwilioSettings.authToken
                 );
 
-                const message: $TSFixMe = await twilioClient.messages.create(options);
+                const message: $TSFixMe = await twilioClient.messages.create(
+                    options
+                );
 
                 await SmsCountService.create(
                     null,
@@ -1294,7 +1326,8 @@ export default class TwilioService {
                 );
 
                 if (alertLimit) {
-                    const message: $TSFixMe = await twilioClient.messages.create(options);
+                    const message: $TSFixMe =
+                        await twilioClient.messages.create(options);
 
                     await SmsCountService.create(
                         null,
@@ -1411,13 +1444,14 @@ export default class TwilioService {
                     return error;
                 }
 
-                const alertLimit: $TSFixMe = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
+                const alertLimit: $TSFixMe =
+                    await AlertService.checkPhoneAlertsLimit(projectId);
                 if (alertLimit) {
                     options.from = creds.phone;
                     if (twilioClient) {
-                        const call: $TSFixMe = await twilioClient.calls.create(options);
+                        const call: $TSFixMe = await twilioClient.calls.create(
+                            options
+                        );
 
                         await CallLogsService.create(
                             '+15005550006',
@@ -1567,9 +1601,8 @@ export default class TwilioService {
                     creds['authentication-token']
                 );
 
-                const alertLimit: $TSFixMe = await AlertService.checkPhoneAlertsLimit(
-                    projectId
-                );
+                const alertLimit: $TSFixMe =
+                    await AlertService.checkPhoneAlertsLimit(projectId);
                 if (alertLimit) {
                     if (!creds['sms-enabled']) {
                         const error: $TSFixMe = new Error('SMS Not Enabled');
@@ -1756,15 +1789,16 @@ export default class TwilioService {
         }
         const twilioClient: $TSFixMe = this.getClient(accountSid, authToken);
 
-        const numbers: $TSFixMe = await twilioClient.incomingPhoneNumbers.create({
-            phoneNumber: phoneNumber,
+        const numbers: $TSFixMe =
+            await twilioClient.incomingPhoneNumbers.create({
+                phoneNumber: phoneNumber,
 
-            voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
-            voiceMethod: 'POST',
+                voiceUrl: `${global.apiHost}/callRouting/routeCalls`,
+                voiceMethod: 'POST',
 
-            statusCallback: `${global.apiHost}/callRouting/statusCallback`,
-            statusCallbackMethod: 'POST',
-        });
+                statusCallback: `${global.apiHost}/callRouting/statusCallback`,
+                statusCallbackMethod: 'POST',
+            });
         return numbers;
     }
 
@@ -1785,7 +1819,9 @@ export default class TwilioService {
         }
         const twilioClient: $TSFixMe = this.getClient(accountSid, authToken);
 
-        const numbers: $TSFixMe = await twilioClient.incomingPhoneNumbers(sid).remove();
+        const numbers: $TSFixMe = await twilioClient
+            .incomingPhoneNumbers(sid)
+            .remove();
         return numbers;
     }
 

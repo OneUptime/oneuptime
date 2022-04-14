@@ -106,7 +106,10 @@ export const updateProfileSetting: Function = (values: $TSFixMe): void => {
 // Update push notification
 export const updatePushNotification: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put('user/push-notification', data);
+        const promise: $TSFixMe = BackendAPI.put(
+            'user/push-notification',
+            data
+        );
         dispatch(updatePushNotificationRequest());
         promise.then(
             (response): void => {
@@ -402,7 +405,10 @@ export const sendEmailVerificationError: Function = (
 
 export const sendEmailVerificationLink: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(new Route('user/resend'), values);
+        const promise: $TSFixMe = BackendAPI.post(
+            new Route('user/resend'),
+            values
+        );
         dispatch(sendEmailVerificationRequest());
 
         promise.then(
@@ -615,7 +621,8 @@ export const deleteAccount: Function = (
     confirmation: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`user/${userId}/delete`, confirmation);
+        const promise: $TSFixMe = delete (`user/${userId}/delete`,
+        confirmation);
         dispatch(deleteAccountRequest());
 
         promise.then(

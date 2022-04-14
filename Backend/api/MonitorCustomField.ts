@@ -159,12 +159,11 @@ router.delete(
         try {
             const { projectId, customFieldId }: $TSFixMe = req.params;
 
-            const deletedCustomField: $TSFixMe = await MonitorCustomFieldService.deleteBy(
-                {
+            const deletedCustomField: $TSFixMe =
+                await MonitorCustomFieldService.deleteBy({
                     _id: customFieldId,
                     projectId,
-                }
-            );
+                });
 
             return sendItemResponse(req, res, deletedCustomField);
         } catch (error) {

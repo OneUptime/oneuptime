@@ -84,7 +84,10 @@ export const editSmsTemplates: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`smsTemplate/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(
+            `smsTemplate/${projectId}`,
+            data
+        );
         dispatch(editSmsTemplateRequest());
 
         promise.then(
@@ -285,7 +288,10 @@ export function updateSmtpConfig(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`smsSmtp/${projectId}/${smtpId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(
+            `smsSmtp/${projectId}/${smtpId}`,
+            data
+        );
         dispatch(smtpConfigRequest(promise));
 
         promise.then(

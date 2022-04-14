@@ -15,18 +15,21 @@ async function run(): void {
         const token: string = `oneuptime=${randomChar()}`;
         const now: $TSFixMe = new Date().toISOString();
 
-        const { ops = [{}] }: $TSFixMe = await save(domainVerificationTokenCollection, [
-            {
-                domain: getDomain(statusPage.domain),
-                verified: true,
-                deleted: false,
-                verificationToken: token,
-                createdAt: now,
-                verifiedAt: now,
-                deletedAt: null,
-                projectId: statusPage.projectId,
-            },
-        ]);
+        const { ops = [{}] }: $TSFixMe = await save(
+            domainVerificationTokenCollection,
+            [
+                {
+                    domain: getDomain(statusPage.domain),
+                    verified: true,
+                    deleted: false,
+                    verificationToken: token,
+                    createdAt: now,
+                    verifiedAt: now,
+                    deletedAt: null,
+                    projectId: statusPage.projectId,
+                },
+            ]
+        );
         const domains: $TSFixMe = [
             {
                 domain: statusPage.domain,

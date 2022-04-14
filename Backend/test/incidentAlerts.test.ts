@@ -94,9 +94,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             { alertPhoneNumber: '+19173976235' }
         );
 
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         const token: $TSFixMe = verificationToken.token;
         await verifyToken({ request, token });
         const { email, password }: $TSFixMe = userData.user;
@@ -334,7 +335,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal('Success');
                 expect(error).to.equal(false);
                 expect(errorMessage).to.be.undefined;
@@ -454,7 +456,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
                     expect(error).to.equal(true);
@@ -591,7 +594,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
                     expect(error).to.equal(true);
@@ -739,7 +743,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal(null);
                 if (alertVia === 'sms') {
                     expect(error).to.equal(true);
@@ -1436,11 +1441,12 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             expect(incidentResolved).to.have.status(200);
             await sleep(10 * 1000);
-            const chargeResponseAfterResolvedIncident: $TSFixMe = await getChargedAlerts({
-                request,
-                authorization,
-                projectId,
-            });
+            const chargeResponseAfterResolvedIncident: $TSFixMe =
+                await getChargedAlerts({
+                    request,
+                    authorization,
+                    projectId,
+                });
             expect(chargeResponseAfterResolvedIncident).to.have.status(200);
             expect(chargeResponseAfterResolvedIncident.body).to.an('object');
             // on the before hook, the call-duty limit is 1 SMS and 1 Call,
@@ -1552,7 +1558,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 if (alertVia === 'sms') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -1677,7 +1684,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 if (alertVia === 'call') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -1801,7 +1809,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
                 expect(errorMessage).to.equal(
@@ -2079,12 +2088,14 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             // check the balance again
 
-            const { balance, alertOptions }: $TSFixMe = await ProjectService.findOneBy({
-                query: { _id: projectId },
-                select: 'balance alertOptions',
-            });
+            const { balance, alertOptions }: $TSFixMe =
+                await ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'balance alertOptions',
+                });
 
-            const { rechargeToBalance, minimumBalance }: $TSFixMe = alertOptions;
+            const { rechargeToBalance, minimumBalance }: $TSFixMe =
+                alertOptions;
 
             expect(balance).to.be.lessThan(rechargeToBalance);
             expect(balance).to.be.greaterThan(minimumBalance);
@@ -2520,9 +2531,10 @@ describe('SMS/Calls Incident Alerts', function (): void {
             const { _id: smsSmtpId } = getCustomTwilioSettingResponse.body;
 
             if (smsSmtpId) {
-                const deleteCustomTwilioSettingResponse: $TSFixMe = await request
-                    .delete(`/smsSmtp/${projectId}/${smsSmtpId}`)
-                    .set('Authorization', authorization);
+                const deleteCustomTwilioSettingResponse: $TSFixMe =
+                    await request
+                        .delete(`/smsSmtp/${projectId}/${smsSmtpId}`)
+                        .set('Authorization', authorization);
                 expect(deleteCustomTwilioSettingResponse).to.have.status(200);
             }
 
@@ -2600,7 +2612,8 @@ describe('SMS/Calls Incident Alerts', function (): void {
             expect(onCallAlerts.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of onCallAlerts.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
                 expect(errorMessage).to.equal(
@@ -2621,9 +2634,10 @@ describe('Email Incident Alerts', (): void => {
         const project: $TSFixMe = createdUser.body.project;
         projectId = project._id;
         userId = createdUser.body.id;
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         const token: $TSFixMe = verificationToken.token;
         await verifyToken({ request, token });
         const { email, password }: $TSFixMe = userData.user;
@@ -2781,8 +2795,13 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error, errorMessage }: $TSFixMe =
-                event;
+            const {
+                alertStatus,
+                alertVia,
+                eventType,
+                error,
+                errorMessage,
+            }: $TSFixMe = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal(null);
             expect(alertVia).to.equal('email');
@@ -2808,8 +2827,13 @@ describe('Email Incident Alerts', (): void => {
 
         const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
-                onCallAlert;
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            }: $TSFixMe = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
@@ -2881,8 +2905,13 @@ describe('Email Incident Alerts', (): void => {
         expect(subscribersAlerts.body.data.length).to.equal(2);
         const eventTypesSent: $TSFixMe = [];
         for (const event of subscribersAlerts.body.data) {
-            const { alertStatus, alertVia, eventType, error, errorMessage }: $TSFixMe =
-                event;
+            const {
+                alertStatus,
+                alertVia,
+                eventType,
+                error,
+                errorMessage,
+            }: $TSFixMe = event;
             eventTypesSent.push(eventType);
             expect(alertStatus).to.equal(null);
             expect(alertVia).to.equal('email');
@@ -2905,8 +2934,13 @@ describe('Email Incident Alerts', (): void => {
 
         const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
-                onCallAlert;
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            }: $TSFixMe = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal(null);
@@ -2999,8 +3033,13 @@ describe('Email Incident Alerts', (): void => {
 
         const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
-                onCallAlert;
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            }: $TSFixMe = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -3102,12 +3141,13 @@ describe('Email Incident Alerts', (): void => {
 
         expect(subscriberAlerts.body.data).to.be.an('array');
 
-        const statusPageNoteNotificationAlert: $TSFixMe = subscriberAlerts.body.data.find(
-            (subscriberAlert: $TSFixMe) =>
-                subscriberAlert.alertVia === 'email' &&
-                subscriberAlert.errorMessage ===
-                    'Investigation Note Email Notification Disabled'
-        );
+        const statusPageNoteNotificationAlert: $TSFixMe =
+            subscriberAlerts.body.data.find(
+                (subscriberAlert: $TSFixMe) =>
+                    subscriberAlert.alertVia === 'email' &&
+                    subscriberAlert.errorMessage ===
+                        'Investigation Note Email Notification Disabled'
+            );
         expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
 
@@ -3199,8 +3239,13 @@ describe('Email Incident Alerts', (): void => {
 
         const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
-                onCallAlert;
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            }: $TSFixMe = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -3292,8 +3337,13 @@ describe('Email Incident Alerts', (): void => {
 
         const eventTypesSentToTeamMembers: $TSFixMe = [];
         for (const onCallAlert of onCallAlerts.body.data) {
-            const { alertVia, eventType, alertStatus, error, errorMessage }: $TSFixMe =
-                onCallAlert;
+            const {
+                alertVia,
+                eventType,
+                alertStatus,
+                error,
+                errorMessage,
+            }: $TSFixMe = onCallAlert;
             eventTypesSentToTeamMembers.push(eventType);
             expect(alertVia).to.equal('email');
             expect(alertStatus).to.equal('Success');
@@ -3318,9 +3368,10 @@ describe('Webhook Incident Alerts', function (): void {
         const project: $TSFixMe = createdUser.body.project;
         projectId = project._id;
         userId = createdUser.body.id;
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         const token: $TSFixMe = verificationToken.token;
         await verifyToken({ request, token });
         const { email, password }: $TSFixMe = userData.user;
@@ -3504,12 +3555,13 @@ describe('Webhook Incident Alerts', function (): void {
 
         expect(subscriberAlerts.body.data).to.be.an('array');
 
-        const statusPageNoteNotificationAlert: $TSFixMe = subscriberAlerts.body.data.find(
-            (subscriberAlert: $TSFixMe) =>
-                subscriberAlert.alertVia === 'webhook' &&
-                subscriberAlert.errorMessage ===
-                    'Investigation Note Webhook Notification Disabled'
-        );
+        const statusPageNoteNotificationAlert: $TSFixMe =
+            subscriberAlerts.body.data.find(
+                (subscriberAlert: $TSFixMe) =>
+                    subscriberAlert.alertVia === 'webhook' &&
+                    subscriberAlert.errorMessage ===
+                        'Investigation Note Webhook Notification Disabled'
+            );
         expect(statusPageNoteNotificationAlert).to.be.an('object');
     });
 });

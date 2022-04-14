@@ -22,10 +22,11 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             //get top 10 monitors.
-            const allScriptMonitors: $TSFixMe = await MonitorService.getScriptMonitors({
-                limit: 10,
-                skip: 0,
-            });
+            const allScriptMonitors: $TSFixMe =
+                await MonitorService.getScriptMonitors({
+                    limit: 10,
+                    skip: 0,
+                });
 
             return sendListResponse(
                 req,

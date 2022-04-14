@@ -6,7 +6,8 @@ const router: $TSFixMe = express.getRouter();
 
 import AuditLogsService from '../services/auditLogsService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -83,7 +84,9 @@ router.delete(
         try {
             const query: $TSFixMe = {};
 
-            const msg: $TSFixMe = await AuditLogsService.hardDeleteBy({ query });
+            const msg: $TSFixMe = await AuditLogsService.hardDeleteBy({
+                query,
+            });
 
             return sendItemResponse(req, res, msg);
         } catch (error) {

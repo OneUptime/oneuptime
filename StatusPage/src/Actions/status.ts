@@ -1584,11 +1584,14 @@ export function calculateTime(
     monitorId: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`monitor/${monitorId}/calculate-time`, {
-            statuses,
-            start,
-            range,
-        });
+        const promise: $TSFixMe = BackendAPI.post(
+            `monitor/${monitorId}/calculate-time`,
+            {
+                statuses,
+                start,
+                range,
+            }
+        );
         dispatch(calculateTimeRequest(monitorId));
         promise.then(
             (response): void => {
@@ -1628,9 +1631,12 @@ export const fetchTweets: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`StatusPage/${projectId}/tweets`, {
-            handle,
-        });
+        const promise: $TSFixMe = BackendAPI.post(
+            `StatusPage/${projectId}/tweets`,
+            {
+                handle,
+            }
+        );
 
         dispatch(fetchTweetsRequest());
         promise.then(

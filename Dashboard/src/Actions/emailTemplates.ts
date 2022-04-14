@@ -84,7 +84,10 @@ export const editEmailTemplates: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`emailTemplate/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(
+            `emailTemplate/${projectId}`,
+            data
+        );
         dispatch(editEmailTemplateRequest());
 
         promise.then(
@@ -204,7 +207,10 @@ export const postSmtpConfig: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`emailSmtp/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.post(
+            `emailSmtp/${projectId}`,
+            data
+        );
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
@@ -257,7 +263,8 @@ export function deleteSmtpConfig(
     data: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`emailSmtp/${projectId}/${smtpId}`, data);
+        const promise: $TSFixMe = delete (`emailSmtp/${projectId}/${smtpId}`,
+        data);
         dispatch(deleteSmtpConfigRequest(promise));
 
         promise.then(

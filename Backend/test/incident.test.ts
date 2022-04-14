@@ -78,9 +78,10 @@ describe('Incident API', function (): void {
         projectId = res.body.project._id;
         userId = res.body.id;
 
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
@@ -715,9 +716,10 @@ describe('Incident API with Sub-Projects', function (): void {
         // sign up second user (subproject user)
         const res1: $TSFixMe = await createUser(request, userData.newUser);
         userId = res1.body.id;
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
@@ -755,9 +757,10 @@ describe('Incident API with Sub-Projects', function (): void {
 
     it('should not create an incident for user not present in project', async (): void => {
         const res: $TSFixMe = await createUser(request, userData.anotherUser);
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId: res.body.id,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId: res.body.id,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);

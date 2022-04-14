@@ -38,7 +38,8 @@ const format: Function = (number: $TSFixMe): void => {
 
                 // if the formatted remainder is divisible by 10, without a remainder, we return just the first digit
                 // this is to avoid .50 instead we have .5
-                const intFormattedRemainder: $TSFixMe = parseInt(formattedRemainder);
+                const intFormattedRemainder: $TSFixMe =
+                    parseInt(formattedRemainder);
                 const tenthRemainder: $TSFixMe = intFormattedRemainder % 10;
                 if (tenthRemainder === 0) {
                     formattedRemainder = formattedRemainder.substr(0, 1);

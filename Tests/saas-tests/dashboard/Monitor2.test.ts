@@ -123,9 +123,15 @@ describe('Monitor API', () => {
                 page
             );
 
-            const probe0: $TSFixMe = await init.pageWaitForSelector(page, '#probes-btn0');
+            const probe0: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#probes-btn0'
+            );
 
-            const probe1: $TSFixMe = await init.pageWaitForSelector(page, '#probes-btn1');
+            const probe1: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#probes-btn1'
+            );
 
             expect(probe0).toBeDefined();
             expect(probe1).toBeDefined();

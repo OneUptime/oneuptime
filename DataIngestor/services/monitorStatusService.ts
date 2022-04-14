@@ -1,4 +1,5 @@
-const monitorStatusCollection: $TSFixMe = global.db.collection('monitorstatuses');
+const monitorStatusCollection: $TSFixMe =
+    global.db.collection('monitorstatuses');
 import { ObjectId } from 'mongodb';
 import Query from 'CommonServer/types/db/Query';
 import { post } from '../Utils/api';
@@ -92,9 +93,8 @@ export default {
         }
 
         await monitorStatusCollection.updateOne(query, { $set: data });
-        const updatedMonitorStatus: $TSFixMe = await monitorStatusCollection.findOne(
-            query
-        );
+        const updatedMonitorStatus: $TSFixMe =
+            await monitorStatusCollection.findOne(query);
         return updatedMonitorStatus;
     },
 
@@ -107,7 +107,9 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorStatus: $TSFixMe = await monitorStatusCollection.findOne(query);
+        const monitorStatus: $TSFixMe = await monitorStatusCollection.findOne(
+            query
+        );
         return monitorStatus;
     },
 

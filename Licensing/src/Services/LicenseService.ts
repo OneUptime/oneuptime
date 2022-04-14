@@ -1,4 +1,5 @@
-const generateWebToken: $TSFixMe = require('../utils/WebToken').generateWebToken;
+const generateWebToken: $TSFixMe =
+    require('../utils/WebToken').generateWebToken;
 import AirtableService from 'CommonServer/Utils/airtable';
 import Email from 'Common/Types/email';
 import PositiveNumber from 'Common/Types/PositiveNumber';

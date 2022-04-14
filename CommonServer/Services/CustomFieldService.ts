@@ -28,7 +28,9 @@ export default class Service {
             ...data,
         });
 
-        const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+        const populateCustomField: $TSFixMe = [
+            { path: 'projectId', select: 'name' },
+        ];
         const selectCustomField: string =
             'fieldName fieldType projectId uniqueField';
         customField = await this.findOneBy({
@@ -49,14 +51,17 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const oldCustomField: $TSFixMe = await CustomFieldModel.findOneAndUpdate(query, {
-            $set: data,
-        });
+        const oldCustomField: $TSFixMe =
+            await CustomFieldModel.findOneAndUpdate(query, {
+                $set: data,
+            });
 
         // fetch all the corresponding incoming request
         // and update the custom fields
 
-        const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+        const populateCustomField: $TSFixMe = [
+            { path: 'projectId', select: 'name' },
+        ];
         const selectCustomField: string =
             'fieldName fieldType projectId uniqueField';
         const selectIncomingRequest: $TSFixMe =
@@ -228,7 +233,9 @@ export default class Service {
             $set: data,
         });
 
-        const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+        const populateCustomField: $TSFixMe = [
+            { path: 'projectId', select: 'name' },
+        ];
         const selectCustomField: string =
             'fieldName fieldType projectId uniqueField';
         updatedCustomField = await this.findBy({

@@ -177,9 +177,12 @@ export default class StripeService {
                 select: 'stripeCustomerId',
             });
             const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
-            const card: $TSFixMe = await stripe.customers.createSource(stripeCustomerId, {
-                source: tok,
-            });
+            const card: $TSFixMe = await stripe.customers.createSource(
+                stripeCustomerId,
+                {
+                    source: tok,
+                }
+            );
             const metadata: $TSFixMe = {
                 description,
             };
@@ -236,7 +239,9 @@ export default class StripeService {
             select: 'stripeCustomerId',
         });
         const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
-        const customer: $TSFixMe = await stripe.customers.retrieve(stripeCustomerId);
+        const customer: $TSFixMe = await stripe.customers.retrieve(
+            stripeCustomerId
+        );
         if (cardId) {
             const card: $TSFixMe = await stripe.customers.retrieveSource(
                 stripeCustomerId,
@@ -244,9 +249,12 @@ export default class StripeService {
             );
             return card;
         } else {
-            const cards: $TSFixMe = await stripe.customers.listSources(stripeCustomerId, {
-                object: 'card',
-            });
+            const cards: $TSFixMe = await stripe.customers.listSources(
+                stripeCustomerId,
+                {
+                    object: 'card',
+                }
+            );
             cards.data = await cards.data.map((card: $TSFixMe) => {
                 if (card.id === customer.default_source) {
                     card.default_source = true;
@@ -294,7 +302,9 @@ export default class StripeService {
 
     async updateBalance(paymentIntent: $TSFixMe): void {
         if (paymentIntent.status === 'succeeded') {
-            const amountRechargedStripe: $TSFixMe = Number(paymentIntent.amount_received);
+            const amountRechargedStripe: $TSFixMe = Number(
+                paymentIntent.amount_received
+            );
             if (amountRechargedStripe) {
                 const projectId: $TSFixMe = paymentIntent.metadata.projectId,
                     minimumBalance =
@@ -323,7 +333,9 @@ export default class StripeService {
                     billingRiskCountries,
                 };
                 const amountRecharged: $TSFixMe = amountRechargedStripe / 100;
-                const project: $TSFixMe = await ProjectModel.findById(projectId).lean();
+                const project: $TSFixMe = await ProjectModel.findById(
+                    projectId
+                ).lean();
                 const currentBalance: $TSFixMe = project.balance;
                 const newbalance: $TSFixMe = currentBalance + amountRecharged;
                 let updateObject = {};
@@ -403,9 +415,8 @@ export default class StripeService {
             collection_method: 'charge_automatically',
             description,
         });
-        const finalizedInvoice: $TSFixMe = await stripe.invoices.finalizeInvoice(
-            invoice.id
-        );
+        const finalizedInvoice: $TSFixMe =
+            await stripe.invoices.finalizeInvoice(invoice.id);
         const paymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(
             finalizedInvoice.payment_intent
         );
@@ -441,9 +452,12 @@ export default class StripeService {
             email,
             companyName
         );
-        const card: $TSFixMe = await stripe.customers.createSource(stripeCustomerId, {
-            source: tokenId,
-        });
+        const card: $TSFixMe = await stripe.customers.createSource(
+            stripeCustomerId,
+            {
+                source: tokenId,
+            }
+        );
         const metadata: $TSFixMe = {
             description,
         };
@@ -459,9 +473,8 @@ export default class StripeService {
     }
 
     async confirmPayment(paymentIntent: $TSFixMe): void {
-        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
-            paymentIntent.id
-        );
+        const confirmedPaymentIntent: $TSFixMe =
+            await stripe.paymentIntents.confirm(paymentIntent.id);
 
         if (confirmedPaymentIntent.status === 'succeeded') {
             await this.updateBalance(confirmedPaymentIntent);
@@ -478,7 +491,9 @@ export default class StripeService {
     }
 
     async retrievePaymentIntent(intentId: $TSFixMe): void {
-        const paymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(intentId);
+        const paymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(
+            intentId
+        );
         return paymentIntent;
     }
 
@@ -488,7 +503,9 @@ export default class StripeService {
         );
 
         if (subscription && subscription.trial_end !== null) {
-            const chargeDate: $TSFixMe = new Date(subscription.trial_end * 1000);
+            const chargeDate: $TSFixMe = new Date(
+                subscription.trial_end * 1000
+            );
             return chargeDate;
         } else {
             return false;

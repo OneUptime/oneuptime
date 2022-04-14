@@ -6,7 +6,8 @@ import {
 } from 'CommonServer/Utils/Express';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import _ from 'lodash';
-const isValidMongoObjectId: $TSFixMe = require('../config/db').Types.ObjectId.isValid;
+const isValidMongoObjectId: $TSFixMe =
+    require('../config/db').Types.ObjectId.isValid;
 
 import AuditLogsService from '../Services/auditLogsService';
 const sendErrorResponse: $TSFixMe = require('./response').sendErrorResponse;
@@ -45,10 +46,11 @@ export default {
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
                 if (shouldStoreLogs === null) {
-                    const auditLogStatus: $TSFixMe = await GlobalConfigService.findOneBy({
-                        query: { name: 'auditLogMonitoringStatus' },
-                        select: 'value',
-                    });
+                    const auditLogStatus: $TSFixMe =
+                        await GlobalConfigService.findOneBy({
+                            query: { name: 'auditLogMonitoringStatus' },
+                            select: 'value',
+                        });
 
                     // check if the global config has auditLog flag and is storing logs before trying to store logs
                     shouldStoreLogs = !(
@@ -84,7 +86,10 @@ export default {
                         { ...req },
                         blackListedReqObjectPaths
                     );
-                    const modifiedRes: $TSFixMe = _.omit(res, blackListedResObjectPaths);
+                    const modifiedRes: $TSFixMe = _.omit(
+                        res,
+                        blackListedResObjectPaths
+                    );
                     if (Array.isArray(res.logBody)) {
                         modifiedRes.logBody = res.logBody.map(
                             (element: $TSFixMe) =>

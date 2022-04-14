@@ -160,7 +160,8 @@ export const deleteSubscriber: Function = (
     subscriberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`subscriber/${projectId}/${subscriberId}`, {});
+        const promise: $TSFixMe =
+            delete (`subscriber/${projectId}/${subscriberId}`, {});
 
         dispatch(deleteSubscriberRequest(promise));
 

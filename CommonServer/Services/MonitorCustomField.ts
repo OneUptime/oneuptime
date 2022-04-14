@@ -11,7 +11,9 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const customFieldQuery: $TSFixMe = MonitorCustomFieldModel.findOne(query)
+        const customFieldQuery: $TSFixMe = MonitorCustomFieldModel.findOne(
+            query
+        )
             .sort(sort)
             .lean();
 
@@ -30,7 +32,9 @@ export default class Service {
         const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
 
-        const populateMonCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+        const populateMonCustomField: $TSFixMe = [
+            { path: 'projectId', select: 'name' },
+        ];
         customField = await this.findOneBy({
             query: { _id: customField._id },
             populate: populateMonCustomField,
@@ -60,7 +64,9 @@ export default class Service {
         const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
 
-        const populateMonCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+        const populateMonCustomField: $TSFixMe = [
+            { path: 'projectId', select: 'name' },
+        ];
         customField = await this.findOneBy({
             query,
             select: selectMonCustomField,
@@ -117,21 +123,24 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count: $TSFixMe = await MonitorCustomFieldModel.countDocuments(query);
+        const count: $TSFixMe = await MonitorCustomFieldModel.countDocuments(
+            query
+        );
         return count;
     }
 
     async deleteBy(query: Query): void {
-        const customField: $TSFixMe = await MonitorCustomFieldModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
+        const customField: $TSFixMe =
+            await MonitorCustomFieldModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         if (!customField) {
             throw new BadDataException(
@@ -160,7 +169,9 @@ export default class Service {
         const selectMonCustomField: $TSFixMe =
             'fieldName fieldType projectId uniqueField deleted';
 
-        const populateMonCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+        const populateMonCustomField: $TSFixMe = [
+            { path: 'projectId', select: 'name' },
+        ];
         updatedCustomField = await this.findBy({
             query,
             select: selectMonCustomField,

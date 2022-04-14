@@ -211,10 +211,11 @@ router.put(
                 });
             }
 
-            const scheduledEvent: $TSFixMe = await ScheduledEventService.updateOneBy(
-                { _id: eventId, projectId },
-                data
-            );
+            const scheduledEvent: $TSFixMe =
+                await ScheduledEventService.updateOneBy(
+                    { _id: eventId, projectId },
+                    data
+                );
 
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
@@ -235,11 +236,14 @@ router.put(
             data.resolvedBy = req.user ? req.user.id : null;
             const { eventId }: $TSFixMe = req.params;
 
-            const scheduledEvent: $TSFixMe = await ScheduledEventService.findOneBy({
-                query: { _id: eventId },
-                select: 'startDate createdById',
-            });
-            const startDate: $TSFixMe = moment(scheduledEvent.startDate).format();
+            const scheduledEvent: $TSFixMe =
+                await ScheduledEventService.findOneBy({
+                    query: { _id: eventId },
+                    select: 'startDate createdById',
+                });
+            const startDate: $TSFixMe = moment(
+                scheduledEvent.startDate
+            ).format();
             const currentDate: $TSFixMe = moment().format();
 
             if (startDate > currentDate) {
@@ -257,12 +261,13 @@ router.put(
                 });
             }
 
-            const response: $TSFixMe = await ScheduledEventService.resolveScheduledEvent(
-                {
-                    _id: eventId,
-                },
-                data
-            );
+            const response: $TSFixMe =
+                await ScheduledEventService.resolveScheduledEvent(
+                    {
+                        _id: eventId,
+                    },
+                    data
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -510,11 +515,12 @@ router.get(
             const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const scheduledEvent: $TSFixMe = await ScheduledEventService.findOneBy({
-                query: { _id: eventId },
-                select,
-                populate,
-            });
+            const scheduledEvent: $TSFixMe =
+                await ScheduledEventService.findOneBy({
+                    query: { _id: eventId },
+                    select,
+                    populate,
+                });
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -957,11 +963,12 @@ router.get(
             const select: $TSFixMe =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            const scheduledEvent: $TSFixMe = await ScheduledEventService.findOneBy({
-                query: { slug },
-                populate,
-                select,
-            });
+            const scheduledEvent: $TSFixMe =
+                await ScheduledEventService.findOneBy({
+                    query: { slug },
+                    populate,
+                    select,
+                });
 
             return sendItemResponse(req, res, scheduledEvent);
         } catch (error) {

@@ -71,9 +71,8 @@ router.post(
                 });
             }
 
-            const containerSecurity: $TSFixMe = await ContainerSecurityService.create(
-                data
-            );
+            const containerSecurity: $TSFixMe =
+                await ContainerSecurityService.create(data);
             try {
                 RealTimeService.sendContainerSecurityCreated(containerSecurity);
             } catch (error) {
@@ -216,11 +215,12 @@ router.get(
             ];
             const select: $TSFixMe =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-            const containerSecurity: $TSFixMe = await ContainerSecurityService.findOneBy({
-                query: { _id: containerSecurityId },
-                select,
-                populate,
-            });
+            const containerSecurity: $TSFixMe =
+                await ContainerSecurityService.findOneBy({
+                    query: { _id: containerSecurityId },
+                    select,
+                    populate,
+                });
 
             if (!containerSecurity) {
                 return sendErrorResponse(req, res, {
@@ -257,11 +257,12 @@ router.get(
             ];
             const select: $TSFixMe =
                 'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
-            const containerSecurity: $TSFixMe = await ContainerSecurityService.findOneBy({
-                query: { slug: containerSecuritySlug },
-                select,
-                populate,
-            });
+            const containerSecurity: $TSFixMe =
+                await ContainerSecurityService.findOneBy({
+                    query: { slug: containerSecuritySlug },
+                    select,
+                    populate,
+                });
 
             if (!containerSecurity) {
                 return sendErrorResponse(req, res, {
@@ -312,9 +313,10 @@ router.delete(
         try {
             const { componentId }: $TSFixMe = req.params;
 
-            const response: $TSFixMe = await ContainerSecurityService.hardDelete({
-                componentId,
-            });
+            const response: $TSFixMe =
+                await ContainerSecurityService.hardDelete({
+                    componentId,
+                });
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -367,10 +369,11 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { containerSecurityId }: $TSFixMe = req.params;
-            const containerSecurity: $TSFixMe = await ContainerSecurityService.findOneBy({
-                query: { _id: containerSecurityId },
-                select: '_id',
-            });
+            const containerSecurity: $TSFixMe =
+                await ContainerSecurityService.findOneBy({
+                    query: { _id: containerSecurityId },
+                    select: '_id',
+                });
 
             if (!containerSecurity) {
                 const error: $TSFixMe = new Error(

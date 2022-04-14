@@ -53,9 +53,8 @@ router.post(
 
             data.componentId = componentId;
 
-            const performanceTracker: $TSFixMe = await PerformanceTrackerService.create(
-                data
-            );
+            const performanceTracker: $TSFixMe =
+                await PerformanceTrackerService.create(data);
 
             NotificationService.create(
                 performanceTracker.componentId.projectId._id,
@@ -160,13 +159,14 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId }: $TSFixMe = req.params;
         try {
-            const performanceTracker: $TSFixMe = await PerformanceTrackerService.deleteBy(
-                {
-                    _id: performanceTrackerId,
-                },
+            const performanceTracker: $TSFixMe =
+                await PerformanceTrackerService.deleteBy(
+                    {
+                        _id: performanceTrackerId,
+                    },
 
-                req.user.id
-            );
+                    req.user.id
+                );
             if (performanceTracker) {
                 return sendItemResponse(req, res, performanceTracker);
             } else {

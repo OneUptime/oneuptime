@@ -90,9 +90,11 @@ export default {
 
     updateAggregateLogs: async function (data: $TSFixMe): void {
         const now: $TSFixMe = new Date();
-        const intervalHourDate: $TSFixMe = moment(now).format('MMM Do YYYY, h A');
+        const intervalHourDate: $TSFixMe =
+            moment(now).format('MMM Do YYYY, h A');
         const intervalDayDate: $TSFixMe = moment(now).format('MMM Do YYYY');
-        const intervalWeekDate: $TSFixMe = moment(now).format('wo [week of] YYYY');
+        const intervalWeekDate: $TSFixMe =
+            moment(now).format('wo [week of] YYYY');
 
         const [logByHour, logByDay, logByWeek]: $TSFixMe = await Promise.all([
             MonitorLogByHourService.findOneBy({

@@ -129,8 +129,13 @@ router.put(
     isAuthorized,
     async (req, res): void => {
         const { projectId, templateId }: $TSFixMe = req.params;
-        const { title, description, incidentPriority, isDefault, name }: $TSFixMe =
-            req.body;
+        const {
+            title,
+            description,
+            incidentPriority,
+            isDefault,
+            name,
+        }: $TSFixMe = req.body;
         if (!projectId) {
             return sendErrorResponse(
                 req,
@@ -184,19 +189,20 @@ router.put(
                 });
             }
 
-            const incidentSettings: $TSFixMe = await IncidentSettingsService.updateOne(
-                {
-                    projectId,
-                    _id: templateId,
-                },
-                {
-                    title,
-                    description,
-                    incidentPriority,
-                    isDefault,
-                    name,
-                }
-            );
+            const incidentSettings: $TSFixMe =
+                await IncidentSettingsService.updateOne(
+                    {
+                        projectId,
+                        _id: templateId,
+                    },
+                    {
+                        title,
+                        description,
+                        incidentPriority,
+                        isDefault,
+                        name,
+                    }
+                );
             return sendItemResponse(req, res, incidentSettings);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -224,10 +230,11 @@ router.delete(
                 throw error;
             }
 
-            const incidentSetting: $TSFixMe = await IncidentSettingsService.deleteBy({
-                _id: templateId,
-                projectId,
-            });
+            const incidentSetting: $TSFixMe =
+                await IncidentSettingsService.deleteBy({
+                    _id: templateId,
+                    projectId,
+                });
             return sendItemResponse(req, res, incidentSetting);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -269,7 +276,9 @@ router.post(
                 select: '_id',
             });
             if (!priority) {
-                const error: $TSFixMe = new Error("Incident priority doesn't exist.");
+                const error: $TSFixMe = new Error(
+                    "Incident priority doesn't exist."
+                );
 
                 error.code = 400;
                 throw error;
@@ -283,7 +292,8 @@ router.post(
                 isDefault,
                 name,
             };
-            const incidentSetting: $TSFixMe = await IncidentSettingsService.create(data);
+            const incidentSetting: $TSFixMe =
+                await IncidentSettingsService.create(data);
 
             return sendItemResponse(req, res, incidentSetting);
         } catch (error) {

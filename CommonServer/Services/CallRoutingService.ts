@@ -103,9 +103,8 @@ class Service extends DatabaseService<typeof Model> {
 
     async reserveNumber(data: $TSFixMe, projectId: ObjectID): void {
         let confirmBuy = null;
-        const hasCustomTwilioSettings: $TSFixMe = await TwilioService.hasCustomSettings(
-            projectId
-        );
+        const hasCustomTwilioSettings: $TSFixMe =
+            await TwilioService.hasCustomSettings(projectId);
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: projectId },
@@ -120,10 +119,11 @@ class Service extends DatabaseService<typeof Model> {
                 select: 'stripeCustomerId',
             });
             const stripeCustomerId: $TSFixMe = user.stripeCustomerId;
-            const stripeSubscription: $TSFixMe = await PaymentService.createSubscription(
-                stripeCustomerId,
-                data.price
-            );
+            const stripeSubscription: $TSFixMe =
+                await PaymentService.createSubscription(
+                    stripeCustomerId,
+                    data.price
+                );
             if (
                 stripeSubscription &&
                 stripeSubscription.id &&
@@ -307,10 +307,11 @@ class Service extends DatabaseService<typeof Model> {
                     price
                 );
             }
-            const callRoutingLog: $TSFixMe = await CallRoutingLogService.findOneBy({
-                query: { callSid },
-                select: 'callSid dialTo _id',
-            });
+            const callRoutingLog: $TSFixMe =
+                await CallRoutingLogService.findOneBy({
+                    query: { callSid },
+                    select: 'callSid dialTo _id',
+                });
             if (callRoutingLog && callRoutingLog.callSid) {
                 let dialTo =
                     callRoutingLog.dialTo && callRoutingLog.dialTo.length
@@ -360,12 +361,13 @@ class Service extends DatabaseService<typeof Model> {
             ? project.alertOptions.minimumBalance
             : null;
         const isBalanceMoreThanMinimum: $TSFixMe = balance > 10;
-        const isBalanceMoreThanCustomThresholdAmount: $TSFixMe = customThresholdAmount
-            ? balance > customThresholdAmount
-            : null;
-        const hasEnoughBalance: $TSFixMe = isBalanceMoreThanCustomThresholdAmount
-            ? isBalanceMoreThanCustomThresholdAmount && isBalanceMoreThanMinimum
-            : isBalanceMoreThanMinimum;
+        const isBalanceMoreThanCustomThresholdAmount: $TSFixMe =
+            customThresholdAmount ? balance > customThresholdAmount : null;
+        const hasEnoughBalance: $TSFixMe =
+            isBalanceMoreThanCustomThresholdAmount
+                ? isBalanceMoreThanCustomThresholdAmount &&
+                  isBalanceMoreThanMinimum
+                : isBalanceMoreThanMinimum;
 
         if (!hasEnoughBalance) {
             response.reject();

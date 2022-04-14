@@ -128,7 +128,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const eventMessageQuery: $TSFixMe = ScheduledEventNoteModel.findOne(query)
+        const eventMessageQuery: $TSFixMe = ScheduledEventNoteModel.findOne(
+            query
+        )
             .sort(sort)
             .lean();
 
@@ -176,7 +178,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        const count: $TSFixMe = await ScheduledEventNoteModel.countDocuments(query);
+        const count: $TSFixMe = await ScheduledEventNoteModel.countDocuments(
+            query
+        );
         return count;
     }
 
@@ -188,7 +192,10 @@ export default class Service {
             deletedById: userId,
         };
 
-        const deletedEventMessage: $TSFixMe = await this.updateOneBy(query, data);
+        const deletedEventMessage: $TSFixMe = await this.updateOneBy(
+            query,
+            data
+        );
 
         if (!deletedEventMessage) {
             const error: $TSFixMe = new Error(

@@ -761,7 +761,9 @@ describe('SSO authentication', function (): void {
         const {
             header: { location: loginLink },
         } = response;
-        const parsedQuery: $TSFixMe = queryString.parse(loginLink.split('?')[1]);
+        const parsedQuery: $TSFixMe = queryString.parse(
+            loginLink.split('?')[1]
+        );
 
         expect(parsedQuery).to.have.property('id');
         expect(parsedQuery).to.have.property('name');
@@ -809,7 +811,9 @@ describe('SSO authentication', function (): void {
         const {
             header: { location: loginLink },
         } = response;
-        const parsedQuery: $TSFixMe = queryString.parse(loginLink.split('?')[1]);
+        const parsedQuery: $TSFixMe = queryString.parse(
+            loginLink.split('?')[1]
+        );
 
         expect(parsedQuery).to.have.property('id');
         expect(parsedQuery).to.have.property('name');

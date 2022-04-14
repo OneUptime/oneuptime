@@ -9,7 +9,9 @@ const formatEmails: Function = (emails: $TSFixMe): void => {
         return;
     }
     // remove white spaces and replace the first and last commas, if available
-    const trimmedEmailsList: $TSFixMe = emails.replace(/\s/g, '').replace(/^,*|,*$/g, '');
+    const trimmedEmailsList: $TSFixMe = emails
+        .replace(/\s/g, '')
+        .replace(/^,*|,*$/g, '');
     // replace multiple commas with a single comma
     const formattedEmails: $TSFixMe = trimmedEmailsList.replace(/,{2,}/g, ',');
 

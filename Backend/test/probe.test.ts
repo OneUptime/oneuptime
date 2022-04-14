@@ -33,7 +33,8 @@ let token: $TSFixMe, userId, projectId: ObjectID, componentId: $TSFixMe;
 const probeKey: string = 'test-key';
 const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-const generateRandomString: $TSFixMe = require('./utils/string').generateRandomString;
+const generateRandomString: $TSFixMe =
+    require('./utils/string').generateRandomString;
 const probeServerRequestHeader: Function = ({
     probeName,
     probeKey,

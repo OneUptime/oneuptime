@@ -19,21 +19,22 @@ export default {
                 teamMembers.length &&
                 mongoose.isValidObjectId(projectId)
             ) {
-                const updatedProject: $TSFixMe = await ProjectModel.findOneAndUpdate(
-                    {
-                        _id: projectId,
-                    },
-                    {
-                        $addToSet: {
-                            users: {
-                                $each: teamMembers,
+                const updatedProject: $TSFixMe =
+                    await ProjectModel.findOneAndUpdate(
+                        {
+                            _id: projectId,
+                        },
+                        {
+                            $addToSet: {
+                                users: {
+                                    $each: teamMembers,
+                                },
                             },
                         },
-                    },
-                    {
-                        new: true,
-                    }
-                );
+                        {
+                            new: true,
+                        }
+                    );
                 return updatedProject;
             }
         } catch (error) {
@@ -57,19 +58,20 @@ export default {
                 teamMembers.length &&
                 mongoose.isValidObjectId(projectId)
             ) {
-                const updatedProject: $TSFixMe = await ProjectModel.findOneAndUpdate(
-                    {
-                        _id: projectId,
-                    },
-                    {
-                        $pullAll: {
-                            users: teamMembers,
+                const updatedProject: $TSFixMe =
+                    await ProjectModel.findOneAndUpdate(
+                        {
+                            _id: projectId,
                         },
-                    },
-                    {
-                        new: true,
-                    }
-                );
+                        {
+                            $pullAll: {
+                                users: teamMembers,
+                            },
+                        },
+                        {
+                            new: true,
+                        }
+                    );
                 return updatedProject;
             }
         } catch (error) {

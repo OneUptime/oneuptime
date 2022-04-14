@@ -8,7 +8,8 @@ import NotificationService from '../services/notificationService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 import {
     sendErrorResponse,
     sendListResponse,
@@ -76,10 +77,11 @@ router.put(
             const { notificationIds }: $TSFixMe = req.body;
             const notifications: $TSFixMe = [];
             for (const notificationId of notificationIds) {
-                const notification: $TSFixMe = await NotificationService.updateOneBy(
-                    { _id: notificationId },
-                    { read: [userId] }
-                );
+                const notification: $TSFixMe =
+                    await NotificationService.updateOneBy(
+                        { _id: notificationId },
+                        { read: [userId] }
+                    );
                 if (notification) {
                     notifications.push(notificationId);
                 }
@@ -101,10 +103,11 @@ router.put(
             const notificationId: $TSFixMe = req.params.notificationId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const notification: $TSFixMe = await NotificationService.updateOneBy(
-                { _id: notificationId },
-                { closed: [userId] }
-            );
+            const notification: $TSFixMe =
+                await NotificationService.updateOneBy(
+                    { _id: notificationId },
+                    { closed: [userId] }
+                );
             if (notification) {
                 return sendItemResponse(req, res, notification);
             } else {
@@ -131,10 +134,11 @@ router.put(
                 : null;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const notifications: $TSFixMe = await NotificationService.updateManyBy(
-                { projectId: { $in: subProjectIds } },
-                { read: userId }
-            );
+            const notifications: $TSFixMe =
+                await NotificationService.updateManyBy(
+                    { projectId: { $in: subProjectIds } },
+                    { read: userId }
+                );
 
             if (notifications.ok === 1 && notifications.n > 0) {
                 return sendItemResponse(req, res, {
@@ -161,10 +165,11 @@ router.put(
         try {
             const notificationId: $TSFixMe = req.params.notificationId;
             const updateObject: $TSFixMe = req.body;
-            const notification: $TSFixMe = await NotificationService.updateOneBy(
-                { _id: notificationId },
-                updateObject
-            );
+            const notification: $TSFixMe =
+                await NotificationService.updateOneBy(
+                    { _id: notificationId },
+                    updateObject
+                );
             if (notification) {
                 return sendItemResponse(req, res, notification);
             } else {

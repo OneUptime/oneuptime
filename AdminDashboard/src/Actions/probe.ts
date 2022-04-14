@@ -150,10 +150,13 @@ export const addProbe: $TSFixMe =
         dispatch(addProbeRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.post(new Route('probe/'), {
-                probeKey,
-                probeName,
-            });
+            const response: $TSFixMe = await BackendAPI.post(
+                new Route('probe/'),
+                {
+                    probeKey,
+                    probeName,
+                }
+            );
 
             const data: $TSFixMe = response.data;
             dispatch(addProbeSuccess(data));
@@ -214,7 +217,10 @@ export const updateProbe: $TSFixMe =
             data.append('probeImage', values.probeImage);
             data.append('id', values.id);
 
-            const response: $TSFixMe = await BackendAPI.put('probe/update/image', data);
+            const response: $TSFixMe = await BackendAPI.put(
+                'probe/update/image',
+                data
+            );
 
             const resp: $TSFixMe = response.data;
             if (Object.keys(resp).length > 0) {

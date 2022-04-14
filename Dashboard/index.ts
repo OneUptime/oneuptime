@@ -11,7 +11,9 @@ import path from 'path';
 app.get(
     ['/env.js', '/dashboard/env.js'],
     (req: ExpressRequest, res: ExpressResponse) => {
-        const isClustLocal: $TSFixMe = req.get('host').includes('cluster.local');
+        const isClustLocal: $TSFixMe = req
+            .get('host')
+            .includes('cluster.local');
         if (!isClustLocal) {
             global.dashboardHost = 'https://' + req.host + '/dashboard';
 

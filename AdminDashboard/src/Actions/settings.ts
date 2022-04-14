@@ -113,7 +113,9 @@ export const fetchSettings: $TSFixMe =
     async (dispatch: Dispatch): void => {
         dispatch(requestingSettings());
         try {
-            const response: $TSFixMe = await BackendAPI.get(`globalConfig/${type}`);
+            const response: $TSFixMe = await BackendAPI.get(
+                `globalConfig/${type}`
+            );
 
             const data: $TSFixMe = response.data || { value: {} };
             if (type === 'smtp') {

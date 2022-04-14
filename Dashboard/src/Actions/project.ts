@@ -207,7 +207,10 @@ export const getProjectBalanceSuccess: Function = (project: $TSFixMe): void => {
 
 export const getProjectBalance: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`project/${projectId}/balance`, null);
+        const promise: $TSFixMe = BackendAPI.get(
+            `project/${projectId}/balance`,
+            null
+        );
 
         dispatch(getProjectBalanceRequest(promise));
 
@@ -249,7 +252,10 @@ export const resetCreateProject: Function = (): void => {
 
 export const createProject: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(new Route('project/create'), values);
+        const promise: $TSFixMe = BackendAPI.post(
+            new Route('project/create'),
+            values
+        );
 
         dispatch(createProjectRequest());
 
@@ -289,11 +295,15 @@ export function switchProject(
     subProjects = []
 ): void {
     const currentProjectId: $TSFixMe = User.getCurrentProjectId();
-    const historyProjectId: $TSFixMe = history.location.pathname.split('project')[1];
+    const historyProjectId: $TSFixMe =
+        history.location.pathname.split('project')[1];
 
     //get project slug from pathname
     const pathname: $TSFixMe = history.location.pathname;
-    const regex: $TSFixMe = new RegExp('/dashboard/project/([A-z-0-9]+)/?.+', 'i');
+    const regex: $TSFixMe = new RegExp(
+        '/dashboard/project/([A-z-0-9]+)/?.+',
+        'i'
+    );
     const match: $TSFixMe = pathname.match(regex);
 
     let projectSlug;
@@ -448,7 +458,9 @@ export const resetProjectTokenError: Function = (error: ErrorPayload): void => {
 
 export const resetProjectToken: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`project/${projectId}/resetToken`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `project/${projectId}/resetToken`
+        );
 
         dispatch(resetProjectTokenRequest());
 
@@ -511,9 +523,12 @@ export const renameProject: Function = (
     projectName: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`project/${projectId}/renameProject`, {
-            projectName,
-        });
+        const promise: $TSFixMe = BackendAPI.put(
+            `project/${projectId}/renameProject`,
+            {
+                projectName,
+            }
+        );
 
         dispatch(renameProjectRequest());
 
@@ -630,12 +645,15 @@ export function changePlan(
     newPlan: $TSFixMe
 ) {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`project/${projectId}/changePlan`, {
-            projectName,
-            planId,
-            oldPlan,
-            newPlan,
-        });
+        const promise: $TSFixMe = BackendAPI.post(
+            `project/${projectId}/changePlan`,
+            {
+                projectName,
+                planId,
+                oldPlan,
+                newPlan,
+            }
+        );
 
         dispatch(changePlanRequest());
 
@@ -886,7 +904,10 @@ export const addBalance: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`stripe/${projectId}/addBalance`, data);
+        const promise: $TSFixMe = BackendAPI.post(
+            `stripe/${projectId}/addBalance`,
+            data
+        );
 
         dispatch(addBalanceRequest());
 
@@ -973,7 +994,10 @@ export const checkCardSuccess: Function = (card: $TSFixMe): void => {
 
 export const checkCard: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(new Route('stripe/checkCard'), data);
+        const promise: $TSFixMe = BackendAPI.post(
+            new Route('stripe/checkCard'),
+            data
+        );
 
         dispatch(checkCardRequest(promise));
 
@@ -1469,7 +1493,9 @@ export const fetchTrialError: Function = (error: ErrorPayload): void => {
 
 export const fetchTrial: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`stripe/${projectId}/getTrial`);
+        const promise: $TSFixMe = BackendAPI.post(
+            `stripe/${projectId}/getTrial`
+        );
 
         dispatch(fetchTrialRequest());
 
@@ -1510,7 +1536,9 @@ export const fetchProjectSlugFailure: Function = (
 
 export const fetchProjectSlug: Function = (slug: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`project/project-slug/${slug}`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `project/project-slug/${slug}`
+        );
 
         dispatch(fetchProjectSlugRequest());
 

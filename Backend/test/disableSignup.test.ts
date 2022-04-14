@@ -63,7 +63,9 @@ describe('Disable Sign up test', function (): void {
             companyName: data.anotherUser.companyName,
         });
 
-        const paymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(res.body.id);
+        const paymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
+            res.body.id
+        );
         expect(paymentIntent).to.have.status('succeeded');
 
         const res2: $TSFixMe = await request

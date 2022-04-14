@@ -70,7 +70,9 @@ router.delete(
         try {
             const { token }: $TSFixMe = req.params;
 
-            const acmeChallenge: $TSFixMe = await SslService.deleteBy({ token });
+            const acmeChallenge: $TSFixMe = await SslService.deleteBy({
+                token,
+            });
             return sendItemResponse(req, res, acmeChallenge);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

@@ -157,7 +157,10 @@ export default class API {
                 data,
             });
 
-            const response: $TSFixMe = new HTTPResponse(result.status, result.data);
+            const response: $TSFixMe = new HTTPResponse(
+                result.status,
+                result.data
+            );
             return response;
         } catch (e) {
             const error: $TSFixMe = e as Error | AxiosError;

@@ -102,10 +102,11 @@ router.post(
             data.projectId = projectId;
             incomingRequest = await IncomingRequestService.create(data);
             // requestUrl contains the whole incoming request object with the updated url
-            const requestUrl: $TSFixMe = await IncomingRequestService.getRequestUrl(
-                projectId,
-                incomingRequest._id
-            );
+            const requestUrl: $TSFixMe =
+                await IncomingRequestService.getRequestUrl(
+                    projectId,
+                    incomingRequest._id
+                );
 
             return sendItemResponse(req, res, requestUrl);
         } catch (error) {
@@ -179,10 +180,11 @@ router.delete(
         try {
             const { projectId, requestId }: $TSFixMe = req.params;
 
-            const incomingRequest: $TSFixMe = await IncomingRequestService.deleteBy({
-                _id: requestId,
-                projectId,
-            });
+            const incomingRequest: $TSFixMe =
+                await IncomingRequestService.deleteBy({
+                    _id: requestId,
+                    projectId,
+                });
             return sendItemResponse(req, res, incomingRequest);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

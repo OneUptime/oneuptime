@@ -52,15 +52,16 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const updatedSubscriber: $TSFixMe = await SubscriberModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
+        const updatedSubscriber: $TSFixMe =
+            await SubscriberModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
         return updatedSubscriber;
     }
 
@@ -249,7 +250,9 @@ export default class Service {
             const newSubscriber: $TSFixMe = Object.assign({}, data, {
                 monitorId: monitor._id ?? monitor,
             });
-            const hasSubscribed: $TSFixMe = await this.subscriberCheck(newSubscriber);
+            const hasSubscribed: $TSFixMe = await this.subscriberCheck(
+                newSubscriber
+            );
             if (hasSubscribed) {
                 const error: $TSFixMe = new Error(
                     'You are already subscribed to this monitor.'
@@ -295,7 +298,9 @@ export default class Service {
                 monitorId,
                 projectId,
             });
-            const hasSubscribed: $TSFixMe = await this.subscriberCheck(newSubscriber);
+            const hasSubscribed: $TSFixMe = await this.subscriberCheck(
+                newSubscriber
+            );
             if (!hasSubscribed) {
                 return await this.create(newSubscriber);
             }

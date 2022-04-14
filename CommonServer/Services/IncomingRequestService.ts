@@ -30,7 +30,9 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const incomingRequestQuery: $TSFixMe = IncomingRequestModel.findOne(query)
+        const incomingRequestQuery: $TSFixMe = IncomingRequestModel.findOne(
+            query
+        )
             .sort(sort)
             .lean();
 
@@ -363,11 +365,12 @@ export default class Service {
     }
 
     async updateCustomFieldBy(query: Query, data: $TSFixMe): void {
-        const incomingRequest: $TSFixMe = await IncomingRequestModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            { new: true }
-        );
+        const incomingRequest: $TSFixMe =
+            await IncomingRequestModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                { new: true }
+            );
         return incomingRequest;
     }
 
@@ -411,21 +414,24 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const count: $TSFixMe = await IncomingRequestModel.countDocuments(query);
+        const count: $TSFixMe = await IncomingRequestModel.countDocuments(
+            query
+        );
         return count;
     }
 
     async deleteBy(query: Query): void {
-        const incomingRequest: $TSFixMe = await IncomingRequestModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
+        const incomingRequest: $TSFixMe =
+            await IncomingRequestModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         if (!incomingRequest) {
             const error: $TSFixMe = new Error(
@@ -560,25 +566,28 @@ export default class Service {
             },
             { path: 'projectId', select: 'name' },
         ];
-        const [incidentPriorities, incidentSettings, incomingRequest]: $TSFixMe =
-            await Promise.all([
-                IncidentPrioritiesService.findBy({
-                    query: { projectId: data.projectId },
-                    select: selectIncPriority,
-                }),
-                IncidentSettingsService.findOne({
-                    query: {
-                        projectId: data.projectId,
-                        isDefault: true,
-                    },
-                    select: selectIncSettings,
-                }),
-                this.findOneBy({
-                    query: { _id: data.requestId, projectId: data.projectId },
-                    select: selectInRequest,
-                    populate: populateInRequest,
-                }),
-            ]);
+        const [
+            incidentPriorities,
+            incidentSettings,
+            incomingRequest,
+        ]: $TSFixMe = await Promise.all([
+            IncidentPrioritiesService.findBy({
+                query: { projectId: data.projectId },
+                select: selectIncPriority,
+            }),
+            IncidentSettingsService.findOne({
+                query: {
+                    projectId: data.projectId,
+                    isDefault: true,
+                },
+                select: selectIncSettings,
+            }),
+            this.findOneBy({
+                query: { _id: data.requestId, projectId: data.projectId },
+                select: selectInRequest,
+                populate: populateInRequest,
+            }),
+        ]);
 
         // grab value for posting to status page
         data.post_statuspage = incomingRequest.post_statuspage ? true : false;
@@ -659,10 +668,12 @@ export default class Service {
                 const newMonitorList: $TSFixMe = [];
                 monitors.forEach((monitor: $TSFixMe) => {
                     let matchedFields = 0;
-                    const monitorCustomFields: $TSFixMe = monitor.customFields || [];
+                    const monitorCustomFields: $TSFixMe =
+                        monitor.customFields || [];
 
                     updatedFilters.forEach((filter: $TSFixMe) => {
-                        const filterCondition: $TSFixMe = filter.filterCondition;
+                        const filterCondition: $TSFixMe =
+                            filter.filterCondition;
                         for (const field of monitorCustomFields) {
                             if (filterCondition === 'equalTo') {
                                 if (
@@ -1293,7 +1304,8 @@ export default class Service {
                 const newIncidentList: $TSFixMe = [];
                 incidents.forEach((incident: $TSFixMe) => {
                     let matchedFields = 0;
-                    const incidentCustomFields: $TSFixMe = incident.customFields || [];
+                    const incidentCustomFields: $TSFixMe =
+                        incident.customFields || [];
                     // automatically create incident id custom field
                     incidentCustomFields.push({
                         fieldName: 'incidentId',
@@ -1303,7 +1315,8 @@ export default class Service {
 
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
-                            const filterCriteria: $TSFixMe = filter.filterCriteria,
+                            const filterCriteria: $TSFixMe =
+                                    filter.filterCriteria,
                                 filterCondition = filter.filterCondition,
                                 filterText = filter.filterText;
 
@@ -1836,7 +1849,8 @@ export default class Service {
                 const newIncidentList: $TSFixMe = [];
                 incidents.forEach((incident: $TSFixMe) => {
                     let matchedFields = 0;
-                    const incidentCustomFields: $TSFixMe = incident.customFields || [];
+                    const incidentCustomFields: $TSFixMe =
+                        incident.customFields || [];
                     // automatically create incident id custom field
                     incidentCustomFields.push({
                         fieldName: 'incidentId',
@@ -1846,7 +1860,8 @@ export default class Service {
 
                     updatedFilters.forEach(filter => {
                         for (const field of incidentCustomFields) {
-                            const filterCriteria: $TSFixMe = filter.filterCriteria,
+                            const filterCriteria: $TSFixMe =
+                                    filter.filterCriteria,
                                 filterCondition = filter.filterCondition,
                                 filterText = filter.filterText;
 
@@ -1979,25 +1994,27 @@ export default class Service {
                     }
                     if (incomingRequest.resolveIncident) {
                         if (!resolvedIncidents.includes(String(incident._id))) {
-                            const incidentData: $TSFixMe = await IncidentService.resolve(
-                                incident._id,
-                                null,
-                                null,
-                                null,
-                                null,
-                                incomingRequest
-                            );
+                            const incidentData: $TSFixMe =
+                                await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
                             resolveResponse.push(incidentData);
                             resolvedIncidents.push(String(incident._id));
                         } else {
-                            const incidentData: $TSFixMe = await IncidentService.resolve(
-                                incident._id,
-                                null,
-                                null,
-                                null,
-                                null,
-                                incomingRequest
-                            );
+                            const incidentData: $TSFixMe =
+                                await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
                             resolveResponse.push(incidentData);
                         }
                     }

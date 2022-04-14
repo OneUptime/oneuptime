@@ -22,7 +22,8 @@ export default class Service {
             containerScanner.containerScannerName = data.containerScannerName;
 
             containerScanner.version = data.containerScannerVersion;
-            const savedContainerScanner: $TSFixMe = await containerScanner.save();
+            const savedContainerScanner: $TSFixMe =
+                await containerScanner.save();
             return savedContainerScanner;
         }
     }
@@ -33,13 +34,14 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const containerScanner: $TSFixMe = await ContainerScannerModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
+        const containerScanner: $TSFixMe =
+            await ContainerScannerModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
         return containerScanner;
     }
 
@@ -56,11 +58,12 @@ export default class Service {
     }
 
     async updateContainerScannerStatus(containerScannerId): void {
-        const containerScanner: $TSFixMe = await ContainerScannerModel.findOneAndUpdate(
-            { _id: containerScannerId },
-            { $set: { lastAlive: Date.now() } },
-            { new: true }
-        );
+        const containerScanner: $TSFixMe =
+            await ContainerScannerModel.findOneAndUpdate(
+                { _id: containerScannerId },
+                { $set: { lastAlive: Date.now() } },
+                { new: true }
+            );
         return containerScanner;
     }
 }

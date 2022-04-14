@@ -68,7 +68,9 @@ export const subProjectTeamLoadingError: Function = (
 // Calls the API to load team.
 export const subProjectTeamLoading: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`team/${projectId}/teamMembers`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `team/${projectId}/teamMembers`
+        );
         dispatch(subProjectTeamLoadingRequest());
         promise.then(
             (response): void => {
@@ -167,7 +169,8 @@ export const teamDelete: Function = (
     teamMemberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`team/${projectId}/${teamMemberId}`, null);
+        const promise: $TSFixMe = delete (`team/${projectId}/${teamMemberId}`,
+        null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
@@ -213,7 +216,9 @@ export const getTeamMember: Function = (
     teamMemberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`team/${projectId}/${teamMemberId}`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `team/${projectId}/${teamMemberId}`
+        );
         dispatch(teamMemberRequest(teamMemberId));
 
         promise.then(

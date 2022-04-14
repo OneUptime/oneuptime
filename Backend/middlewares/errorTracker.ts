@@ -49,9 +49,11 @@ const _this: $TSFixMe = {
                 new BadDataException('Fingerprint is to be of type Array.')
             );
         }
-        const allowedLogType: $TSFixMe = ['exception', 'message', 'error'].filter(
-            elem => elem === data.type
-        );
+        const allowedLogType: $TSFixMe = [
+            'exception',
+            'message',
+            'error',
+        ].filter(elem => elem === data.type);
         if (allowedLogType.length < 1) {
             return sendErrorResponse(
                 req,

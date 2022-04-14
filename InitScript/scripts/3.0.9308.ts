@@ -15,7 +15,9 @@ async function run(): void {
         };
 
         if (incident.monitorId) {
-            const monitors: $TSFixMe = [{ monitorId: ObjectId(incident.monitorId) }];
+            const monitors: $TSFixMe = [
+                { monitorId: ObjectId(incident.monitorId) },
+            ];
 
             data.monitors = monitors;
         }

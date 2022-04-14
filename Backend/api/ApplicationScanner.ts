@@ -86,11 +86,12 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security: $TSFixMe = req.body;
-            const securityLog: $TSFixMe = await ApplicationSecurityLogService.create({
-                securityId: security.securityId,
-                componentId: security.componentId,
-                data: security.data,
-            });
+            const securityLog: $TSFixMe =
+                await ApplicationSecurityLogService.create({
+                    securityId: security.securityId,
+                    componentId: security.componentId,
+                    data: security.data,
+                });
 
             const populateApplicationSecurityLog: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug projectId' },
@@ -103,11 +104,12 @@ router.post(
             const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
 
-            const findLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
-                query: { _id: securityLog._id },
-                populate: populateApplicationSecurityLog,
-                select: selectApplicationSecurityLog,
-            });
+            const findLog: $TSFixMe =
+                await ApplicationSecurityLogService.findOneBy({
+                    query: { _id: securityLog._id },
+                    populate: populateApplicationSecurityLog,
+                    select: selectApplicationSecurityLog,
+                });
 
             const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: findLog.componentId.projectId },
@@ -272,11 +274,10 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security: $TSFixMe = req.body;
-            const updatedTime: $TSFixMe = await ApplicationSecurityService.updateScanTime(
-                {
+            const updatedTime: $TSFixMe =
+                await ApplicationSecurityService.updateScanTime({
                     _id: security._id,
-                }
-            );
+                });
             return sendItemResponse(req, res, updatedTime);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

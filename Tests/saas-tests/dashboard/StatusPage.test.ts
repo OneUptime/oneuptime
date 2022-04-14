@@ -69,10 +69,14 @@ describe('Status Page', () => {
         'should indicate that no monitor is set yet for a status page',
         async (done: $TSFixMe) => {
             await gotoTheFirstStatusPage(page);
-            const elem: $TSFixMe = await init.pageWaitForSelector(page, '#app-loading', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#app-loading',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elem).toBeTruthy();
             const element: $TSFixMe = await init.page$Eval(
                 page,
@@ -116,9 +120,13 @@ describe('Status Page', () => {
                 true
             );
             await page.reload({ waitUntil: 'networkidle2' });
-            const monitor: $TSFixMe = await init.pageWaitForSelector(page, '#monitor-0', {
-                hidden: true,
-            });
+            const monitor: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitor-0',
+                {
+                    hidden: true,
+                }
+            );
             expect(monitor).toBeNull();
             done();
         },
@@ -167,9 +175,13 @@ describe('Status Page', () => {
             ).toEqual(true);
             await page.reload({ waitUntil: 'networkidle2' });
 
-            const monitor: $TSFixMe = await init.pageWaitForSelector(page, '#monitor-0', {
-                hidden: true,
-            });
+            const monitor: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitor-0',
+                {
+                    hidden: true,
+                }
+            );
             expect(monitor).toBeNull();
             const monitor1: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -205,10 +217,14 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await page.reload({ waitUntil: 'networkidle2' });
-            const elem: $TSFixMe = await init.pageWaitForSelector(page, '#monitor-0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitor-0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elem).toBeDefined();
             done();
         },
@@ -227,10 +243,14 @@ describe('Status Page', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await page.reload({ waitUntil: 'networkidle2' });
-            const elem: $TSFixMe = await init.pageWaitForSelector(page, '#app-loading', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#app-loading',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elem).toBeTruthy();
             const element: $TSFixMe = await init.page$Eval(
                 page,

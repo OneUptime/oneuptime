@@ -24,7 +24,10 @@ router.get(
         try {
             const apiKey: $TSFixMe = req.query.apiKey;
             const projectId: $TSFixMe = req.query.projectId;
-            const response: $TSFixMe = await ZapierService.test(projectId, apiKey);
+            const response: $TSFixMe = await ZapierService.test(
+                projectId,
+                apiKey
+            );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -72,7 +75,9 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
-            const incident: $TSFixMe = await ZapierService.createIncident(monitors);
+            const incident: $TSFixMe = await ZapierService.createIncident(
+                monitors
+            );
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -87,7 +92,9 @@ router.get(
         try {
             const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents: $TSFixMe = await ZapierService.getIncidents(projectId);
+            const incidents: $TSFixMe = await ZapierService.getIncidents(
+                projectId
+            );
             // zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
@@ -103,7 +110,9 @@ router.get(
         try {
             const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents: $TSFixMe = await ZapierService.getIncidentsNotes(projectId);
+            const incidents: $TSFixMe = await ZapierService.getIncidentsNotes(
+                projectId
+            );
             // zapier expects this as an item response and not a list response.
             return sendItemResponse(req, res, incidents);
         } catch (error) {
@@ -118,7 +127,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data }: $TSFixMe = req.body;
-            const incidentNote: $TSFixMe = await ZapierService.createIncidentNote(data);
+            const incidentNote: $TSFixMe =
+                await ZapierService.createIncidentNote(data);
             return sendItemResponse(req, res, incidentNote);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -133,9 +143,8 @@ router.get(
         try {
             const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents: $TSFixMe = await ZapierService.getResolvedIncidents(
-                projectId
-            );
+            const incidents: $TSFixMe =
+                await ZapierService.getResolvedIncidents(projectId);
             // zapier expects this as an item response and not a list response.
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
@@ -154,7 +163,9 @@ router.post(
     async (req, res): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
-            const incident: $TSFixMe = await ZapierService.resolveLastIncident(monitors);
+            const incident: $TSFixMe = await ZapierService.resolveLastIncident(
+                monitors
+            );
             if (incident) {
                 return sendItemResponse(req, res, incident);
             } else {
@@ -172,7 +183,9 @@ router.post(
     async (req, res): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
-            const incidents: $TSFixMe = await ZapierService.resolveAllIncidents(monitors);
+            const incidents: $TSFixMe = await ZapierService.resolveAllIncidents(
+                monitors
+            );
             // zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
@@ -191,9 +204,8 @@ router.post(
     async (req, res): void => {
         try {
             const incidents: $TSFixMe = req.body.incidents || [];
-            const resolvedIncidents: $TSFixMe = await ZapierService.resolveIncident(
-                incidents
-            );
+            const resolvedIncidents: $TSFixMe =
+                await ZapierService.resolveIncident(incidents);
             // zapier expects this as an item response and not a list response.
             if (resolvedIncidents) {
                 return sendItemResponse(req, res, resolvedIncidents);
@@ -213,12 +225,13 @@ router.get(
         try {
             const projectId: $TSFixMe = req.query.projectId;
             // We return all the incidents to zapier because it gives user an option to configure zapier properly with all the steps.
-            const incidents: $TSFixMe = await ZapierService.getAcknowledgedIncidents(
-                projectId,
+            const incidents: $TSFixMe =
+                await ZapierService.getAcknowledgedIncidents(
+                    projectId,
 
-                true,
-                false
-            );
+                    true,
+                    false
+                );
             // zapier expects this as an item response and not a list response.
             if (incidents) {
                 return sendItemResponse(req, res, incidents);
@@ -237,9 +250,8 @@ router.post(
     async (req, res): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
-            const incident: $TSFixMe = await ZapierService.acknowledgeLastIncident(
-                monitors
-            );
+            const incident: $TSFixMe =
+                await ZapierService.acknowledgeLastIncident(monitors);
             if (incident) {
                 return sendItemResponse(req, res, incident);
             } else {
@@ -257,9 +269,8 @@ router.post(
     async (req, res): void => {
         try {
             const monitors: $TSFixMe = req.body.monitors || [];
-            const incidents: $TSFixMe = await ZapierService.acknowledgeAllIncidents(
-                monitors
-            );
+            const incidents: $TSFixMe =
+                await ZapierService.acknowledgeAllIncidents(monitors);
             // zapier expects this as an item response and not a list response.;
             if (incidents) {
                 return sendItemResponse(req, res, incidents);

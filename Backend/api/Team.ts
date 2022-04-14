@@ -9,7 +9,8 @@ const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 import RealTimeService from '../services/realTimeService';
 import NotificationService from '../services/notificationService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -54,9 +55,10 @@ router.get(
         try {
             const subProjectTeamMembers: $TSFixMe = await Promise.all(
                 subProjectIds.map(async (id: $TSFixMe) => {
-                    const teamMembers: $TSFixMe = await TeamService.getTeamMembersBy({
-                        _id: id,
-                    });
+                    const teamMembers: $TSFixMe =
+                        await TeamService.getTeamMembersBy({
+                            _id: id,
+                        });
                     const count: $TSFixMe = teamMembers.length;
                     return { teamMembers, count, _id: id };
                 })
@@ -184,7 +186,9 @@ router.post(
         try {
             // If members are not Viewers, we make sure they don't exceed 100
             if (data.role !== 'Viewers') {
-                const teamMembers: $TSFixMe = await TeamService.getTeamMembers(projectId);
+                const teamMembers: $TSFixMe = await TeamService.getTeamMembers(
+                    projectId
+                );
                 const withoutViewers: $TSFixMe = teamMembers
                     ? teamMembers.filter(
                           teamMember => teamMember.role !== 'Viewer'
@@ -330,12 +334,13 @@ router.put(
                     teamMemberId,
                     data.role
                 );
-                const teamMembers: $TSFixMe = await TeamService.updateTeamMemberRole(
-                    projectId,
-                    userId,
-                    userId,
-                    'Administrator'
-                );
+                const teamMembers: $TSFixMe =
+                    await TeamService.updateTeamMemberRole(
+                        projectId,
+                        userId,
+                        userId,
+                        'Administrator'
+                    );
 
                 NotificationService.create(
                     projectId,

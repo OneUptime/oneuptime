@@ -53,7 +53,9 @@ export default {
                           ],
                       };
             // Fetch user subprojects
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 

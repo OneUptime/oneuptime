@@ -63,7 +63,8 @@ export default class Service {
 
         const escalation: $TSFixMe = await escalationQuery;
 
-        const { activeTeam, nextActiveTeam }: $TSFixMe = computeActiveTeams(escalation);
+        const { activeTeam, nextActiveTeam }: $TSFixMe =
+            computeActiveTeams(escalation);
         escalation.activeTeam = activeTeam;
         escalation.nextActiveTeam = nextActiveTeam;
 
@@ -226,16 +227,18 @@ export default class Service {
 
                         const selectSchedule: $TSFixMe =
                             '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
-                        const schedule: $TSFixMe = await ScheduleService.findOneBy({
-                            query: { _id: escalation.scheduleId },
-                            select: selectSchedule,
-                            populate: populateSchedule,
-                        });
-                        const rmEscalation: $TSFixMe = schedule.escalationIds.filter(
-                            (escalationId: $TSFixMe) =>
-                                String(escalationId._id) !==
-                                String(escalation._id)
-                        );
+                        const schedule: $TSFixMe =
+                            await ScheduleService.findOneBy({
+                                query: { _id: escalation.scheduleId },
+                                select: selectSchedule,
+                                populate: populateSchedule,
+                            });
+                        const rmEscalation: $TSFixMe =
+                            schedule.escalationIds.filter(
+                                (escalationId: $TSFixMe) =>
+                                    String(escalationId._id) !==
+                                    String(escalation._id)
+                            );
                         schedule.escalationIds = rmEscalation;
                         await Promise.all([
                             ScheduleService.updateOneBy(
@@ -298,13 +301,20 @@ function computeActiveTeamIndex(
     intervalDifference: $TSFixMe,
     rotationInterval: $TSFixMe
 ): void {
-    const difference: $TSFixMe = Math.floor(intervalDifference / rotationInterval);
+    const difference: $TSFixMe = Math.floor(
+        intervalDifference / rotationInterval
+    );
     return difference % numberOfTeams;
 }
 
 function computeActiveTeams(escalation: $TSFixMe): void {
-    const { teams, rotationInterval, rotateBy, createdAt, rotationTimezone }: $TSFixMe =
-        escalation;
+    const {
+        teams,
+        rotationInterval,
+        rotateBy,
+        createdAt,
+        rotationTimezone,
+    }: $TSFixMe = escalation;
 
     let firstRotationOn = escalation.firstRotationOn;
 
@@ -373,7 +383,8 @@ function computeActiveTeams(escalation: $TSFixMe): void {
             nextActiveTeamIndex = 0;
         }
 
-        const nextActiveTeamRotationStartTime: $TSFixMe = activeTeamRotationEndTime;
+        const nextActiveTeamRotationStartTime: $TSFixMe =
+            activeTeamRotationEndTime;
         const nextActiveTeamRotationEndTime: $TSFixMe = moment(
             nextActiveTeamRotationStartTime
         ).add(rotationInterval, rotateBy);

@@ -97,7 +97,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const performanceTrackerQuery: $TSFixMe = PerformanceTrackerModel.find(query)
+        const performanceTrackerQuery: $TSFixMe = PerformanceTrackerModel.find(
+            query
+        )
             .lean()
             .sort(sort)
             .skip(skip.toNumber())
@@ -127,9 +129,8 @@ export default class Service {
         // })
         // .populate('createdById', 'name email');
 
-        const performanceTrackerQuery: $TSFixMe = PerformanceTrackerModel.findOne(query)
-            .sort(sort)
-            .lean();
+        const performanceTrackerQuery: $TSFixMe =
+            PerformanceTrackerModel.findOne(query).sort(sort).lean();
 
         performanceTrackerQuery.select(select);
         performanceTrackerQuery.populate(populate);
@@ -287,7 +288,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const count: $TSFixMe = await PerformanceTrackerModel.countDocuments(query);
+        const count: $TSFixMe = await PerformanceTrackerModel.countDocuments(
+            query
+        );
         return count;
     }
 }

@@ -104,7 +104,9 @@ export default class Service {
             const domainToLookup: string = `${host}.${domain}`;
             const prevDomainToLookup: string = `${previousHost}.${domain}`;
 
-            const records: $TSFixMe = await dnsPromises.resolveTxt(domainToLookup);
+            const records: $TSFixMe = await dnsPromises.resolveTxt(
+                domainToLookup
+            );
             // records is an array of arrays
             // flatten the array to a single array
             const txtRecords: $TSFixMe = flatten(records);
@@ -263,7 +265,9 @@ export default class Service {
     async findDomain(domainId: $TSFixMe, projectArr = []): void {
         let projectId;
         for (const pId of projectArr) {
-            const populateDomainVerify: $TSFixMe = [{ path: 'projectId', select: '_id' }];
+            const populateDomainVerify: $TSFixMe = [
+                { path: 'projectId', select: '_id' },
+            ];
             const check: $TSFixMe = await this.findOneBy({
                 query: { _id: domainId, projectId: pId },
                 select: 'projectId',

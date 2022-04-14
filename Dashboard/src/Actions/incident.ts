@@ -913,9 +913,12 @@ function hideIncidentFailure(error: ErrorPayload): void {
 export const hideIncident: Function = (data: $TSFixMe): void => {
     const { hideIncident, incidentId, projectId }: $TSFixMe = data;
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`incident/${projectId}/${incidentId}`, {
-            hideIncident,
-        });
+        const promise: $TSFixMe = BackendAPI.put(
+            `incident/${projectId}/${incidentId}`,
+            {
+                hideIncident,
+            }
+        );
         promise.then(
             (incident): void => {
                 dispatch(hideIncidentSuccess(incident));

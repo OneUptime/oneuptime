@@ -68,7 +68,9 @@ const checkCondition = async (condition: $TSFixMe): void => {
                 condition.or[i].collection &&
                 condition.or[i].collection.length
             ) {
-                const tempOr: $TSFixMe = await checkCondition(condition.or[i].collection);
+                const tempOr: $TSFixMe = await checkCondition(
+                    condition.or[i].collection
+                );
                 if (tempOr) {
                     response = true;
                 }

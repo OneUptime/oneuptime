@@ -53,7 +53,9 @@ router.get(
 
             const selectScript: $TSFixMe =
                 'name script scriptType slug projectId successEvent failureEvent';
-            const populateScript: $TSFixMe = [{ path: 'createdById', select: 'name' }];
+            const populateScript: $TSFixMe = [
+                { path: 'createdById', select: 'name' },
+            ];
             const details: $TSFixMe = await AutomatedScriptService.findOneBy({
                 query: { slug: automatedSlug },
                 select: selectScript,
@@ -149,7 +151,8 @@ router.post(
             if (data.failureEvent.length > 0) {
                 data.failureEvent = formatEvent(data.failureEvent, true);
             }
-            const response: $TSFixMe = await AutomatedScriptService.createScript(data);
+            const response: $TSFixMe =
+                await AutomatedScriptService.createScript(data);
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -236,11 +239,13 @@ router.put(
             const { automatedScriptId }: $TSFixMe = req.params;
 
             const triggeredId: $TSFixMe = req.user ? req.user.id : null;
-            const response: $TSFixMe = await AutomatedScriptService.runResource({
-                triggeredId,
-                triggeredBy: 'user',
-                resources: { automatedScript: automatedScriptId },
-            });
+            const response: $TSFixMe = await AutomatedScriptService.runResource(
+                {
+                    triggeredId,
+                    triggeredBy: 'user',
+                    resources: { automatedScript: automatedScriptId },
+                }
+            );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -258,7 +263,9 @@ router.delete(
             const query: $TSFixMe = {
                 slug: automatedSlug,
             };
-            const populate: $TSFixMe = [{ path: 'createdById', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'createdById', select: 'name' },
+            ];
             const select: $TSFixMe =
                 'name script scriptType slug projectId successEvent failureEvent';
             const { _id }: $TSFixMe = await AutomatedScriptService.findOneBy({

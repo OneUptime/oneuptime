@@ -29,7 +29,8 @@ describe('Schedule', () => {
         await init.registerEnterpriseUser(user, page);
         const enableSms: $TSFixMe = true;
         const enableCalls: $TSFixMe = true;
-        const { accountSid, authToken, phoneNumber }: $TSFixMe = utils.twilioCredentials;
+        const { accountSid, authToken, phoneNumber }: $TSFixMe =
+            utils.twilioCredentials;
         const alertLimit: string = '100';
         await init.addGlobalTwilioSettings(
             enableSms,

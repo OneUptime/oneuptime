@@ -70,8 +70,13 @@ export default class Service {
     }
 
     async create(data: $TSFixMe): void {
-        const { gitUsername, gitPassword, projectId, sshTitle, sshPrivateKey }: $TSFixMe =
-            data;
+        const {
+            gitUsername,
+            gitPassword,
+            projectId,
+            sshTitle,
+            sshPrivateKey,
+        }: $TSFixMe = data;
         if (gitUsername && gitPassword) {
             const gitCredential: $TSFixMe = await this.findOneBy({
                 query: { gitUsername, projectId },

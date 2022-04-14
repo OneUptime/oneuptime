@@ -84,7 +84,9 @@ export const fetchUser: $TSFixMe =
         dispatch(fetchUserRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.get(`user/users/${userId}`);
+            const response: $TSFixMe = await BackendAPI.get(
+                `user/users/${userId}`
+            );
 
             const data: $TSFixMe = response.data;
 
@@ -142,7 +144,10 @@ export const addUser: $TSFixMe =
         try {
             dispatch(addUserRequest());
 
-            const response: $TSFixMe = await BackendAPI.post(`user/signup`, user);
+            const response: $TSFixMe = await BackendAPI.post(
+                `user/signup`,
+                user
+            );
 
             const userResponse: $TSFixMe = await BackendAPI.get(
                 `user/users/${response.data.id}`
@@ -339,7 +344,9 @@ export const restoreUser: $TSFixMe =
         dispatch(restoreUserRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.put(`user/${userId}/restoreUser`);
+            const response: $TSFixMe = await BackendAPI.put(
+                `user/${userId}/restoreUser`
+            );
 
             const data: $TSFixMe = response.data;
 
@@ -396,7 +403,9 @@ export const blockUser: $TSFixMe =
         dispatch(blockUserRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.put(`user/${userId}/blockUser`);
+            const response: $TSFixMe = await BackendAPI.put(
+                `user/${userId}/blockUser`
+            );
 
             const data: $TSFixMe = response.data;
 
@@ -570,7 +579,9 @@ export const unblockUser: $TSFixMe =
         dispatch(unblockUserRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.put(`user/${userId}/unblockUser`);
+            const response: $TSFixMe = await BackendAPI.put(
+                `user/${userId}/unblockUser`
+            );
 
             const data: $TSFixMe = response.data;
 

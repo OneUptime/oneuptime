@@ -55,11 +55,12 @@ router.post(
                 });
             }
 
-            const statusPageCategory: $TSFixMe = await StatusPageCategoryService.create({
-                statusPageId,
-                userId,
-                name: statusPageCategoryName,
-            });
+            const statusPageCategory: $TSFixMe =
+                await StatusPageCategoryService.create({
+                    statusPageId,
+                    userId,
+                    name: statusPageCategoryName,
+                });
             return sendItemResponse(req, res, statusPageCategory);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

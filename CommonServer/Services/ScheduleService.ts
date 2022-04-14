@@ -328,7 +328,9 @@ export default class Service {
             { escalationIds: escalationIds }
         );
 
-        const scheduleEscalation: $TSFixMe = await this.getEscalations(scheduleId);
+        const scheduleEscalation: $TSFixMe = await this.getEscalations(
+            scheduleId
+        );
 
         return scheduleEscalation.escalations;
     }
@@ -503,7 +505,11 @@ export default class Service {
         const select: $TSFixMe =
             '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
-        const schedule: $TSFixMe = await this.findBy({ query, populate, select });
+        const schedule: $TSFixMe = await this.findBy({
+            query,
+            populate,
+            select,
+        });
         if (schedule && schedule.length > 1) {
             const schedules: $TSFixMe = await Promise.all(
                 schedule.map(async (schedule: $TSFixMe) => {

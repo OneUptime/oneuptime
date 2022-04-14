@@ -22,7 +22,8 @@ import ErrorService from 'CommonServer/Utils/error';
 const router: $TSFixMe = express.getRouter();
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -173,11 +174,12 @@ router.get(
             const { limit, skip }: $TSFixMe = req.query;
 
             // Call the ComponentService.
-            const response: $TSFixMe = await ComponentService.getComponentsByPaginate(
-                projectId,
-                limit,
-                skip
-            );
+            const response: $TSFixMe =
+                await ComponentService.getComponentsByPaginate(
+                    projectId,
+                    limit,
+                    skip
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -595,11 +597,12 @@ router.get(
                     async (elem: $TSFixMe) => {
                         let logStatus = 'No logs yet';
                         // confirm if the application log has started collecting logs or not
-                        const logs: $TSFixMe = await LogService.getLogsByApplicationLogId(
-                            elem._id,
-                            1,
-                            0
-                        );
+                        const logs: $TSFixMe =
+                            await LogService.getLogsByApplicationLogId(
+                                elem._id,
+                                1,
+                                0
+                            );
                         if (logs.length > 0) {
                             logStatus = 'Collecting Logs';
                         }

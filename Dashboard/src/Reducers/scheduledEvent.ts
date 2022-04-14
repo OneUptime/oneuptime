@@ -174,7 +174,9 @@ export default function scheduledEvent(
             let existingPayload = false;
             let existingOngoingEvent = false;
             const currentDate: $TSFixMe = moment().format();
-            const startDate: $TSFixMe = moment(action.payload.startDate).format();
+            const startDate: $TSFixMe = moment(
+                action.payload.startDate
+            ).format();
             const endDate: $TSFixMe = moment(action.payload.endDate).format();
             state.scheduledEventList.scheduledEvents.map(event => {
                 if (String(event._id) === String(action.payload._id)) {
@@ -183,7 +185,9 @@ export default function scheduledEvent(
                 return event;
             });
 
-            const eventPayload: $TSFixMe = existingPayload ? [] : [action.payload];
+            const eventPayload: $TSFixMe = existingPayload
+                ? []
+                : [action.payload];
 
             let events = [...state.subProjectOngoingScheduledEvent.events];
 
@@ -234,11 +238,12 @@ export default function scheduledEvent(
                             String(event.project) ===
                             String(action.payload.projectId._id)
                         ) {
-                            const existingEvent: $TSFixMe = event.scheduledEvents.find(
-                                (event: $TSFixMe) =>
-                                    String(event._id) ===
-                                    String(action.payload._id)
-                            );
+                            const existingEvent: $TSFixMe =
+                                event.scheduledEvents.find(
+                                    (event: $TSFixMe) =>
+                                        String(event._id) ===
+                                        String(action.payload._id)
+                                );
                             if (!existingEvent) {
                                 event.scheduledEvents = [
                                     action.payload,
@@ -553,8 +558,8 @@ export default function scheduledEvent(
                     }
                 );
 
-            const events: $TSFixMe = state.subProjectOngoingScheduledEvent.events.map(
-                eventData => {
+            const events: $TSFixMe =
+                state.subProjectOngoingScheduledEvent.events.map(eventData => {
                     if (
                         String(eventData.project) ===
                         String(action.payload.projectId)
@@ -570,8 +575,7 @@ export default function scheduledEvent(
                             eventData.ongoingScheduledEvents.length;
                     }
                     return eventData;
-                }
-            );
+                });
 
             return Object.assign({}, state, {
                 ...state,
@@ -634,7 +638,9 @@ export default function scheduledEvent(
 
         case CANCEL_SCHEDULED_EVENT_SUCCESS: {
             const currentDate: $TSFixMe = moment().format();
-            const startDate: $TSFixMe = moment(action.payload.startDate).format();
+            const startDate: $TSFixMe = moment(
+                action.payload.startDate
+            ).format();
             const endDate: $TSFixMe = moment(action.payload.endDate).format();
             const scheduledEvents: $TSFixMe =
                 state.scheduledEventList.scheduledEvents.map(scheduledEvent => {
@@ -670,8 +676,8 @@ export default function scheduledEvent(
                     }
                 );
 
-            const events: $TSFixMe = state.subProjectOngoingScheduledEvent.events.map(
-                eventData => {
+            const events: $TSFixMe =
+                state.subProjectOngoingScheduledEvent.events.map(eventData => {
                     if (
                         String(eventData.project) ===
                         String(action.payload.projectId._id)
@@ -698,8 +704,7 @@ export default function scheduledEvent(
                     }
 
                     return eventData;
-                }
-            );
+                });
 
             return Object.assign({}, state, {
                 cancelScheduledEvent: {
@@ -752,7 +757,9 @@ export default function scheduledEvent(
 
         case UPDATE_SCHEDULED_EVENT_SUCCESS: {
             const currentDate: $TSFixMe = moment().format();
-            const startDate: $TSFixMe = moment(action.payload.startDate).format();
+            const startDate: $TSFixMe = moment(
+                action.payload.startDate
+            ).format();
             const endDate: $TSFixMe = moment(action.payload.endDate).format();
             const scheduledEvents: $TSFixMe =
                 state.scheduledEventList.scheduledEvents.map(scheduledEvent => {
@@ -788,8 +795,8 @@ export default function scheduledEvent(
                     }
                 );
 
-            const events: $TSFixMe = state.subProjectOngoingScheduledEvent.events.map(
-                eventData => {
+            const events: $TSFixMe =
+                state.subProjectOngoingScheduledEvent.events.map(eventData => {
                     if (
                         String(eventData.project) ===
                         String(action.payload.projectId._id)
@@ -816,8 +823,7 @@ export default function scheduledEvent(
                     }
 
                     return eventData;
-                }
-            );
+                });
 
             return Object.assign({}, state, {
                 updatedScheduledEvent: {
@@ -892,7 +898,9 @@ export default function scheduledEvent(
                 }
                 return note;
             });
-            const notePayload: $TSFixMe = existingPayload ? [] : [action.payload];
+            const notePayload: $TSFixMe = existingPayload
+                ? []
+                : [action.payload];
             scheduledEventInternalList = {
                 ...scheduledEventInternalList,
 
@@ -1163,8 +1171,8 @@ export default function scheduledEvent(
             };
 
         case RESOLVE_SCHEDULED_EVENT_SUCCESS: {
-            const events: $TSFixMe = state.subProjectOngoingScheduledEvent.events.map(
-                event => {
+            const events: $TSFixMe =
+                state.subProjectOngoingScheduledEvent.events.map(event => {
                     if (
                         String(event.project) ===
                         String(action.payload.projectId._id)
@@ -1179,8 +1187,7 @@ export default function scheduledEvent(
                         event.count = event.ongoingScheduledEvents.length;
                     }
                     return event;
-                }
-            );
+                });
             return {
                 ...state,
                 resolveScheduledEvent: {

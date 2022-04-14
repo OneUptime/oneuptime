@@ -118,7 +118,9 @@ router.get(
                 limit = parseInt(limit);
             }
 
-            const populate: $TSFixMe = [{ path: 'projectId', select: 'name slug _id' }];
+            const populate: $TSFixMe = [
+                { path: 'projectId', select: 'name slug _id' },
+            ];
             const select: $TSFixMe =
                 'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
             const [numbers, count]: $TSFixMe = await Promise.all([
@@ -146,7 +148,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId }: $TSFixMe = req.params;
-            const logs: $TSFixMe = await CallRoutingService.getCallRoutingLogs(projectId);
+            const logs: $TSFixMe = await CallRoutingService.getCallRoutingLogs(
+                projectId
+            );
             return sendItemResponse(req, res, logs);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -194,10 +198,8 @@ router.post(
         try {
             const data: $TSFixMe = req.body;
             const { projectId }: $TSFixMe = req.params;
-            const CallRouting: $TSFixMe = await CallRoutingService.reserveNumber(
-                data,
-                projectId
-            );
+            const CallRouting: $TSFixMe =
+                await CallRoutingService.reserveNumber(data, projectId);
             return sendItemResponse(req, res, CallRouting);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -214,9 +216,8 @@ router.put(
             const { callRoutingId }: $TSFixMe = req.params;
             const data: $TSFixMe = req.body;
             data.callRoutingId = callRoutingId;
-            const CallRouting: $TSFixMe = await CallRoutingService.updateRoutingSchema(
-                data
-            );
+            const CallRouting: $TSFixMe =
+                await CallRoutingService.updateRoutingSchema(data);
             return sendItemResponse(req, res, CallRouting);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

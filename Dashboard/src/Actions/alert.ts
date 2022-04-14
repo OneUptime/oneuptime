@@ -315,7 +315,9 @@ export const downloadAlertChargesSuccess: Function = (
 
 export const downloadAlertCharges: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`alert/${projectId}/alert/charges`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `alert/${projectId}/alert/charges`
+        );
 
         dispatch(downloadAlertChargesRequest(promise));
 

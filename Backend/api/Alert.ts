@@ -12,7 +12,8 @@ const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
 
 import {

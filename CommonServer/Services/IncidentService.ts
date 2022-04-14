@@ -164,16 +164,18 @@ export default class Service {
                 parentCount = pCount;
                 deletedParentCount = dpCount;
             }
-            const [incidentsCountInProject, deletedIncidentsCountInProject]: $TSFixMe =
-                await Promise.all([
-                    this.countBy({
-                        projectId: data.projectId,
-                    }),
-                    this.countBy({
-                        projectId: data.projectId,
-                        deleted: true,
-                    }),
-                ]);
+            const [
+                incidentsCountInProject,
+                deletedIncidentsCountInProject,
+            ]: $TSFixMe = await Promise.all([
+                this.countBy({
+                    projectId: data.projectId,
+                }),
+                this.countBy({
+                    projectId: data.projectId,
+                    deleted: true,
+                }),
+            ]);
 
             incident.projectId = data.projectId || null;
 
@@ -223,10 +225,11 @@ export default class Service {
                     projectId: data.projectId,
                     isDefault: true,
                 };
-                const incidentSettings: $TSFixMe = await IncidentSettingsService.findOne({
-                    query,
-                    select,
-                });
+                const incidentSettings: $TSFixMe =
+                    await IncidentSettingsService.findOne({
+                        query,
+                        select,
+                    });
 
                 const titleTemplate: $TSFixMe = Handlebars.compile(
                     incidentSettings.title
@@ -308,9 +311,8 @@ export default class Service {
                 populate,
                 select,
             });
-            const notifications: $TSFixMe = await this._sendIncidentCreatedAlert(
-                populatedIncident
-            );
+            const notifications: $TSFixMe =
+                await this._sendIncidentCreatedAlert(populatedIncident);
 
             incident.notifications = notifications.map(notification => ({
                 notificationId: notification._id,
@@ -409,10 +411,12 @@ export default class Service {
         if (incident) {
             this.clearInterval(incident._id); // clear any existing sla interval
 
-            const monitorStatuses: $TSFixMe = await MonitorStatusService.findBy({
-                query: { incidentId: incident._id },
-                select: '_id',
-            });
+            const monitorStatuses: $TSFixMe = await MonitorStatusService.findBy(
+                {
+                    query: { incidentId: incident._id },
+                    select: '_id',
+                }
+            );
             for (const monitorStatus of monitorStatuses) {
                 const { _id }: $TSFixMe = monitorStatus;
                 await MonitorStatusService.deleteBy({ _id }, userId);
@@ -438,11 +442,12 @@ export default class Service {
             ];
             const selectIncTimeline: $TSFixMe =
                 'incidentId createdById probeId createdByZapier createdAt status incident_state';
-            const incidentTimeline: $TSFixMe = await IncidentTimelineService.findBy({
-                query: { incidentId: incident._id },
-                select: selectIncTimeline,
-                populate: populateIncTimeline,
-            });
+            const incidentTimeline: $TSFixMe =
+                await IncidentTimelineService.findBy({
+                    query: { incidentId: incident._id },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
+                });
             for (const event of incidentTimeline) {
                 await IncidentTimelineService.deleteBy(
                     { _id: event._id },
@@ -464,7 +469,9 @@ export default class Service {
 
         query['deleted'] = false;
 
-        const incidentQuery: $TSFixMe = IncidentModel.findOne(query).sort(sort).lean();
+        const incidentQuery: $TSFixMe = IncidentModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         incidentQuery.select(select);
         incidentQuery.populate(populate);
@@ -991,9 +998,12 @@ export default class Service {
 
     //
     async close(incidentId: $TSFixMe, userId: ObjectID): void {
-        const incident: $TSFixMe = await IncidentModel.findByIdAndUpdate(incidentId, {
-            $pull: { notClosedBy: userId },
-        });
+        const incident: $TSFixMe = await IncidentModel.findByIdAndUpdate(
+            incidentId,
+            {
+                $pull: { notClosedBy: userId },
+            }
+        );
 
         return incident;
     }
@@ -1238,9 +1248,10 @@ export default class Service {
             select: 'createdAt resolvedBy',
             populate: [{ path: 'resolvedBy', select: 'name _id' }],
         });
-        const downtimestring: $TSFixMe = IncidentUtilitiy.calculateHumanReadableDownTime(
-            resolvedincident.createdAt
-        );
+        const downtimestring: $TSFixMe =
+            IncidentUtilitiy.calculateHumanReadableDownTime(
+                resolvedincident.createdAt
+            );
 
         // send slack notification
         SlackService.sendNotification(
@@ -1527,7 +1538,8 @@ export default class Service {
                 ) {
                     let countDown = incidentCommunicationSla.duration * 60;
 
-                    const alertTime: $TSFixMe = incidentCommunicationSla.alertTime * 60;
+                    const alertTime: $TSFixMe =
+                        incidentCommunicationSla.alertTime * 60;
 
                     const data: $TSFixMe = {
                         projectId,

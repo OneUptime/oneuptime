@@ -42,16 +42,22 @@ const puppeteerLaunchConfig: $TSFixMe = {
 };
 
 const HOME_URL: $TSFixMe = process.env.HOME_URL || 'http://localhost:1444';
-const ACCOUNTS_URL: $TSFixMe = process.env.ACCOUNTS_URL || 'http://localhost:3003';
+const ACCOUNTS_URL: $TSFixMe =
+    process.env.ACCOUNTS_URL || 'http://localhost:3003';
 const ADMIN_DASHBOARD_URL: $TSFixMe =
     process.env.ADMIN_DASHBOARD_URL || 'http://localhost:3100';
-const DASHBOARD_URL: $TSFixMe = process.env.DASHBOARD_URL || 'http://localhost:3000';
-const BACKEND_URL: $TSFixMe = process.env.BACKEND_URL || 'http://localhost:3002';
-const STATUSPAGE_URL: $TSFixMe = process.env.STATUSPAGE_URL || 'http://localhost:3006';
-const APIDOCS_URL: $TSFixMe = process.env.APIDOCS_URL || 'http://localhost:1445';
+const DASHBOARD_URL: $TSFixMe =
+    process.env.DASHBOARD_URL || 'http://localhost:3000';
+const BACKEND_URL: $TSFixMe =
+    process.env.BACKEND_URL || 'http://localhost:3002';
+const STATUSPAGE_URL: $TSFixMe =
+    process.env.STATUSPAGE_URL || 'http://localhost:3006';
+const APIDOCS_URL: $TSFixMe =
+    process.env.APIDOCS_URL || 'http://localhost:1445';
 const HTTP_TEST_SERVER_URL: $TSFixMe =
     process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
-const INIT_SCRIPT_URL: $TSFixMe = process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
+const INIT_SCRIPT_URL: $TSFixMe =
+    process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
 
 function generateRandomBusinessEmail(): void {
     return (

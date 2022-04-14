@@ -93,7 +93,9 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const issueQuery: $TSFixMe = IssueModel.findOne(query).sort(sort).lean();
+        const issueQuery: $TSFixMe = IssueModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         issueQuery.select(select);
         issueQuery.populate(populate);

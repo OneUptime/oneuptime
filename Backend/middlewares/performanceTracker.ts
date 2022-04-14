@@ -22,11 +22,10 @@ const _this: $TSFixMe = {
         }
 
         // check if there's a performance tracker with the key
-        const performanceTrackerCount: $TSFixMe = await PerformanceTrackerService.countBy(
-            {
+        const performanceTrackerCount: $TSFixMe =
+            await PerformanceTrackerService.countBy({
                 key,
-            }
-        );
+            });
         if (performanceTrackerCount === 0) {
             return sendErrorResponse(
                 req,

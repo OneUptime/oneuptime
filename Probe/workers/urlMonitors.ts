@@ -21,14 +21,17 @@ export default {
                     logger.info(
                         `Monitor ID ${monitor._id}: Start saving data to ingestor.`
                     );
-                    const response: $TSFixMe = await ApiService.ping(monitor._id, {
-                        monitor,
-                        res,
-                        resp,
-                        rawResp,
-                        type: monitor.type,
-                        retryCount,
-                    });
+                    const response: $TSFixMe = await ApiService.ping(
+                        monitor._id,
+                        {
+                            monitor,
+                            res,
+                            resp,
+                            rawResp,
+                            type: monitor.type,
+                            retryCount,
+                        }
+                    );
                     logger.info(
                         `Monitor ID ${monitor._id}: End saving data to ingestor.`
                     );

@@ -12,7 +12,8 @@ import {
 } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 import twilioService from '../services/twilioService';
 
 // Route Description: Creating global config(s).

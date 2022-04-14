@@ -96,7 +96,10 @@ export const updateIncidentPriority: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`incidentPriorities/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.put(
+            `incidentPriorities/${projectId}`,
+            data
+        );
         dispatch(updateIncidentPriorityRequest());
         promise.then(
             (incidentPriority): void => {
@@ -135,7 +138,8 @@ export const deleteIncidentPriority: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`incidentPriorities/${projectId}`, data);
+        const promise: $TSFixMe = delete (`incidentPriorities/${projectId}`,
+        data);
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
             (incidentPriority): void => {

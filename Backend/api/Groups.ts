@@ -13,7 +13,8 @@ import Exception from 'Common/Types/Exception/Exception';
 
 import { sendListResponse } from 'CommonServer/Utils/response';
 import GroupService from '../services/groupService';
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 import EscalationService from '../services/escalationService';
 
 const router: $TSFixMe = express.getRouter();

@@ -34,9 +34,10 @@ describe('Email SMTP Api Test', function (): void {
         projectId = project._id;
         const userId: $TSFixMe = res.body.id;
 
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);

@@ -106,7 +106,10 @@ export const loginUser: Function = (values: $TSFixMe): void => {
         values.redirect = redirect;
     }
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(new Route('user/login'), values);
+        const promise: $TSFixMe = BackendAPI.post(
+            new Route('user/login'),
+            values
+        );
         dispatch(loginRequest(promise));
 
         promise.then(
@@ -269,7 +272,10 @@ export const resetMasterAdminExists: Function = (): void => {
 // Calls the API to register a user.
 export const checkIfMasterAdminExists: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get('user/masterAdminExists', values);
+        const promise: $TSFixMe = BackendAPI.get(
+            'user/masterAdminExists',
+            values
+        );
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
             (response): void => {

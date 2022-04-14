@@ -91,10 +91,14 @@ describe('OneUptime Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const elem: $TSFixMe = await init.pageWaitForSelector(page, '#monitor-0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const elem: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#monitor-0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elem).toBeDefined();
 
             done();

@@ -205,7 +205,9 @@ export default class Service {
         const selectMonSla: $TSFixMe =
             'name projectId isDefault frequency monitorUptime deleted deletedAt';
 
-        const populateMonSla: $TSFixMe = [{ path: 'projectId', select: 'name slug' }];
+        const populateMonSla: $TSFixMe = [
+            { path: 'projectId', select: 'name slug' },
+        ];
         updatedMonitorSla = await this.findOneBy({
             query,
             select: selectMonSla,

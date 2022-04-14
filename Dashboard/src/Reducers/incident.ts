@@ -449,7 +449,10 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case types.INCIDENT_TIMELINE_SUCCESS: {
-            const incident: $TSFixMe = Object.assign({}, state.incident.incident);
+            const incident: $TSFixMe = Object.assign(
+                {},
+                state.incident.incident
+            );
 
             if (incident) {
                 incident.timeline = action.payload.data;

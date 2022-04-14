@@ -23,8 +23,11 @@ class ScriptError extends Error {
     }
 }
 
-const { availableImports, maxScriptRunTime, maxSyncStatementDuration }: $TSFixMe =
-    runConfig;
+const {
+    availableImports,
+    maxScriptRunTime,
+    maxSyncStatementDuration,
+}: $TSFixMe = runConfig;
 
 const run: $TSFixMe = async (
     functionCode: $TSFixMe,
@@ -33,7 +36,8 @@ const run: $TSFixMe = async (
 ): void => {
     if (isMainThread) {
         // modifiable option in development mode only
-        const { maxScriptRunTime, maxSyncStatementDuration }: $TSFixMe = options;
+        const { maxScriptRunTime, maxSyncStatementDuration }: $TSFixMe =
+            options;
         if (!isCalled) {
             return;
         }

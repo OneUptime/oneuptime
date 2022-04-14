@@ -56,7 +56,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const count: $TSFixMe = await incidentPriorityModel.countDocuments(query);
+        const count: $TSFixMe = await incidentPriorityModel.countDocuments(
+            query
+        );
 
         return count;
     }
@@ -97,15 +99,13 @@ export default class Service {
             query = {};
         }
         query['deleted'] = false;
-        const incidentPriority: $TSFixMe = await incidentPriorityModel.findOneAndUpdate(
-            query,
-            {
+        const incidentPriority: $TSFixMe =
+            await incidentPriorityModel.findOneAndUpdate(query, {
                 $set: {
                     deleted: true,
                     deletedAt: Date.now(),
                 },
-            }
-        );
+            });
         if (incidentPriority === null) {
             return incidentPriority;
         }

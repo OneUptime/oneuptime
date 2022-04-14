@@ -21,8 +21,12 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { gitUsername, gitPassword, sshTitle, sshPrivateKey }: $TSFixMe =
-                req.body;
+            const {
+                gitUsername,
+                gitPassword,
+                sshTitle,
+                sshPrivateKey,
+            }: $TSFixMe = req.body;
             const { projectId }: $TSFixMe = req.params;
 
             if (gitUsername && gitPassword) {
@@ -84,8 +88,12 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId }: $TSFixMe = req.params;
-            const { gitUsername, gitPassword, sshTitle, sshPrivateKey }: $TSFixMe =
-                req.body;
+            const {
+                gitUsername,
+                gitPassword,
+                sshTitle,
+                sshPrivateKey,
+            }: $TSFixMe = req.body;
 
             const data: $TSFixMe = {};
 
@@ -104,10 +112,11 @@ router.put(
                 data.sshPrivateKey = sshPrivateKey;
             }
 
-            const gitCredential: $TSFixMe = await GitCredentialService.updateOneBy(
-                { _id: credentialId },
-                data
-            );
+            const gitCredential: $TSFixMe =
+                await GitCredentialService.updateOneBy(
+                    { _id: credentialId },
+                    data
+                );
             return sendItemResponse(req, res, gitCredential);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -123,9 +132,10 @@ router.delete(
         try {
             const { credentialId }: $TSFixMe = req.params;
 
-            const deletedGitCredential: $TSFixMe = await GitCredentialService.deleteBy({
-                _id: credentialId,
-            });
+            const deletedGitCredential: $TSFixMe =
+                await GitCredentialService.deleteBy({
+                    _id: credentialId,
+                });
 
             return sendItemResponse(req, res, deletedGitCredential);
         } catch (error) {

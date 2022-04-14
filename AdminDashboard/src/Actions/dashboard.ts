@@ -18,7 +18,9 @@ export const resetDashboardLoad: $TSFixMe = function (): void {
     };
 };
 
-export const dashboardLoadFailed: $TSFixMe = function (payload: $TSFixMe): void {
+export const dashboardLoadFailed: $TSFixMe = function (
+    payload: $TSFixMe
+): void {
     return {
         type: types.DASHBOARD_LOAD_FAILED,
         payload,

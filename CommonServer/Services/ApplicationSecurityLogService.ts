@@ -48,7 +48,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const securityLogQuery: $TSFixMe = ApplicationSecurityLogModel.findOne(query)
+        const securityLogQuery: $TSFixMe = ApplicationSecurityLogModel.findOne(
+            query
+        )
             .sort(sort)
             .lean();
 
@@ -64,7 +66,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const securityLogsQuery: $TSFixMe = ApplicationSecurityLogModel.find(query)
+        const securityLogsQuery: $TSFixMe = ApplicationSecurityLogModel.find(
+            query
+        )
             .lean()
             .sort(sort)
             .limit(limit.toNumber())

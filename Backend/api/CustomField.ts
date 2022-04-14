@@ -34,7 +34,9 @@ router.post(
                 throw new BadDataException('Field type is required');
             }
 
-            const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+            const populateCustomField: $TSFixMe = [
+                { path: 'projectId', select: 'name' },
+            ];
             const selectCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField';
             let customField = await CustomFieldService.findOneBy({
@@ -72,7 +74,9 @@ router.get(
         try {
             const { projectId }: $TSFixMe = req.params;
             const { limit, skip }: $TSFixMe = req.query;
-            const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+            const populateCustomField: $TSFixMe = [
+                { path: 'projectId', select: 'name' },
+            ];
             const selectCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField';
             const [customFields, count]: $TSFixMe = await Promise.all([
@@ -114,7 +118,9 @@ router.put(
                 throw new BadDataException('Field type is required');
             }
 
-            const populateCustomField: $TSFixMe = [{ path: 'projectId', select: 'name' }];
+            const populateCustomField: $TSFixMe = [
+                { path: 'projectId', select: 'name' },
+            ];
             const selectCustomField: $TSFixMe =
                 'fieldName fieldType projectId uniqueField';
             let customField = await CustomFieldService.findOneBy({
@@ -157,10 +163,11 @@ router.delete(
         try {
             const { projectId, customFieldId }: $TSFixMe = req.params;
 
-            const deletedCustomField: $TSFixMe = await CustomFieldService.deleteBy({
-                _id: customFieldId,
-                projectId,
-            });
+            const deletedCustomField: $TSFixMe =
+                await CustomFieldService.deleteBy({
+                    _id: customFieldId,
+                    projectId,
+                });
 
             return sendItemResponse(req, res, deletedCustomField);
         } catch (error) {

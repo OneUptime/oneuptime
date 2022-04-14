@@ -26,7 +26,9 @@ export const addCardSuccess: Function = (card: $TSFixMe): void => {
 
 export const addCard: Function = (userId: ObjectID, token: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`stripe/${userId}/creditCard/${token}`);
+        const promise: $TSFixMe = BackendAPI.post(
+            `stripe/${userId}/creditCard/${token}`
+        );
 
         dispatch(addCardRequest(promise));
 
@@ -106,7 +108,8 @@ export const deleteCard: Function = (
     cardId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete `stripe/${userId}/creditCard/${cardId}`;
+        const promise: $TSFixMe =
+            delete `stripe/${userId}/creditCard/${cardId}`;
 
         dispatch(deleteCardRequest(promise));
 
@@ -154,7 +157,9 @@ export const setDefaultCard: Function = (
     cardId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`stripe/${userId}/creditCard/${cardId}`);
+        const promise: $TSFixMe = BackendAPI.put(
+            `stripe/${userId}/creditCard/${cardId}`
+        );
 
         dispatch(setDefaultCardRequest(promise, cardId));
 

@@ -55,10 +55,12 @@ describe('Lead API', function (): void {
             .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
-                const emailStatuses: $TSFixMe = await EmailStatusService.findBy({
-                    query: {},
-                    select: selectEmailStatus,
-                });
+                const emailStatuses: $TSFixMe = await EmailStatusService.findBy(
+                    {
+                        query: {},
+                        select: selectEmailStatus,
+                    }
+                );
                 if (emailStatuses[0].subject.includes('New Lead')) {
                     expect(emailStatuses[0].subject).to.equal('New Lead Added');
                     expect(emailStatuses[0].status).to.equal(

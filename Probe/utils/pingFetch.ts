@@ -60,7 +60,9 @@ const pingfetch: $TSFixMe = async (
                 //
             }
             if (urlObject.protocol === 'https:') {
-                const certificate: $TSFixMe = await sslCert.get(urlObject.hostname);
+                const certificate: $TSFixMe = await sslCert.get(
+                    urlObject.hostname
+                );
                 if (certificate) {
                     sslCertificate = {
                         issuer: certificate.issuer,
@@ -99,7 +101,9 @@ const pingfetch: $TSFixMe = async (
                 //
             }
             if (urlObject.protocol === 'https:') {
-                const certificate: $TSFixMe = await sslCert.get(urlObject.hostname);
+                const certificate: $TSFixMe = await sslCert.get(
+                    urlObject.hostname
+                );
                 if (certificate) {
                     sslCertificate = {
                         issuer: certificate.issuer,

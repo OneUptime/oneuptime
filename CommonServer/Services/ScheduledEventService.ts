@@ -282,17 +282,18 @@ export default class Service {
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const scheduledEvent: $TSFixMe = await ScheduledEventModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+        const scheduledEvent: $TSFixMe =
+            await ScheduledEventModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
             await MonitorService.markMonitorsAsShouldMonitor(

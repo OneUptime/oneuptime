@@ -46,9 +46,13 @@ export default class Service {
         incidentTimeline = timeline;
 
         if (incident && incidentTimeline) {
-            const _incidentTimeline: $TSFixMe = Object.assign({}, incidentTimeline, {
-                projectId: incident.projectId._id || incident.projectId,
-            });
+            const _incidentTimeline: $TSFixMe = Object.assign(
+                {},
+                incidentTimeline,
+                {
+                    projectId: incident.projectId._id || incident.projectId,
+                }
+            );
             try {
                 RealTimeService.updateIncidentTimeline(_incidentTimeline);
             } catch (error) {
@@ -142,7 +146,9 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const incidentTimelinesQuery: $TSFixMe = IncidentTimelineModel.find(query)
+        const incidentTimelinesQuery: $TSFixMe = IncidentTimelineModel.find(
+            query
+        )
             .lean()
             .sort(sort)
             .limit(limit.toNumber())
@@ -162,7 +168,9 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const incidentTimelineQuery: $TSFixMe = IncidentTimelineModel.findOne(query)
+        const incidentTimelineQuery: $TSFixMe = IncidentTimelineModel.findOne(
+            query
+        )
             .sort(sort)
             .lean();
 
@@ -179,7 +187,9 @@ export default class Service {
         }
         query['deleted'] = false;
 
-        const count: $TSFixMe = await IncidentTimelineModel.countDocuments(query);
+        const count: $TSFixMe = await IncidentTimelineModel.countDocuments(
+            query
+        );
 
         return count;
     }

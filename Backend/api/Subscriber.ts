@@ -285,7 +285,8 @@ router.post(
                     });
                 }
             }
-            const hasSubscribed: $TSFixMe = await SubscriberService.subscriberCheck(data);
+            const hasSubscribed: $TSFixMe =
+                await SubscriberService.subscriberCheck(data);
             if (hasSubscribed) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -294,14 +295,15 @@ router.post(
             } else {
                 let subscriber;
                 if (data.alertVia === 'email') {
-                    const subscriberExist: $TSFixMe = await SubscriberService.findByOne({
-                        query: {
-                            monitorId: data.monitorId,
-                            contactEmail: data.contactEmail,
-                            subscribed: false,
-                        },
-                        select: '_id',
-                    });
+                    const subscriberExist: $TSFixMe =
+                        await SubscriberService.findByOne({
+                            query: {
+                                monitorId: data.monitorId,
+                                contactEmail: data.contactEmail,
+                                subscribed: false,
+                            },
+                            select: '_id',
+                        });
                     if (subscriberExist) {
                         subscriber = await SubscriberService.updateOneBy(
                             {
@@ -516,7 +518,8 @@ router.post(
                     message: 'Empty files submitted',
                 });
             }
-            const result: $TSFixMe = await SubscriberService.subscribeFromCSVFile(data);
+            const result: $TSFixMe =
+                await SubscriberService.subscribeFromCSVFile(data);
             return sendItemResponse(req, res, result);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

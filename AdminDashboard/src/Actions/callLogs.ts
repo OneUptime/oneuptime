@@ -268,9 +268,10 @@ export const callLogStatusChange: $TSFixMe =
         dispatch(changeCallLogStatusRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
-                { name: 'callLogMonitoringStatus', value: values.status },
-            ]);
+            const response: $TSFixMe = await BackendAPI.post(
+                new Route('globalConfig/'),
+                [{ name: 'callLogMonitoringStatus', value: values.status }]
+            );
 
             const data: $TSFixMe = response.data;
             dispatch(changeCallLogStatusSuccess(data));

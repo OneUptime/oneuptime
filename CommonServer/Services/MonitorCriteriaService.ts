@@ -418,7 +418,9 @@ const MonitorCriteriaService: $TSFixMe = {
         const criteriaObj: $TSFixMe = {};
         if (criteria) {
             if (criteria.up_1000 && criteria.up_1000.length) {
-                const upCriteria: $TSFixMe = this.makeCriteria(criteria.up_1000);
+                const upCriteria: $TSFixMe = this.makeCriteria(
+                    criteria.up_1000
+                );
 
                 upCriteria.scheduleIds = [];
 
@@ -455,7 +457,9 @@ const MonitorCriteriaService: $TSFixMe = {
                 criteriaObj.degraded = [degradedCriteria];
             }
             if (criteria.down_1000 && criteria.down_1000.length) {
-                const downCriteria: $TSFixMe = this.makeCriteria(criteria.down_1000);
+                const downCriteria: $TSFixMe = this.makeCriteria(
+                    criteria.down_1000
+                );
 
                 downCriteria.scheduleIds = [];
 
@@ -570,7 +574,10 @@ const MonitorCriteriaService: $TSFixMe = {
                 }
 
                 if (val.criteria[j].criteria) {
-                    const out: $TSFixMe = this.innerCriteria(val.criteria[j], []);
+                    const out: $TSFixMe = this.innerCriteria(
+                        val.criteria[j],
+                        []
+                    );
                     nestVal[nestVal.length - 1].criteria.push(...out);
                 }
             }

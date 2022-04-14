@@ -145,11 +145,12 @@ export default class Service {
 
             const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
-            const incidentMessages: $TSFixMe = await IncidentMessageService.findBy({
-                query: { incidentId: { $in: incidentIds } },
-                select: selectIncidentMessage,
-                populate: populateIncidentMessage,
-            });
+            const incidentMessages: $TSFixMe =
+                await IncidentMessageService.findBy({
+                    query: { incidentId: { $in: incidentIds } },
+                    select: selectIncidentMessage,
+                    populate: populateIncidentMessage,
+                });
             await Promise.all(
                 incidentMessages.map(async (incidentNote: $TSFixMe) => {
                     zapierResponseArray.push(
@@ -872,7 +873,8 @@ export default class Service {
         incident: $TSFixMe,
         incidentNote: $TSFixMe
     ): void {
-        const projectId: $TSFixMe = incident.projectId._id || incident.projectId;
+        const projectId: $TSFixMe =
+            incident.projectId._id || incident.projectId;
 
         let project = await ProjectService.findOneBy({
             query: { _id: projectId },

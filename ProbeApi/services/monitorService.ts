@@ -3,7 +3,8 @@ import Database from 'CommonServer/Utils/database';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import OneUptimeDate from 'Common/Types/Date';
 
-const monitorCollection: $TSFixMe = Database.getDatabase().collection('monitors');
+const monitorCollection: $TSFixMe =
+    Database.getDatabase().collection('monitors');
 
 export default {
     async getProbeMonitors(probeId: String, limit: PositiveNumber): void {
@@ -39,10 +40,8 @@ export default {
 
         let monitors: $TSFixMe = [];
 
-        const monitorsThatHaveNeverBeenPinged: $TSFixMe = await monitorCollection
-            .find(emptyQuery)
-            .limit(limit)
-            .toArray();
+        const monitorsThatHaveNeverBeenPinged: $TSFixMe =
+            await monitorCollection.find(emptyQuery).limit(limit).toArray();
         monitors = monitors.concat(monitorsThatHaveNeverBeenPinged);
 
         if (monitorsThatHaveNeverBeenPinged.length < limit) {

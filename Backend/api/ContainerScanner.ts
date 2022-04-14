@@ -79,11 +79,12 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security: $TSFixMe = req.body;
-            const securityLog: $TSFixMe = await ContainerSecurityLogService.create({
-                securityId: security.securityId,
-                componentId: security.componentId,
-                data: security.data,
-            });
+            const securityLog: $TSFixMe =
+                await ContainerSecurityLogService.create({
+                    securityId: security.securityId,
+                    componentId: security.componentId,
+                    data: security.data,
+                });
 
             const selectContainerLog: $TSFixMe =
                 'securityId componentId data deleted deleteAt';
@@ -92,11 +93,12 @@ router.post(
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug projectId' },
             ];
-            const findLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
-                query: { _id: securityLog._id },
-                select: selectContainerLog,
-                populate: populateContainerLog,
-            });
+            const findLog: $TSFixMe =
+                await ContainerSecurityLogService.findOneBy({
+                    query: { _id: securityLog._id },
+                    select: selectContainerLog,
+                    populate: populateContainerLog,
+                });
 
             const project: $TSFixMe = await ProjectService.findOneBy({
                 query: { _id: findLog.componentId.projectId },
@@ -164,9 +166,10 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const security: $TSFixMe = req.body;
-            const updatedTime: $TSFixMe = await ContainerSecurityService.updateScanTime({
-                _id: security._id,
-            });
+            const updatedTime: $TSFixMe =
+                await ContainerSecurityService.updateScanTime({
+                    _id: security._id,
+                });
             return sendItemResponse(req, res, updatedTime);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

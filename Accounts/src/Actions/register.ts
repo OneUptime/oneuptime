@@ -169,7 +169,10 @@ export const resetIsUserInvited: Function = (): void => {
 // Calls the API to register a user.
 export const isUserInvited: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(new Route('user/isInvited'), values);
+        const promise: $TSFixMe = BackendAPI.post(
+            new Route('user/isInvited'),
+            values
+        );
         dispatch(isUserInvitedRequest(promise));
         promise.then(
             (response): void => {
@@ -207,7 +210,10 @@ export const addCardSuccess: Function = (card: $TSFixMe): void => {
 
 export const addCard: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(new Route('stripe/checkCard'), data);
+        const promise: $TSFixMe = BackendAPI.post(
+            new Route('stripe/checkCard'),
+            data
+        );
 
         dispatch(addCardRequest(promise));
 

@@ -78,7 +78,9 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count: $TSFixMe = await OnCallScheduleStatusModel.countDocuments(query);
+        const count: $TSFixMe = await OnCallScheduleStatusModel.countDocuments(
+            query
+        );
         return count;
     }
 
@@ -141,19 +143,20 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const items: $TSFixMe = await OnCallScheduleStatusModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+        const items: $TSFixMe =
+            await OnCallScheduleStatusModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            {
-                new: true,
-            }
-        );
+                {
+                    new: true,
+                }
+            );
         return items;
     }
 

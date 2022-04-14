@@ -6,7 +6,8 @@ const router: $TSFixMe = express.getRouter();
 
 import SmsLogsService from '../services/smsCountService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';

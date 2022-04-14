@@ -81,9 +81,11 @@ export default class Service {
     async updateAggregateLogs(data: $TSFixMe): void {
         const now: $TSFixMe = new Date();
 
-        const intervalHourDate: $TSFixMe = moment(now).format('MMM Do YYYY, h A');
+        const intervalHourDate: $TSFixMe =
+            moment(now).format('MMM Do YYYY, h A');
         const intervalDayDate: $TSFixMe = moment(now).format('MMM Do YYYY');
-        const intervalWeekDate: $TSFixMe = moment(now).format('wo [week of] YYYY');
+        const intervalWeekDate: $TSFixMe =
+            moment(now).format('wo [week of] YYYY');
 
         const selectMonitorLogBy: $TSFixMe =
             'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';

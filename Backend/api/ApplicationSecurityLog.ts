@@ -38,11 +38,12 @@ router.get(
             const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
 
-            const securityLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
-                query: { securityId: applicationSecurityId, componentId },
-                select: selectApplicationSecurityLog,
-                populate: populateApplicationSecurityLog,
-            });
+            const securityLog: $TSFixMe =
+                await ApplicationSecurityLogService.findOneBy({
+                    query: { securityId: applicationSecurityId, componentId },
+                    select: selectApplicationSecurityLog,
+                    populate: populateApplicationSecurityLog,
+                });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -60,7 +61,8 @@ router.get(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { applicationSecuritySlug, componentId }: $TSFixMe = req.params;
+            const { applicationSecuritySlug, componentId }: $TSFixMe =
+                req.params;
 
             const populateApplicationSecurityLog: $TSFixMe = [
                 { path: 'componentId', select: '_id slug name slug' },
@@ -73,11 +75,12 @@ router.get(
             const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
 
-            const securityLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
-                query: { slug: applicationSecuritySlug, componentId },
-                select: selectApplicationSecurityLog,
-                populate: populateApplicationSecurityLog,
-            });
+            const securityLog: $TSFixMe =
+                await ApplicationSecurityLogService.findOneBy({
+                    query: { slug: applicationSecuritySlug, componentId },
+                    select: selectApplicationSecurityLog,
+                    populate: populateApplicationSecurityLog,
+                });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -106,11 +109,12 @@ router.get(
 
             const selectApplicationSecurityLog: $TSFixMe =
                 '_id securityId componentId data';
-            const securityLogs: $TSFixMe = await ApplicationSecurityLogService.findBy({
-                query: { componentId },
-                select: selectApplicationSecurityLog,
-                populate: populateApplicationSecurityLog,
-            });
+            const securityLogs: $TSFixMe =
+                await ApplicationSecurityLogService.findBy({
+                    query: { componentId },
+                    select: selectApplicationSecurityLog,
+                    populate: populateApplicationSecurityLog,
+                });
             return sendItemResponse(req, res, securityLogs);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

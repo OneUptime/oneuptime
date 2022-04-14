@@ -86,11 +86,12 @@ router.post(
                     deleted: { $ne: null },
                 };
 
-                const existingName: $TSFixMe = await IntegrationService.findOneBy({
-                    query,
-                    select,
-                    populate,
-                });
+                const existingName: $TSFixMe =
+                    await IntegrationService.findOneBy({
+                        query,
+                        select,
+                        populate,
+                    });
 
                 if (existingName) {
                     return sendErrorResponse(req, res, {
@@ -100,15 +101,16 @@ router.post(
                 }
             }
 
-            const existingWebhook: $TSFixMe = await IntegrationService.findOneBy({
-                query: {
-                    'data.endpoint': endpoint,
-                    'data.endpointType': endpointType,
-                    deleted: { $ne: null },
-                },
-                select,
-                populate,
-            });
+            const existingWebhook: $TSFixMe =
+                await IntegrationService.findOneBy({
+                    query: {
+                        'data.endpoint': endpoint,
+                        'data.endpointType': endpointType,
+                        deleted: { $ne: null },
+                    },
+                    select,
+                    populate,
+                });
 
             if (existingWebhook) {
                 return sendErrorResponse(req, res, {
@@ -205,16 +207,17 @@ router.put(
                         message: 'name missing in body, must be present',
                     });
                 }
-                const existingName: $TSFixMe = await IntegrationService.findOneBy({
-                    query: {
-                        monitorId: data.monitorId,
-                        webHookName: data.webHookName,
-                        integrationType: data.type,
-                        deleted: { $ne: null },
-                    },
-                    select,
-                    populate,
-                });
+                const existingName: $TSFixMe =
+                    await IntegrationService.findOneBy({
+                        query: {
+                            monitorId: data.monitorId,
+                            webHookName: data.webHookName,
+                            integrationType: data.type,
+                            deleted: { $ne: null },
+                        },
+                        select,
+                        populate,
+                    });
 
                 if (
                     existingName &&
@@ -234,14 +237,15 @@ router.put(
                     monitorId: monitor,
                 }));
 
-            const existingWebhook: $TSFixMe = await IntegrationService.findOneBy({
-                query: {
-                    _id: data._id, // If the data to be updated changes, it returns null as it does not exist in the DB. Quering by _id and deleted returns the correct value
-                    deleted: { $ne: null },
-                },
-                select,
-                populate,
-            });
+            const existingWebhook: $TSFixMe =
+                await IntegrationService.findOneBy({
+                    query: {
+                        _id: data._id, // If the data to be updated changes, it returns null as it does not exist in the DB. Quering by _id and deleted returns the correct value
+                        deleted: { $ne: null },
+                    },
+                    select,
+                    populate,
+                });
             if (
                 existingWebhook &&
                 existingWebhook._id.toString() !== integrationId

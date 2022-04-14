@@ -69,21 +69,24 @@ router.post(
 
             data.componentId = componentId;
 
-            const populateComponent: $TSFixMe = [{ path: 'projectId', select: '_id' }];
+            const populateComponent: $TSFixMe = [
+                { path: 'projectId', select: '_id' },
+            ];
             const selectComponent: string = 'projectId ';
 
-            const [applicationLog, component, user]: $TSFixMe = await Promise.all([
-                ApplicationLogService.create(data),
-                ComponentService.findOneBy({
-                    query: { _id: componentId },
-                    select: selectComponent,
-                    populate: populateComponent,
-                }),
-                UserService.findOneBy({
-                    query: { _id: req.user.id },
-                    select: 'name _id',
-                }),
-            ]);
+            const [applicationLog, component, user]: $TSFixMe =
+                await Promise.all([
+                    ApplicationLogService.create(data),
+                    ComponentService.findOneBy({
+                        query: { _id: componentId },
+                        select: selectComponent,
+                        populate: populateComponent,
+                    }),
+                    UserService.findOneBy({
+                        query: { _id: req.user.id },
+                        select: 'name _id',
+                    }),
+                ]);
 
             try {
                 NotificationService.create(
@@ -146,14 +149,15 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { applicationLogId, componentId }: $TSFixMe = req.params;
         try {
-            const applicationLog: $TSFixMe = await ApplicationLogService.deleteBy(
-                {
-                    _id: applicationLogId,
-                    componentId: componentId,
-                },
+            const applicationLog: $TSFixMe =
+                await ApplicationLogService.deleteBy(
+                    {
+                        _id: applicationLogId,
+                        componentId: componentId,
+                    },
 
-                req.user.id
-            );
+                    req.user.id
+                );
             if (applicationLog) {
                 return sendItemResponse(req, res, applicationLog);
             } else {
@@ -206,14 +210,14 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { skip, limit, startDate, endDate, type, filter }: $TSFixMe = req.body;
+            const { skip, limit, startDate, endDate, type, filter }: $TSFixMe =
+                req.body;
             const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
-            const currentApplicationCount: $TSFixMe = await ApplicationLogService.countBy(
-                {
+            const currentApplicationCount: $TSFixMe =
+                await ApplicationLogService.countBy({
                     _id: applicationLogId,
-                }
-            );
+                });
             if (currentApplicationCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -245,7 +249,9 @@ router.post(
             const selectLog: $TSFixMe =
                 'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-            const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
+            const populateLog: $TSFixMe = [
+                { path: 'applicationLogId', select: 'name' },
+            ];
 
             const [logs, count, dateRange]: $TSFixMe = await Promise.all([
                 LogService.findBy({
@@ -273,11 +279,10 @@ router.post(
         try {
             const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
-            const currentApplicationCount: $TSFixMe = await ApplicationLogService.countBy(
-                {
+            const currentApplicationCount: $TSFixMe =
+                await ApplicationLogService.countBy({
                     _id: applicationLogId,
-                }
-            );
+                });
             if (currentApplicationCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -325,9 +330,10 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const applicationLogId: $TSFixMe = req.params.applicationLogId;
 
-        const currentApplicationCount: $TSFixMe = await ApplicationLogService.countBy({
-            _id: applicationLogId,
-        });
+        const currentApplicationCount: $TSFixMe =
+            await ApplicationLogService.countBy({
+                _id: applicationLogId,
+            });
 
         if (currentApplicationCount === 0) {
             return sendErrorResponse(req, res, {
@@ -342,10 +348,11 @@ router.post(
         };
 
         try {
-            const applicationLog: $TSFixMe = await ApplicationLogService.updateOneBy(
-                { _id: applicationLogId },
-                data
-            );
+            const applicationLog: $TSFixMe =
+                await ApplicationLogService.updateOneBy(
+                    { _id: applicationLogId },
+                    data
+                );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -380,10 +387,11 @@ router.put(
             );
         }
 
-        const currentApplicationLog: $TSFixMe = await ApplicationLogService.findOneBy({
-            query: { _id: applicationLogId },
-            select: '_id', // Select should be a string and not array of strings
-        });
+        const currentApplicationLog: $TSFixMe =
+            await ApplicationLogService.findOneBy({
+                query: { _id: applicationLogId },
+                select: '_id', // Select should be a string and not array of strings
+            });
         if (!currentApplicationLog) {
             return sendErrorResponse(req, res, {
                 code: 404,
@@ -400,9 +408,8 @@ router.put(
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
-        const existingApplicationCount: $TSFixMe = await ApplicationLogService.countBy(
-            existingQuery
-        );
+        const existingApplicationCount: $TSFixMe =
+            await ApplicationLogService.countBy(existingQuery);
 
         if (
             existingApplicationCount > 0 &&
@@ -431,11 +438,10 @@ router.put(
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
-            const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy(
-                {
+            const resourceCategoryCount: $TSFixMe =
+                await ResourceCategoryService.countBy({
                     _id: data.resourceCategory,
-                }
-            );
+                });
             if (resourceCategoryCount && resourceCategoryCount > 0) {
                 applicationLogUpdate.resourceCategory = data.resourceCategory;
             } else {
@@ -444,12 +450,13 @@ router.put(
         }
 
         try {
-            const applicationLog: $TSFixMe = await ApplicationLogService.updateOneBy(
-                { _id: currentApplicationLog._id },
-                applicationLogUpdate,
+            const applicationLog: $TSFixMe =
+                await ApplicationLogService.updateOneBy(
+                    { _id: currentApplicationLog._id },
+                    applicationLogUpdate,
 
-                unsetData
-            );
+                    unsetData
+                );
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -465,7 +472,9 @@ router.post(
         const { applicationLogId }: $TSFixMe = req.params;
         const startTime: $TSFixMe = new Date();
         const { duration, filter, range }: $TSFixMe = req.body;
-        const endTime: $TSFixMe = new Date(startTime.getTime() + duration * 60000);
+        const endTime: $TSFixMe = new Date(
+            startTime.getTime() + duration * 60000
+        );
         let response;
         if (filter) {
             response = await LogService.search(

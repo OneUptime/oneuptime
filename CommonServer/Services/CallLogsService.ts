@@ -81,10 +81,11 @@ export default class Service {
 
         const populate: $TSFixMe = [{ path: 'projectId', select: 'name' }];
         const select: string = 'from to projectId content status error';
-        const [searchedCallLogs, totalSearchCount]: $TSFixMe = await Promise.all([
-            this.findBy({ query, skip, limit, select, populate }),
-            this.countBy({ query }),
-        ]);
+        const [searchedCallLogs, totalSearchCount]: $TSFixMe =
+            await Promise.all([
+                this.findBy({ query, skip, limit, select, populate }),
+                this.countBy({ query }),
+            ]);
 
         return { searchedCallLogs, totalSearchCount };
     }

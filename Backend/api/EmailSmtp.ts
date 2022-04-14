@@ -8,7 +8,8 @@ const router: $TSFixMe = express.getRouter();
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
 import {
     sendErrorResponse,

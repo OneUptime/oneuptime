@@ -77,11 +77,12 @@ router.post(
         }
 
         try {
-            const IncidentPriorities: $TSFixMe = await IncidentPrioritiesService.create({
-                projectId,
-                name,
-                color,
-            });
+            const IncidentPriorities: $TSFixMe =
+                await IncidentPrioritiesService.create({
+                    projectId,
+                    name,
+                    color,
+                });
             return sendItemResponse(req, res, IncidentPriorities);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -167,10 +168,11 @@ router.delete(
         }
 
         try {
-            const IncidentPriority: $TSFixMe = await IncidentPrioritiesService.deleteBy({
-                projectId,
-                _id,
-            });
+            const IncidentPriority: $TSFixMe =
+                await IncidentPrioritiesService.deleteBy({
+                    projectId,
+                    _id,
+                });
             if (IncidentPriority) {
                 return sendItemResponse(req, res, IncidentPriority);
             } else {

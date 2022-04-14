@@ -369,10 +369,11 @@ export const removeNumbers: Function = (
     callRoutingId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`callRouting/${projectId}/${callRoutingId}`,
-        {
-            callRoutingId,
-        });
+        const promise: $TSFixMe =
+            delete (`callRouting/${projectId}/${callRoutingId}`,
+            {
+                callRoutingId,
+            });
         dispatch(removeNumbersRequest(callRoutingId));
 
         promise.then(

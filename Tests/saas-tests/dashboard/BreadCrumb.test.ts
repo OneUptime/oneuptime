@@ -52,10 +52,8 @@ describe('BreadCrumb Component test', () => {
                 }
             );
 
-            const componentBreadcrumb: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                '#cbMonitors'
-            );
+            const componentBreadcrumb: $TSFixMe =
+                await init.pageWaitForSelector(page, '#cbMonitors');
             expect(monitorBreadcrumb).toBeDefined();
             expect(componentBreadcrumb).toBeDefined();
 

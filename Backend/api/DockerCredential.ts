@@ -21,8 +21,11 @@ router.post(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { dockerRegistryUrl, dockerUsername, dockerPassword }: $TSFixMe =
-                req.body;
+            const {
+                dockerRegistryUrl,
+                dockerUsername,
+                dockerPassword,
+            }: $TSFixMe = req.body;
             const { projectId }: $TSFixMe = req.params;
 
             if (!dockerRegistryUrl || !dockerRegistryUrl.trim()) {
@@ -72,14 +75,17 @@ router.get(
         try {
             const { projectId }: $TSFixMe = req.params;
 
-            const populate: $TSFixMe = [{ path: 'projectId', select: 'name slug _id' }];
+            const populate: $TSFixMe = [
+                { path: 'projectId', select: 'name slug _id' },
+            ];
             const select: $TSFixMe =
                 'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
-            const dockerCredentials: $TSFixMe = await DockerCredentialService.findBy({
-                query: { projectId },
-                select,
-                populate,
-            });
+            const dockerCredentials: $TSFixMe =
+                await DockerCredentialService.findBy({
+                    query: { projectId },
+                    select,
+                    populate,
+                });
             return sendItemResponse(req, res, dockerCredentials);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -94,8 +100,11 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { credentialId }: $TSFixMe = req.params;
-            const { dockerRegistryUrl, dockerUsername, dockerPassword }: $TSFixMe =
-                req.body;
+            const {
+                dockerRegistryUrl,
+                dockerUsername,
+                dockerPassword,
+            }: $TSFixMe = req.body;
 
             const data: $TSFixMe = {};
             if (dockerRegistryUrl) {
@@ -108,10 +117,11 @@ router.put(
                 data.dockerPassword = dockerPassword;
             }
 
-            const dockerCredential: $TSFixMe = await DockerCredentialService.updateOneBy(
-                { _id: credentialId },
-                data
-            );
+            const dockerCredential: $TSFixMe =
+                await DockerCredentialService.updateOneBy(
+                    { _id: credentialId },
+                    data
+                );
             return sendItemResponse(req, res, dockerCredential);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

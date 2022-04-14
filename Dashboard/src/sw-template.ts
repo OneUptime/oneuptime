@@ -6,7 +6,8 @@ if ('function' === typeof importScripts) {
     if (workbox) {
         const { skipWaiting, clientsClaim }: $TSFixMe = workbox.core;
 
-        const { precacheAndRoute, cleanupOutdatedCaches }: $TSFixMe = workbox.precaching;
+        const { precacheAndRoute, cleanupOutdatedCaches }: $TSFixMe =
+            workbox.precaching;
 
         // skip waiting and switch to activating stage
         skipWaiting();

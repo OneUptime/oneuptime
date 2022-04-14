@@ -37,7 +37,8 @@ import VerificationTokenModel from 'CommonServer/models/verificationToken';
 import { IS_SAAS_SERVICE } from '../config/server';
 import UserModel from 'CommonServer/models/user';
 import SsoDefaultRolesService from '../services/ssoDefaultRolesService';
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 import Ip from '../middlewares/ipHandler';
 
 router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
@@ -289,7 +290,9 @@ router.post('/signup', async (req: ExpressRequest, res: ExpressResponse) => {
                 verificationToken: user.verificationToken || null,
             };
             winston.info('A User just signed up');
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
             const project: $TSFixMe = await ProjectService.findOneBy({
@@ -345,7 +348,9 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
 
     const domainRegex: $TSFixMe = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
 
-    const matchedTokens: $TSFixMe = email.toLocaleLowerCase().match(domainRegex);
+    const matchedTokens: $TSFixMe = email
+        .toLocaleLowerCase()
+        .match(domainRegex);
 
     if (!matchedTokens) {
         return sendErrorResponse(req, res, {
@@ -413,9 +418,14 @@ router.post(
         };
 
         // grab the email from the xml response
-        const email: $TSFixMe = SsoService.getEmail(decode(req.body.SAMLResponse));
-        const domainRegex: $TSFixMe = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
-        const matchedTokens: $TSFixMe = email.toLocaleLowerCase().match(domainRegex);
+        const email: $TSFixMe = SsoService.getEmail(
+            decode(req.body.SAMLResponse)
+        );
+        const domainRegex: $TSFixMe =
+            /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+        const matchedTokens: $TSFixMe = email
+            .toLocaleLowerCase()
+            .match(domainRegex);
 
         if (!matchedTokens) {
             return sendErrorResponse(
@@ -462,7 +472,8 @@ router.post(
                     saml_response.user.email ||
                     saml_response.user.attributes.email[0];
 
-                const domainRegex: $TSFixMe = /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
+                const domainRegex: $TSFixMe =
+                    /^[a-z0-9._%+-]+@([a-z0-9.-]+\.[a-z]{2,})$/;
                 const matchedTokens: $TSFixMe = email
                     .toLocaleLowerCase()
                     .match(domainRegex);
@@ -662,7 +673,10 @@ router.post(
                 });
                 userId = foundUser._id;
             }
-            const user: $TSFixMe = await UserService.verifyAuthToken(token, userId);
+            const user: $TSFixMe = await UserService.verifyAuthToken(
+                token,
+                userId
+            );
             if (!user || !user._id) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -821,7 +835,11 @@ router.post(
                 new BadDataException('Provide a valid user Id')
             );
         }
-        const { twoFactorAuthEnabled, twoFactorSecretCode, backupCodes }: $TSFixMe = user;
+        const {
+            twoFactorAuthEnabled,
+            twoFactorSecretCode,
+            backupCodes,
+        }: $TSFixMe = user;
         if (!twoFactorAuthEnabled) {
             return sendErrorResponse(
                 req,
@@ -841,11 +859,12 @@ router.post(
         if (Array.isArray(backupCodes) && backupCodes.length) {
             firstCounter = backupCodes[backupCodes.length - 1].counter + 1;
         }
-        const newBackupCodes: $TSFixMe = await UserService.generateUserBackupCodes(
-            twoFactorSecretCode,
-            numberOfCodes,
-            firstCounter
-        );
+        const newBackupCodes: $TSFixMe =
+            await UserService.generateUserBackupCodes(
+                twoFactorSecretCode,
+                numberOfCodes,
+                firstCounter
+            );
         try {
             await UserService.updateOneBy(
                 { _id: userId },
@@ -884,7 +903,8 @@ router.post(
                 return sendItemResponse(req, res, response);
             }
 
-            const response: $TSFixMe = await UserService.generateTwoFactorSecret(userId);
+            const response: $TSFixMe =
+                await UserService.generateTwoFactorSecret(userId);
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1113,7 +1133,10 @@ router.put(
         try {
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const data: $TSFixMe = req.body;
-            const user: $TSFixMe = await UserService.updatePush({ userId, data });
+            const user: $TSFixMe = await UserService.updatePush({
+                userId,
+                data,
+            });
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1144,7 +1167,10 @@ router.put(
                 });
             }
             // Call the UserService
-            const user: $TSFixMe = await UserService.updateOneBy({ _id: userId }, data);
+            const user: $TSFixMe = await UserService.updateOneBy(
+                { _id: userId },
+                data
+            );
             return sendItemResponse(req, res, user);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1718,10 +1744,16 @@ router.post(
                         data.push(val);
                     }
 
-                    const user: $TSFixMe = await UserService.addNotes(userId, data);
+                    const user: $TSFixMe = await UserService.addNotes(
+                        userId,
+                        data
+                    );
                     return sendItemResponse(req, res, user);
                 } else {
-                    const user: $TSFixMe = await UserService.addNotes(userId, data);
+                    const user: $TSFixMe = await UserService.addNotes(
+                        userId,
+                        data
+                    );
                     return sendItemResponse(req, res, user);
                 }
             } else {

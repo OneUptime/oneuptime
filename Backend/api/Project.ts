@@ -10,7 +10,8 @@ import UserService from '../services/userService';
 import MailService from '../services/mailService';
 import AirtableService from '../services/airtableService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner: $TSFixMe = require('../middlewares/project').isUserOwner;
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 
@@ -121,17 +122,21 @@ router.post(
                         });
                     }
 
-                    const [updatedUser, subscriptionnew]: $TSFixMe = await Promise.all([
-                        UserService.updateOneBy(
-                            { _id: userId },
-                            { stripeCustomerId: checkedPaymentIntent.customer }
-                        ),
+                    const [updatedUser, subscriptionnew]: $TSFixMe =
+                        await Promise.all([
+                            UserService.updateOneBy(
+                                { _id: userId },
+                                {
+                                    stripeCustomerId:
+                                        checkedPaymentIntent.customer,
+                                }
+                            ),
 
-                        PaymentService.subscribePlan(
-                            stripePlanId,
-                            checkedPaymentIntent.customer
-                        ),
-                    ]);
+                            PaymentService.subscribePlan(
+                                stripePlanId,
+                                checkedPaymentIntent.customer
+                            ),
+                        ]);
 
                     user = updatedUser;
 
@@ -154,10 +159,11 @@ router.post(
                     return sendItemResponse(req, res, project);
                 } else {
                     if (IS_SAAS_SERVICE) {
-                        const subscription: $TSFixMe = await PaymentService.subscribePlan(
-                            stripePlanId,
-                            user.stripeCustomerId
-                        );
+                        const subscription: $TSFixMe =
+                            await PaymentService.subscribePlan(
+                                stripePlanId,
+                                user.stripeCustomerId
+                            );
                         if (
                             subscription.subscriptionPaymentStatus ===
                                 'canceled' ||
@@ -266,7 +272,9 @@ router.get(
                 ],
             };
 
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: string = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
              sendCreatedIncidentNotificationSms sendAcknowledgedIncidentNotificationSms sendResolvedIncidentNotificationSms
              sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
@@ -311,7 +319,9 @@ router.get(
                     message: 'ProjectId must be present.',
                 });
             }
-            const balance: $TSFixMe = await ProjectService.getBalance({ _id: projectId });
+            const balance: $TSFixMe = await ProjectService.getBalance({
+                _id: projectId,
+            });
             return sendItemResponse(req, res, balance);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -337,7 +347,9 @@ router.get(
                     message: 'ProjectId must be present.',
                 });
             }
-            const project: $TSFixMe = await ProjectService.resetApiKey(projectId);
+            const project: $TSFixMe = await ProjectService.resetApiKey(
+                projectId
+            );
             return sendItemResponse(req, res, project);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -499,7 +511,9 @@ router.put(
                 },
                 userId,
             };
-            const project: $TSFixMe = await ProjectService.updateAlertOptions(data);
+            const project: $TSFixMe = await ProjectService.updateAlertOptions(
+                data
+            );
             return sendItemResponse(req, res, project);
         } catch (error) {
             sendErrorResponse(req, res, error);
@@ -729,9 +743,8 @@ router.put(
 
             if (planId === 'enterprise') {
                 // run all the upgrade here for enterprise plan
-                const response: $TSFixMe = await ProjectService.upgradeToEnterprise(
-                    projectId
-                );
+                const response: $TSFixMe =
+                    await ProjectService.upgradeToEnterprise(projectId);
                 return sendItemResponse(req, res, response);
             } else {
                 if (!oldPlan) {
@@ -912,7 +925,9 @@ router.post(
             };
 
             let subProjects = await ProjectService.create(data);
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
@@ -973,7 +988,9 @@ router.get(
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const skip: $TSFixMe = req.query['skip'] || 0;
             const limit: $TSFixMe = req.query['limit'] || 10;
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes createdAt';
             const [subProjects, count]: $TSFixMe = await Promise.all([
@@ -1005,11 +1022,8 @@ router.get(
             const userId: $TSFixMe = req.params.userId;
             const skip: $TSFixMe = req.query['skip'] || 0;
             const limit: $TSFixMe = req.query['limit'] || 10;
-            const { projects, count }: $TSFixMe = await ProjectService.getUserProjects(
-                userId,
-                skip,
-                limit
-            );
+            const { projects, count }: $TSFixMe =
+                await ProjectService.getUserProjects(userId, skip, limit);
             return sendListResponse(req, res, projects, count);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1046,7 +1060,9 @@ router.get(
     async (req, res): void => {
         try {
             const slug: $TSFixMe = req.params.slug;
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
             const project: $TSFixMe = await ProjectService.findOneBy({
@@ -1068,7 +1084,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { slug }: $TSFixMe = req.params;
-            const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+            const populate: $TSFixMe = [
+                { path: 'parentProjectId', select: 'name' },
+            ];
             const select: $TSFixMe =
                 '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 

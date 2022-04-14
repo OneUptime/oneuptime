@@ -250,10 +250,12 @@ describe('SSO API', function (): void {
                         expect(res.body).to.have.property('domain');
                         expect(res.body).to.have.property('samlSsoUrl');
                         expect(res.body).to.have.property('remoteLogoutUrl');
-                        const deletedSso: $TSFixMe = await SsoService.findOneBy({
-                            query: { _id: res.body._id, deleted: true },
-                            select: 'deleted',
-                        });
+                        const deletedSso: $TSFixMe = await SsoService.findOneBy(
+                            {
+                                query: { _id: res.body._id, deleted: true },
+                                select: 'deleted',
+                            }
+                        );
 
                         expect(deletedSso).to.be.an('object');
                         expect(deletedSso.deleted).to.equal(true);

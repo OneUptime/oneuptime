@@ -13,9 +13,8 @@ export default class Service {
     }
 
     async createMany(allData: $TSFixMe): void {
-        const allMetrics: $TSFixMe = await PerformanceTrackerMetricModel.insertMany(
-            allData
-        );
+        const allMetrics: $TSFixMe =
+            await PerformanceTrackerMetricModel.insertMany(allData);
         return allMetrics;
     }
     //Description: Gets all performance metrics by component.
@@ -60,7 +59,8 @@ export default class Service {
         performanceTrackerMetricQuery.select(select);
         performanceTrackerMetricQuery.populate(populate);
 
-        const performanceTrackerMetrics: $TSFixMe = await performanceTrackerMetricQuery;
+        const performanceTrackerMetrics: $TSFixMe =
+            await performanceTrackerMetricQuery;
         return performanceTrackerMetrics;
     }
 
@@ -89,7 +89,8 @@ export default class Service {
         performanceTrackerMetricQuery.select(select);
         performanceTrackerMetricQuery.populate(populate);
 
-        const performanceTrackerMetrics: $TSFixMe = await performanceTrackerMetricQuery;
+        const performanceTrackerMetrics: $TSFixMe =
+            await performanceTrackerMetricQuery;
 
         // restructure performance metrics
         // same path and method should be merged together
@@ -107,8 +108,12 @@ export default class Service {
         for (const [, value] of Object.entries(ptm)) {
             const valueLength: $TSFixMe = value.length;
             if (valueLength > 0) {
-                const { type, callIdentifier, performanceTrackerId, method }: $TSFixMe =
-                    value[0];
+                const {
+                    type,
+                    callIdentifier,
+                    performanceTrackerId,
+                    method,
+                }: $TSFixMe = value[0];
                 const result: $TSFixMe = {
                     type,
                     callIdentifier,
@@ -162,7 +167,8 @@ export default class Service {
         performanceTrackerMetricQuery.select(select);
         performanceTrackerMetricQuery.populate(populate);
 
-        const performanceTrackerMetric: $TSFixMe = await performanceTrackerMetricQuery;
+        const performanceTrackerMetric: $TSFixMe =
+            await performanceTrackerMetricQuery;
         return performanceTrackerMetric;
     }
 

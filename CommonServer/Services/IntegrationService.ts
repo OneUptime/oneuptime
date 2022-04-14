@@ -82,13 +82,16 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const integration: $TSFixMe = await IntegrationModel.findOneAndUpdate(query, {
-            $set: {
-                deleted: true,
-                deletedById: userId,
-                deletedAt: Date.now(),
-            },
-        });
+        const integration: $TSFixMe = await IntegrationModel.findOneAndUpdate(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedById: userId,
+                    deletedAt: Date.now(),
+                },
+            }
+        );
         return integration;
     }
 
@@ -200,13 +203,16 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const integrations: $TSFixMe = await IntegrationModel.updateMany(query, {
-            $set: {
-                deleted: true,
-                deletedAt: Date.now(),
-                deletedById: userId,
-            },
-        });
+        const integrations: $TSFixMe = await IntegrationModel.updateMany(
+            query,
+            {
+                $set: {
+                    deleted: true,
+                    deletedAt: Date.now(),
+                    deletedById: userId,
+                },
+            }
+        );
         return integrations;
     }
 
@@ -223,7 +229,11 @@ export default class Service {
                 populate: [{ path: 'componentId', select: 'name' }],
             },
         ];
-        const integration: $TSFixMe = await this.findBy({ query, select, populate });
+        const integration: $TSFixMe = await this.findBy({
+            query,
+            select,
+            populate,
+        });
         if (integration && integration.length > 1) {
             const integrations: $TSFixMe = await Promise.all(
                 integration.map(async (integration: $TSFixMe) => {

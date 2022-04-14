@@ -47,9 +47,10 @@ describe('Twilio API', function (): void {
             { role: 'master-admin' }
         );
 
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);

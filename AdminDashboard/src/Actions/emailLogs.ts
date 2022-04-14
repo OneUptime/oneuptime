@@ -269,9 +269,10 @@ export const emailLogStatusChange: $TSFixMe =
         dispatch(changeEmailLogStatusRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
-                { name: 'emailLogMonitoringStatus', value: values.status },
-            ]);
+            const response: $TSFixMe = await BackendAPI.post(
+                new Route('globalConfig/'),
+                [{ name: 'emailLogMonitoringStatus', value: values.status }]
+            );
 
             const data: $TSFixMe = response.data;
             dispatch(changeEmailLogStatusSuccess(data));

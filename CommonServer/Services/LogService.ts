@@ -41,7 +41,9 @@ export default class Service {
         const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [
+            { path: 'applicationLogId', select: 'name' },
+        ];
         log = await this.findOneBy({
             query: { _id: savedlog._id },
             select: selectLog,
@@ -110,9 +112,10 @@ export default class Service {
     ): void {
         // try to get the application log by the ID
 
-        const applicationLogCount: $TSFixMe = await ApplicationLogService.countBy({
-            _id: applicationLogId,
-        });
+        const applicationLogCount: $TSFixMe =
+            await ApplicationLogService.countBy({
+                _id: applicationLogId,
+            });
         // send an error if the component doesnt exist
         if (applicationLogCount === 0) {
             throw new BadDataException('Application Log does not exist.');
@@ -128,7 +131,9 @@ export default class Service {
         const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [
+            { path: 'applicationLogId', select: 'name' },
+        ];
 
         const logs: $TSFixMe = await this.findBy({
             query: { applicationLogId: applicationLogId },
@@ -162,7 +167,9 @@ export default class Service {
         const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
 
-        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [
+            { path: 'applicationLogId', select: 'name' },
+        ];
         const [searchedLogs, totalSearchCount]: $TSFixMe = await Promise.all([
             this.findBy({
                 query,
@@ -197,7 +204,9 @@ export default class Service {
         delete query.endTime;
         const selectLog: $TSFixMe =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
-        const populateLog: $TSFixMe = [{ path: 'applicationLogId', select: 'name' }];
+        const populateLog: $TSFixMe = [
+            { path: 'applicationLogId', select: 'name' },
+        ];
 
         const [searchedLogs, totalSearchCount]: $TSFixMe = await Promise.all([
             this.findBy({

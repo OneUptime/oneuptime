@@ -108,9 +108,12 @@ export function createSubProject(
     subProjectName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`project/${projectId}/subProject`, {
-            subProjectName,
-        });
+        const promise: $TSFixMe = BackendAPI.post(
+            `project/${projectId}/subProject`,
+            {
+                subProjectName,
+            }
+        );
 
         dispatch(createSubProjectRequest());
 
@@ -168,7 +171,9 @@ export const resetSubProjectToken: Function = (
     subProjectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`project/${subProjectId}/resetToken`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `project/${subProjectId}/resetToken`
+        );
 
         dispatch(resetSubProjectTokenRequest());
 
@@ -223,9 +228,12 @@ export function renameSubProject(
     subProjectName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`project/${projectId}/${subProjectId}`, {
-            subProjectName,
-        });
+        const promise: $TSFixMe = BackendAPI.put(
+            `project/${projectId}/${subProjectId}`,
+            {
+                subProjectName,
+            }
+        );
 
         dispatch(renameSubProjectRequest());
 
@@ -282,10 +290,11 @@ export const deleteSubProject: Function = (
     subProjectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`project/${projectId}/${subProjectId}`,
-        {
-            subProjectId,
-        });
+        const promise: $TSFixMe =
+            delete (`project/${projectId}/${subProjectId}`,
+            {
+                subProjectId,
+            });
 
         dispatch(deleteSubProjectRequest());
 

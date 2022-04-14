@@ -9,17 +9,18 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async deleteBy(query: Query, userId: ObjectID): void {
-        const resourceCategory: $TSFixMe = await ResourceCategoryModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+        const resourceCategory: $TSFixMe =
+            await ResourceCategoryModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         await Promise.all([
             MonitorModel.updateMany(

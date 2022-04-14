@@ -4,7 +4,8 @@ import express, {
 } from 'CommonServer/Utils/Express';
 const router: $TSFixMe = express.getRouter();
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 import { sendListResponse } from 'CommonServer/Utils/response';
 import { sendItemResponse } from 'CommonServer/Utils/response';
 
@@ -73,7 +74,8 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const data: $TSFixMe = req.body;
         try {
-            const ssoDefaultRole: $TSFixMe = await SsoDefaultRolesService.create(data);
+            const ssoDefaultRole: $TSFixMe =
+                await SsoDefaultRolesService.create(data);
             return sendItemResponse(req, res, ssoDefaultRole);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -100,7 +102,9 @@ router.get(
                 populate: populateDefaultRoleSso,
             });
             if (!sso) {
-                const error: $TSFixMe = new Error("Requested resource doesn't exist.");
+                const error: $TSFixMe = new Error(
+                    "Requested resource doesn't exist."
+                );
 
                 error.code = 404;
                 throw error;
@@ -119,10 +123,8 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const id: $TSFixMe = req.params.id;
-            const ssoDefaultRole: $TSFixMe = await SsoDefaultRolesService.updateById(
-                id,
-                req.body
-            );
+            const ssoDefaultRole: $TSFixMe =
+                await SsoDefaultRolesService.updateById(id, req.body);
             return sendItemResponse(req, res, ssoDefaultRole);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

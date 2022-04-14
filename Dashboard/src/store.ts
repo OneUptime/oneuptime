@@ -37,9 +37,16 @@ if (process.env['NODE_ENV'] === 'development') {
     }
 }
 
-const composedEnhancers: $TSFixMe = compose(applyMiddleware(...middleware), ...enhancers);
+const composedEnhancers: $TSFixMe = compose(
+    applyMiddleware(...middleware),
+    ...enhancers
+);
 
-const store: $TSFixMe = createStore(rootReducer, initialState, composedEnhancers);
+const store: $TSFixMe = createStore(
+    rootReducer,
+    initialState,
+    composedEnhancers
+);
 
 export type RootState = ReturnType<typeof store.getState>;
 

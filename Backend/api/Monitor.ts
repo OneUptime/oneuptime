@@ -18,7 +18,8 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 const router: $TSFixMe = express.getRouter();
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -454,11 +455,12 @@ router.get(
 
             const { limit, skip }: $TSFixMe = req.query;
             // Call the MonitorService.
-            const monitors: $TSFixMe = await MonitorService.getMonitorsBySubprojects(
-                subProjectIds,
-                limit || 0,
-                skip || 0
-            );
+            const monitors: $TSFixMe =
+                await MonitorService.getMonitorsBySubprojects(
+                    subProjectIds,
+                    limit || 0,
+                    skip || 0
+                );
             return sendItemResponse(req, res, monitors);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -815,11 +817,12 @@ router.post(
         try {
             const { startDate, endDate }: $TSFixMe = req.body;
             const monitorId: $TSFixMe = req.params.monitorId;
-            const monitorStatuses: $TSFixMe = await MonitorService.getMonitorStatuses(
-                monitorId,
-                startDate,
-                endDate
-            );
+            const monitorStatuses: $TSFixMe =
+                await MonitorService.getMonitorStatuses(
+                    monitorId,
+                    startDate,
+                    endDate
+                );
             return sendListResponse(req, res, monitorStatuses);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -868,11 +871,12 @@ router.get(
                     select: 'probeName probeKey version lastAlive deleted probeImage',
                 },
             ];
-            const lighthouseIssue: $TSFixMe = await LighthouseLogService.findOneBy({
-                query: { _id: req.params.issueId },
-                select: selectLighthouseLogs,
-                populate: populateLighthouseLogs,
-            });
+            const lighthouseIssue: $TSFixMe =
+                await LighthouseLogService.findOneBy({
+                    query: { _id: req.params.issueId },
+                    select: selectLighthouseLogs,
+                    populate: populateLighthouseLogs,
+                });
 
             return sendItemResponse(req, res, lighthouseIssue);
         } catch (error) {
@@ -921,10 +925,11 @@ const _updateDeviceMonitorPingTime: $TSFixMe = async function (
             });
         }
 
-        const monitor: $TSFixMe = await MonitorService.updateDeviceMonitorPingTime(
-            projectId,
-            deviceId
-        );
+        const monitor: $TSFixMe =
+            await MonitorService.updateDeviceMonitorPingTime(
+                projectId,
+                deviceId
+            );
         if (monitor) {
             return sendItemResponse(req, res, monitor);
         } else {
@@ -1024,11 +1029,12 @@ router.post(
             const { projectId, monitorId }: $TSFixMe = req.params;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
-            const monitor: $TSFixMe = await MonitorService.closeBreachedMonitorSla(
-                projectId,
-                monitorId,
-                userId
-            );
+            const monitor: $TSFixMe =
+                await MonitorService.closeBreachedMonitorSla(
+                    projectId,
+                    monitorId,
+                    userId
+                );
 
             return sendItemResponse(req, res, monitor);
         } catch (error) {
@@ -1080,11 +1086,12 @@ router.post(
         try {
             const { projectId, monitorId }: $TSFixMe = req.params;
             const { newComponentId }: $TSFixMe = req.body;
-            const monitor: $TSFixMe = await MonitorService.changeMonitorComponent(
-                projectId,
-                monitorId,
-                newComponentId
-            );
+            const monitor: $TSFixMe =
+                await MonitorService.changeMonitorComponent(
+                    projectId,
+                    monitorId,
+                    newComponentId
+                );
             return sendItemResponse(req, res, monitor);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

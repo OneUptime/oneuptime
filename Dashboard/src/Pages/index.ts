@@ -16,7 +16,9 @@ const AlertLog = lazy((): $TSFixMe => import('./AlertLog'));
 const Schedule = lazy((): $TSFixMe => import('./Schedule'));
 
 const ScheduledEvent = lazy((): $TSFixMe => import('./ScheduledEvent'));
-const ScheduledEventDetail = lazy((): $TSFixMe => import('./ScheduledEventDetail'));
+const ScheduledEventDetail = lazy(
+    (): $TSFixMe => import('./ScheduledEventDetail')
+);
 
 const ChangePassword = lazy((): $TSFixMe => import('./ChangePassword'));
 
@@ -34,7 +36,9 @@ const EmailTemplates = lazy((): $TSFixMe => import('./EmailTemplates'));
 const SmsTemplates = lazy((): $TSFixMe => import('./SmsTemplates'));
 
 const MonitorView = lazy((): $TSFixMe => import('./MonitorView'));
-const WebsiteMonitorIssues = lazy((): $TSFixMe => import('./WebsiteMonitorIssues'));
+const WebsiteMonitorIssues = lazy(
+    (): $TSFixMe => import('./WebsiteMonitorIssues')
+);
 const Reports = lazy((): $TSFixMe => import('./Reports'));
 
 const Probe = lazy((): $TSFixMe => import('./Probe'));
@@ -49,7 +53,9 @@ const ContainerDetail = lazy((): $TSFixMe => import('./ContainerDetail'));
 const GitCredential = lazy((): $TSFixMe => import('./GitCredential'));
 const DockerCredential = lazy((): $TSFixMe => import('./DockerCredential'));
 const OneUptimeApi = lazy((): $TSFixMe => import('./OneUptimeApi'));
-const ChangePasswordSetting = lazy((): $TSFixMe => import('./ChangePasswordSetting'));
+const ChangePasswordSetting = lazy(
+    (): $TSFixMe => import('./ChangePasswordSetting')
+);
 const DeleteAccountPage = lazy((): $TSFixMe => import('./DeleteAccountPage'));
 const Consulting = lazy((): $TSFixMe => import('./Consulting'));
 const ErrorTracking = lazy((): $TSFixMe => import('./ErrorTracking'));
@@ -61,7 +67,9 @@ const ComponentSettingsAdvanced: $TSFixMe = lazy(
 const CallRouting = lazy((): $TSFixMe => import('./CallRouting'));
 const DomainSettings = lazy((): $TSFixMe => import('./DomainSettings'));
 const Groups = lazy((): $TSFixMe => import('./Group'));
-const PerformanceTrackerView = lazy((): $TSFixMe => import('./PerformanceTrackerView'));
+const PerformanceTrackerView = lazy(
+    (): $TSFixMe => import('./PerformanceTrackerView')
+);
 const PerformanceTracker = lazy((): $TSFixMe => import('./PerformanceTracker'));
 const AutomationScript = lazy((): $TSFixMe => import('./AutomationScript'));
 const SsoPage = lazy((): $TSFixMe => import('./Sso'));

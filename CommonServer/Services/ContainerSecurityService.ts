@@ -14,24 +14,27 @@ import RealTimeService from './realTimeService';
 
 export default class Service {
     async create(data: $TSFixMe): void {
-        const [containerNameExist, imagePathExist, dockerCredentialExist]: $TSFixMe =
-            await Promise.all([
-                this.findOneBy({
-                    query: { name: data.name, componentId: data.componentId },
-                    select: '_id',
-                }),
-                this.findOneBy({
-                    query: {
-                        imagePath: data.imagePath,
-                        componentId: data.componentId,
-                    },
-                    select: '_id',
-                }),
-                DockerCredentialService.findOneBy({
-                    query: { _id: data.dockerCredential },
-                    select: '_id',
-                }),
-            ]);
+        const [
+            containerNameExist,
+            imagePathExist,
+            dockerCredentialExist,
+        ]: $TSFixMe = await Promise.all([
+            this.findOneBy({
+                query: { name: data.name, componentId: data.componentId },
+                select: '_id',
+            }),
+            this.findOneBy({
+                query: {
+                    imagePath: data.imagePath,
+                    componentId: data.componentId,
+                },
+                select: '_id',
+            }),
+            DockerCredentialService.findOneBy({
+                query: { _id: data.dockerCredential },
+                select: '_id',
+            }),
+        ]);
 
         if (containerNameExist) {
             const error: $TSFixMe = new Error(
@@ -59,14 +62,17 @@ export default class Service {
             error.code = 400;
             throw error;
         }
-        const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy({
-            _id: data.resourceCategory,
-        });
+        const resourceCategoryCount: $TSFixMe =
+            await ResourceCategoryService.countBy({
+                _id: data.resourceCategory,
+            });
         if (!resourceCategoryCount || resourceCategoryCount === 0) {
             delete data.resourceCategory;
         }
         data.slug = getSlug(data.name);
-        const containerSecurity: $TSFixMe = await ContainerSecurityModel.create(data);
+        const containerSecurity: $TSFixMe = await ContainerSecurityModel.create(
+            data
+        );
         return containerSecurity;
     }
 
@@ -115,7 +121,9 @@ export default class Service {
         }
 
         // won't be using lean() here because of iv cypher for password
-        const containerSecurityQuery: $TSFixMe = ContainerSecurityModel.find(query)
+        const containerSecurityQuery: $TSFixMe = ContainerSecurityModel.find(
+            query
+        )
             .sort(sort)
             .limit(limit.toNumber())
             .skip(skip.toNumber());
@@ -200,10 +208,11 @@ export default class Service {
             throw error;
         }
 
-        const securityLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
-            query: { securityId: containerSecurity._id },
-            select: '_id',
-        });
+        const securityLog: $TSFixMe =
+            await ContainerSecurityLogService.findOneBy({
+                query: { securityId: containerSecurity._id },
+                select: '_id',
+            });
 
         if (securityLog) {
             await ContainerSecurityLogService.deleteBy({
@@ -284,7 +293,9 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count: $TSFixMe = await ContainerSecurityModel.countDocuments(query);
+        const count: $TSFixMe = await ContainerSecurityModel.countDocuments(
+            query
+        );
         return count;
     }
 }

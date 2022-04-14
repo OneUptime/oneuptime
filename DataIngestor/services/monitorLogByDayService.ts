@@ -54,7 +54,9 @@ export default {
 
         LogDay.createdAt = new Date(moment().format());
 
-        const result: $TSFixMe = await monitorLogByDayCollection.insertOne(LogDay);
+        const result: $TSFixMe = await monitorLogByDayCollection.insertOne(
+            LogDay
+        );
         const savedLogDay: $TSFixMe = await this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
@@ -72,7 +74,8 @@ export default {
         }
 
         await monitorLogByDayCollection.updateOne(query, { $set: data });
-        const monitorLogByDay: $TSFixMe = await monitorLogByDayCollection.findOne(query);
+        const monitorLogByDay: $TSFixMe =
+            await monitorLogByDayCollection.findOne(query);
 
         return monitorLogByDay;
     },
@@ -86,7 +89,9 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorLog: $TSFixMe = await monitorLogByDayCollection.findOne(query);
+        const monitorLog: $TSFixMe = await monitorLogByDayCollection.findOne(
+            query
+        );
 
         return monitorLog;
     },
@@ -94,5 +99,6 @@ export default {
 
 import { ObjectId } from 'mongodb';
 
-const monitorLogByDayCollection: $TSFixMe = global.db.collection('monitorlogbydays');
+const monitorLogByDayCollection: $TSFixMe =
+    global.db.collection('monitorlogbydays');
 import moment from 'moment';

@@ -20,8 +20,12 @@ export default {
         ) {
             const configurationFile: $TSFixMe = monitor.kubernetesConfig;
             const updatedConfigName: string = `${uuidv4()}${configurationFile}`;
-            const configPath: $TSFixMe = Path.resolve(process.cwd(), updatedConfigName);
-            const namespace: $TSFixMe = monitor.kubernetesNamespace || 'default';
+            const configPath: $TSFixMe = Path.resolve(
+                process.cwd(),
+                updatedConfigName
+            );
+            const namespace: $TSFixMe =
+                monitor.kubernetesNamespace || 'default';
 
             await fetch(`${serverUrl}/file/${configurationFile}`).then(res => {
                 const dest: $TSFixMe = fs.createWriteStream(configPath);

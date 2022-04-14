@@ -214,9 +214,8 @@ export default class Service {
     //Returns: promise
 
     async checkPaymentIntent(paymentIntent): void {
-        const processedPaymentIntent: $TSFixMe = await stripe.paymentIntents.retrieve(
-            paymentIntent.id
-        );
+        const processedPaymentIntent: $TSFixMe =
+            await stripe.paymentIntents.retrieve(paymentIntent.id);
         return processedPaymentIntent;
     }
 
@@ -273,7 +272,9 @@ export default class Service {
             };
         }
 
-        const subscription: $TSFixMe = await stripe.subscriptions.create(subscriptionObj);
+        const subscription: $TSFixMe = await stripe.subscriptions.create(
+            subscriptionObj
+        );
         return {
             stripeSubscriptionId: subscription.id,
         };
@@ -415,13 +416,15 @@ export default class Service {
             select: 'balance alertOptions _id',
         });
         const { balance }: $TSFixMe = project;
-        const { minimumBalance, rechargeToBalance }: $TSFixMe = project.alertOptions;
+        const { minimumBalance, rechargeToBalance }: $TSFixMe =
+            project.alertOptions;
         if (balance < minimumBalance) {
-            const paymentIntent: $TSFixMe = await StripeService.chargeCustomerForBalance(
-                userId,
-                rechargeToBalance,
-                project.id
-            );
+            const paymentIntent: $TSFixMe =
+                await StripeService.chargeCustomerForBalance(
+                    userId,
+                    rechargeToBalance,
+                    project.id
+                );
             if (!paymentIntent.paid) {
                 //create notification
                 const message: $TSFixMe =

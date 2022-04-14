@@ -258,7 +258,9 @@ class DatabaseService<ModelType> {
     }
 
     public async create(createBy: CreateBy): Promise<Document> {
-        const _createdBy: $TSFixMe = await this.onBeforeCreate({ data: createBy.data });
+        const _createdBy: $TSFixMe = await this.onBeforeCreate({
+            data: createBy.data,
+        });
 
         let data = _createdBy.data;
 

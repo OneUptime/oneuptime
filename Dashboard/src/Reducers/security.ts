@@ -190,10 +190,12 @@ export default function security(state = initialState, action: Action): void {
 
         case types.DELETE_CONTAINER_SECURITY_SUCCESS: {
             // update the list of container securities
-            const securities: $TSFixMe = state.containerSecurities.securities.filter(
-                containerSecurity =>
-                    String(containerSecurity._id) !== String(action.payload._id)
-            );
+            const securities: $TSFixMe =
+                state.containerSecurities.securities.filter(
+                    containerSecurity =>
+                        String(containerSecurity._id) !==
+                        String(action.payload._id)
+                );
             const count: $TSFixMe =
                 state.containerSecurities.count === 0
                     ? 0
@@ -498,11 +500,12 @@ export default function security(state = initialState, action: Action): void {
 
         case types.DELETE_APPLICATION_SECURITY_SUCCESS: {
             // update the list of application securities
-            const securities: $TSFixMe = state.applicationSecurities.securities.filter(
-                applicationSecurity =>
-                    String(applicationSecurity._id) !==
-                    String(action.payload._id)
-            );
+            const securities: $TSFixMe =
+                state.applicationSecurities.securities.filter(
+                    applicationSecurity =>
+                        String(applicationSecurity._id) !==
+                        String(action.payload._id)
+                );
             return {
                 ...state,
                 deleteApplication: {

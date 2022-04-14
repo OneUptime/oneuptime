@@ -1,4 +1,5 @@
-const lighthouseLogCollection: $TSFixMe = global.db.collection('lighthouselogs');
+const lighthouseLogCollection: $TSFixMe =
+    global.db.collection('lighthouselogs');
 import probeService from './probeService';
 import ErrorService from './errorService';
 import { ObjectId } from 'mongodb';

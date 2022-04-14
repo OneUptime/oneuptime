@@ -31,7 +31,8 @@ router.post(
     isUserAdmin,
     async (req, res): void => {
         try {
-            const resourceCategoryName: $TSFixMe = req.body.resourceCategoryName;
+            const resourceCategoryName: $TSFixMe =
+                req.body.resourceCategoryName;
             const projectId: $TSFixMe = req.params.projectId;
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
@@ -65,11 +66,12 @@ router.post(
             }
 
             // Call the ResourceCategoryService
-            const resourceCategory: $TSFixMe = await ResourceCategoryService.create({
-                projectId,
-                userId,
-                name: resourceCategoryName,
-            });
+            const resourceCategory: $TSFixMe =
+                await ResourceCategoryService.create({
+                    projectId,
+                    userId,
+                    name: resourceCategoryName,
+                });
             return sendItemResponse(req, res, resourceCategory);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

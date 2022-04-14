@@ -15,14 +15,17 @@ export default {
                         monitor.data.IPAddress
                     );
 
-                    const response: $TSFixMe = await ApiService.ping(monitor._id, {
-                        monitor,
-                        res,
-                        resp,
-                        rawResp,
-                        type: monitor.type,
-                        retryCount,
-                    });
+                    const response: $TSFixMe = await ApiService.ping(
+                        monitor._id,
+                        {
+                            monitor,
+                            res,
+                            resp,
+                            rawResp,
+                            type: monitor.type,
+                            retryCount,
+                        }
+                    );
 
                     if (response && !response.retry) {
                         retry = false;

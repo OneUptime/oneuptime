@@ -172,13 +172,14 @@ describe('Incident Settings API', function (): void {
 
     it('should update the default incident settings.', async () => {
         const authorization: string = `Basic ${token}`;
-        const incidentPriorityObject: $TSFixMe = await IncidentPrioritiesService.findOne({
-            query: {
-                projectId,
-                name: 'High',
-            },
-            select: 'projectId name color createdAt deletedAt deleted deletedById',
-        });
+        const incidentPriorityObject: $TSFixMe =
+            await IncidentPrioritiesService.findOne({
+                query: {
+                    projectId,
+                    name: 'High',
+                },
+                select: 'projectId name color createdAt deletedAt deleted deletedById',
+            });
         expect(incidentPriorityObject).to.not.equal(null);
         const { _id: incidentPriority } = incidentPriorityObject;
         const res: $TSFixMe = await request

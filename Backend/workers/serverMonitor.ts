@@ -19,10 +19,11 @@ export default {
                     query: { monitorId: monitor._id },
                     select: '_id',
                 });
-                const monitorStatus: $TSFixMe = await MonitorStatusService.findOneBy({
-                    query: { monitorId: monitor._id },
-                    select: 'status',
-                });
+                const monitorStatus: $TSFixMe =
+                    await MonitorStatusService.findOneBy({
+                        query: { monitorId: monitor._id },
+                        select: 'status',
+                    });
 
                 if (
                     newDate.diff(d, 'minutes') > 3 &&

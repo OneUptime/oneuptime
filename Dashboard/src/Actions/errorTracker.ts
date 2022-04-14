@@ -77,7 +77,9 @@ export const fetchErrorTrackersByProject: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`component/${projectId}/issues`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `component/${projectId}/issues`
+        );
 
         dispatch(fetchErrorTrackersRequest());
 

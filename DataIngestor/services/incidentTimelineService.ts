@@ -1,6 +1,7 @@
 import IncidentService from './incidentService';
 
-const incidentTimelineCollection: $TSFixMe = global.db.collection('incidenttimelines');
+const incidentTimelineCollection: $TSFixMe =
+    global.db.collection('incidenttimelines');
 import { ObjectId } from 'mongodb';
 
 import { post } from '../Utils/api';
@@ -95,9 +96,8 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const incidentTimeline: $TSFixMe = await incidentTimelineCollection.findOne(
-            query
-        );
+        const incidentTimeline: $TSFixMe =
+            await incidentTimelineCollection.findOne(query);
 
         return incidentTimeline;
     },

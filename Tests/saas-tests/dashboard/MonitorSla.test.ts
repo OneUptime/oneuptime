@@ -138,10 +138,14 @@ describe('Monitor SLA', () => {
 
             await init.pageClick(page, '#createSlaBtn');
 
-            const slaError: $TSFixMe = await init.pageWaitForSelector(page, `#slaError`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const slaError: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                `#slaError`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(slaError).toBeDefined();
             done();
         },

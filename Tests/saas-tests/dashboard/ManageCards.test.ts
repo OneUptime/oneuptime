@@ -190,10 +190,14 @@ describe('Stripe cards API', () => {
             await frame.type('input[name=postal]', '11234');
 
             await init.pageClick(page, '#addCardButtonSubmit');
-            const error: $TSFixMe = await init.pageWaitForSelector(page, '#cardError', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            const error: $TSFixMe = await init.pageWaitForSelector(
+                page,
+                '#cardError',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(error).toBeDefined();
             done();
         },

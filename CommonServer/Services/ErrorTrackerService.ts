@@ -33,9 +33,10 @@ export default class Service {
             error.code = 400;
             throw error;
         }
-        const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy({
-            _id: data.resourceCategory,
-        });
+        const resourceCategoryCount: $TSFixMe =
+            await ResourceCategoryService.countBy({
+                _id: data.resourceCategory,
+            });
         // prepare error tracker model
         let errorTracker = new ErrorTrackerModel();
 

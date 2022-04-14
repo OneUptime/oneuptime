@@ -130,7 +130,10 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .split(' ');
                 return words;
             });
         const cpuLines: $TSFixMe = cpu
@@ -143,7 +146,10 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .split(' ');
                 return words[words.length - 2];
             });
         const diskLines: $TSFixMe = disk
@@ -151,7 +157,10 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .split(' ');
                 return {
                     storageUsed: words[2],
                     totalStorage: words[1],
@@ -210,7 +219,10 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .split(' ');
                 return words;
             });
         const memLines: $TSFixMe = usedMem
@@ -228,7 +240,10 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .trim()
             .split('\n')
             .map((line: $TSFixMe) => {
-                const words: $TSFixMe = line.replace(/\s+/g, ' ').trim().split(' ');
+                const words: $TSFixMe = line
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .split(' ');
                 return {
                     storageUsed: words[2],
                     totalStorage: words[1],
@@ -286,8 +301,14 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
 
         const loadLines: $TSFixMe = load.replace(/\s+/g, ' ').trim().split(' ');
         const cpuLines: $TSFixMe = cpu.replace(/\s+/g, ' ').trim().split(' ');
-        const freeMemLines: $TSFixMe = freeMem.replace(/\s+/g, ' ').trim().split(' ');
-        const totalMemLines: $TSFixMe = totalMem.replace(/\s+/g, ' ').trim().split(' ');
+        const freeMemLines: $TSFixMe = freeMem
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ');
+        const totalMemLines: $TSFixMe = totalMem
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ');
         const totalSwapMemLines: $TSFixMe = totalSwapMem
             .replace(/\s+/g, ' ')
             .trim()
@@ -296,8 +317,14 @@ const execCommands = async (exec: $TSFixMe, os: $TSFixMe): void => {
             .replace(/\s+/g, ' ')
             .trim()
             .split(' ');
-        const freeDiskLines: $TSFixMe = freeDisk.replace(/\s+/g, ' ').trim().split(' ');
-        const totalDiskLines: $TSFixMe = totalDisk.replace(/\s+/g, ' ').trim().split(' ');
+        const freeDiskLines: $TSFixMe = freeDisk
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ');
+        const totalDiskLines: $TSFixMe = totalDisk
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ');
         const tempLines: $TSFixMe = temp.replace(/\s+/g, ' ').trim().split(' ');
 
         cpuLoad = loadLines[1];

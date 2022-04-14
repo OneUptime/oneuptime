@@ -14,7 +14,9 @@ export default class Service {
     ): void {
         const detector: $TSFixMe = new DeviceDetector();
         const result: $TSFixMe = detector.detect(userAgent);
-        const ipLocation: $TSFixMe = await UserService.getUserIpLocation(clientIP);
+        const ipLocation: $TSFixMe = await UserService.getUserIpLocation(
+            clientIP
+        );
         await LoginHistoryModel.create({
             userId: user._id,
             ipLocation,

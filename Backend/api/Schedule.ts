@@ -7,7 +7,8 @@ import ScheduleService from '../services/scheduleService';
 const router: $TSFixMe = express.getRouter();
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 
 import { isAuthorized } from '../middlewares/authorization';
 import {
@@ -106,9 +107,8 @@ router.get(
             const subProjectIds: $TSFixMe = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
-            const schedules: $TSFixMe = await ScheduleService.getSubProjectSchedules(
-                subProjectIds
-            );
+            const schedules: $TSFixMe =
+                await ScheduleService.getSubProjectSchedules(subProjectIds);
             return sendItemResponse(req, res, schedules); // frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -219,10 +219,8 @@ router.get(
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             const userId: $TSFixMe = req.params.userId;
-            const escalations: $TSFixMe = await ScheduleService.getUserEscalations(
-                subProjectIds,
-                userId
-            );
+            const escalations: $TSFixMe =
+                await ScheduleService.getUserEscalations(subProjectIds, userId);
             return sendListResponse(req, res, escalations);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -237,7 +235,9 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const scheduleId: $TSFixMe = req.params.scheduleId;
-            const response: $TSFixMe = await ScheduleService.getEscalations(scheduleId);
+            const response: $TSFixMe = await ScheduleService.getEscalations(
+                scheduleId
+            );
             return sendListResponse(
                 req,
                 res,

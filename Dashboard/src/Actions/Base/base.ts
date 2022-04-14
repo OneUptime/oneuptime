@@ -44,7 +44,9 @@ class BaseAction {
     }
 
     getConstants(): void {
-        const friendlyName: $TSFixMe = this.friendlyName.replace(' ', '_').toUpperCase();
+        const friendlyName: $TSFixMe = this.friendlyName
+            .replace(' ', '_')
+            .toUpperCase();
         const request: $TSFixMe =
             this.actionType.toUpperCase() + '_' + friendlyName + '_REQUEST';
         const success: $TSFixMe =

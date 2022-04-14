@@ -199,7 +199,10 @@ export const createSchedule: Function = (
     values: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`schedule/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(
+            `schedule/${projectId}`,
+            values
+        );
 
         dispatch(createScheduleRequest());
 
@@ -250,9 +253,12 @@ export function renameSchedule(
     scheduleName: $TSFixMe
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.put(`schedule/${projectId}/${scheduleId}`, {
-            name: scheduleName,
-        });
+        const promise: $TSFixMe = BackendAPI.put(
+            `schedule/${projectId}/${scheduleId}`,
+            {
+                name: scheduleName,
+            }
+        );
 
         dispatch(renameScheduleRequest());
 

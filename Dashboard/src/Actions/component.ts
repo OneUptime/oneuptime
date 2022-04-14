@@ -130,7 +130,10 @@ export const createComponent: Function = (
 ): void => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`component/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(
+            `component/${projectId}`,
+            values
+        );
         dispatch(createComponentRequest());
 
         promise.then(
@@ -264,10 +267,11 @@ export const deleteComponent: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`component/${projectId}/${componentId}`,
-        {
-            componentId,
-        });
+        const promise: $TSFixMe =
+            delete (`component/${projectId}/${componentId}`,
+            {
+                componentId,
+            });
         dispatch(deleteComponentRequest(componentId));
 
         promise.then(
@@ -324,7 +328,10 @@ export const deleteProjectComponents: Function = (
 
 export const addSeat: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`component/${projectId}/addseat`, {});
+        const promise: $TSFixMe = BackendAPI.post(
+            `component/${projectId}/addseat`,
+            {}
+        );
         dispatch(addSeatRequest());
 
         promise.then(
@@ -533,7 +540,9 @@ export const fetchComponent: Function = (
     slug: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`component/${projectId}/slug/${slug}`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `component/${projectId}/slug/${slug}`
+        );
         dispatch(fetchComponentRequest());
 
         promise.then(

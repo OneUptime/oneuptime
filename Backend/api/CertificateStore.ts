@@ -19,7 +19,9 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const data: $TSFixMe = req.body;
 
-        const certificate: $TSFixMe = await CertificateStoreService.create(data);
+        const certificate: $TSFixMe = await CertificateStoreService.create(
+            data
+        );
         return sendItemResponse(req, res, certificate);
     } catch (error) {
         return sendErrorResponse(req, res, error as Exception);
@@ -63,10 +65,11 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { subject }: $TSFixMe = req.params;
-            const certificate: $TSFixMe = await CertificateStoreService.findOneBy({
-                query: { subject },
-                select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
-            });
+            const certificate: $TSFixMe =
+                await CertificateStoreService.findOneBy({
+                    query: { subject },
+                    select: 'id privateKeyPem privateKeyJwk cert chain privKey subject altnames issuedAt expiresAt deleted deletedAt',
+                });
 
             return sendItemResponse(req, res, certificate);
         } catch (error) {
@@ -82,7 +85,8 @@ router.delete(
         try {
             const { id }: $TSFixMe = req.params;
 
-            const certificate: $TSFixMe = await CertificateStoreService.deleteBy({ id });
+            const certificate: $TSFixMe =
+                await CertificateStoreService.deleteBy({ id });
             return sendItemResponse(req, res, certificate);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

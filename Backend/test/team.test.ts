@@ -37,9 +37,10 @@ describe('Team API', function (): void {
         projectId = project._id;
         userId = res.body.id;
 
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);
@@ -186,9 +187,10 @@ describe('Team API', function (): void {
                 role: 'Member',
             });
         const { userId }: $TSFixMe = res.body[0].team[0];
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
 
@@ -224,17 +226,18 @@ describe('Team API with Sub-Projects', async function (): void {
             .send({ subProjectName: 'New SubProject' });
         subProjectId = res1.body[0]._id;
         // sign up second user (subproject user)
-        const checkCardData: $TSFixMe = await request.post('/stripe/checkCard').send({
-            tokenId: 'tok_visa',
+        const checkCardData: $TSFixMe = await request
+            .post('/stripe/checkCard')
+            .send({
+                tokenId: 'tok_visa',
 
-            email: userData.email,
+                email: userData.email,
 
-            companyName: userData.companyName,
-        });
+                companyName: userData.companyName,
+            });
 
-        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
-            checkCardData.body.id
-        );
+        const confirmedPaymentIntent: $TSFixMe =
+            await stripe.paymentIntents.confirm(checkCardData.body.id);
 
         const res2: $TSFixMe = await request.post('/user/signup').send({
             paymentIntent: {
@@ -244,9 +247,10 @@ describe('Team API with Sub-Projects', async function (): void {
         });
 
         subProjectUserId = res2.body.id;
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId: subProjectUserId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId: subProjectUserId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);

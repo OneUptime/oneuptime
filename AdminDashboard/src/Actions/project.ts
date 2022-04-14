@@ -85,7 +85,9 @@ export const fetchProject: $TSFixMe =
         dispatch(fetchProjectRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.get(`project/projects/${slug}`);
+            const response: $TSFixMe = await BackendAPI.get(
+                `project/projects/${slug}`
+            );
 
             const projects: $TSFixMe = response.data;
 
@@ -362,7 +364,8 @@ export const teamDelete: Function = (
     teamMemberId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`team/${projectId}/${teamMemberId}`, null);
+        const promise: $TSFixMe = delete (`team/${projectId}/${teamMemberId}`,
+        null);
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
@@ -483,7 +486,8 @@ export const deleteProject: $TSFixMe =
         dispatch(deleteProjectRequest());
 
         try {
-            const response: $TSFixMe = await delete `project/${projectId}/deleteProject`;
+            const response: $TSFixMe =
+                await delete `project/${projectId}/deleteProject`;
 
             const data: $TSFixMe = response.data;
 

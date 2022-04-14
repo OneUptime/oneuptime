@@ -1,5 +1,6 @@
 const MongoClient: $TSFixMe = require('mongodb').MongoClient;
-const url: $TSFixMe = process.env['MONGO_URL'] || 'mongodb://localhost/oneuptimedb';
+const url: $TSFixMe =
+    process.env['MONGO_URL'] || 'mongodb://localhost/oneuptimedb';
 import Query from 'CommonServer/types/db/Query';
 global.client = global.client || MongoClient;
 

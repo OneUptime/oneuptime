@@ -38,13 +38,14 @@ export default class Service {
             query = {};
         }
 
-        const lighthouseLog: $TSFixMe = await LighthouseLogModel.findOneAndUpdate(
-            query,
-            { $set: data },
-            {
-                new: true,
-            }
-        );
+        const lighthouseLog: $TSFixMe =
+            await LighthouseLogModel.findOneAndUpdate(
+                query,
+                { $set: data },
+                {
+                    new: true,
+                }
+            );
 
         return lighthouseLog;
     }

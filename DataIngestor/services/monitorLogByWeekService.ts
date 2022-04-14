@@ -54,7 +54,9 @@ export default {
 
         LogWeek.createdAt = new Date(moment().format());
 
-        const result: $TSFixMe = await monitorLogByWeekCollection.insertOne(LogWeek);
+        const result: $TSFixMe = await monitorLogByWeekCollection.insertOne(
+            LogWeek
+        );
         const savedLogWeek: $TSFixMe = await this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
@@ -72,9 +74,8 @@ export default {
         }
 
         await monitorLogByWeekCollection.updateOne(query, { $set: data });
-        const monitorLogByWeek: $TSFixMe = await monitorLogByWeekCollection.findOne(
-            query
-        );
+        const monitorLogByWeek: $TSFixMe =
+            await monitorLogByWeekCollection.findOne(query);
 
         return monitorLogByWeek;
     },
@@ -88,7 +89,9 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorLog: $TSFixMe = await monitorLogByWeekCollection.findOne(query);
+        const monitorLog: $TSFixMe = await monitorLogByWeekCollection.findOne(
+            query
+        );
 
         return monitorLog;
     },
@@ -96,5 +99,6 @@ export default {
 
 import { ObjectId } from 'mongodb';
 
-const monitorLogByWeekCollection: $TSFixMe = global.db.collection('monitorlogbyweeks');
+const monitorLogByWeekCollection: $TSFixMe =
+    global.db.collection('monitorlogbyweeks');
 import moment from 'moment';

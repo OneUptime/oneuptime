@@ -508,7 +508,9 @@ class Service extends DatabaseService<typeof Model> {
                     !user.isVerified &&
                     NODE_ENV !== 'development'
                 ) {
-                    const error: $TSFixMe = new Error('Verify your email first.');
+                    const error: $TSFixMe = new Error(
+                        'Verify your email first.'
+                    );
 
                     error.code = 401;
                     throw error;
@@ -640,7 +642,10 @@ class Service extends DatabaseService<typeof Model> {
                 throw error;
             }
 
-            const hash: $TSFixMe = await bcrypt.hash(password, constants.saltRounds);
+            const hash: $TSFixMe = await bcrypt.hash(
+                password,
+                constants.saltRounds
+            );
 
             //update a user.
             user = await this.updateOneBy(
@@ -724,7 +729,8 @@ class Service extends DatabaseService<typeof Model> {
             }
 
             //update the user.
-            const passwordToRestore: $TSFixMe = user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
+            const passwordToRestore: $TSFixMe =
+                user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
             const updatedUser: $TSFixMe = await this.updateOneBy(
                 {
                     _id: userId,
@@ -792,10 +798,16 @@ class Service extends DatabaseService<typeof Model> {
 
         const encryptedPassword: $TSFixMe = user.password;
 
-        const check: $TSFixMe = await bcrypt.compare(currentPassword, encryptedPassword);
+        const check: $TSFixMe = await bcrypt.compare(
+            currentPassword,
+            encryptedPassword
+        );
         if (check) {
             const newPassword: $TSFixMe = data.newPassword;
-            const hash: $TSFixMe = await bcrypt.hash(newPassword, constants.saltRounds);
+            const hash: $TSFixMe = await bcrypt.hash(
+                newPassword,
+                constants.saltRounds
+            );
 
             data.password = hash;
             user = await this.updateOneBy({ _id: data._id }, data);
@@ -845,7 +857,9 @@ class Service extends DatabaseService<typeof Model> {
                         (project: $TSFixMe) => project._id
                     );
                 }
-                const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+                const populate: $TSFixMe = [
+                    { path: 'parentProjectId', select: 'name' },
+                ];
                 const select: $TSFixMe =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 
@@ -949,7 +963,9 @@ class Service extends DatabaseService<typeof Model> {
                         (project: $TSFixMe) => project._id
                     );
                 }
-                const populate: $TSFixMe = [{ path: 'parentProjectId', select: 'name' }];
+                const populate: $TSFixMe = [
+                    { path: 'parentProjectId', select: 'name' },
+                ];
                 const select: $TSFixMe =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
 

@@ -4,7 +4,9 @@ const monitorCollection: string = 'monitors';
 const componentCollection: string = 'components';
 
 async function run(): void {
-    const monitors: $TSFixMe = await find(monitorCollection, { deleted: false });
+    const monitors: $TSFixMe = await find(monitorCollection, {
+        deleted: false,
+    });
 
     for (const monitor of monitors) {
         const component: $TSFixMe = await findOne(componentCollection, {

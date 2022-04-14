@@ -49,7 +49,10 @@ export const search: Function = (
 ): void => {
     return function (dispatch: Dispatch): void {
         dispatch(searchRequest());
-        const promise: $TSFixMe = BackendAPI.post(`search/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(
+            `search/${projectId}`,
+            values
+        );
         promise.then(
             (result): void => {
                 const search: $TSFixMe = result.data;

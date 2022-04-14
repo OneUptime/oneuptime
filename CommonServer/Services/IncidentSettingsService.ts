@@ -189,7 +189,9 @@ export default class Service {
         let updatedData = await incidentSettingsModel.updateMany(query, {
             $set: data,
         });
-        const populate: $TSFixMe = [{ path: 'incidentPriority', select: 'name color' }];
+        const populate: $TSFixMe = [
+            { path: 'incidentPriority', select: 'name color' },
+        ];
         const select: $TSFixMe =
             'projectId title description incidentPriority isDefault name createdAt';
 

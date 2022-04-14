@@ -396,9 +396,12 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const updateProcess: $TSFixMe = await ErrorEventModel.updateMany(query, {
-            $set: data,
-        });
+        const updateProcess: $TSFixMe = await ErrorEventModel.updateMany(
+            query,
+            {
+                $set: data,
+            }
+        );
 
         return updateProcess;
     }

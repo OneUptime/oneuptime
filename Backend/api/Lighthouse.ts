@@ -179,24 +179,23 @@ router.post(
                                 return desc;
                             });
 
-                    const bestPracticesIssues: $TSFixMe = data.lighthouseData.issues[
-                        'best-practices'
-                    ]
-                        .slice(0, 10)
-                        .map((desc: $TSFixMe) => {
-                            const splitDescription: $TSFixMe =
-                                desc.description.split(/\[Learn more\]/i);
-                            const url: $TSFixMe = splitDescription[1]
-                                ? splitDescription[1].replace(
-                                      /^\(|\)|\.$/gi,
-                                      ''
-                                  )
-                                : '';
-                            desc.description = splitDescription[0];
-                            desc.url = url;
+                    const bestPracticesIssues: $TSFixMe =
+                        data.lighthouseData.issues['best-practices']
+                            .slice(0, 10)
+                            .map((desc: $TSFixMe) => {
+                                const splitDescription: $TSFixMe =
+                                    desc.description.split(/\[Learn more\]/i);
+                                const url: $TSFixMe = splitDescription[1]
+                                    ? splitDescription[1].replace(
+                                          /^\(|\)|\.$/gi,
+                                          ''
+                                      )
+                                    : '';
+                                desc.description = splitDescription[0];
+                                desc.url = url;
 
-                            return desc;
-                        });
+                                return desc;
+                            });
 
                     const seoIssues: $TSFixMe = data.lighthouseData.issues.seo
                         .slice(0, 10)

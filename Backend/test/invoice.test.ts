@@ -26,17 +26,18 @@ describe('Invoice API', function (): void {
     before(async function (): void {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
-        const checkCardData: $TSFixMe = await request.post('/stripe/checkCard').send({
-            tokenId: 'tok_visa',
+        const checkCardData: $TSFixMe = await request
+            .post('/stripe/checkCard')
+            .send({
+                tokenId: 'tok_visa',
 
-            email: userData.email,
+                email: userData.email,
 
-            companyName: userData.companyName,
-        });
+                companyName: userData.companyName,
+            });
 
-        const confirmedPaymentIntent: $TSFixMe = await stripe.paymentIntents.confirm(
-            checkCardData.body.id
-        );
+        const confirmedPaymentIntent: $TSFixMe =
+            await stripe.paymentIntents.confirm(checkCardData.body.id);
 
         const signUp: $TSFixMe = await request.post('/user/signup').send({
             paymentIntent: {
@@ -49,9 +50,10 @@ describe('Invoice API', function (): void {
         projectId = project._id;
         userId = signUp.body.id;
 
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         try {
             await request
                 .get(`/user/confirmation/${verificationToken.token}`)

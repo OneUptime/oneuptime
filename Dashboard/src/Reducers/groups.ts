@@ -154,7 +154,8 @@ export default function groups(state = initialState, action: Action): void {
                 },
                 oncallDuty: action.payload,
                 groups: state.groups.map(projectGroup => {
-                    const projectId: $TSFixMe = action.payload.groups[0].projectId._id;
+                    const projectId: $TSFixMe =
+                        action.payload.groups[0].projectId._id;
 
                     if (projectGroup.project.id === projectId) {
                         return {

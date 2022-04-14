@@ -361,7 +361,8 @@ const methods: $TSFixMe = {
         const {
             headers: { location, 'set-cookie': cookies },
         } = firstIdpResponse;
-        const [postSubmissionUrl, AuthState]: $TSFixMe = location.split('AuthState=');
+        const [postSubmissionUrl, AuthState]: $TSFixMe =
+            location.split('AuthState=');
 
         const samlResponsePage: $TSFixMe = await chai
 

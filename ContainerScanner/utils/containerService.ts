@@ -19,7 +19,9 @@ import flattenArray from './flattenArray';
 
 export default {
     scan: async function (security): void {
-        const decryptedSecurity: $TSFixMe = await this.decryptPassword(security);
+        const decryptedSecurity: $TSFixMe = await this.decryptPassword(
+            security
+        );
         await this.scanContainerSecurity(decryptedSecurity);
     },
 
@@ -39,7 +41,11 @@ export default {
     decrypt: (encText, iv) => {
         const promise = new Promise((resolve, reject): $TSFixMe => {
             try {
-                const decipher: $TSFixMe = crypto.createDecipheriv(algorithm, key, iv);
+                const decipher: $TSFixMe = crypto.createDecipheriv(
+                    algorithm,
+                    key,
+                    iv
+                );
                 let decoded = decipher.update(encText, 'hex', 'utf8');
                 decoded += decipher.final('utf8');
                 resolve(decoded);
@@ -52,7 +58,9 @@ export default {
 
     scanContainerSecurity: async security => {
         const { imagePath, imageTags }: $TSFixMe = security;
-        const testPath: $TSFixMe = imageTags ? `${imagePath}:${imageTags}` : imagePath;
+        const testPath: $TSFixMe = imageTags
+            ? `${imagePath}:${imageTags}`
+            : imagePath;
         const outputFile: string = `${uuidv1()}result.json`;
         let securityDir = 'container_security_dir';
 
@@ -251,13 +259,12 @@ export default {
                         ...lowArr,
                     ];
 
-                    const securityLog: $TSFixMe = await updateContainerSecurityLogService(
-                        {
+                    const securityLog: $TSFixMe =
+                        await updateContainerSecurityLogService({
                             securityId: security._id,
                             componentId: security.componentId._id,
                             data: auditData,
-                        }
-                    );
+                        });
 
                     await Promise.all([
                         await updateContainerSecurityScanTime({

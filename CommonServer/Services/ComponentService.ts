@@ -256,7 +256,9 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const componentQuery: $TSFixMe = ComponentModel.findOne(query).sort(sort).lean();
+        const componentQuery: $TSFixMe = ComponentModel.findOne(query)
+            .sort(sort)
+            .lean();
 
         componentQuery.select(select);
         componentQuery.populate(populate);

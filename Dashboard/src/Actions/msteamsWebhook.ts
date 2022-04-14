@@ -38,8 +38,8 @@ export const deleteMsTeams: Function = (
     msTeamsId: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`webhook/${projectId}/delete/${msTeamsId}`,
-        null);
+        const promise: $TSFixMe =
+            delete (`webhook/${projectId}/delete/${msTeamsId}`, null);
 
         dispatch(deleteMsTeamsRequest());
 
@@ -170,7 +170,10 @@ export const createMsTeams: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`webhook/${projectId}/create`, data);
+        const promise: $TSFixMe = BackendAPI.post(
+            `webhook/${projectId}/create`,
+            data
+        );
 
         dispatch(createMsTeamsRequest());
         return promise.then(

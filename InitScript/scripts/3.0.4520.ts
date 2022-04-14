@@ -3,9 +3,12 @@ import { find, update, removeField } from '../util/db';
 const scheduledEventNoteCollection: string = 'scheduledeventnotes';
 
 async function run(): void {
-    const scheduledEventNotes: $TSFixMe = await find(scheduledEventNoteCollection, {
-        incident_state: { $type: 'string' },
-    });
+    const scheduledEventNotes: $TSFixMe = await find(
+        scheduledEventNoteCollection,
+        {
+            incident_state: { $type: 'string' },
+        }
+    );
 
     scheduledEventNotes.forEach(async (eventNote: $TSFixMe) => {
         const event_state: $TSFixMe = eventNote.incident_state;

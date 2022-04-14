@@ -320,7 +320,9 @@ export const cacheProvider: $TSFixMe = {
             language
         ],
     set: (language: $TSFixMe, key: $TSFixMe, value: $TSFixMe) => {
-        const existing: $TSFixMe = JSON.parse(localStorage.getItem('translations')) || {
+        const existing: $TSFixMe = JSON.parse(
+            localStorage.getItem('translations')
+        ) || {
             [key]: {},
         };
         existing[key] = { ...existing[key], [language]: value };

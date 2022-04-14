@@ -12,7 +12,8 @@ import {
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 import {
     sendErrorResponse,
     sendItemResponse,
@@ -127,9 +128,8 @@ router.post(
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const projectId: $TSFixMe = req.query.projectId;
-            const validationResult: $TSFixMe = await SmsCountService.validateResend(
-                userId
-            );
+            const validationResult: $TSFixMe =
+                await SmsCountService.validateResend(userId);
             const sendVerifyToken: $TSFixMe = await sendVerificationSMS(
                 to,
                 userId,
@@ -170,7 +170,9 @@ router.post(
                     message: 'code field must be present.',
                 });
             }
-            const tempAlertPhoneNumber: $TSFixMe = to.startsWith('+') ? to : `+${to}`;
+            const tempAlertPhoneNumber: $TSFixMe = to.startsWith('+')
+                ? to
+                : `+${to}`;
             const user: $TSFixMe = await UserService.findOneBy({
                 query: {
                     _id: userId,

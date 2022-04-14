@@ -34,11 +34,12 @@ router.get(
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
-            const securityLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
-                query: { securityId: containerSecurityId, componentId },
-                select: selectContainerLog,
-                populate: populateContainerLog,
-            });
+            const securityLog: $TSFixMe =
+                await ContainerSecurityLogService.findOneBy({
+                    query: { securityId: containerSecurityId, componentId },
+                    select: selectContainerLog,
+                    populate: populateContainerLog,
+                });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -65,11 +66,12 @@ router.get(
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
-            const securityLog: $TSFixMe = await ContainerSecurityLogService.findOneBy({
-                query: { slug: containerSecuritySlug, componentId },
-                select: selectContainerLog,
-                populate: populateContainerLog,
-            });
+            const securityLog: $TSFixMe =
+                await ContainerSecurityLogService.findOneBy({
+                    query: { slug: containerSecuritySlug, componentId },
+                    select: selectContainerLog,
+                    populate: populateContainerLog,
+                });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -95,11 +97,12 @@ router.get(
                 { path: 'securityId', select: 'name slug' },
                 { path: 'componentId', select: 'name slug' },
             ];
-            const securityLogs: $TSFixMe = await ContainerSecurityLogService.findBy({
-                componentId,
-                select: selectContainerLog,
-                populate: populateContainerLog,
-            });
+            const securityLogs: $TSFixMe =
+                await ContainerSecurityLogService.findBy({
+                    componentId,
+                    select: selectContainerLog,
+                    populate: populateContainerLog,
+                });
             return sendItemResponse(req, res, securityLogs);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

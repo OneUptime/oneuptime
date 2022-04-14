@@ -15,7 +15,8 @@ export default {
                 if (newDate.diff(d, 'minutes') > 3) {
                     await job(monitor);
                 } else {
-                    const res: $TSFixMe = new Date().getTime() - resDate.getTime();
+                    const res: $TSFixMe =
+                        new Date().getTime() - resDate.getTime();
                     await job(monitor, res);
                 }
             });

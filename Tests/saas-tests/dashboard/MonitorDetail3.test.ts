@@ -172,7 +172,10 @@ describe('Monitor Detail API', () => {
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            const webhookRows: $TSFixMe = await init.page$$(page, createdWebhookSelector);
+            const webhookRows: $TSFixMe = await init.page$$(
+                page,
+                createdWebhookSelector
+            );
             const countWebhooks: $TSFixMe = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
@@ -271,7 +274,10 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(10);
 
-            const nextSelector: $TSFixMe = await init.page$(page, '#btnNextSlack');
+            const nextSelector: $TSFixMe = await init.page$(
+                page,
+                '#btnNextSlack'
+            );
 
             await nextSelector.click();
 
@@ -282,7 +288,10 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(1);
 
-            const prevSelector: $TSFixMe = await init.page$(page, '#btnPrevSlack');
+            const prevSelector: $TSFixMe = await init.page$(
+                page,
+                '#btnPrevSlack'
+            );
 
             await prevSelector.click();
 

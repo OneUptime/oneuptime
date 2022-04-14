@@ -13,10 +13,11 @@ export default class Service {
         );
         if (sso) {
             const { _id: domain } = sso;
-            const ssoDefaultRoles: $TSFixMe = await SsoDefaultRolesService.findBy({
-                query: { domain },
-                select: '_id',
-            });
+            const ssoDefaultRoles: $TSFixMe =
+                await SsoDefaultRolesService.findBy({
+                    query: { domain },
+                    select: '_id',
+                });
             for (const ssoDefaultRole of ssoDefaultRoles) {
                 const { _id }: $TSFixMe = ssoDefaultRole;
                 await SsoDefaultRolesService.deleteBy({ _id });

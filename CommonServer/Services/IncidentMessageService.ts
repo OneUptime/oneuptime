@@ -83,7 +83,9 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const incidentMessageQuery: $TSFixMe = IncidentMessageModel.findOne(query)
+        const incidentMessageQuery: $TSFixMe = IncidentMessageModel.findOne(
+            query
+        )
             .sort(sort)
             .lean();
 
@@ -134,7 +136,9 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const count: $TSFixMe = await IncidentMessageModel.countDocuments(query);
+        const count: $TSFixMe = await IncidentMessageModel.countDocuments(
+            query
+        );
 
         return count;
     }
@@ -145,17 +149,18 @@ export default class Service {
         }
 
         query['deleted'] = false;
-        const incidentMessage: $TSFixMe = await IncidentMessageModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
-                    deletedById: userId,
+        const incidentMessage: $TSFixMe =
+            await IncidentMessageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                        deletedById: userId,
+                    },
                 },
-            },
-            { new: true }
-        ).populate('deletedById', 'name');
+                { new: true }
+            ).populate('deletedById', 'name');
         if (incidentMessage) {
             return incidentMessage;
         } else {

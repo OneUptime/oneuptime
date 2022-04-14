@@ -6,7 +6,8 @@ import ReportService from '../services/reportService';
 
 import { isAuthorized } from '../middlewares/authorization';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
 
@@ -68,13 +69,14 @@ router.get(
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
                 : null;
             // Call Reports Service
-            const monitors: $TSFixMe = await ReportService.getMostActiveMonitors(
-                subProjectIds,
-                startDate,
-                endDate,
-                skip,
-                limit
-            );
+            const monitors: $TSFixMe =
+                await ReportService.getMostActiveMonitors(
+                    subProjectIds,
+                    startDate,
+                    endDate,
+                    skip,
+                    limit
+                );
 
             const count: $TSFixMe = monitors.count;
 

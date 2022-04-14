@@ -3,9 +3,8 @@ import { find, update } from '../util/db';
 const PROJECT_COLLECTION: string = 'projects';
 async function run(): void {
     // get projects without disableNotification fields for sms, email or webhook
-    const projectsWithoutInvestigationNoteNotificationOptionFields: $TSFixMe = await find(
-        PROJECT_COLLECTION,
-        {
+    const projectsWithoutInvestigationNoteNotificationOptionFields: $TSFixMe =
+        await find(PROJECT_COLLECTION, {
             $or: [
                 { enableInvestigationNoteNotificationSMS: { $exists: false } },
                 {
@@ -19,8 +18,7 @@ async function run(): void {
                     },
                 },
             ],
-        }
-    );
+        });
     // update project by setting the investigationNotification options to default value of true
     projectsWithoutInvestigationNoteNotificationOptionFields.forEach(
         (project: $TSFixMe) => {

@@ -17,15 +17,21 @@ async function run(): void {
     for (const statusPage of statusPages) {
         // check if status page category is now being used for a particular status page
         // the assumption is that if no status page category is being used, then it's possible that resource category is still being used
-        const statCategories: $TSFixMe = await find(statusPageCategoryCollection, {
-            statusPageId: String(statusPage._id),
-            deleted: false,
-        });
-        if (!statCategories || statCategories.length === 0) {
-            const resourceCategories: $TSFixMe = await find(resourceCategoryCollection, {
-                projectId: String(statusPage.projectId),
+        const statCategories: $TSFixMe = await find(
+            statusPageCategoryCollection,
+            {
+                statusPageId: String(statusPage._id),
                 deleted: false,
-            });
+            }
+        );
+        if (!statCategories || statCategories.length === 0) {
+            const resourceCategories: $TSFixMe = await find(
+                resourceCategoryCollection,
+                {
+                    projectId: String(statusPage.projectId),
+                    deleted: false,
+                }
+            );
 
             let updatedMonitors = statusPage.monitors;
 
@@ -95,10 +101,13 @@ async function run(): void {
             }
         } else {
             // we need to fix the initial migration script
-            const resourceCategories: $TSFixMe = await find(resourceCategoryCollection, {
-                projectId: String(statusPage.projectId),
-                deleted: false,
-            });
+            const resourceCategories: $TSFixMe = await find(
+                resourceCategoryCollection,
+                {
+                    projectId: String(statusPage.projectId),
+                    deleted: false,
+                }
+            );
 
             let updatedMonitors = statusPage.monitors;
 

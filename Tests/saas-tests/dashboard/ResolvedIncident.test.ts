@@ -69,10 +69,8 @@ describe('Incident Reports API', () => {
 
                 await init.pageClick(page, '#btnResolve_0');
 
-                const resolvedConfirmation: $TSFixMe = await init.pageWaitForSelector(
-                    page,
-                    '.bs-resolved-green'
-                );
+                const resolvedConfirmation: $TSFixMe =
+                    await init.pageWaitForSelector(page, '.bs-resolved-green');
                 expect(resolvedConfirmation).toBeDefined();
             }
             done();
@@ -88,11 +86,12 @@ describe('Incident Reports API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const closedResolvedIncidents: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                '#incidents-close-all-btn',
-                { hidden: true }
-            );
+            const closedResolvedIncidents: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    '#incidents-close-all-btn',
+                    { hidden: true }
+                );
             expect(closedResolvedIncidents).toBeNull();
             done();
         },

@@ -235,7 +235,9 @@ export const fetchResourceCategoriesForNewResource: Function = (
     projectId: ObjectID
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.get(`resourceCategory/${projectId}`);
+        const promise: $TSFixMe = BackendAPI.get(
+            `resourceCategory/${projectId}`
+        );
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(

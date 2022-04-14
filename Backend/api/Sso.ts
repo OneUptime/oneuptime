@@ -4,7 +4,8 @@ import express, {
 } from 'CommonServer/Utils/Express';
 const router: $TSFixMe = express.getRouter();
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 const isScaleOrMasterAdmin: $TSFixMe =
     require('../middlewares/user').isScaleOrMasterAdmin;
 import { sendListResponse } from 'CommonServer/Utils/response';
@@ -49,7 +50,9 @@ router.delete(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const sso: $TSFixMe = await SsoService.deleteBy({ _id: req.params.id });
+            const sso: $TSFixMe = await SsoService.deleteBy({
+                _id: req.params.id,
+            });
             return sendItemResponse(req, res, sso);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -97,7 +100,10 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const data: $TSFixMe = req.body;
-            const sso: $TSFixMe = await SsoService.updateBy({ _id: req.params.id }, data);
+            const sso: $TSFixMe = await SsoService.updateBy(
+                { _id: req.params.id },
+                data
+            );
             return sendItemResponse(req, res, sso);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

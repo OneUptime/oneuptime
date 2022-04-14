@@ -199,14 +199,13 @@ export default function component(state = INITIAL_STATE, action: Action): void {
             });
 
         case FETCH_PAGINATED_COMPONENTS_SUCCESS: {
-            const updatedComponents: $TSFixMe = state.componentList.components.map(
-                componentObj => {
+            const updatedComponents: $TSFixMe =
+                state.componentList.components.map(componentObj => {
                     if (componentObj._id === action.payload._id) {
                         componentObj = action.payload;
                     }
                     return componentObj;
-                }
-            );
+                });
             return {
                 ...state,
                 componentList: {
@@ -282,7 +281,10 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                             subProject.components &&
                             subProject.components.slice();
 
-                        const newComponent: $TSFixMe = Object.assign({}, action.payload);
+                        const newComponent: $TSFixMe = Object.assign(
+                            {},
+                            action.payload
+                        );
 
                         const componentIndex: $TSFixMe =
                             subProjectComponents &&
@@ -290,7 +292,8 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                                 (component: $TSFixMe) =>
                                     component._id === newComponent._id
                             );
-                        const isSubProjectComponent: $TSFixMe = componentIndex > -1;
+                        const isSubProjectComponent: $TSFixMe =
+                            componentIndex > -1;
 
                         if (subProject._id === newComponent.projectId._id) {
                             if (isSubProjectComponent) {

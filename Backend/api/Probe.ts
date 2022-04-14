@@ -87,7 +87,9 @@ router.delete(
     isAuthorizedAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const probe: $TSFixMe = await ProbeService.deleteBy({ _id: req.params.id });
+            const probe: $TSFixMe = await ProbeService.deleteBy({
+                _id: req.params.id,
+            });
             return sendItemResponse(req, res, probe);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -193,7 +195,8 @@ router.post(
                     select: 'lastPingTime _id criteria',
                 });
 
-                const probeId: $TSFixMe = req.probe && req.probe.id ? req.probe.id : null;
+                const probeId: $TSFixMe =
+                    req.probe && req.probe.id ? req.probe.id : null;
                 log = await ProbeService.probeHttpRequest(newMonitor, probeId);
             } else {
                 if (type === 'api' || type === 'url') {

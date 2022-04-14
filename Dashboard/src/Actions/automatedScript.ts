@@ -43,7 +43,10 @@ export const createAutomatedScript: Function = (
     data: $TSFixMe
 ): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`automated-scripts/${projectId}`, data);
+        const promise: $TSFixMe = BackendAPI.post(
+            `automated-scripts/${projectId}`,
+            data
+        );
 
         dispatch(createAutomatedScriptRequest());
 

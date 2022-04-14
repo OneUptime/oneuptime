@@ -10,8 +10,12 @@ import certOrder from './certOrder';
 // This is done because there will be many instances of backend in production, and one instance of backend
 // should run at a random second every minute so they dont collide.
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
-const serverMonitorCronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
-const subscriptionCronMinutesStartTime: $TSFixMe = Math.floor(Math.random() * 50);
+const serverMonitorCronMinuteStartTime: $TSFixMe = Math.floor(
+    Math.random() * 50
+);
+const subscriptionCronMinutesStartTime: $TSFixMe = Math.floor(
+    Math.random() * 50
+);
 const certOrderCronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);
 
 // Esclation Policy: This cron runs every minute

@@ -52,7 +52,9 @@ router.post(
             ]);
             data.subject = subject;
             data.body = body;
-            const emailTemplate: $TSFixMe = await EmailTemplateService.create(data);
+            const emailTemplate: $TSFixMe = await EmailTemplateService.create(
+                data
+            );
             return sendItemResponse(req, res, emailTemplate);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -105,11 +107,12 @@ router.get(
             const emailTemplateId: $TSFixMe = req.params.emailTemplateId;
             const select: string =
                 'projectId subject body emailType allowedVariables';
-            const emailTemplates: $TSFixMe = await EmailTemplateService.findOneBy({
-                query: { _id: emailTemplateId },
-                select,
-                populate: [{ path: 'projectId', select: 'nmae' }],
-            });
+            const emailTemplates: $TSFixMe =
+                await EmailTemplateService.findOneBy({
+                    query: { _id: emailTemplateId },
+                    select,
+                    populate: [{ path: 'projectId', select: 'nmae' }],
+                });
             return sendItemResponse(req, res, emailTemplates);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -126,10 +129,8 @@ router.put(
             const data: $TSFixMe = req.body;
             const Id: $TSFixMe = req.params.emailTemplateId;
             // Call the EmailTemplateService
-            const emailTemplate: $TSFixMe = await EmailTemplateService.updateOneBy(
-                { _id: Id },
-                data
-            );
+            const emailTemplate: $TSFixMe =
+                await EmailTemplateService.updateOneBy({ _id: Id }, data);
             return sendItemResponse(req, res, emailTemplate);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -174,14 +175,15 @@ router.put(
             const select: string =
                 'projectId subject body emailType allowedVariables';
             for (const value of data) {
-                const emailTemplate: $TSFixMe = await EmailTemplateService.findOneBy({
-                    query: {
-                        projectId: value.projectId,
-                        emailType: value.emailType,
-                    },
-                    select,
-                    populate: [{ path: 'projectId', select: 'nmae' }],
-                });
+                const emailTemplate: $TSFixMe =
+                    await EmailTemplateService.findOneBy({
+                        query: {
+                            projectId: value.projectId,
+                            emailType: value.emailType,
+                        },
+                        select,
+                        populate: [{ path: 'projectId', select: 'nmae' }],
+                    });
                 if (emailTemplate) {
                     await EmailTemplateService.updateOneBy(
                         { _id: value._id },
@@ -191,9 +193,8 @@ router.put(
                     await EmailTemplateService.create(value);
                 }
             }
-            const emailTemplates: $TSFixMe = await EmailTemplateService.getTemplates(
-                projectId
-            );
+            const emailTemplates: $TSFixMe =
+                await EmailTemplateService.getTemplates(projectId);
             return sendItemResponse(req, res, emailTemplates);
         } catch (error) {
             sendErrorResponse(req, res, error);

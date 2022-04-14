@@ -15,7 +15,8 @@ router.get('/settings', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 router.post('/api/settings', (req: ExpressRequest, res: ExpressResponse) => {
-    const { responseTime, statusCode, responseType, header, body }: $TSFixMe = req.body;
+    const { responseTime, statusCode, responseType, header, body }: $TSFixMe =
+        req.body;
 
     HTTPTestServerResponse.responseTime = new PositiveNumber(responseTime);
     HTTPTestServerResponse.statusCode = new PositiveNumber(statusCode);

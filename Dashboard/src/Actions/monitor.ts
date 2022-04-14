@@ -130,7 +130,10 @@ export const createMonitor: Function = (
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch): void {
         dispatch(createMonitorRequest());
-        const promise: $TSFixMe = BackendAPI.post(`monitor/${projectId}`, values);
+        const promise: $TSFixMe = BackendAPI.post(
+            `monitor/${projectId}`,
+            values
+        );
         promise.then(
             (monitor): void => {
                 dispatch(createMonitorSuccess(monitor.data));
@@ -451,10 +454,11 @@ export function deleteSiteUrl(
     siteUrl: URL
 ): void {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = delete (`monitor/${projectId}/siteUrl/${monitorId}`,
-        {
-            siteUrl,
-        });
+        const promise: $TSFixMe =
+            delete (`monitor/${projectId}/siteUrl/${monitorId}`,
+            {
+                siteUrl,
+            });
         dispatch(editMonitorRequest());
 
         promise.then(
@@ -1212,7 +1216,10 @@ export const fetchMonitorIssueFailure: Function = (
 
 export const addSeat: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
-        const promise: $TSFixMe = BackendAPI.post(`monitor/${projectId}/addseat`, {});
+        const promise: $TSFixMe = BackendAPI.post(
+            `monitor/${projectId}/addseat`,
+            {}
+        );
         dispatch(addSeatRequest());
 
         promise.then(

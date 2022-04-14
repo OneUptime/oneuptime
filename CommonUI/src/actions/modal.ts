@@ -5,14 +5,18 @@ import {
 } from '../payload-types/modal';
 import Action from '../types/action';
 
-export const openModal: $TSFixMe = function (payload: OpenModalActionPayload): Action {
+export const openModal: $TSFixMe = function (
+    payload: OpenModalActionPayload
+): Action {
     return new Action({
         type: ModalConstants.OPEN_MODAL,
         payload: payload,
     });
 };
 
-export const closeModal: $TSFixMe = function (payload: CloseModalActionPayload): Action {
+export const closeModal: $TSFixMe = function (
+    payload: CloseModalActionPayload
+): Action {
     return new Action({
         type: ModalConstants.CLOSE_MODAL,
         payload: payload,

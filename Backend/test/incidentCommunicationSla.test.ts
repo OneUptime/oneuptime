@@ -40,9 +40,10 @@ describe('Incident Communication SLA', function (): void {
         const res: $TSFixMe = await createUser(request, userData.user);
         projectId = res.body.project._id;
         userId = res.body.id;
-        const verificationToken: $TSFixMe = await VerificationTokenModel.findOne({
-            userId,
-        });
+        const verificationToken: $TSFixMe =
+            await VerificationTokenModel.findOne({
+                userId,
+            });
         await request
             .get(`/user/confirmation/${verificationToken.token}`)
             .redirects(0);

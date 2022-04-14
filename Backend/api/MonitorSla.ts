@@ -28,7 +28,9 @@ router.get(
             const selectMonSla: $TSFixMe =
                 'name projectId isDefault frequency monitorUptime deleted deletedAt';
 
-            const populateMonSla: $TSFixMe = [{ path: 'projectId', select: 'name slug' }];
+            const populateMonSla: $TSFixMe = [
+                { path: 'projectId', select: 'name slug' },
+            ];
             const [monitorSlas, count]: $TSFixMe = await Promise.all([
                 MonitorSlaService.findBy({
                     query: {
@@ -84,7 +86,9 @@ router.post(
             }
 
             if (frequency && Number(frequency) < 1) {
-                const error: $TSFixMe = new Error('At lease a single day is needed');
+                const error: $TSFixMe = new Error(
+                    'At lease a single day is needed'
+                );
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -134,7 +138,8 @@ router.put(
     async (req, res): void => {
         try {
             const { projectId, monitorSlaId }: $TSFixMe = req.params;
-            const { name, handleDefault, frequency, monitorUptime }: $TSFixMe = req.body;
+            const { name, handleDefault, frequency, monitorUptime }: $TSFixMe =
+                req.body;
 
             if (!handleDefault && (!name || !name.trim())) {
                 const error: $TSFixMe = new Error('SLA name is required');
@@ -160,7 +165,9 @@ router.put(
             }
 
             if (!handleDefault && frequency && Number(frequency) < 1) {
-                const error: $TSFixMe = new Error('At lease a single day is needed');
+                const error: $TSFixMe = new Error(
+                    'At lease a single day is needed'
+                );
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -217,10 +224,11 @@ router.delete(
         try {
             const { projectId, monitorSlaId }: $TSFixMe = req.params;
 
-            const deletedMonitorSla: $TSFixMe = await MonitorSlaService.deleteBy({
-                _id: monitorSlaId,
-                projectId,
-            });
+            const deletedMonitorSla: $TSFixMe =
+                await MonitorSlaService.deleteBy({
+                    _id: monitorSlaId,
+                    projectId,
+                });
             return sendItemResponse(req, res, deletedMonitorSla);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -238,12 +246,15 @@ router.get(
             const selectMonSla: $TSFixMe =
                 'name projectId isDefault frequency monitorUptime deleted deletedAt';
 
-            const populateMonSla: $TSFixMe = [{ path: 'projectId', select: 'name slug' }];
-            const defaultMonitorSla: $TSFixMe = await MonitorSlaService.findOneBy({
-                query: { projectId, isDefault: true },
-                select: selectMonSla,
-                populate: populateMonSla,
-            });
+            const populateMonSla: $TSFixMe = [
+                { path: 'projectId', select: 'name slug' },
+            ];
+            const defaultMonitorSla: $TSFixMe =
+                await MonitorSlaService.findOneBy({
+                    query: { projectId, isDefault: true },
+                    select: selectMonSla,
+                    populate: populateMonSla,
+                });
 
             return sendItemResponse(req, res, defaultMonitorSla);
         } catch (error) {

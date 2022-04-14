@@ -57,12 +57,13 @@ router.put(
                 });
             }
 
-            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
-                { _id: domainId },
-                { verified: true, verifiedAt: Date.now() },
+            const response: $TSFixMe =
+                await DomainVerificationService.updateOneBy(
+                    { _id: domainId },
+                    { verified: true, verifiedAt: Date.now() },
 
-                subDomain
-            );
+                    subDomain
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -78,10 +79,11 @@ router.put(
         // id of the base domain
         const { domainId }: $TSFixMe = req.params;
         try {
-            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
-                { _id: domainId },
-                { verified: true, verifiedAt: Date.now() }
-            );
+            const response: $TSFixMe =
+                await DomainVerificationService.updateOneBy(
+                    { _id: domainId },
+                    { verified: true, verifiedAt: Date.now() }
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -96,12 +98,13 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { domainId }: $TSFixMe = req.params;
-            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
-                {
-                    _id: domainId,
-                },
-                { verified: false }
-            );
+            const response: $TSFixMe =
+                await DomainVerificationService.updateOneBy(
+                    {
+                        _id: domainId,
+                    },
+                    { verified: false }
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -206,9 +209,8 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { domainId }: $TSFixMe = req.params;
-            const domain: $TSFixMe = await DomainVerificationService.resetDomain(
-                domainId
-            );
+            const domain: $TSFixMe =
+                await DomainVerificationService.resetDomain(domainId);
             return sendItemResponse(req, res, domain);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -258,10 +260,11 @@ router.put(
             }
 
             //check if there's a change in the domain
-            const domainObj: $TSFixMe = await DomainVerificationService.findOneBy({
-                query: { _id: domainId, projectId },
-                select: 'domain',
-            });
+            const domainObj: $TSFixMe =
+                await DomainVerificationService.findOneBy({
+                    query: { _id: domainId, projectId },
+                    select: 'domain',
+                });
             if (domainObj.domain === domain) {
                 return sendItemResponse(req, res, domainObj);
             }
@@ -273,10 +276,11 @@ router.put(
                 domainObj.domain
             );
 
-            const response: $TSFixMe = await DomainVerificationService.updateOneBy(
-                { _id: domainId, projectId },
-                { domain, verified: false }
-            );
+            const response: $TSFixMe =
+                await DomainVerificationService.updateOneBy(
+                    { _id: domainId, projectId },
+                    { domain, verified: false }
+                );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -291,16 +295,21 @@ router.delete(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { projectId, domainId }: $TSFixMe = req.params;
-            const projectArr: $TSFixMe = await ProjectService.findsubProjectId(projectId);
-            const projectIdInArr: $TSFixMe = await DomainVerificationService.findDomain(
-                domainId,
-
-                projectArr
+            const projectArr: $TSFixMe = await ProjectService.findsubProjectId(
+                projectId
             );
-            const response: $TSFixMe = await DomainVerificationService.deleteBy({
-                _id: domainId,
-                projectId: projectIdInArr,
-            });
+            const projectIdInArr: $TSFixMe =
+                await DomainVerificationService.findDomain(
+                    domainId,
+
+                    projectArr
+                );
+            const response: $TSFixMe = await DomainVerificationService.deleteBy(
+                {
+                    _id: domainId,
+                    projectId: projectIdInArr,
+                }
+            );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

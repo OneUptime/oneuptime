@@ -38,10 +38,11 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(componentBoxElement).toBeDefined();
 
             // click on component section
@@ -52,10 +53,11 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // find that same tutorial box on component page
 
-            const newComponentBoxElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const newComponentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(newComponentBoxElement).toBeDefined();
 
             done();
@@ -72,10 +74,11 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(componentBoxElement).toBeDefined();
 
             // click on component section
@@ -86,10 +89,11 @@ describe('Custom Tutorial With SubProjects', () => {
 
             // find that same tutorial box on component page
 
-            const newComponentBoxElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const newComponentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(newComponentBoxElement).toBeDefined();
             // click on the call to action button
 
@@ -120,10 +124,11 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(componentBoxElement).toBeDefined();
 
             // click on the call to action button
@@ -149,10 +154,11 @@ describe('Custom Tutorial With SubProjects', () => {
                 waitUntil: 'networkidle2',
             });
 
-            const componentBoxElement: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
+            const componentBoxElement: $TSFixMe =
+                await init.pageWaitForSelector(
+                    page,
+                    `#info-${customTutorialType}`
+                );
             expect(componentBoxElement).toBeDefined();
 
             // click on the call to action button

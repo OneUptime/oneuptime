@@ -45,7 +45,8 @@ router.post(
                     query: { _id: ObjectId(monitor._id) },
                 });
 
-                const probeId: $TSFixMe = req.probe && req.probe.id ? req.probe.id : null;
+                const probeId: $TSFixMe =
+                    req.probe && req.probe.id ? req.probe.id : null;
                 log = await ProbeService.probeHttpRequest(newMonitor, probeId);
             } else {
                 if (type === 'api' || type === 'url') {

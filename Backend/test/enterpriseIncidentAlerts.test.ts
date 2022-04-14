@@ -223,7 +223,8 @@ describe('Incident Alerts', function (): void {
             await sleep(10 * 1000);
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe =
+                incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
@@ -308,7 +309,8 @@ describe('Incident Alerts', function (): void {
             await sleep(10 * 1000);
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe =
+                incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
@@ -348,7 +350,8 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 if (alertVia === 'sms') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -401,7 +404,8 @@ describe('Incident Alerts', function (): void {
             await sleep(10 * 1000);
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe =
+                incidentResolveEndpointResponse.body.incident.slug;
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
                     `/subscriberAlert/${projectId}/incident/${slug}?skip=0&limit=999`
@@ -443,7 +447,8 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 if (alertVia === 'call') {
                     expect(alertStatus).to.equal('Success');
                     expect(error).to.equal(false);
@@ -516,7 +521,8 @@ describe('Incident Alerts', function (): void {
 
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe =
+                incidentResolveEndpointResponse.body.incident.slug;
 
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
@@ -589,9 +595,10 @@ describe('Incident Alerts', function (): void {
             const { _id: smsSmtpId } = getCustomTwilioSettingResponse.body;
 
             if (smsSmtpId) {
-                const deleteCustomTwilioSettingResponse: $TSFixMe = await request
-                    .delete(`/smsSmtp/${projectId}/${smsSmtpId}`)
-                    .set('Authorization', authorization);
+                const deleteCustomTwilioSettingResponse: $TSFixMe =
+                    await request
+                        .delete(`/smsSmtp/${projectId}/${smsSmtpId}`)
+                        .set('Authorization', authorization);
                 expect(deleteCustomTwilioSettingResponse).to.have.status(200);
             }
 
@@ -619,7 +626,8 @@ describe('Incident Alerts', function (): void {
 
             // slug is what is been used to query subscriber and onCall
             // The slug is gotten from the schema of the database
-            const slug: $TSFixMe = incidentResolveEndpointResponse.body.incident.slug;
+            const slug: $TSFixMe =
+                incidentResolveEndpointResponse.body.incident.slug;
 
             const subscribersAlertsEndpointReponse: $TSFixMe = await request
                 .get(
@@ -666,7 +674,8 @@ describe('Incident Alerts', function (): void {
             expect(oncallAlertsEndpointReponse.body.data.length).to.equal(2);
             const alertsSentList: $TSFixMe = [];
             for (const event of oncallAlertsEndpointReponse.body.data) {
-                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe = event;
+                const { alertVia, alertStatus, error, errorMessage }: $TSFixMe =
+                    event;
                 expect(alertStatus).to.equal(null);
                 expect(error).to.equal(true);
                 expect(errorMessage).to.equal(

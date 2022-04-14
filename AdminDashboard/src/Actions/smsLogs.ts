@@ -266,9 +266,10 @@ export const smsLogStatusChange: $TSFixMe =
         dispatch(changeSmsLogStatusRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
-                { name: 'smsLogMonitoringStatus', value: values.status },
-            ]);
+            const response: $TSFixMe = await BackendAPI.post(
+                new Route('globalConfig/'),
+                [{ name: 'smsLogMonitoringStatus', value: values.status }]
+            );
 
             const data: $TSFixMe = response.data;
             dispatch(changeSmsLogStatusSuccess(data));

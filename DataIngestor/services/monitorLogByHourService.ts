@@ -54,7 +54,9 @@ export default {
 
         LogHour.createdAt = new Date(moment().format());
 
-        const result: $TSFixMe = await monitorLogByHourCollection.insertOne(LogHour);
+        const result: $TSFixMe = await monitorLogByHourCollection.insertOne(
+            LogHour
+        );
         const savedLogHour: $TSFixMe = await this.findOneBy({
             _id: ObjectId(result.insertedId),
         });
@@ -72,9 +74,8 @@ export default {
         }
 
         await monitorLogByHourCollection.updateOne(query, { $set: data });
-        const monitorLogByHour: $TSFixMe = await monitorLogByHourCollection.findOne(
-            query
-        );
+        const monitorLogByHour: $TSFixMe =
+            await monitorLogByHourCollection.findOne(query);
 
         return monitorLogByHour;
     },
@@ -88,7 +89,9 @@ export default {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
         }
 
-        const monitorLog: $TSFixMe = await monitorLogByHourCollection.findOne(query);
+        const monitorLog: $TSFixMe = await monitorLogByHourCollection.findOne(
+            query
+        );
 
         return monitorLog;
     },
@@ -96,5 +99,6 @@ export default {
 
 import { ObjectId } from 'mongodb';
 
-const monitorLogByHourCollection: $TSFixMe = global.db.collection('monitorlogbyhours');
+const monitorLogByHourCollection: $TSFixMe =
+    global.db.collection('monitorlogbyhours');
 import moment from 'moment';

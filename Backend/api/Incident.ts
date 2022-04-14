@@ -21,7 +21,8 @@ import errorService from 'CommonServer/Utils/error';
 const isUserAdmin: $TSFixMe = require('../middlewares/project').isUserAdmin;
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
 
-const getSubProjects: $TSFixMe = require('../middlewares/subProject').getSubProjects;
+const getSubProjects: $TSFixMe =
+    require('../middlewares/subProject').getSubProjects;
 
 import {
     sendErrorResponse,
@@ -106,7 +107,10 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { data, query }: $TSFixMe = req.body;
-            const incident: $TSFixMe = await IncidentService.updateOneBy(query, data);
+            const incident: $TSFixMe = await IncidentService.updateOneBy(
+                query,
+                data
+            );
 
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -318,9 +322,8 @@ router.get(
             //     ? req.user.subProjects.map(project => project._id)
             //     : null;
             const { projectId }: $TSFixMe = req.params;
-            const incidents: $TSFixMe = await IncidentService.getSubProjectIncidents(
-                projectId
-            );
+            const incidents: $TSFixMe =
+                await IncidentService.getSubProjectIncidents(projectId);
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -337,10 +340,11 @@ router.get(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId, projectId }: $TSFixMe = req.params;
-            const incidents: $TSFixMe = await IncidentService.getComponentIncidents(
-                projectId,
-                componentId
-            );
+            const incidents: $TSFixMe =
+                await IncidentService.getComponentIncidents(
+                    projectId,
+                    componentId
+                );
             return sendItemResponse(req, res, incidents); // frontend expects sendItemResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -361,12 +365,13 @@ router.get(
         try {
             const { projectId, componentId }: $TSFixMe = req.params;
 
-            const incident: $TSFixMe = await IncidentService.getProjectComponentIncidents(
-                projectId,
-                componentId,
-                req.query['limit'] || 10,
-                req.query['skip'] || 0
-            );
+            const incident: $TSFixMe =
+                await IncidentService.getProjectComponentIncidents(
+                    projectId,
+                    componentId,
+                    req.query['limit'] || 10,
+                    req.query['skip'] || 0
+                );
             return sendListResponse(req, res, incident); // frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -532,12 +537,13 @@ router.get(
 
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { isHome }: $TSFixMe = req.query;
-            const incident: $TSFixMe = await IncidentService.getUnresolvedIncidents(
-                subProjectIds,
-                userId,
+            const incident: $TSFixMe =
+                await IncidentService.getUnresolvedIncidents(
+                    subProjectIds,
+                    userId,
 
-                isHome
-            );
+                    isHome
+                );
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -882,7 +888,10 @@ router.post(
             const userId: $TSFixMe = req.user ? req.user.id : null;
             const { incidentId }: $TSFixMe = req.params;
             // Call the IncidentService
-            const incident: $TSFixMe = await IncidentService.close(incidentId, userId);
+            const incident: $TSFixMe = await IncidentService.close(
+                incidentId,
+                userId
+            );
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -1041,9 +1050,10 @@ router.post(
             // If the message ID is available, treat this as an update
             if (data.id) {
                 // validate if Message ID exist or not
-                const incidentMsgCount: $TSFixMe = await IncidentMessageService.countBy({
-                    _id: data.id,
-                });
+                const incidentMsgCount: $TSFixMe =
+                    await IncidentMessageService.countBy({
+                        _id: data.id,
+                    });
 
                 if (!incidentMsgCount || incidentMsgCount === 0) {
                     return sendErrorResponse(req, res, {
@@ -1069,7 +1079,9 @@ router.post(
                 const incidentStateTemplate: $TSFixMe = Handlebars.compile(
                     data.incident_state
                 );
-                const contentTemplate: $TSFixMe = Handlebars.compile(data.content);
+                const contentTemplate: $TSFixMe = Handlebars.compile(
+                    data.content
+                );
 
                 data.incident_state = incidentStateTemplate(templateInput);
                 data.content = contentTemplate(templateInput);
@@ -1100,17 +1112,18 @@ router.post(
                         incident_state: data.incident_state,
                     };
 
-                    const [message, investigation]: $TSFixMe = await Promise.all([
-                        IncidentMessageService.updateOneBy(
-                            { _id: data.id },
-                            updatedMessage
-                        ),
-                        IncidentMessageService.findOneBy({
-                            query: { _id: data.id },
-                            select: selectIncidentMessage,
-                            populate: populateIncidentMessage,
-                        }),
-                    ]);
+                    const [message, investigation]: $TSFixMe =
+                        await Promise.all([
+                            IncidentMessageService.updateOneBy(
+                                { _id: data.id },
+                                updatedMessage
+                            ),
+                            IncidentMessageService.findOneBy({
+                                query: { _id: data.id },
+                                select: selectIncidentMessage,
+                                populate: populateIncidentMessage,
+                            }),
+                        ]);
                     incidentMessage = message;
 
                     if (investigation.type === 'investigation') {
@@ -1345,7 +1358,8 @@ router.delete(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const { incidentId, incidentMessageId, projectId }: $TSFixMe = req.params;
+            const { incidentId, incidentMessageId, projectId }: $TSFixMe =
+                req.params;
             const populateIncidentMessage: $TSFixMe = [
                 { path: 'incidentId', select: 'idNumber name slug' },
                 { path: 'createdById', select: 'name' },
@@ -1354,25 +1368,26 @@ router.delete(
             const selectIncidentMessage: $TSFixMe =
                 '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
 
-            const [incident, checkMsg, incidentMessage]: $TSFixMe = await Promise.all([
-                IncidentService.findOneBy({
-                    query: { _id: incidentId },
-                    select: 'idNumber slug',
-                }),
-                IncidentMessageService.findOneBy({
-                    query: { _id: incidentMessageId },
-                    select: selectIncidentMessage,
-                    populate: populateIncidentMessage,
-                }),
-                IncidentMessageService.deleteBy(
-                    {
-                        _id: incidentMessageId,
-                        incidentId,
-                    },
+            const [incident, checkMsg, incidentMessage]: $TSFixMe =
+                await Promise.all([
+                    IncidentService.findOneBy({
+                        query: { _id: incidentId },
+                        select: 'idNumber slug',
+                    }),
+                    IncidentMessageService.findOneBy({
+                        query: { _id: incidentMessageId },
+                        select: selectIncidentMessage,
+                        populate: populateIncidentMessage,
+                    }),
+                    IncidentMessageService.deleteBy(
+                        {
+                            _id: incidentMessageId,
+                            incidentId,
+                        },
 
-                    req.user.id
-                ),
-            ]);
+                        req.user.id
+                    ),
+                ]);
             const idNumber: $TSFixMe = incident.idNumber;
             let result;
             /* eslint-disable prefer-const */
@@ -1649,17 +1664,17 @@ router.get(
                 if (type === 'investigation') {
                     result = incidentMessages;
                 } else {
-                    const [subAlerts, scheduleStatus]: $TSFixMe = await Promise.all([
-                        Services.deduplicate(subscriberAlerts),
-                        onCallScheduleStatusService.findBy({
-                            query: { incident: incidentId },
-                            select: selectOnCallScheduleStatus,
-                            populate: populateOnCallScheduleStatus,
-                        }),
-                    ]);
-                    const callScheduleStatus: $TSFixMe = await Services.checkCallSchedule(
-                        scheduleStatus
-                    );
+                    const [subAlerts, scheduleStatus]: $TSFixMe =
+                        await Promise.all([
+                            Services.deduplicate(subscriberAlerts),
+                            onCallScheduleStatusService.findBy({
+                                query: { incident: incidentId },
+                                select: selectOnCallScheduleStatus,
+                                populate: populateOnCallScheduleStatus,
+                            }),
+                        ]);
+                    const callScheduleStatus: $TSFixMe =
+                        await Services.checkCallSchedule(scheduleStatus);
                     const timelineAlerts: $TSFixMe = [
                         ...timeline,
                         ...alerts,

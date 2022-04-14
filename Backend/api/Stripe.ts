@@ -160,7 +160,9 @@ router.get(
         try {
             const userId: $TSFixMe = req.user.id;
             if (userId) {
-                const cards: $TSFixMe = await StripeService.creditCard.get(userId);
+                const cards: $TSFixMe = await StripeService.creditCard.get(
+                    userId
+                );
                 return sendItemResponse(req, res, cards);
             }
             throw new BadDataException('User is required');
@@ -179,7 +181,10 @@ router.get(
 
             const userId: $TSFixMe = req.user.id;
             if (userId && cardId) {
-                const card: $TSFixMe = await StripeService.creditCard.get(userId, cardId);
+                const card: $TSFixMe = await StripeService.creditCard.get(
+                    userId,
+                    cardId
+                );
                 return sendItemResponse(req, res, card);
             }
             throw new BadDataException('Both user and card are required');
@@ -242,9 +247,8 @@ router.get(
         try {
             const { intentId }: $TSFixMe = req.params;
 
-            const paymentIntent: $TSFixMe = await StripeService.retrievePaymentIntent(
-                intentId
-            );
+            const paymentIntent: $TSFixMe =
+                await StripeService.retrievePaymentIntent(intentId);
             const updatedProject: $TSFixMe = await StripeService.updateBalance(
                 paymentIntent
             );
@@ -284,9 +288,10 @@ router.post(
                 select: 'stripeSubscriptionId',
             });
 
-            const trialDetails: $TSFixMe = await StripeService.fetchTrialInformation(
-                project.stripeSubscriptionId
-            );
+            const trialDetails: $TSFixMe =
+                await StripeService.fetchTrialInformation(
+                    project.stripeSubscriptionId
+                );
 
             return sendItemResponse(req, res, trialDetails);
         } catch (error) {

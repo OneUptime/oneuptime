@@ -268,9 +268,10 @@ export const auditLogStatusChange: $TSFixMe =
         dispatch(changeAuditLogStatusRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.post(new Route('globalConfig/'), [
-                { name: 'auditLogMonitoringStatus', value: values.status },
-            ]);
+            const response: $TSFixMe = await BackendAPI.post(
+                new Route('globalConfig/'),
+                [{ name: 'auditLogMonitoringStatus', value: values.status }]
+            );
 
             const data: $TSFixMe = response.data;
             dispatch(changeAuditLogStatusSuccess(data));

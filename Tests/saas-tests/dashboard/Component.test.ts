@@ -169,10 +169,8 @@ describe('Components', () => {
 
             // check if the tabs on the details page are defined
 
-            const monitorTabsComponent: $TSFixMe = await init.pageWaitForSelector(
-                page,
-                `#customTabList`
-            );
+            const monitorTabsComponent: $TSFixMe =
+                await init.pageWaitForSelector(page, `#customTabList`);
             expect(monitorTabsComponent).toBeDefined();
             done();
         },

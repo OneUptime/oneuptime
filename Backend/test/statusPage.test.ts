@@ -49,7 +49,9 @@ const resourceCategory: $TSFixMe = {
 
 const now: $TSFixMe = new Date();
 const today: $TSFixMe = now.toISOString();
-const tomorrow: $TSFixMe = new Date(now.setDate(now.getDate() + 1)).toISOString();
+const tomorrow: $TSFixMe = new Date(
+    now.setDate(now.getDate() + 1)
+).toISOString();
 const scheduledEvent: $TSFixMe = {
     name: 'New scheduled Event',
     startDate: today,

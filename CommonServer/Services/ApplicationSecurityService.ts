@@ -62,14 +62,16 @@ export default class Service {
             error.code = 400;
             throw error;
         }
-        const resourceCategoryCount: $TSFixMe = await ResourceCategoryService.countBy({
-            _id: data.resourceCategory,
-        });
+        const resourceCategoryCount: $TSFixMe =
+            await ResourceCategoryService.countBy({
+                _id: data.resourceCategory,
+            });
         if (!resourceCategoryCount || resourceCategoryCount === 0) {
             delete data.resourceCategory;
         }
         data.slug = getSlug(data.name);
-        const applicationSecurity: $TSFixMe = await ApplicationSecurityModel.create(data);
+        const applicationSecurity: $TSFixMe =
+            await ApplicationSecurityModel.create(data);
         return applicationSecurity;
     }
 
@@ -100,15 +102,17 @@ export default class Service {
         }
 
         // won't be using lean() here because of iv cypher for password
-        const applicationSecuritiesQuery: $TSFixMe = ApplicationSecurityModel.find(query)
-            .sort(sort)
-            .limit(limit.toNumber())
-            .skip(skip.toNumber());
+        const applicationSecuritiesQuery: $TSFixMe =
+            ApplicationSecurityModel.find(query)
+                .sort(sort)
+                .limit(limit.toNumber())
+                .skip(skip.toNumber());
 
         applicationSecuritiesQuery.select(select);
         applicationSecuritiesQuery.populate(populate);
 
-        const applicationSecurities: $TSFixMe = await applicationSecuritiesQuery;
+        const applicationSecurities: $TSFixMe =
+            await applicationSecuritiesQuery;
         return applicationSecurities;
     }
 
@@ -184,10 +188,11 @@ export default class Service {
             throw error;
         }
 
-        const securityLog: $TSFixMe = await ApplicationSecurityLogService.findOneBy({
-            query: { securityId: applicationSecurity._id },
-            select: '_id',
-        });
+        const securityLog: $TSFixMe =
+            await ApplicationSecurityLogService.findOneBy({
+                query: { securityId: applicationSecurity._id },
+                select: '_id',
+            });
 
         // delete log associated with this application security
         if (securityLog) {
@@ -291,7 +296,9 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count: $TSFixMe = await ApplicationSecurityModel.countDocuments(query);
+        const count: $TSFixMe = await ApplicationSecurityModel.countDocuments(
+            query
+        );
         return count;
     }
 }

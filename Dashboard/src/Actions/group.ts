@@ -25,7 +25,10 @@ export const createGroup: $TSFixMe =
         dispatch(addGroupRequest());
 
         try {
-            const response: $TSFixMe = await BackendAPI.post(`group/${projectId}`, data);
+            const response: $TSFixMe = await BackendAPI.post(
+                `group/${projectId}`,
+                data
+            );
 
             dispatch(addGroupSuccess(response.data));
             dispatch(getGroups());
@@ -108,7 +111,9 @@ export const getGroups: $TSFixMe =
         dispatch(getGroupsRequest());
         const projectId: $TSFixMe = User.getCurrentProjectId();
         try {
-            const response: $TSFixMe = await BackendAPI.get(`group/${projectId}/groups`);
+            const response: $TSFixMe = await BackendAPI.get(
+                `group/${projectId}/groups`
+            );
 
             dispatch(getGroupsSuccess(response.data));
         } catch (error) {
@@ -184,7 +189,8 @@ export const deleteGroup: $TSFixMe =
         dispatch(deleteGroupRequest());
 
         try {
-            const response: $TSFixMe = await delete `group/${projectId}/${groupId}`;
+            const response: $TSFixMe =
+                await delete `group/${projectId}/${groupId}`;
 
             dispatch(deleteGroupSuccess(response.data));
             dispatch(getGroups());

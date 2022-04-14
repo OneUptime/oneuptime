@@ -186,7 +186,10 @@ describe('Sub-Project API', () => {
 
         await init.pageClick(page, `#btn_modal_${newProjectName}`);
 
-        const elem: $TSFixMe = await init.page$(page, 'button[id=btnConfirmInvite]');
+        const elem: $TSFixMe = await init.page$(
+            page,
+            'button[id=btnConfirmInvite]'
+        );
         elem.click();
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             hidden: true,
@@ -261,10 +264,14 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages: $TSFixMe = await page.$('#statusPageTable');
+            const projectStatusPages: $TSFixMe = await page.$(
+                '#statusPageTable'
+            );
             expect(projectStatusPages).toEqual(null);
 
-            const subProjectStatusPages: $TSFixMe = await page.$('#statusPageTable_0');
+            const subProjectStatusPages: $TSFixMe = await page.$(
+                '#statusPageTable_0'
+            );
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },

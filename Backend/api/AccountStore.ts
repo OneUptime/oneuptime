@@ -28,7 +28,10 @@ router.post('/store', async (req: ExpressRequest, res: ExpressResponse) => {
 router.put('/store/:id', async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const { id }: $TSFixMe = req.params;
-        const account: $TSFixMe = await AccountStoreService.updateOneBy({ id }, req.body);
+        const account: $TSFixMe = await AccountStoreService.updateOneBy(
+            { id },
+            req.body
+        );
 
         return sendItemResponse(req, res, account);
     } catch (error) {
@@ -58,7 +61,9 @@ router.delete(
         try {
             const { id }: $TSFixMe = req.params;
 
-            const account: $TSFixMe = await AccountStoreService.deleteBy({ id });
+            const account: $TSFixMe = await AccountStoreService.deleteBy({
+                id,
+            });
             return sendItemResponse(req, res, account);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

@@ -64,7 +64,8 @@ export default class Service {
 
         incidentCommunicationSlaQuery.populate(populate);
 
-        const incidentCommunicationSla: $TSFixMe = await incidentCommunicationSlaQuery;
+        const incidentCommunicationSla: $TSFixMe =
+            await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     }
 
@@ -84,7 +85,8 @@ export default class Service {
 
         incidentCommunicationSlaQuery.populate(populate);
 
-        const incidentCommunicationSla: $TSFixMe = await incidentCommunicationSlaQuery;
+        const incidentCommunicationSla: $TSFixMe =
+            await incidentCommunicationSlaQuery;
         return incidentCommunicationSla;
     }
 
@@ -209,16 +211,17 @@ export default class Service {
     }
 
     async deleteBy(query: Query): void {
-        const deletedSla: $TSFixMe = await IncidentCommunicationSlaModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedAt: Date.now(),
+        const deletedSla: $TSFixMe =
+            await IncidentCommunicationSlaModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
                 },
-            },
-            { new: true }
-        );
+                { new: true }
+            );
 
         return deletedSla;
     }
@@ -235,7 +238,8 @@ export default class Service {
         if (!query['deleted']) {
             query['deleted'] = false;
         }
-        const count: $TSFixMe = await IncidentCommunicationSlaModel.countDocuments(query);
+        const count: $TSFixMe =
+            await IncidentCommunicationSlaModel.countDocuments(query);
         return count;
     }
 }

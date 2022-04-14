@@ -37,7 +37,8 @@ router.post(
                     message: 'AlertVia must be present',
                 });
             }
-            const subscriberAlert: $TSFixMe = await SubscriberAlertService.create(data);
+            const subscriberAlert: $TSFixMe =
+                await SubscriberAlertService.create(data);
             return sendItemResponse(req, res, subscriberAlert);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

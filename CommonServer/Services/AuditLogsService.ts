@@ -51,16 +51,17 @@ export default class Service {
         const selectAuditLog: string =
             'userId projectId request response createdAt';
 
-        const [searchedAuditLogs, totalSearchCount]: $TSFixMe = await Promise.all([
-            this.findBy({
-                query,
-                skip,
-                limit,
-                populate: populateAuditLog,
-                select: selectAuditLog,
-            }),
-            this.countBy({ query }),
-        ]);
+        const [searchedAuditLogs, totalSearchCount]: $TSFixMe =
+            await Promise.all([
+                this.findBy({
+                    query,
+                    skip,
+                    limit,
+                    populate: populateAuditLog,
+                    select: selectAuditLog,
+                }),
+                this.countBy({ query }),
+            ]);
 
         return { searchedAuditLogs, totalSearchCount };
     }

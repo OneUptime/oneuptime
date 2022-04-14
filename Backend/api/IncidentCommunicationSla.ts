@@ -79,7 +79,9 @@ router.post(
             }
 
             if (!alertTime || !alertTime.trim()) {
-                const error: $TSFixMe = new Error('Please set alert time for this SLA');
+                const error: $TSFixMe = new Error(
+                    'Please set alert time for this SLA'
+                );
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -105,9 +107,8 @@ router.post(
 
             const data: $TSFixMe = { ...req.body };
             data.projectId = projectId;
-            const incidentSla: $TSFixMe = await IncidentCommunicationSlaService.create(
-                data
-            );
+            const incidentSla: $TSFixMe =
+                await IncidentCommunicationSlaService.create(data);
             return sendItemResponse(req, res, incidentSla);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
@@ -122,7 +123,8 @@ router.put(
     async (req, res): void => {
         try {
             const { projectId, incidentSlaId }: $TSFixMe = req.params;
-            const { name, handleDefault, alertTime, duration }: $TSFixMe = req.body;
+            const { name, handleDefault, alertTime, duration }: $TSFixMe =
+                req.body;
 
             if (!handleDefault && (!name || !name.trim())) {
                 const error: $TSFixMe = new Error('SLA name is required');
@@ -141,7 +143,9 @@ router.put(
             }
 
             if (!handleDefault && (!alertTime || !alertTime.trim())) {
-                const error: $TSFixMe = new Error('Please set alert time for this SLA');
+                const error: $TSFixMe = new Error(
+                    'Please set alert time for this SLA'
+                );
 
                 error.code = 400;
                 return sendErrorResponse(req, res, error as Exception);
@@ -212,11 +216,12 @@ router.get(
             const populateIncidentComSla: $TSFixMe = [
                 { path: 'projectId', select: 'name slug' },
             ];
-            const defaultSla: $TSFixMe = await IncidentCommunicationSlaService.findOneBy({
-                query: { projectId, isDefault: true },
-                select: selectIncidentComSla,
-                populate: populateIncidentComSla,
-            });
+            const defaultSla: $TSFixMe =
+                await IncidentCommunicationSlaService.findOneBy({
+                    query: { projectId, isDefault: true },
+                    select: selectIncidentComSla,
+                    populate: populateIncidentComSla,
+                });
 
             return sendItemResponse(req, res, defaultSla);
         } catch (error) {

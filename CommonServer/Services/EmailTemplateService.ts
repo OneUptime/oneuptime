@@ -28,15 +28,16 @@ export default class Service {
         if (data.emailType && !data.allowedVariables) {
             data.allowedVariables = emailTemplateVariables[[data.emailType]];
         }
-        const updatedEmailTemplate: $TSFixMe = await EmailTemplateModel.findOneAndUpdate(
-            query,
-            {
-                $set: data,
-            },
-            {
-                new: true,
-            }
-        );
+        const updatedEmailTemplate: $TSFixMe =
+            await EmailTemplateModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
         return updatedEmailTemplate;
     }
 
@@ -62,19 +63,20 @@ export default class Service {
     }
 
     async deleteBy(query: Query, userId: ObjectID): void {
-        const emailTemplate: $TSFixMe = await EmailTemplateModel.findOneAndUpdate(
-            query,
-            {
-                $set: {
-                    deleted: true,
-                    deletedById: userId,
-                    deletedAt: Date.now(),
+        const emailTemplate: $TSFixMe =
+            await EmailTemplateModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
                 },
-            },
-            {
-                new: true,
-            }
-        );
+                {
+                    new: true,
+                }
+            );
         return emailTemplate;
     }
 

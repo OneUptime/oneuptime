@@ -86,7 +86,9 @@ describe('Email verification API', function (): void {
     });
 
     it('should verify the user', async (): void => {
-        const token: $TSFixMe = await VerificationTokenModel.findOne({ userId });
+        const token: $TSFixMe = await VerificationTokenModel.findOne({
+            userId,
+        });
         try {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
         } catch (error) {

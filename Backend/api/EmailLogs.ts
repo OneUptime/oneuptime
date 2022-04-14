@@ -6,7 +6,8 @@ const router: $TSFixMe = express.getRouter();
 
 import EmailLogsService from '../services/emailStatusService';
 const getUser: $TSFixMe = require('../middlewares/user').getUser;
-const isUserMasterAdmin: $TSFixMe = require('../middlewares/user').isUserMasterAdmin;
+const isUserMasterAdmin: $TSFixMe =
+    require('../middlewares/user').isUserMasterAdmin;
 
 import { sendErrorResponse } from 'CommonServer/Utils/response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -210,7 +211,9 @@ router.delete(
         try {
             const query: $TSFixMe = {};
 
-            const msg: $TSFixMe = await EmailLogsService.hardDeleteBy({ query });
+            const msg: $TSFixMe = await EmailLogsService.hardDeleteBy({
+                query,
+            });
 
             return sendItemResponse(req, res, msg);
         } catch (error) {

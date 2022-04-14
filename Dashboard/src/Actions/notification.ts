@@ -5,13 +5,17 @@ import * as types from '../constants/notification';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import { User } from '../config';
 
-export const openNotificationMenu: $TSFixMe = function (position: $TSFixMe): void {
+export const openNotificationMenu: $TSFixMe = function (
+    position: $TSFixMe
+): void {
     return {
         type: types.OPEN_NOTIFICATION_MENU,
         payload: position,
     };
 };
-export const closeNotificationMenu: $TSFixMe = function (error: ErrorPayload): void {
+export const closeNotificationMenu: $TSFixMe = function (
+    error: ErrorPayload
+): void {
     return {
         type: types.CLOSE_NOTIFICATION_MENU,
         payload: error,

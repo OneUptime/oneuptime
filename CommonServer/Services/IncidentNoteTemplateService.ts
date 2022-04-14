@@ -43,9 +43,8 @@ export default class Service {
             query['deleted'] = false;
         }
 
-        const incidentNoteTemplate: $TSFixMe = await IncidentNoteTemplateModel.findOne(
-            query
-        ).lean();
+        const incidentNoteTemplate: $TSFixMe =
+            await IncidentNoteTemplateModel.findOne(query).lean();
         return incidentNoteTemplate;
     }
 

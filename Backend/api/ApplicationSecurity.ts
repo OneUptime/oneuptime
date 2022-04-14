@@ -70,9 +70,8 @@ router.post(
                 });
             }
 
-            const applicationSecurity: $TSFixMe = await ApplicationSecurityService.create(
-                data
-            );
+            const applicationSecurity: $TSFixMe =
+                await ApplicationSecurityService.create(data);
             try {
                 RealTimeService.sendApplicationSecurityCreated(
                     applicationSecurity
@@ -102,8 +101,12 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { componentId, applicationSecurityId }: $TSFixMe = req.params;
-            const { name, gitRepositoryUrl, gitCredential, resourceCategory }: $TSFixMe =
-                req.body;
+            const {
+                name,
+                gitRepositoryUrl,
+                gitCredential,
+                resourceCategory,
+            }: $TSFixMe = req.body;
             const data: $TSFixMe = {};
 
             if (name) {
@@ -322,9 +325,10 @@ router.delete(
         try {
             const { componentId }: $TSFixMe = req.params;
 
-            const response: $TSFixMe = await ApplicationSecurityService.hardDelete({
-                componentId,
-            });
+            const response: $TSFixMe =
+                await ApplicationSecurityService.hardDelete({
+                    componentId,
+                });
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
