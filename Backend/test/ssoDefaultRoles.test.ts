@@ -123,7 +123,7 @@ describe('SSO DEFAULT ROLES API', function (): void {
         ssoId2 = sso2.body._id;
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ 'users.userId': userId });
         await UserService.hardDeleteBy({

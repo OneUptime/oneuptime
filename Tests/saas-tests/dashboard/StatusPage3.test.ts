@@ -10,7 +10,7 @@ const password = '1234567890';
 const componentName = 'hackerbay';
 const monitorName = 'oneuptime';
 const monitorName1 = 'testoneuptime';
-const customDomain = `${utils.generateRandomString()}.com`;
+const customDomain: string = `${utils.generateRandomString()}.com`;
 
 let browser: $TSFixMe, page: $TSFixMe;
 const gotoTheFirstStatusPage = async (page: $TSFixMe): void => {
@@ -112,7 +112,7 @@ describe('Status Page', () => {
     test(
         'should create custom Javascript',
         async (done: $TSFixMe) => {
-            const javascript = `logger.info('this is a js code');`;
+            const javascript: string = `logger.info('this is a js code');`;
             await gotoTheFirstStatusPage(page);
             await page.waitForNavigation({ waitUntil: 'load' });
 

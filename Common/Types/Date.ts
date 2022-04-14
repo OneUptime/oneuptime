@@ -45,4 +45,8 @@ export default class OneUptimeDate {
     static momentToDate(moment: moment.Moment): Date {
         return moment.toDate();
     }
+
+    static getCurrentYear(): number {
+        return moment().year();
+    }
 }

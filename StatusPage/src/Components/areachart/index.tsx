@@ -105,12 +105,12 @@ class AreaChart extends Component<ComponentProps> {
 
         const { type, data, name, symbol, colors } = this.props;
         const { strokeChart, fillChart } = colors;
-        const stroke = `rgb(
+        const stroke:string = `rgb(
             ${strokeChart.r},
             ${strokeChart.g},
             ${strokeChart.b}
         )`;
-        const fill = `rgb(
+        const fill:string = `rgb(
             ${fillChart.r},
             ${fillChart.g},
             ${fillChart.b}

@@ -23,43 +23,37 @@ describe('Global Config API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(100000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 data.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: data.user.email,
                                             password: data.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             UserService.updateBy(
                                                 { _id: userId },
                                                 { role: 'master-admin' }
-                                            ).then(function (): void {
+                                            ).then((): void => {
                                                 done();
                                             });
                                         });
@@ -85,8 +79,8 @@ describe('Global Config API', function (): void {
         });
     });
 
-    it('should create global config when name and value are valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create global config when name and value are valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const globalConfig = {
             name: 'TestName',
             value: 'TestValue',
@@ -95,7 +89,7 @@ describe('Global Config API', function (): void {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfig)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal(globalConfig.name);
                 expect(res.body.value).to.equal(globalConfig.value);
@@ -103,8 +97,8 @@ describe('Global Config API', function (): void {
             });
     });
 
-    it('should create multiple global configs when details are valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create multiple global configs when details are valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const globalConfigs = [
             {
                 name: 'TestName',
@@ -119,7 +113,7 @@ describe('Global Config API', function (): void {
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfigs)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -136,27 +130,27 @@ describe('Global Config API', function (): void {
             });
     });
 
-    it('should not create global config when name and value are not valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create global config when name and value are not valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const globalConfig = { name: null };
         request
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send(globalConfig)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should get multiple global configs when names are provided', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get multiple global configs when names are provided', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const globalConfigs = ['TestName', 'Other TestName'];
         request
             .post('/globalConfig/configs')
             .set('Authorization', authorization)
             .send(globalConfigs)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('data');
                 expect(res.body.data).to.be.an('array');
@@ -171,24 +165,24 @@ describe('Global Config API', function (): void {
             });
     });
 
-    it('should get global config by name', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get global config by name', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get('/globalConfig/TestName')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('TestName');
                 done();
             });
     });
 
-    it('should retrieve global config for audit Log status', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should retrieve global config for audit Log status', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get('/globalConfig/auditLogMonitoringStatus')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('auditLogMonitoringStatus');
                 expect(res.body.value).to.equal(true);
@@ -196,13 +190,13 @@ describe('Global Config API', function (): void {
             });
     });
 
-    it('should toggle global config for audit Log status', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should toggle global config for audit Log status', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post('/globalConfig')
             .set('Authorization', authorization)
             .send({ name: 'auditLogMonitoringStatus', value: false })
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.equal('auditLogMonitoringStatus');
                 expect(res.body.value).to.equal(false);

@@ -53,7 +53,9 @@ router.delete(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            if (!req.params.id) throw new Error('Id must be defined');
+            if (!req.params.id) {
+                throw new Error('Id must be defined');
+            }
             const sso = await SsoDefaultRolesService.deleteBy({
                 _id: req.params.id,
             });

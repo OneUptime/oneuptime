@@ -57,14 +57,15 @@ export const uploadCertFile = (projectId: ObjectID, file: $TSFixMe): void => {
             );
             dispatch(uploadCertFileRequest());
             promise.then(
-                function (response): void {
+                (response): void => {
                     const data = response.data;
                     dispatch(uploadCertFileSuccess(data.cert));
                     return data;
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -121,14 +122,15 @@ export const uploadPrivateKey = (projectId: ObjectID, file: $TSFixMe): void => {
             );
             dispatch(uploadPrivateKeyRequest());
             promise.then(
-                function (response): void {
+                (response): void => {
                     const data = response.data;
                     dispatch(uploadPrivateKeySuccess(data.privateKey));
                     return data;
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -177,13 +179,13 @@ export const updateStatusPageSetting = (
         const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageSettingRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageSettingSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageSettingError(error));
             }
         );
@@ -224,11 +226,11 @@ export function updateStatusPageMonitors(
         dispatch(updateStatusPageMonitorsRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageMonitorsSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageMonitorsError(error));
             }
         );
@@ -268,12 +270,12 @@ export const updatePrivateStatusPage = (
         dispatch(updatePrivateStatusPageRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updatePrivateStatusPageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updatePrivateStatusPageError(error));
             }
         );
@@ -311,12 +313,12 @@ export function updateStatusPageLanguage(
         dispatch(updateStatusPageLanguageRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLanguageSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageLanguageError(error));
             }
         );
@@ -354,11 +356,11 @@ export const updateSubscriberOption = (
         dispatch(updateSubscriberOptionRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateSubscriberOptionSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateSubscriberOptionError(error));
             }
         );
@@ -460,19 +462,23 @@ export function updateStatusPageBranding(
         data.append('title', values.title);
         data.append('description', values.description);
         data.append('copyright', values.copyright);
-        if (values.colors) data.append('colors', JSON.stringify(values.colors));
+        if (values.colors) {
+            data.append('colors', JSON.stringify(values.colors));
+        }
 
-        if (values._id) data.append('_id', values._id);
+        if (values._id) {
+            data.append('_id', values._id);
+        }
 
         const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageBrandingRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageBrandingSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageBrandingError(error));
             }
         );
@@ -487,12 +493,12 @@ export const updateTheme = (projectId: ObjectID, data: $TSFixMe): void => {
         dispatch(updateStatusPageThemeRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageThemeSuccess(statusPage));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageThemeError(error));
             }
         );
@@ -510,11 +516,11 @@ export const updateStatusPageName = (
         dispatch(updateStatusPageNameRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageNameSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageNameError(error));
             }
         );
@@ -554,11 +560,11 @@ export const updateStatusPageLinks = (
         dispatch(updateStatusPageLinksRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLinksSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageLinksError(error));
             }
         );
@@ -600,11 +606,11 @@ export function updateStatusPageCustomHTML(
         dispatch(updateStatusPageCustomHTMLRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageCustomHTMLSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageCustomHTMLError(error));
             }
         );
@@ -651,15 +657,17 @@ export function fetchProjectStatusPage(
         const promise = BackendAPI.get(
             `StatusPage/${projectId}/statuspage?skip=${skip}&limit=${limit}`
         );
-        if (!refresh) dispatch(fetchProjectStatusPageRequest());
+        if (!refresh) {
+            dispatch(fetchProjectStatusPageRequest());
+        }
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const data = response.data;
                 data.projectId = projectId;
                 dispatch(fetchProjectStatusPageSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchProjectStatusPageError(error));
             }
         );
@@ -704,14 +712,16 @@ export function fetchSubProjectStatusPages(
 ): void {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`StatusPage/${projectId}/StatusPages`);
-        if (!refresh) dispatch(fetchSubProjectStatusPagesRequest());
+        if (!refresh) {
+            dispatch(fetchSubProjectStatusPagesRequest());
+        }
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const data = response.data;
                 dispatch(fetchSubProjectStatusPagesSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchSubProjectStatusPagesError(error));
             }
         );
@@ -761,10 +771,10 @@ export function fetchIncidentStatusPages(
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchIncidentStatusPagesSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchIncidentStatusPagesError(error));
             }
         );
@@ -805,11 +815,11 @@ export function resetStatusBubbleId(
         );
         dispatch(resetStatusBubbleIdRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(resetStatusBubbleIdSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetStatusBubbleIdError(error));
             }
         );
@@ -854,11 +864,11 @@ export function deleteStatusPage(
         null);
         dispatch(deleteStatusPageRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const data = response.data;
                 dispatch(deleteStatusPageSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteStatusPageError(error));
             }
         );
@@ -895,14 +905,14 @@ export const readStatusPage = (
         const promise = BackendAPI.get(`StatusPage/${statusPageSlug}`, data);
         dispatch(duplicateStatusPageRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPageData = response.data;
                 delete statusPageData._id;
                 delete statusPageData.slug;
                 statusPageData.name = data.name;
                 return response;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -922,10 +932,10 @@ export function createDuplicateStatusPage(
             : `StatusPage/${projectId}/${statusPageSlug}/duplicateStatusPage`;
         const promise = BackendAPI.post(url, data);
         promise.then(
-            function (response): void {
+            (response): void => {
                 return response;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -937,14 +947,14 @@ export const fetchStatusPage = (statusPageSlug: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`StatusPage/${statusPageSlug}`);
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPageData = response.data;
                 dispatch(duplicateStatusPageSuccess(statusPageData));
                 dispatch(
                     fetchProjectStatusPage(statusPageData.projectId._id, true)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(duplicateStatusPageError(error));
             }
         );
@@ -991,14 +1001,14 @@ export function updateStatusPageEmbeddedCss(
         const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageEmbeddedCssRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageEmbeddedCssSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageEmbeddedCssError(error));
             }
         );
@@ -1039,11 +1049,11 @@ export function resetBrandingColors(
         );
         dispatch(resetBrandingColorsRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const colors = response.data;
                 dispatch(resetBrandingColorsSuccess(colors));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetBrandingColorsError(error));
             }
         );
@@ -1085,13 +1095,13 @@ export function resetStatusPageEmbeddedCss(
         const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(resetStatusPageEmbeddedCssRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(resetStatusPageEmbeddedCssSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetStatusPageEmbeddedCssError(error));
             }
         );
@@ -1128,14 +1138,14 @@ export const updateStatusPageLayout = (
         const promise = BackendAPI.put(`StatusPage/${projectId}`, data);
         dispatch(updateStatusPageLayoutRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLayoutSuccess(statusPage));
 
                 dispatch(fetchProjectStatusPage(projectId, true));
                 dispatch(updateStatusSuccess(statusPage));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateStatusPageLayoutError(error));
             }
         );
@@ -1176,10 +1186,10 @@ export function fetchStatusPageSubscribers(
         );
         dispatch(fetchSubscriberRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchSubscriberSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchSubscriberFailure(error));
             }
         );
@@ -1219,12 +1229,12 @@ export function createExternalStatusPage(
         );
         dispatch(createExternalStatusPageRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(createExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createExternalStatusPageFailure(error));
                 return error;
             }
@@ -1266,12 +1276,12 @@ export function updateExternalStatusPage(
         );
         dispatch(updateExternalStatusPageRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(updateExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateExternalStatusPageFailure(error));
                 return error;
             }
@@ -1311,12 +1321,12 @@ export function fetchExternalStatusPages(
         );
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchExternalStatusPagesFailure(error));
                 return error;
             }
@@ -1356,12 +1366,12 @@ export function deleteExternalStatusPage(
         );
         dispatch(deleteExternalStatusPageRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteExternalStatusPageSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteExternalStatusPageFailure(error));
                 return error;
             }
@@ -1403,12 +1413,12 @@ export function createAnnouncement(
         );
         dispatch(createAnnouncementRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(createAnnouncementSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1431,12 +1441,12 @@ export function updateAnnouncement(
         );
         dispatch(createAnnouncementRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(createAnnouncementSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createAnnouncementFailure(error));
                 return error;
             }
@@ -1478,10 +1488,10 @@ export function fetchAnnouncements(
         );
         dispatch(fetchAnnouncementRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchAnnouncementSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchAnnouncementFailure(error));
             }
         );
@@ -1521,10 +1531,10 @@ export function fetchAnnouncementLogs(
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1556,10 +1566,10 @@ export function fetchSingleAnnouncement(
             `StatusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
         );
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchSingleAnnouncementSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchSingleAnnouncementFailure(error));
             }
         );
@@ -1622,10 +1632,10 @@ export function deleteAnnouncement(
             delete `StatusPage/${projectId}/announcement/${announcementId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteAnnouncementFailure(error));
             }
         );
@@ -1642,10 +1652,10 @@ export function deleteAnnouncementLog(
             delete `StatusPage/${projectId}/announcementLog/${announcementLogId}/delete`;
         dispatch(deleteAnnouncementRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteAnnouncementSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteAnnouncementFailure(error));
             }
         );

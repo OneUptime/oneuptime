@@ -115,7 +115,7 @@ describe('Error Trackers', () => {
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            const title = `${errorTrackerName} (0)`;
+            const title: string = `${errorTrackerName} (0)`;
             spanElement.should.be.exactly(title);
             done();
         },
@@ -126,7 +126,7 @@ describe('Error Trackers', () => {
         'Should create new resource category then redirect to error tracker page to create a error tracker under that',
         async (done: $TSFixMe) => {
             const categoryName = 'Random-Category';
-            const newErrorTrackerName = `${errorTrackerName}-sample`;
+            const newErrorTrackerName: string = `${errorTrackerName}-sample`;
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
             //navigate to component details
@@ -246,7 +246,7 @@ describe('Error Trackers', () => {
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            const title = `${errorTrackerName} (0)`;
+            const title: string = `${errorTrackerName} (0)`;
             spanElement.should.be.exactly(title);
             done();
         },
@@ -524,7 +524,7 @@ describe('Error Trackers', () => {
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            const title = `${errorTrackerName}-new (0)`;
+            const title: string = `${errorTrackerName}-new (0)`;
             spanElement.should.be.exactly(title);
             done();
         },

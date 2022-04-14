@@ -1,5 +1,7 @@
 const resolveLastIncident = (z: $TSFixMe, bundle: $TSFixMe): void => {
-    if (bundle.cleanedRequest) return bundle.cleanedRequest;
+    if (bundle.cleanedRequest) {
+        return bundle.cleanedRequest;
+    }
     const data = {
         monitors: bundle.inputData.monitors,
     };

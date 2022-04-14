@@ -49,8 +49,9 @@ export const fetchLicense =
             return data;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -122,8 +123,9 @@ export const confirmLicense =
             return data;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }

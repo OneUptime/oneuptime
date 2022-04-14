@@ -31,7 +31,7 @@ router.get(
     '/:projectId/default',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId } = req.params;
             if (!projectId) {
@@ -97,12 +97,13 @@ router.put(
     isAuthorized,
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { projectId, templateId } = req.params;
-        if (!projectId)
+        if (!projectId) {
             return sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Project Id must be present.')
             );
+        }
 
         try {
             const defaultPrioritySetting =
@@ -126,23 +127,25 @@ router.put(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         const { projectId, templateId } = req.params;
         const { title, description, incidentPriority, isDefault, name } =
             req.body;
-        if (!projectId)
+        if (!projectId) {
             return sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Project Id must be present.')
             );
+        }
 
-        if (!templateId)
+        if (!templateId) {
             return sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Incident settings Id must be present.')
             );
+        }
 
         if (!name) {
             return sendErrorResponse(
@@ -152,19 +155,21 @@ router.put(
             );
         }
 
-        if (!title)
+        if (!title) {
             return sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Title must be present.')
             );
+        }
 
-        if (!incidentPriority)
+        if (!incidentPriority) {
             return sendErrorResponse(
                 req,
                 res,
                 new BadDataException('Incident priority must be present.')
             );
+        }
 
         try {
             //Update should not happen if the incident priority is remove and doesn't exist.
@@ -172,11 +177,12 @@ router.put(
                 _id: incidentPriority,
             });
 
-            if (!priority || priority === 0)
+            if (!priority || priority === 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: "Incident priority doesn't exist.",
                 });
+            }
 
             const incidentSettings = await IncidentSettingsService.updateOne(
                 {
@@ -202,7 +208,7 @@ router.delete(
     '/:projectId/:templateId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId, templateId } = req.params;
 

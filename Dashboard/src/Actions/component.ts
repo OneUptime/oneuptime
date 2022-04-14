@@ -30,10 +30,10 @@ export const fetchComponents = ({
         dispatch(fetchComponentsRequest());
 
         promise.then(
-            function (components): void {
+            (components): void => {
                 dispatch(fetchComponentsSuccess(components.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchComponentsFailure(error));
             }
         );
@@ -82,10 +82,10 @@ export function fetchPaginatedComponents({
         dispatch(fetchPaginatedComponentsRequest(projectId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchPaginatedComponentsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchPaginatedComponentsFailure(error, projectId));
             }
         );
@@ -128,10 +128,10 @@ export const createComponent = (
         dispatch(createComponentRequest());
 
         promise.then(
-            function (component): void {
+            (component): void => {
                 dispatch(createComponentSuccess(component.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -188,10 +188,10 @@ export const editComponent = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(editComponentRequest());
 
         promise.then(
-            function (component): void {
+            (component): void => {
                 dispatch(editComponentSuccess(component.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -258,10 +258,10 @@ export const deleteComponent = (
         dispatch(deleteComponentRequest(componentId));
 
         promise.then(
-            function (component): void {
+            (component): void => {
                 dispatch(deleteComponentSuccess(component.data._id));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     deleteComponentFailure({
                         error: error,
@@ -309,12 +309,12 @@ export const addSeat = (projectId: ObjectID): void => {
         dispatch(addSeatRequest());
 
         promise.then(
-            function (component): void {
+            (component): void => {
                 dispatch(createComponentFailure(component.data));
 
                 dispatch(addSeatSuccess(component.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -375,10 +375,10 @@ export function fetchComponentResources(
         dispatch(fetchComponentResourcesRequest(componentId));
 
         promise.then(
-            function (components): void {
+            (components): void => {
                 dispatch(fetchComponentResourcesSuccess(components.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchComponentResourcesFailure(error));
             }
         );
@@ -429,10 +429,10 @@ export function fetchComponentSummary(
         dispatch(fetchComponentSummaryRequest(componentId));
 
         promise.then(
-            function (components): void {
+            (components): void => {
                 dispatch(fetchComponentSummarySuccess(components.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchComponentSummaryFailure(error));
             }
         );
@@ -501,10 +501,10 @@ export const fetchComponent = (projectId: ObjectID, slug: $TSFixMe): void => {
         dispatch(fetchComponentRequest());
 
         promise.then(
-            function (component): void {
+            (component): void => {
                 dispatch(fetchComponentSuccess(component.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchComponentFailure(error));
             }
         );

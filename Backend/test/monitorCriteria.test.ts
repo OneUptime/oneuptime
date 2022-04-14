@@ -23,37 +23,31 @@ describe('Monitor Criteria API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             done();
@@ -66,7 +60,7 @@ describe('Monitor Criteria API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -82,12 +76,12 @@ describe('Monitor Criteria API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get the monitor criteria', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get the monitor criteria', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get('/monitorCriteria')
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 done();

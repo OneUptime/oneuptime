@@ -36,7 +36,9 @@ export default {
     checkCallSchedule: async (arr: $TSFixMe) => {
         const isAllFalse = arr.every((a: $TSFixMe) => !a.isOnDuty);
 
-        if (isAllFalse) return arr[0] ? [arr[0]] : [];
+        if (isAllFalse) {
+            return arr[0] ? [arr[0]] : [];
+        }
 
         return arr.filter((a: $TSFixMe) => a.isOnDuty);
     },

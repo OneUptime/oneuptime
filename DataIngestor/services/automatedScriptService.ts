@@ -50,8 +50,9 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         await scriptCollection.updateOne(query, { $set: data });
         const response = await scriptCollection.findOne(query);
@@ -63,8 +64,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const response = await scriptCollection.findOne(query);
         return response;

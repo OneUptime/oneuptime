@@ -93,7 +93,7 @@ describe('Invoice API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -113,8 +113,8 @@ describe('Invoice API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should return invoices', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should return invoices', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const invoices = await request
 
             .post(`/invoice/${userId}`)
@@ -132,7 +132,7 @@ describe('Invoice API', function (): void {
         expect(invoices.body.data.data[0].total).to.be.equal(5000);
     });
 
-    it('should paginate invoices', async function (): void {
+    it('should paginate invoices', async (): void => {
         for (let i = 0; i < 10; i++) {
             await stripe.subscriptions.create({
                 customer: stripeCustomerId,
@@ -146,7 +146,7 @@ describe('Invoice API', function (): void {
             });
         }
 
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         let invoices = await request
 
             .post(`/invoice/${userId}`)

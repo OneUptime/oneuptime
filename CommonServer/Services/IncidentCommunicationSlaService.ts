@@ -49,9 +49,13 @@ export default class Service {
     }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const incidentCommunicationSlaQuery =
             IncidentCommunicationSlaModel.findOne(query).sort(sort).lean();
@@ -65,7 +69,9 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const incidentCommunicationSlaQuery =
             IncidentCommunicationSlaModel.find(query)
@@ -83,9 +89,13 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // check if we are only setting default sla
         // or using update modal for editing the details
@@ -222,7 +232,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await IncidentCommunicationSlaModel.countDocuments(query);
         return count;
     }

@@ -34,12 +34,12 @@ describe('Application Security API', function (): void {
 
     this.timeout(timeout);
 
-    before(function (done: $TSFixMe): void {
-        GlobalConfig.initTestConfig().then(function (): void {
+    before((done: $TSFixMe): void => {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -47,19 +47,16 @@ describe('Application Security API', function (): void {
                     UserService.updateOneBy(
                         { _id: userId },
                         { role: 'master-admin' }
-                    ).then(function (): void {
+                    ).then((): void => {
                         VerificationTokenModel.findOne(
                             { userId },
-                            function (
-                                err: $TSFixMe,
-                                verificationToken: $TSFixMe
-                            ) {
+                            (err: $TSFixMe, verificationToken: $TSFixMe) => {
                                 request
                                     .get(
                                         `/user/confirmation/${verificationToken.token}`
                                     )
                                     .redirects(0)
-                                    .end(function (): void {
+                                    .end((): void => {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -67,35 +64,40 @@ describe('Application Security API', function (): void {
                                                 password:
                                                     userData.user.password,
                                             })
-                                            .end(function (
-                                                err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                token =
-                                                    res.body.tokens
-                                                        .jwtAccessToken;
-                                                const authorization = `Basic ${token}`;
+                                            .end(
+                                                (
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    token =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    const authorization: string = `Basic ${token}`;
 
-                                                request
-                                                    .post(
-                                                        `/component/${projectId}`
-                                                    )
-                                                    .set(
-                                                        'Authorization',
-                                                        authorization
-                                                    )
-                                                    .send({
-                                                        name: 'newComponent',
-                                                    })
-                                                    .end(function (
-                                                        err: $TSFixMe,
-                                                        res: $TSFixMe
-                                                    ) {
-                                                        componentId =
-                                                            res.body._id;
-                                                        done();
-                                                    });
-                                            });
+                                                    request
+                                                        .post(
+                                                            `/component/${projectId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send({
+                                                            name: 'newComponent',
+                                                        })
+                                                        .end(
+                                                            (
+                                                                err: $TSFixMe,
+                                                                res: $TSFixMe
+                                                            ) => {
+                                                                componentId =
+                                                                    res.body
+                                                                        ._id;
+                                                                done();
+                                                            }
+                                                        );
+                                                }
+                                            );
                                     });
                             }
                         );
@@ -105,7 +107,7 @@ describe('Application Security API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -118,14 +120,14 @@ describe('Application Security API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create an application security', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create an application security', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         GitCredentialService.create({
             gitUsername: gitCredential.gitUsername,
             gitPassword: gitCredential.gitPassword,
             projectId,
-        }).then(function (credential): void {
+        }).then((credential): void => {
             credentialId = credential._id;
             const data = {
                 name: 'Test',
@@ -138,7 +140,7 @@ describe('Application Security API', function (): void {
                 .post(`/security/${projectId}/${componentId}/application`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     applicationSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -154,8 +156,8 @@ describe('Application Security API', function (): void {
         });
     });
 
-    it('should update an application security', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should update an application security', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const update = { name: 'newname' };
 
         request
@@ -164,22 +166,22 @@ describe('Application Security API', function (): void {
             )
             .set('Authorization', authorization)
             .send(update)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal(update.name);
                 done();
             });
     });
 
-    it('should get a particular application security in a component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get a particular application security in a component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         request
             .get(
                 `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(String(res.body._id)).to.be.equal(
                     String(applicationSecurityId)
@@ -191,26 +193,26 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should get all the application security in a component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get all the application security in a component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
             });
     });
 
-    it('should get all the application security with a particular credential', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get all the application security with a particular credential', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         request
             .get(`/security/${projectId}/application/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();
@@ -219,21 +221,21 @@ describe('Application Security API', function (): void {
 
     it('should scan an application security', function (done: $TSFixMe): void {
         this.timeout(300000);
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         request
             .post(
                 `/security/${projectId}/application/scan/${applicationSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should not create an application security if name already exist in the component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create an application security if name already exist in the component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         const data = {
             name: 'newname',
@@ -245,7 +247,7 @@ describe('Application Security API', function (): void {
             .post(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application security with this name already exist in this component'
@@ -254,8 +256,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not create an application security if git repository url already exist in the component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create an application security if git repository url already exist in the component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         const data = {
             name: 'anothername',
@@ -267,7 +269,7 @@ describe('Application Security API', function (): void {
             .post(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application security with this git repository url already exist in this component'
@@ -276,23 +278,23 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should delete a particular application security', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete a particular application security', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         request
             .delete(
                 `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.deleted).to.be.true;
                 done();
             });
     });
 
-    it('should not create an application security if name is missing', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create an application security if name is missing', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         const data = {
             name: '',
@@ -304,7 +306,7 @@ describe('Application Security API', function (): void {
             .post(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application Security Name is required'
@@ -313,8 +315,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not create an application security if git repository url is missing', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create an application security if git repository url is missing', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         const data = {
             name: 'AnotherTest',
@@ -326,7 +328,7 @@ describe('Application Security API', function (): void {
             .post(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Repository URL is required'
@@ -335,8 +337,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not create an application security if git credential is missing', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create an application security if git credential is missing', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         const data = {
             name: 'AnotherTest',
@@ -348,7 +350,7 @@ describe('Application Security API', function (): void {
             .post(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Credential is required'
@@ -357,8 +359,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not scan an application security if it does not exist', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not scan an application security if it does not exist', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
@@ -366,7 +368,7 @@ describe('Application Security API', function (): void {
                 `/security/${projectId}/application/scan/${applicationSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application Security not found or does not exist'
@@ -375,8 +377,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not delete a non-existing application security', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not delete a non-existing application security', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
@@ -384,7 +386,7 @@ describe('Application Security API', function (): void {
                 `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application Security not found or does not exist'
@@ -393,8 +395,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not get a non-existing application security', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not get a non-existing application security', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
@@ -402,7 +404,7 @@ describe('Application Security API', function (): void {
                 `/security/${projectId}/${componentId}/application/${applicationSecurityId}`
             )
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Application security not found or does not exist'
@@ -411,8 +413,8 @@ describe('Application Security API', function (): void {
             });
     });
 
-    it('should not create an application security if git credential does not exist', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create an application security if git credential does not exist', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         const data = {
             name: 'AnotherTest',
@@ -424,7 +426,7 @@ describe('Application Security API', function (): void {
             .post(`/security/${projectId}/${componentId}/application`)
             .set('Authorization', authorization)
             .send(data)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Credential not found or does not exist'

@@ -220,15 +220,15 @@ describe('Components', () => {
                 e.click()
             );
 
-            const moreBtn = `#more-details-${componentName}`;
+            const moreBtn: string = `#more-details-${componentName}`;
             await init.pageWaitForSelector(page, moreBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.page$Eval(page, moreBtn, (e: $TSFixMe) => e.click());
 
-            const projectSelector = `#cbUnnamedProject`;
-            const componentSelector = `#cb${componentName}`;
+            const projectSelector: string = `#cbUnnamedProject`;
+            const componentSelector: string = `#cb${componentName}`;
             await init.pageWaitForSelector(page, projectSelector, {
                 visible: true,
                 timeout: init.timeout,

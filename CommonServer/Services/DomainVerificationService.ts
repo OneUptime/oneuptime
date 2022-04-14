@@ -29,9 +29,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -97,8 +101,8 @@ export default class Service {
             const host = 'oneuptime';
             const previousHost = 'oneuptime';
             const domain = parsed.domain;
-            const domainToLookup = `${host}.${domain}`;
-            const prevDomainToLookup = `${previousHost}.${domain}`;
+            const domainToLookup: string = `${host}.${domain}`;
+            const prevDomainToLookup: string = `${previousHost}.${domain}`;
 
             const records = await dnsPromises.resolveTxt(domainToLookup);
             // records is an array of arrays

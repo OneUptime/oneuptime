@@ -377,7 +377,7 @@ router.post(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 let cert;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -406,7 +406,7 @@ router.post(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 let privateKey;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -516,7 +516,7 @@ router.put(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         const data = req.body;
         const upload = multer({
             storage,
@@ -586,7 +586,7 @@ router.put(
             }
         }
 
-        upload(req, res, async function (error: $TSFixMe): void {
+        upload(req, res, async (error: $TSFixMe): void => {
             const files = req.files || {};
             const data = req.body;
             data.projectId = req.params.projectId;
@@ -790,7 +790,7 @@ router.get(
     '/:projectId/dashboard',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         const projectId = req.params.projectId;
         try {
             // Call the StatusPageService.
@@ -840,7 +840,7 @@ router.get(
     '/:projectId/StatusPages',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { data, count } =
                 await StatusPageService.getStatusPagesByProjectId({
@@ -859,7 +859,7 @@ router.get(
     '/:projectId/statuspage',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         const projectId = req.params.projectId;
 
         try {
@@ -908,7 +908,7 @@ router.get(
     '/:statusPageSlug',
     checkUser,
     ipWhitelist,
-    async function (req, res): void {
+    async (req, res): void => {
         const statusPageSlug = req.params.statusPageSlug;
         const url = req.query.url;
 
@@ -1177,7 +1177,7 @@ router.get(
 router.get(
     '/:projectId/incident/:incidentSlug',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { incidentSlug } = req.params;
 
@@ -1199,7 +1199,7 @@ router.get(
 router.get(
     '/:projectId/:incidentSlug/incidentNotes',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { incidentSlug } = req.params;
 
@@ -1225,7 +1225,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/individualnotes',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         let date = req.query.date;
 
         date = new Date(date);
@@ -1407,7 +1407,7 @@ const fetchNotes = async (events: $TSFixMe, limit: PositiveNumber): void => {
 router.get(
     '/:projectId/notes/:scheduledEventSlug',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         const { scheduledEventSlug } = req.params;
 
         const { skip, limit } = req.query;
@@ -1434,7 +1434,7 @@ router.get(
 router.get(
     '/:projectId/:monitorId/individualevents',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         let date = req.query.date;
 
         date = moment(date).endOf('day').format();
@@ -1509,7 +1509,7 @@ router.get(
 router.post(
     '/:projectId/:monitorId/monitorStatuses',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { startDate, endDate } = req.body;
             const monitorId = req.params.monitorId;
@@ -1528,7 +1528,7 @@ router.post(
 router.post(
     '/:projectId/:monitorId/monitorLogs',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { monitorId } = req.params;
             const endDate = moment(Date.now());
@@ -1621,7 +1621,7 @@ router.delete(
 router.get(
     '/:projectId/timeline/:incidentSlug',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { incidentSlug } = req.params;
 
@@ -1684,7 +1684,7 @@ router.get(
 router.get(
     '/:projectId/monitor/:statusPageId',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { statusPageId } = req.params;
             const skip = req.query['skip'] || 0;
@@ -2017,7 +2017,7 @@ router.post(
 router.post(
     '/:projectId/announcement/:statusPageId',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId, statusPageId } = req.params;
             const { data } = req.body;
@@ -2196,13 +2196,15 @@ router.get(
 router.get(
     '/:projectId/announcement/:statusPageId',
     checkUser,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId, statusPageId } = req.params;
             const { skip, limit, show } = req.query;
             const query = { projectId, statusPageId };
 
-            if (show) query.hideAnnouncement = false;
+            if (show) {
+                query.hideAnnouncement = false;
+            }
 
             const [allAnnouncements, count] = await Promise.all([
                 StatusPageService.getAnnouncements(query, skip, limit),
@@ -2831,7 +2833,9 @@ async function getAnnouncements(
     const { skip, limit, show = true } = req.query;
     const query = { projectId, statusPageId };
 
-    if (show) query.hideAnnouncement = false;
+    if (show) {
+        query.hideAnnouncement = false;
+    }
 
     const allAnnouncements = await StatusPageService.getAnnouncements(
         query,

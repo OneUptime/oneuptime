@@ -76,7 +76,7 @@ export class ResponseComponent extends Component<ResponseComponentProps>{
     }
     handleAddFilterCriteria() {
 
-        const criterionFieldName = `${this.props.criterion.type}_${this.props.criterion.id}`;
+        const criterionFieldName:string = `${this.props.criterion.type}_${this.props.criterion.id}`;
 
 
         this.props.arrayPush('NewMonitor', criterionFieldName, {
@@ -142,7 +142,7 @@ export class ResponseComponent extends Component<ResponseComponentProps>{
         };
 
         const { id: criterionId, type: criterionType } = criterion;
-        const criterionFieldName = `${criterionType}_${criterionId}`;
+        const criterionFieldName:string = `${criterionType}_${criterionId}`;
         let head;
         let tagline;
 

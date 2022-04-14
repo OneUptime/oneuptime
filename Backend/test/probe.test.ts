@@ -85,7 +85,7 @@ describe('Probe API', function (): void {
         return Promise.resolve();
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProbeService.hardDeleteBy({ _id: probeId });
         await ProjectService.hardDeleteBy({ _id: projectId });
@@ -111,8 +111,8 @@ describe('Probe API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should add a probe by admin', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should add a probe by admin', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const probeName = generateRandomString();
         request
             .post('/probe/')
@@ -121,7 +121,7 @@ describe('Probe API', function (): void {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 probeId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.probeName).to.be.equal(probeName);
@@ -129,36 +129,30 @@ describe('Probe API', function (): void {
             });
     });
 
-    it('should not add a probe if not admin', function (done: $TSFixMe): void {
+    it('should not add a probe if not admin', (done: $TSFixMe): void => {
         const probeName = generateRandomString();
         createUser(
             request,
             userData.newUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 userId = res.body.id;
                 VerificationTokenModel.findOne(
                     { userId },
-                    function (
-                        err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ): void {
+                    (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                         request
                             .get(
                                 `/user/confirmation/${verificationToken.token}`
                             )
                             .redirects(0)
-                            .end(function (): void {
+                            .end((): void => {
                                 request
                                     .post('/user/login')
                                     .send({
                                         email: userData.newUser.email,
                                         password: userData.newUser.password,
                                     })
-                                    .end(function (
-                                        err: $TSFixMe,
-                                        res: $TSFixMe
-                                    ) {
-                                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                                        const authorization: string = `Basic ${res.body.tokens.jwtAccessToken}`;
                                         request
                                             .post('/probe/')
                                             .set('Authorization', authorization)
@@ -166,13 +160,17 @@ describe('Probe API', function (): void {
                                                 probeName: probeName,
                                                 probeKey: '',
                                             })
-                                            .end(function (
-                                                err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                expect(res).to.have.status(400);
-                                                done();
-                                            });
+                                            .end(
+                                                (
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    expect(res).to.have.status(
+                                                        400
+                                                    );
+                                                    done();
+                                                }
+                                            );
                                     });
                             });
                     }
@@ -181,8 +179,8 @@ describe('Probe API', function (): void {
         );
     });
 
-    it('should reject a probe if same name already exists', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should reject a probe if same name already exists', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const probeName = generateRandomString();
         request
             .post('/probe/')
@@ -191,7 +189,7 @@ describe('Probe API', function (): void {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 request
                     .post('/probe/')
@@ -200,27 +198,27 @@ describe('Probe API', function (): void {
                         probeName: probeName,
                         probeKey: probeKey,
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(400);
                         done();
                     });
             });
     });
 
-    it('should get probes', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get probes', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get('/probe/')
             .set('Authorization', authorization)
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete a probe by admin', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete a probe by admin', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const probeName = generateRandomString();
         request
             .post('/probe/')
@@ -229,21 +227,21 @@ describe('Probe API', function (): void {
                 probeName: probeName,
                 probeKey: probeKey,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 probeId = res.body._id;
                 expect(res).to.have.status(200);
                 request
                     .delete(`/probe/${probeId}`)
                     .set('Authorization', authorization)
                     .send()
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
                         done();
                     });
             });
     });
 
-    it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async function (): void {
+    it('should add to the database the unknown probe servers requesting the list of monitor to ping.', async (): void => {
         probeServerName1 = generateRandomString();
         const res = await request.get('/probe/monitors').set(
             probeServerRequestHeader({
@@ -427,8 +425,8 @@ describe('Probe API', function (): void {
         await MonitorService.hardDeleteBy({ _id: monitor._id });
     });
 
-    it('should get application securities yet to be scanned or scanned 24hrs ago', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get application securities yet to be scanned or scanned 24hrs ago', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const probeName = 'US';
         const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
         const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
@@ -437,7 +435,7 @@ describe('Probe API', function (): void {
             gitUsername: gitCredential.gitUsername,
             gitPassword: gitCredential.gitPassword,
             projectId,
-        }).then(function (credential): void {
+        }).then((credential): void => {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
@@ -449,7 +447,7 @@ describe('Probe API', function (): void {
                 .post(`/security/${projectId}/${componentId}/application`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (): void {
+                .end((): void => {
                     request
                         .get('/probe/applicationSecurities')
                         .set({
@@ -457,7 +455,7 @@ describe('Probe API', function (): void {
                             probeKey,
                             clusterKey,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('array');
                             done();
@@ -466,8 +464,8 @@ describe('Probe API', function (): void {
         });
     });
 
-    it('should get container securities yet to be scanned or scanned 24hrs ago', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get container securities yet to be scanned or scanned 24hrs ago', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const probeName = 'US';
         const probeKey = '33b674ca-9fdd-11e9-a2a3-2a2ae2dbccez';
         const clusterKey = 'f414c23b4cdf4e84a6a66ecfd528eff2';
@@ -477,7 +475,7 @@ describe('Probe API', function (): void {
             dockerUsername: dockerCredential.dockerUsername,
             dockerPassword: dockerCredential.dockerPassword,
             projectId,
-        }).then(function (credential): void {
+        }).then((credential): void => {
             const data = {
                 name: 'Test',
                 dockerCredential: credential._id,
@@ -489,7 +487,7 @@ describe('Probe API', function (): void {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (): void {
+                .end((): void => {
                     request
                         .get('/probe/containerSecurities')
                         .set({
@@ -497,7 +495,7 @@ describe('Probe API', function (): void {
                             probeKey,
                             clusterKey,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('array');
                             done();

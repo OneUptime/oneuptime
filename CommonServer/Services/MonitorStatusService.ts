@@ -2,9 +2,13 @@ export default class Service {
     async create(data: $TSFixMe): void {
         const query = {};
 
-        if (data.monitorId) query.monitorId = data.monitorId;
+        if (data.monitorId) {
+            query.monitorId = data.monitorId;
+        }
 
-        if (data.probeId) query.probeId = data.probeId;
+        if (data.probeId) {
+            query.probeId = data.probeId;
+        }
 
         const select = '_id status lastStatus';
         let previousMonitorStatus = await this.findBy({
@@ -70,9 +74,13 @@ export default class Service {
         for (const data of allData) {
             const query = {};
 
-            if (data.monitorId) query.monitorId = data.monitorId;
+            if (data.monitorId) {
+                query.monitorId = data.monitorId;
+            }
 
-            if (data.probeId) query.probeId = data.probeId;
+            if (data.probeId) {
+                query.probeId = data.probeId;
+            }
 
             const select = '_id status lastStatus';
             let previousMonitorStatus = await this.findBy({
@@ -156,9 +164,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -172,8 +184,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const monitorStatusQuery = MonitorStatusModel.find(query)
             .lean()
@@ -191,8 +204,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const monitorStatusQuery = MonitorStatusModel.findOne(query)
             .sort(sort)

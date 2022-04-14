@@ -42,12 +42,12 @@ export const deleteWebHook = (
         dispatch(deleteWebHookRequest());
 
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(deleteWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteWebHookError(error));
             }
         );
@@ -94,10 +94,10 @@ export function getWebHook(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            function (webhooks): void {
+            (webhooks): void => {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getWebHookError(error));
             }
         );
@@ -122,10 +122,10 @@ export function getWebHookMonitor(
         dispatch(getWebHookRequest(promise));
 
         promise.then(
-            function (webhooks): void {
+            (webhooks): void => {
                 dispatch(getWebHookSuccess(webhooks.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getWebHookError(error));
             }
         );
@@ -168,12 +168,12 @@ export const createWebHook = (projectId: ObjectID, data: $TSFixMe): void => {
         dispatch(createWebHookRequest());
 
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(createWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createWebHookError(error));
             }
         );
@@ -221,12 +221,12 @@ export function updateWebHook(
         dispatch(updateWebHookRequest());
 
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(updateWebHookSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateWebHookError(error));
             }
         );

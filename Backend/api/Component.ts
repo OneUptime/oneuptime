@@ -44,7 +44,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
             const projectId = req.params.projectId;
@@ -143,7 +143,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { limit, skip } = req.query;
 
@@ -167,7 +167,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
@@ -189,7 +189,7 @@ router.get(
     '/:projectId/slug/:slug',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { slug } = req.params;
             const populateComponent = [
@@ -600,7 +600,9 @@ router.get(
                             1,
                             0
                         );
-                        if (logs.length > 0) logStatus = 'Collecting Logs';
+                        if (logs.length > 0) {
+                            logStatus = 'Collecting Logs';
+                        }
                         const newElement = {
                             _id: elem._id,
                             name: elem.name,
@@ -639,8 +641,9 @@ router.get(
                             select: selectIssue,
                             populate: populateIssue,
                         });
-                        if (issues.length > 0)
+                        if (issues.length > 0) {
                             errorStatus = 'Listening for Errors';
+                        }
                         const newElement = {
                             _id: errorTracker._id,
                             name: errorTracker.name,

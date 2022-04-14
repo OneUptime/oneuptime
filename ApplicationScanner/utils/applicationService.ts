@@ -70,7 +70,7 @@ export default {
         let securityDir = 'application_security_dir';
 
         securityDir = await createDir(securityDir);
-        const cloneDirectory = `${uuidv1()}security`; // always create unique paths
+        const cloneDirectory: string = `${uuidv1()}security`; // always create unique paths
         const repoPath = Path.resolve(securityDir, cloneDirectory);
         const conn = new Client();
 
@@ -207,8 +207,8 @@ export default {
         const PASS = security.gitCredential.gitPassword;
         // format the url
         const REPO = formatUrl(security.gitRepositoryUrl);
-        const remote = `https://${USER}:${PASS}@${REPO}`;
-        const cloneDirectory = `${uuidv1()}security`; // always create unique paths
+        const remote: string = `https://${USER}:${PASS}@${REPO}`;
+        const cloneDirectory: string = `${uuidv1()}security`; // always create unique paths
         const repoPath = Path.resolve(securityDir, cloneDirectory);
 
         // update application security to scanning true
@@ -377,7 +377,9 @@ function createDir(dirPath): void {
         }
 
         fs.mkdir(workPath, error => {
-            if (error) reject(error);
+            if (error) {
+                reject(error);
+            }
             resolve(workPath);
         });
     });

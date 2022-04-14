@@ -29,7 +29,7 @@ class AlertDisabledWarning extends Component<ComponentProps> {
 
         const { alertEnable, currentProject, page } = this.props;
         const slug = currentProject ? currentProject.slug : null;
-        const redirectTo = `/dashboard/project/${slug}/settings/billing`;
+        const redirectTo:string = `/dashboard/project/${slug}/settings/billing`;
 
         return (
             <ShouldRender

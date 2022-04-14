@@ -1,5 +1,5 @@
-import { Document } from '../../Infrastructure/ORM';
+import { JSONObject } from 'Common/Types/JSON';
 
 export default interface CreateBy {
-    data: Document;
+    data: JSONObject;
 }

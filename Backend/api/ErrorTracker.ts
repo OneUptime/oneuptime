@@ -115,7 +115,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {
@@ -336,7 +336,7 @@ router.put(
 router.post(
     '/:errorTrackerId/track',
     isErrorTrackerValid,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
             const errorTrackerId = req.params.errorTrackerId;
@@ -428,10 +428,13 @@ router.post(
 
             const query = {};
 
-            if (errorTrackerId) query.errorTrackerId = errorTrackerId;
+            if (errorTrackerId) {
+                query.errorTrackerId = errorTrackerId;
+            }
 
-            if (startDate && endDate)
+            if (startDate && endDate) {
                 query.createdAt = { $gte: startDate, $lte: endDate };
+            }
 
             if (filters) {
                 for (const [key, value] of Object.entries(filters)) {
@@ -773,10 +776,13 @@ router.post(
 
             query.fingerprintHash = fingerprintHash;
 
-            if (errorTrackerId) query.errorTrackerId = errorTrackerId;
+            if (errorTrackerId) {
+                query.errorTrackerId = errorTrackerId;
+            }
 
-            if (startDate && endDate)
+            if (startDate && endDate) {
                 query.createdAt = { $gte: startDate, $lte: endDate };
+            }
 
             const errorEvents = await ErrorEventService.findBy({
                 query,

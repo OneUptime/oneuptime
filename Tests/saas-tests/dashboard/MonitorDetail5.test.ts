@@ -202,7 +202,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const editButtonSelector = `#edit_${monitorName}`;
+            const editButtonSelector: string = `#edit_${monitorName}`;
             await init.pageWaitForSelector(page, editButtonSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -222,7 +222,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const selector = `#monitor-title-${newMonitorName}`;
+            const selector: string = `#monitor-title-${newMonitorName}`;
 
             let spanElement = await init.pageWaitForSelector(page, selector);
             spanElement = await spanElement.getProperty('innerText');
@@ -247,7 +247,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.advanced-options-tab');
 
-            const deleteButtonSelector = `#delete_${newMonitorName}`;
+            const deleteButtonSelector: string = `#delete_${newMonitorName}`;
             await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) =>
                 e.click()
             );
@@ -264,7 +264,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const selector = `span#monitor-title-${newMonitorName}`;
+            const selector: string = `span#monitor-title-${newMonitorName}`;
 
             const spanElement = await init.page$(page, selector, {
                 hidden: true,

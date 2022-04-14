@@ -28,36 +28,30 @@ describe('Incident Priority API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             done();
@@ -70,7 +64,7 @@ describe('Incident Priority API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await IncidentSettings.hardDeleteBy({ projectId: projectId });
         await UserService.hardDeleteBy({ _id: userId });
@@ -79,7 +73,7 @@ describe('Incident Priority API', function (): void {
     });
 
     it('Should return the list of the available variables.', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization);
@@ -97,7 +91,7 @@ describe('Incident Priority API', function (): void {
     });
 
     it('Should not remove the default incident priority.', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
@@ -109,7 +103,7 @@ describe('Incident Priority API', function (): void {
     });
 
     it('Should create a new incident priority.', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         let res = await request
             .post(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)
@@ -139,7 +133,7 @@ describe('Incident Priority API', function (): void {
 
     it('Should update incident priority.', async () => {
         const newIncidentPriorityName = 'Intermediate Updated';
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         let res = await request
             .put(`/incidentPriorities/${projectId}`)
@@ -166,7 +160,7 @@ describe('Incident Priority API', function (): void {
     });
 
     it('Should delete incident priority.', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         let res = await request
             .delete(`/incidentPriorities/${projectId}`)
             .set('Authorization', authorization)

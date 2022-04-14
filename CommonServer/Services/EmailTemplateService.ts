@@ -21,7 +21,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         if (data.emailType && !data.allowedVariables) {
             data.allowedVariables = emailTemplateVariables[[data.emailType]];
@@ -43,7 +45,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await EmailTemplateModel.updateMany(query, {
             $set: data,
         });

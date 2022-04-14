@@ -44,8 +44,9 @@ export const fetchSmsLogs =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -100,8 +101,9 @@ export const searchSmsLogs =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -148,8 +150,9 @@ export const deleteSmsLogs =
             dispatch(deleteSmsLogsSuccess(message));
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -206,8 +209,9 @@ export const fetchSmsLogStatus =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -265,8 +269,9 @@ export const smsLogStatusChange =
             return data;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }

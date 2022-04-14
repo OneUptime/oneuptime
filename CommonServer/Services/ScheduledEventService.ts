@@ -159,7 +159,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         if (!data.monitors || data.monitors.length === 0) {
             const error = new Error(
@@ -251,7 +253,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await ScheduledEventModel.updateMany(query, {
             $set: data,
         });
@@ -314,9 +318,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);

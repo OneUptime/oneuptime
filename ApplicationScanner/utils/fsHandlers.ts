@@ -12,16 +12,12 @@ const unlink = promisify(fs.unlink);
 function readFileContent(filePath: $TSFixMe): void {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(
-                filePath,
-                { encoding: 'utf8' },
-                function (error, data): void {
-                    if (error) {
-                        reject(error);
-                    }
-                    resolve(data);
+            fs.readFile(filePath, { encoding: 'utf8' }, (error, data): void => {
+                if (error) {
+                    reject(error);
                 }
-            );
+                resolve(data);
+            });
         }
     });
 }

@@ -69,7 +69,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         /** This deletes the scheduled notes*/
         let eventMessage = await ScheduledEventNoteModel.findOneAndUpdate(
             query,
@@ -118,9 +120,13 @@ export default class Service {
     }
 
     async findOneBy({ query, populate, select, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const eventMessageQuery = ScheduledEventNoteModel.findOne(query)
             .sort(sort)
@@ -133,9 +139,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -145,7 +155,9 @@ export default class Service {
             limit = Number(limit);
         }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
         const eventMessageQuery = ScheduledEventNoteModel.find(query)
             .lean()

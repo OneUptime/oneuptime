@@ -129,7 +129,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const count = await SsoModel.countDocuments(query);
         return count;

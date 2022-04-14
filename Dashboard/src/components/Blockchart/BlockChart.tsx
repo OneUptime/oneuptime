@@ -24,7 +24,7 @@ class BlockChart extends Component<ComponentProps> {
 
             if (this.props.time.downTime) {
 
-                let downtime = `${this.props.time.downTime} minutes`;
+                let downtime:string = `${this.props.time.downTime} minutes`;
 
                 if (this.props.time.downTime > 60) {
                     downtime = `${Math.floor(
@@ -40,7 +40,7 @@ class BlockChart extends Component<ComponentProps> {
 
             } else if (this.props.time.degradedTime) {
 
-                let degradedtime = `${this.props.time.degradedTime} minutes`;
+                let degradedtime:string = `${this.props.time.degradedTime} minutes`;
 
                 if (this.props.time.degradedTime > 60) {
                     degradedtime = `${Math.floor(

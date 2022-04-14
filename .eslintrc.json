@@ -49,6 +49,7 @@
         "no-cond-assign": "error",
         "valid-typeof": "error",
         "no-func-assign": "error",
+        "curly": "error",
         "no-extra-semi": "error",
         "progress/activate": 1,
         "linebreak-style": [
@@ -64,10 +65,12 @@
 			"error",
 			{ "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
 		],
-
+        "@typescript-eslint/explicit-member-accessibility": ["error"],
         "no-console": "error",
         "no-undef": "error",
         "no-empty": "error",
+        "prefer-arrow-callback": "error",
+        "constructor-super": "error",
         "no-case-declarations": "error",
         "no-mixed-spaces-and-tabs": "error",
         "no-useless-escape": "error",
@@ -86,6 +89,13 @@
         "react/boolean-prop-naming": "error",
         "react/no-is-mounted": "error",
         "react/no-find-dom-node": "error",
+        "@typescript-eslint/typedef": [
+            "error",
+            {
+              "arrowParameter": true,
+              "variableDeclaration": true
+            }
+          ],
         "@typescript-eslint/explicit-function-return-type": [
             "error",
             {
@@ -109,7 +119,10 @@
         "react/jsx-pascal-case": "error",
         "array-callback-return": "error",
         "no-loop-func": "error",
+        "for-direction": "error",
+        "getter-return": "error",
         "jsx-a11y/anchor-is-valid": "error",
+        "no-async-promise-executor": "error",
         "prefer-const": [
             "error",
             {

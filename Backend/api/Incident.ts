@@ -312,7 +312,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             // const subProjectIds = req.user.subProjects
             //     ? req.user.subProjects.map(project => project._id)
@@ -378,7 +378,7 @@ router.get(
     '/:projectId/incident',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const projectId = req.params.projectId;
             const populate = [
@@ -1141,7 +1141,7 @@ router.post(
                         error
                     );
                 });
-                const status = `${incidentMessage.type} notes ${
+                const status: string = `${incidentMessage.type} notes ${
                     data.id ? 'updated' : 'added'
                 }`;
 
@@ -1377,7 +1377,7 @@ router.delete(
             let result;
             /* eslint-disable prefer-const */
             if (incidentMessage) {
-                const status = `${incidentMessage.type} notes deleted`;
+                const status: string = `${incidentMessage.type} notes deleted`;
 
                 try {
                     // RUN IN THE BACKGROUND
@@ -1697,7 +1697,7 @@ router.delete(
     '/:projectId/:incidentId',
     getUser,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId, incidentId } = req.params;
             const incident = await IncidentService.deleteBy(

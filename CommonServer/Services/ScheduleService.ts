@@ -1,6 +1,8 @@
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const schedulesQuery = ScheduleModel.find(query)
             .lean()
             .sort(sort)
@@ -19,7 +21,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const scheduleQuery = ScheduleModel.findOne(query)
             .sort(sort)
             .lean()
@@ -96,7 +100,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await ScheduleModel.countDocuments(query);
         return count;
     }
@@ -160,7 +166,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         let schedule = await this.findOneBy({
             query,
@@ -249,7 +257,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await ScheduleModel.updateMany(query, {
             $set: data,
         });

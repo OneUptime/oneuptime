@@ -1,9 +1,17 @@
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
-        if (!query) query = {};
-        if (!query['deleted']) query['deleted'] = false;
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
+        if (!query) {
+            query = {};
+        }
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const incidentPrioritiesQuery = incidentPriorityModel
             .find(query)
@@ -44,7 +52,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const count = await incidentPriorityModel.countDocuments(query);
 
@@ -68,7 +78,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const updatedIncidentPriority =
             await incidentPriorityModel.findOneAndUpdate(
                 query,
@@ -94,7 +106,9 @@ export default class Service {
                 },
             }
         );
-        if (incidentPriority === null) return incidentPriority;
+        if (incidentPriority === null) {
+            return incidentPriority;
+        }
         //update existing incidents along with default incident settings
         await Promise.all([
             IncidentService.updateBy(

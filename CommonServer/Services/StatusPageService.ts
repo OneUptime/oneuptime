@@ -387,7 +387,9 @@ export default class Service {
                 }
                 // if domain exist
                 // break the loop
-                if (doesDomainExist) break;
+                if (doesDomainExist) {
+                    break;
+                }
 
                 eachDomain.domain = newDomain;
                 eachDomain.cert = cert;
@@ -675,7 +677,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // run this in the background
 
@@ -730,7 +734,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await StatusPageModel.updateMany(query, {
             $set: data,
         });
@@ -767,15 +773,25 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit || isNaN(limit)) limit = 5;
+        if (!limit || isNaN(limit)) {
+            limit = 5;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
         const statuspages = await this.findBy({
             query,
@@ -890,15 +906,25 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 5;
+        if (!limit) {
+            limit = 5;
+        }
 
-        if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') {
+            skip = Number(skip);
+        }
 
-        if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
         query['deleted'] = false;
 
         const populateIncidentMessage = [
@@ -976,15 +1002,25 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 5;
+        if (!limit) {
+            limit = 5;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
         query['deleted'] = false;
 
         const statuspages = await this.findBy({
@@ -1075,15 +1111,25 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 5;
+        if (!limit) {
+            limit = 5;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
         query['deleted'] = false;
 
         const statuspages = await this.findBy({
@@ -1176,15 +1222,25 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 5;
+        if (!limit) {
+            limit = 5;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
         query['deleted'] = false;
 
         const statuspages = await this.findBy({
@@ -1299,15 +1355,25 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 5;
+        if (!limit) {
+            limit = 5;
+        }
 
-        if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') {
+            skip = Number(skip);
+        }
 
-        if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
         query['deleted'] = false;
 
         const populate = [
@@ -1466,7 +1532,9 @@ export default class Service {
     }
 
     async getIncidents(query: Query): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
         const statuspages = await this.findBy({
             query,
@@ -1708,7 +1776,9 @@ export default class Service {
             },
         });
 
-        if (!statusPage || statusPage === 0) return false;
+        if (!statusPage || statusPage === 0) {
+            return false;
+        }
 
         return true;
     }
@@ -1737,9 +1807,13 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -1837,9 +1911,13 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -2000,9 +2078,13 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -2152,7 +2234,9 @@ const getServiceStatus = (monitorsData: $TSFixMe, probes: $TSFixMe): void => {
     });
 
     if (onlineServices === totalServices) {
-        if (degraded !== 0) return 'some-degraded';
+        if (degraded !== 0) {
+            return 'some-degraded';
+        }
         return 'all';
     } else if (onlineServices === 0) {
         return 'none';

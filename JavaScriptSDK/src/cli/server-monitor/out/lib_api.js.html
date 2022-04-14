@@ -235,7 +235,7 @@ export default (config, apiUrl, apiKey, monitorId) => {
          * @return {(Object | number)} The ping server cron job or the error code.
          */
         start: (id = monitorId) => {
-            const url = `monitor/${projectId}/monitor/${
+            const url:string = `monitor/${projectId}/monitor/${
                 id &amp;&amp; typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;
 

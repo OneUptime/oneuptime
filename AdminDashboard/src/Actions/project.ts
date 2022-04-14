@@ -43,8 +43,9 @@ export const fetchProjects =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -92,8 +93,9 @@ export const fetchProject =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -133,14 +135,14 @@ export const userCreate = (projectId: ObjectID, values: $TSFixMe): void => {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(userCreateRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const data = response.data;
                 const projectUsers = data.filter(
                     (team: $TSFixMe) => team.projectId === projectId
                 )[0];
                 dispatch(userCreateSuccess(projectUsers.team));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(userCreateError(error));
             }
         );
@@ -186,8 +188,9 @@ export const fetchProjectTeam =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -256,14 +259,14 @@ export const userUpdateRole = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(userUpdateRoleRequest(values.teamMemberId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const data = response.data;
                 const projectUsers = data.filter(
                     (user: $TSFixMe) => user.projectId === projectId
                 )[0];
                 dispatch(userUpdateRoleSuccess(projectUsers));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(userUpdateRoleError(error));
             }
         );
@@ -311,8 +314,9 @@ export const updateBalance =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -354,7 +358,7 @@ export const teamDelete = (
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const team = response.data;
                 const projectTeam = team.filter(
                     (team: $TSFixMe) => team.projectId === projectId
@@ -362,7 +366,7 @@ export const teamDelete = (
                 dispatch(teamDeleteSuccess(projectTeam.team));
                 return { team };
             },
-            function (error): void {
+            (error): void => {
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -423,8 +427,9 @@ export const fetchUserProjects =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -478,8 +483,9 @@ export const deleteProject =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -535,8 +541,9 @@ export const blockProject =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -596,8 +603,9 @@ export const renewAlertLimit =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -653,8 +661,9 @@ export const restoreProject =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -710,8 +719,9 @@ export const unblockProject =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -768,8 +778,9 @@ export const addProjectNote =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -831,8 +842,9 @@ export const searchProjects =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -988,12 +1000,12 @@ export const deleteProjectDomain = ({
         const promise =
             delete `domainVerificationToken/${projectId}/domain/${domainId}`;
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteProjectDomainSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 const errorMessage =
                     error.response && error.response.data
                         ? error.response.data
@@ -1101,10 +1113,10 @@ export const unVerifyProjectDomain = (
             `domainVerificationToken/${projectId}/unverify/${domainId}`
         );
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(unVerifyProjectDomainSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMessage =
                     error.response && error.response.data
                         ? error.response.data
@@ -1157,10 +1169,10 @@ export const resetProjectDomain = (
             `domainVerificationToken/${projectId}/resetDomain/${domainId}`
         );
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(resetProjectDomainSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMessage =
                     error.response && error.response.data
                         ? error.response.data

@@ -103,7 +103,7 @@ class ChangeMonitorComponent extends React.Component<ChangeMonitorComponentProps
         const { currentProject } = this.props;
         const { slug, componentId: newComponent } = monitor;
 
-        const redirectTo = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
+        const redirectTo:string = `/dashboard/project/${currentProject.slug}/component/${newComponent.slug}/monitoring/${slug}`;
 
         return history.push(redirectTo);
     };

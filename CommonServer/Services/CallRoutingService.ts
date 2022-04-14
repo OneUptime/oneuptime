@@ -19,7 +19,7 @@ import Model, {
 import DatabaseService from './DatabaseService';
 import CallRoutingLogService from './CallRoutingLogService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-export default class CallRoutingService extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,

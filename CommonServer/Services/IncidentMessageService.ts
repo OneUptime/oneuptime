@@ -47,7 +47,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         data.updated = true;
         let incidentMessage = await IncidentMessageModel.findOneAndUpdate(
             query,
@@ -78,7 +80,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const incidentMessageQuery = IncidentMessageModel.findOne(query)
             .sort(sort)
             .lean();
@@ -91,16 +95,26 @@ export default class Service {
     }
 
     async findBy({ query, skip, limit, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
-        if (!limit) limit = 0;
+        if (!skip) {
+            skip = 0;
+        }
+        if (!limit) {
+            limit = 0;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const incidentMessagesQuery = IncidentMessageModel.find(query)
             .lean()
             .sort(sort) // fetch from latest to oldest
@@ -116,7 +130,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const count = await IncidentMessageModel.countDocuments(query);
 

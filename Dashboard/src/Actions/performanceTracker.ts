@@ -50,10 +50,10 @@ export const createPerformanceTracker =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(createPerformanceTrackerSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -97,10 +97,10 @@ export const fetchPerformanceTracker =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchPerformanceTrackerSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -153,10 +153,10 @@ export const fetchPerformanceTrackers =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchPerformanceTrackersSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -201,10 +201,10 @@ export const updatePerformanceTracker =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(updatePerformanceTrackerSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -248,10 +248,10 @@ export const deletePerformanceTracker =
             delete `performanceTracker/${projectId}/tracker/${performanceTrackerId}`;
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deletePerformanceTrackerSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -298,10 +298,10 @@ export const resetPerformanceTrackerKey =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(resetPerformanceTrackerKeySuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -342,10 +342,10 @@ export const removeQuickStart =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(removeQuickStartSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -389,10 +389,10 @@ export const fetchLastMetrics =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchLastMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

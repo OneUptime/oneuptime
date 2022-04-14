@@ -39,10 +39,10 @@ export const getSmsTemplates = (projectId: ObjectID): void => {
         dispatch(smsTemplatesRequest(promise));
 
         promise.then(
-            function (sms): void {
+            (sms): void => {
                 dispatch(smsTemplatesSuccess(sms.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(smsTemplatesError(error));
             }
         );
@@ -83,7 +83,7 @@ export const editSmsTemplates = (projectId: ObjectID, data: $TSFixMe): void => {
         dispatch(editSmsTemplateRequest());
 
         promise.then(
-            function (smsTemplate): void {
+            (smsTemplate): void => {
                 dispatch(editSmsTemplateSuccess(smsTemplate.data));
             },
             error => {
@@ -128,10 +128,10 @@ export const resetSmsTemplates = (
         dispatch(resetSmsTemplatesRequest(promise));
 
         promise.then(
-            function (sms): void {
+            (sms): void => {
                 dispatch(resetSmsTemplatesSuccess(sms.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetSmsTemplatesError(error));
             }
         );
@@ -167,7 +167,7 @@ export const getSmtpConfig = (projectId: ObjectID): void => {
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 if (data.data && data.data.enabled) {
                     dispatch({
                         type: types.SET_SMTP_CONFIG,
@@ -182,7 +182,7 @@ export const getSmtpConfig = (projectId: ObjectID): void => {
 
                 dispatch(smtpConfigSuccess(data.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(smtpConfigError(error));
             }
         );
@@ -195,7 +195,7 @@ export const postSmtpConfig = (projectId: ObjectID, data: $TSFixMe): void => {
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 dispatch(smtpConfigSuccess(data.data));
 
                 if (data.data && data.data.enabled) {
@@ -210,7 +210,7 @@ export const postSmtpConfig = (projectId: ObjectID, data: $TSFixMe): void => {
                     });
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(smtpConfigError(error));
             }
         );
@@ -247,7 +247,7 @@ export const deleteSmtpConfig = (
         dispatch(deleteSmtpConfigRequest(promise));
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 dispatch(deleteSmtpConfigSuccess(data.data));
 
                 if (data.data && data.data.enabled) {
@@ -262,7 +262,7 @@ export const deleteSmtpConfig = (
                     });
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteSmtpConfigError(error));
             }
         );
@@ -279,7 +279,7 @@ export function updateSmtpConfig(
         dispatch(smtpConfigRequest(promise));
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 dispatch(smtpConfigSuccess(data.data));
 
                 if (data.data && data.data.enabled) {
@@ -294,7 +294,7 @@ export function updateSmtpConfig(
                     });
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(smtpConfigError(error));
             }
         );

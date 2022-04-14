@@ -47,7 +47,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query.deleted) delete query.deleted;
+        if (!query.deleted) {
+            delete query.deleted;
+        }
         const errorEventQuery = ErrorEventModel.findOne(query)
             .sort(sort)
             .lean();
@@ -58,9 +60,13 @@ export default class Service {
     }
     // get all error events that matches the specified query
     async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -74,7 +80,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query.deleted) delete query.deleted;
+        if (!query.deleted) {
+            delete query.deleted;
+        }
         const errorEventsQuery = ErrorEventModel.find(query)
             .lean()
             .sort(sort)
@@ -91,7 +99,9 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        if (!query.deleted) delete query.deleted;
+        if (!query.deleted) {
+            delete query.deleted;
+        }
         // get all unique hashes by error tracker Id
 
         const populateIssue = [
@@ -356,7 +366,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let errorEvent = await ErrorEventModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -381,7 +393,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const updateProcess = await ErrorEventModel.updateMany(query, {
             $set: data,
         });

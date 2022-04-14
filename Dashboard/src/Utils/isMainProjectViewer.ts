@@ -16,7 +16,9 @@ const isMainProjectViewer = (
         ? currentProject.users.find((user: $TSFixMe) => user.userId === userId)
         : null;
     if (user) {
-        if (user.role === 'Viewer') return true;
+        if (user.role === 'Viewer') {
+            return true;
+        }
         return false;
     }
     user =
@@ -29,7 +31,9 @@ const isMainProjectViewer = (
             : null;
     if (user && user.length > 0) {
         const member = user.find((user: $TSFixMe) => user.role !== 'Viewer');
-        if (member && member._id) return false;
+        if (member && member._id) {
+            return false;
+        }
         return true;
     }
     return false;

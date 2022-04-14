@@ -57,7 +57,7 @@ export const getVersion = (): void => {
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            function (versions): void {
+            (versions): void => {
                 let versionsObject = {};
                 versions.forEach(version => {
                     versionsObject = { ...versionsObject, ...version.data };
@@ -65,7 +65,7 @@ export const getVersion = (): void => {
 
                 dispatch(getVersionSuccess(versionsObject));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getVersionError(error));
             }
         );

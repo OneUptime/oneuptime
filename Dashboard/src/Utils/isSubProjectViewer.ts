@@ -13,7 +13,9 @@ const isSubProjectViewer = (userId: ObjectID, subProject: $TSFixMe): void => {
                   user.userId === userId && user.role === 'Viewer'
           )
         : null;
-    if (user) return true;
+    if (user) {
+        return true;
+    }
     return false;
 };
 

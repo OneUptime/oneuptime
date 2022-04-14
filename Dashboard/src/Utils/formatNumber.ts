@@ -1,7 +1,9 @@
 import { isNumber } from 'lodash';
 
 const format = (number: $TSFixMe): void => {
-    if (!isNumber(number)) return null;
+    if (!isNumber(number)) {
+        return null;
+    }
     let formattedValue = '';
     let index = 0;
     const formats = [

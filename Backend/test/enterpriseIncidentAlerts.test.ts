@@ -58,7 +58,7 @@ describe('Incident Alerts', function (): void {
             createEnterpriseUser(
                 request,
                 userData.user,
-                async function (err: $TSFixMe, res: $TSFixMe): void {
+                async (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
@@ -73,10 +73,7 @@ describe('Incident Alerts', function (): void {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(async function (
-                            err: $TSFixMe,
-                            res: $TSFixMe
-                        ): void {
+                        .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                             token = res.body.tokens.jwtAccessToken;
                             authorization = `Basic ${token}`;
 
@@ -164,7 +161,7 @@ describe('Incident Alerts', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
@@ -196,7 +193,7 @@ describe('Incident Alerts', function (): void {
          * Global twilio settings (SMS/Call) enable : true
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async function (): void {
+        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -281,7 +278,7 @@ describe('Incident Alerts', function (): void {
          * Global twilio settings Call enable : false
          */
 
-        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function (): void {
+        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -374,7 +371,7 @@ describe('Incident Alerts', function (): void {
          * Global twilio settings Call enable : true
          */
 
-        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function (): void {
+        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -472,7 +469,7 @@ describe('Incident Alerts', function (): void {
          * Global twilio settings Call enable : false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async function (): void {
+        it('should send SMS/Call alerts to on-call teams and subscriber even if the alerts are disabled in the global twilio settings.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -578,7 +575,7 @@ describe('Incident Alerts', function (): void {
          * Custom twilio settings: not set
          */
 
-        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function (): void {
+        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async (): void => {
             await GlobalConfigModel.deleteMany({
                 name: 'twilio',
             });

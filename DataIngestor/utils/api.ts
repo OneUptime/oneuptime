@@ -30,8 +30,9 @@ const _this = {
                     resolve(response.data);
                 })
                 .then(error => {
-                    if (error && error.response && error.response.data)
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -52,8 +53,9 @@ const _this = {
                     resolve(response.data);
                 })
                 .then(error => {
-                    if (error && error.response && error.response.data)
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -79,8 +81,9 @@ const _this = {
                     resolve(response.data);
                 })
                 .then(error => {
-                    if (error && error.response && error.response.data)
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -102,8 +105,9 @@ const _this = {
                     resolve(response.data);
                 })
                 .then(error => {
-                    if (error && error.response && error.response.data)
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }

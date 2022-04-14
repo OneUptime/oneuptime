@@ -52,39 +52,33 @@ describe('Incident Settings API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(90000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
+                                            const authorization: string = `Basic ${token}`;
                                             ComponentModel.create({
                                                 name: 'New Component',
                                                 projectId,
@@ -102,22 +96,26 @@ describe('Incident Settings API', function (): void {
                                                         ...monitor,
                                                         componentId,
                                                     })
-                                                    .end(async function (
-                                                        err: $TSFixMe,
-                                                        res: $TSFixMe
-                                                    ): void {
-                                                        monitorId =
-                                                            res.body._id;
-                                                        expect(
-                                                            res
-                                                        ).to.have.status(200);
-                                                        expect(
-                                                            res.body.name
-                                                        ).to.be.equal(
-                                                            monitor.name
-                                                        );
-                                                        done();
-                                                    });
+                                                    .end(
+                                                        async (
+                                                            err: $TSFixMe,
+                                                            res: $TSFixMe
+                                                        ): void => {
+                                                            monitorId =
+                                                                res.body._id;
+                                                            expect(
+                                                                res
+                                                            ).to.have.status(
+                                                                200
+                                                            );
+                                                            expect(
+                                                                res.body.name
+                                                            ).to.be.equal(
+                                                                monitor.name
+                                                            );
+                                                            done();
+                                                        }
+                                                    );
                                             });
                                         });
                                 });
@@ -128,7 +126,7 @@ describe('Incident Settings API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await IncidentService.hardDeleteBy({ _id: incidentId });
         await IncidentSettings.hardDeleteBy({ projectId });
@@ -142,7 +140,7 @@ describe('Incident Settings API', function (): void {
     });
 
     it('should return the list of the available variables', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get(`/incidentSettings/variables`)
             .set('Authorization', authorization);
@@ -155,7 +153,7 @@ describe('Incident Settings API', function (): void {
     });
 
     it('should return the default settings if no custom settings are defined', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get(`/incidentSettings/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
@@ -173,7 +171,7 @@ describe('Incident Settings API', function (): void {
     });
 
     it('should update the default incident settings.', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         const incidentPriorityObject = await IncidentPrioritiesService.findOne({
             query: {
                 projectId,
@@ -200,7 +198,7 @@ describe('Incident Settings API', function (): void {
     });
 
     it('should substitute variables with their values when an incident is created manually.', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         const payload = {
             ...incidentData,
             ...incidentSettings,

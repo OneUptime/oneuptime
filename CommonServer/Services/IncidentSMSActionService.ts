@@ -6,9 +6,7 @@ import Model, {
 } from '../Models/IncidentSMSAction';
 import DatabaseService from './DatabaseService';
 
-export default class IncidentSMSActionService extends DatabaseService<
-    typeof Model
-> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -61,3 +59,5 @@ export default class IncidentSMSActionService extends DatabaseService<
         });
     }
 }
+
+export default new Service();

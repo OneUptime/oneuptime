@@ -1489,9 +1489,12 @@ export default class TwilioService {
             'ninet',
         ];
 
-        if (number < 20) return special[number];
-        if (number % 10 === 0)
+        if (number < 20) {
+            return special[number];
+        }
+        if (number % 10 === 0) {
             return deca[Math.floor(number / 10) - 2] + 'ieth';
+        }
         return deca[Math.floor(number / 10) - 2] + 'y-' + special[number % 10];
     }
 
@@ -1530,7 +1533,7 @@ export default class TwilioService {
                 ? '123456'
                 : Math.random().toString(10).substr(2, 6);
             if (customTwilioSettings) {
-                const template = `Your verification code: ${alertPhoneVerificationCode}`;
+                const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
                 smsBody = template;
                 const options = {
                     body: template,
@@ -1573,7 +1576,7 @@ export default class TwilioService {
                         error.code = 400;
                         throw error;
                     }
-                    const template = `Your verification code: ${alertPhoneVerificationCode}`;
+                    const template: string = `Your verification code: ${alertPhoneVerificationCode}`;
                     smsBody = template;
                     const options = {
                         body: template,
@@ -1813,8 +1816,11 @@ export default class TwilioService {
                     ? currentPrice * 10
                     : basePrice * 10
                 : 'Not available';
-        if (currentPrice && !basePrice) price = currentPrice * 10;
-        else if (basePrice && !currentPrice) price = basePrice * 10;
+        if (currentPrice && !basePrice) {
+            price = currentPrice * 10;
+        } else if (basePrice && !currentPrice) {
+            price = basePrice * 10;
+        }
         return price;
     }
 

@@ -32,10 +32,10 @@ export const fetchTimeMetrics =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchTimeMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -79,10 +79,10 @@ export const fetchThroughputMetrics =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchThroughputMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -126,10 +126,10 @@ export const fetchErrorMetrics =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchErrorMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -245,10 +245,10 @@ export const fetchIncomingMetrics =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchIncomingMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -291,10 +291,10 @@ export const fetchOutgoingMetrics =
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchOutgoingMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -358,10 +358,10 @@ export const deleteIncomingMetrics =
             delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteIncomingMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -404,10 +404,10 @@ export const deleteOutgoingMetrics =
             delete `performanceMetric/${appId}/key/${key}/${metricId}`;
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteOutgoingMetricsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

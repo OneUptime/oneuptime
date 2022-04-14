@@ -26,8 +26,9 @@ export default class Service {
 
         await this.sendLighthouseLog(savedLog);
 
-        if (data.probeId && data.monitorId)
+        if (data.probeId && data.monitorId) {
             await probeService.sendProbe(data.probeId, data.monitorId);
+        }
 
         return savedLog;
     }
@@ -65,9 +66,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -114,9 +119,13 @@ export default class Service {
     }
 
     async findLastestScan({ monitorId, url, skip, limit }: $TSFixMe): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);

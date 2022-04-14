@@ -85,7 +85,7 @@ async function rename(
 ): void {
     return global.db
         .listCollections({ name: oldCollectionName })
-        .next(function (err: $TSFixMe, collinfo: $TSFixMe): void {
+        .next((err: $TSFixMe, collinfo: $TSFixMe): void => {
             if (collinfo) {
                 // The collection exists
 

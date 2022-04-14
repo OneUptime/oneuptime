@@ -49,11 +49,11 @@ describe('Webhook API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                async function (err: $TSFixMe, res: $TSFixMe): void {
+                async (err: $TSFixMe, res: $TSFixMe): void => {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
@@ -65,29 +65,23 @@ describe('Webhook API', function (): void {
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
+                                            const authorization: string = `Basic ${token}`;
                                             request
                                                 .post(`/monitor/${projectId}`)
                                                 .set(
@@ -95,23 +89,26 @@ describe('Webhook API', function (): void {
                                                     authorization
                                                 )
                                                 .send(monitor)
-                                                .end(function (
-                                                    err: $TSFixMe,
-                                                    res: $TSFixMe
-                                                ) {
-                                                    monitorId = res.body._id;
-                                                    msTeamsPayload.monitorId =
-                                                        monitorId;
-                                                    slackPayload.monitorId =
-                                                        monitorId;
-                                                    expect(res).to.have.status(
-                                                        200
-                                                    );
-                                                    expect(res.body).to.be.an(
-                                                        'object'
-                                                    );
-                                                    done();
-                                                });
+                                                .end(
+                                                    (
+                                                        err: $TSFixMe,
+                                                        res: $TSFixMe
+                                                    ) => {
+                                                        monitorId =
+                                                            res.body._id;
+                                                        msTeamsPayload.monitorId =
+                                                            monitorId;
+                                                        slackPayload.monitorId =
+                                                            monitorId;
+                                                        expect(
+                                                            res
+                                                        ).to.have.status(200);
+                                                        expect(
+                                                            res.body
+                                                        ).to.be.an('object');
+                                                        done();
+                                                    }
+                                                );
                                         });
                                 });
                         }
@@ -121,7 +118,7 @@ describe('Webhook API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -142,17 +139,17 @@ describe('Webhook API', function (): void {
 
     //MS Teams
 
-    it('should prevent unauthenticated users from creating webhooks.', function (done: $TSFixMe): void {
+    it('should prevent unauthenticated users from creating webhooks.', (done: $TSFixMe): void => {
         request
             .post(`/webhook/${projectId}/create`)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject requests missing the endpoint.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should reject requests missing the endpoint.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
 
         delete payload.endpoint;
@@ -160,14 +157,14 @@ describe('Webhook API', function (): void {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should reject requests missing the monitorId.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should reject requests missing the monitorId.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
 
         delete payload.monitorId;
@@ -175,14 +172,14 @@ describe('Webhook API', function (): void {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should reject requests missing the integration type.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should reject requests missing the integration type.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
 
         delete payload.type;
@@ -190,19 +187,19 @@ describe('Webhook API', function (): void {
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create msteams webhook.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create msteams webhook.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -214,27 +211,27 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create msteams webhook, with the same integration type and endpoint, for the same monitorId.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(msTeamsPayload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create msteams webhook with a different endpoint.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create msteams webhook with a different endpoint.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
         payload.endpoint = 'http://test1.hackerbay.io';
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -246,15 +243,15 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should update the msteams webhook.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should update the msteams webhook.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...msTeamsPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
         request
             .put(`/webhook/${projectId}/${msTeamsId}`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -265,12 +262,12 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should return the list of msteams webhook.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should return the list of msteams webhook.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/webhook/${projectId}/hooks?type=msteams`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -280,12 +277,12 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should delete msteams webhooks.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete msteams webhooks.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/webhook/${projectId}/delete/${msTeamsId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -298,13 +295,13 @@ describe('Webhook API', function (): void {
     });
     //Slack
 
-    it('should create slack webhook.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create slack webhook.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(slackPayload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -316,27 +313,27 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should not create slack webhook, with the same integration type and endpoint, for the same monitorId.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create slack webhook, with the same integration type and endpoint, for the same monitorId.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(slackPayload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create slack webhook with a different endpoint.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create slack webhook with a different endpoint.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...slackPayload };
         payload.endpoint = 'http://test1.slack.hackerbay.io';
         request
             .post(`/webhook/${projectId}/create`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -348,15 +345,15 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should update the slack webhook.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should update the slack webhook.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const payload = { ...slackPayload };
         payload.endpoint = 'http://newlink.hackerbay.io';
         request
             .put(`/webhook/${projectId}/${slackId}`)
             .set('Authorization', authorization)
             .send(payload)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -367,12 +364,12 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should return the list of slack webhook.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should return the list of slack webhook.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/webhook/${projectId}/hooks?type=slack`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -382,12 +379,12 @@ describe('Webhook API', function (): void {
             });
     });
 
-    it('should delete slack webhooks.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete slack webhooks.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/webhook/${projectId}/delete/${slackId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');

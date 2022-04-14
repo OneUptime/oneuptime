@@ -47,7 +47,7 @@ describe('Email Template API', function (): void {
         token = res1.body.tokens.jwtAccessToken;
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -66,8 +66,8 @@ describe('Email Template API', function (): void {
 
     // 'post /:projectId'
 
-    it('should create an email template with valid data', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should create an email template with valid data', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .post(`/emailTemplate/${projectId}`)
             .set('Authorization', authorization)
@@ -82,8 +82,8 @@ describe('Email Template API', function (): void {
         expect(res.body.subject).to.be.equal('Mail Subject');
     });
 
-    it('should sanitize dirty template data sent to endpoint', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should sanitize dirty template data sent to endpoint', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .post(`/emailTemplate/${projectId}`)
             .set('Authorization', authorization)
@@ -98,8 +98,8 @@ describe('Email Template API', function (): void {
         );
     });
 
-    it('should get an array of email templates by valid projectId', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should get an array of email templates by valid projectId', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get(`/emailTemplate/${projectId}`)
             .set('Authorization', authorization);
@@ -107,8 +107,8 @@ describe('Email Template API', function (): void {
         expect(res.body).to.be.an('array');
     });
 
-    it('should get an email template by valid emailTemplateId', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should get an email template by valid emailTemplateId', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`)
             .set('Authorization', authorization);
@@ -117,8 +117,8 @@ describe('Email Template API', function (): void {
         expect(res.body).to.be.an('object');
     });
 
-    it('should update an email template by valid emailTemplateId', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should update an email template by valid emailTemplateId', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .put(`/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`)
             .set('Authorization', authorization)
@@ -130,8 +130,8 @@ describe('Email Template API', function (): void {
         expect(res.body.subject).to.be.equal('New Mail Subject');
     });
 
-    it('should update default email template', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should update default email template', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .put(`/emailTemplate/${projectId}`)
             .set('Authorization', authorization)
@@ -147,8 +147,8 @@ describe('Email Template API', function (): void {
         expect(res.body[1].subject).to.be.equal('Updated Mail Subject');
     });
 
-    it('should deleted an email template', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should deleted an email template', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .delete(
                 `/emailTemplate/${projectId}/emailTemplate/${emailTemplateId}`

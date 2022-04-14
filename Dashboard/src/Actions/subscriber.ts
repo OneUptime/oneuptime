@@ -50,10 +50,10 @@ export function createSubscriber(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            function (createSubscriber): void {
+            (createSubscriber): void => {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createSubscriberError(error));
             }
         );
@@ -107,12 +107,12 @@ export function exportCSV(
         dispatch(exportCsvRequest(promise));
 
         promise.then(
-            function (csvData): void {
+            (csvData): void => {
                 saveFile(csvData.data.data, 'subscriber.csv');
 
                 dispatch(exportCsvSuccess(csvData.data.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(exportCsvError(error));
             }
         );
@@ -161,7 +161,7 @@ export const deleteSubscriber = (
         dispatch(deleteSubscriberRequest(promise));
 
         promise.then(
-            function (subscriber): void {
+            (subscriber): void => {
                 dispatch(deleteSubscriberSuccess(subscriber.data));
                 dispatch({
                     type: 'REMOVE_MONITORS_SUBSCRIBERS',
@@ -169,7 +169,7 @@ export const deleteSubscriber = (
                     payload: subscriber.data,
                 });
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteSubscriberError(error));
             }
         );
@@ -235,10 +235,10 @@ export function importSubscribersFromCsvFile(
         dispatch(createSubscriberRequest(promise));
 
         promise.then(
-            function (createSubscriber): void {
+            (createSubscriber): void => {
                 dispatch(createSubscriberSuccess(createSubscriber.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createSubscriberError(error));
             }
         );

@@ -31,8 +31,9 @@ const createSso = async (page: $TSFixMe, data: $TSFixMe): void => {
 
     await init.pageWaitForSelector(page, '#save-button');
 
-    if (data['saml-enabled'])
+    if (data['saml-enabled']) {
         await init.pageClick(page, '#saml-enabled-slider');
+    }
 
     await init.pageClick(page, '#domain');
 

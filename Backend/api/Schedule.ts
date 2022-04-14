@@ -22,7 +22,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
 
@@ -120,7 +120,7 @@ router.get(
     '/:projectId/schedule',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const projectId = req.params.projectId;
             const populate = [
@@ -448,7 +448,9 @@ router.post(
 
                 storagevalue.createdById = userId;
 
-                if (value._id) storagevalue._id = value._id;
+                if (value._id) {
+                    storagevalue._id = value._id;
+                }
 
                 for (const team of value.teams) {
                     const rotationData = {};

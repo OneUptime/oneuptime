@@ -106,7 +106,9 @@ export const Validate = {
     },
 
     email(email: $TSFixMe) {
-        if (this.text(email)) return isEmail(email);
+        if (this.text(email)) {
+            return isEmail(email);
+        }
 
         return false;
     },
@@ -117,12 +119,18 @@ export const Validate = {
 };
 
 export const getQueryVar = (variable: $TSFixMe, url: URL): void => {
-    if (!url) url = window.location.href;
+    if (!url) {
+        url = window.location.href;
+    }
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
         results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
+    if (!results) {
+        return null;
+    }
+    if (!results[2]) {
+        return '';
+    }
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 };
 
@@ -206,7 +214,9 @@ export const getServiceStatus = (
     });
 
     if (onlineServices === totalServices) {
-        if (degraded !== 0) return 'some-degraded';
+        if (degraded !== 0) {
+            return 'some-degraded';
+        }
         return 'all';
     } else if (onlineServices === 0) {
         return 'none';
@@ -248,7 +258,9 @@ export const formatBytes = (
 };
 
 export const capitalize = (words: $TSFixMe): void => {
-    if (!words || !words.trim()) return '';
+    if (!words || !words.trim()) {
+        return '';
+    }
 
     words = words.split(' ');
     words = words.map(

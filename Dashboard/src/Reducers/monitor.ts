@@ -379,28 +379,36 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                     subProjectMonitors[monitorIndex]
                                 );
 
-                                if (!newMonitor.logs)
+                                if (!newMonitor.logs) {
                                     newMonitor.logs = oldMonitor.logs;
-                                if (!newMonitor.statuses)
+                                }
+                                if (!newMonitor.statuses) {
                                     newMonitor.statuses = oldMonitor.statuses;
+                                }
                                 if (!newMonitor.currentLighthouseLog) {
                                     newMonitor.currentLighthouseLog =
                                         oldMonitor.currentLighthouseLog;
                                 }
-                                if (!newMonitor.lighthouseLogs)
+                                if (!newMonitor.lighthouseLogs) {
                                     newMonitor.lighthouseLogs =
                                         oldMonitor.lighthouseLogs;
-                                if (!newMonitor.incidents)
+                                }
+                                if (!newMonitor.incidents) {
                                     newMonitor.incidents = oldMonitor.incidents;
-                                if (!newMonitor.subscribers)
+                                }
+                                if (!newMonitor.subscribers) {
                                     newMonitor.subscribers =
                                         oldMonitor.subscribers;
-                                if (!newMonitor.skip)
+                                }
+                                if (!newMonitor.skip) {
                                     newMonitor.skip = oldMonitor.skip;
-                                if (!newMonitor.limit)
+                                }
+                                if (!newMonitor.limit) {
                                     newMonitor.limit = oldMonitor.limit;
-                                if (!newMonitor.count)
+                                }
+                                if (!newMonitor.count) {
                                     newMonitor.count = oldMonitor.count;
+                                }
 
                                 subProjectMonitors[monitorIndex] = newMonitor;
                             } else {
@@ -468,9 +476,11 @@ export default function monitor(state = INITIAL_STATE, action: Action): void {
                                     i === action.payload ||
                                     monitor._id === action.payload
                                 ) {
-                                    if (!monitor.editMode)
+                                    if (!monitor.editMode) {
                                         monitor.editMode = true;
-                                    else monitor.editMode = false;
+                                    } else {
+                                        monitor.editMode = false;
+                                    }
                                     return monitor;
                                 } else {
                                     monitor.editMode = false;

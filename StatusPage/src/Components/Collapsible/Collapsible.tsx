@@ -294,7 +294,7 @@ class Collapsible extends Component<ComponentProps> {
                 : this.props.children;
 
         // Construct CSS classes strings
-        const triggerClassString = `${this.props.classParentString
+        const triggerClassString:string = `${this.props.classParentString
             }__trigger ${openClass} ${disabledClass} ${this.state.isClosed
 
                 ? this.props.triggerClassName
@@ -302,16 +302,16 @@ class Collapsible extends Component<ComponentProps> {
                 : this.props.triggerOpenedClassName
             }`;
 
-        const parentClassString = `${this.props.classParentString} ${this.state.isClosed
+        const parentClassString:string = `${this.props.classParentString} ${this.state.isClosed
 
             ? this.props.className
 
             : this.props.openedClassName
             }`;
 
-        const outerClassString = `${this.props.classParentString}__contentOuter ${this.props.contentOuterClassName}`;
+        const outerClassString:string = `${this.props.classParentString}__contentOuter ${this.props.contentOuterClassName}`;
 
-        const innerClassString = `${this.props.classParentString}__contentInner ${this.props.contentInnerClassName}`;
+        const innerClassString:string = `${this.props.classParentString}__contentInner ${this.props.contentInnerClassName}`;
 
         return (
             <ContentContainerElement

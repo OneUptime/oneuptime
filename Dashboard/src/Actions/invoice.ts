@@ -72,7 +72,7 @@ export function getInvoice(
         dispatch(getInvoiceRequest(promise));
 
         promise.then(
-            function (invoices): void {
+            (invoices): void => {
                 dispatch(getInvoiceSuccess(invoices.data));
                 if (reqFornext) {
                     dispatch(incrementNextCount());
@@ -81,7 +81,7 @@ export function getInvoice(
                     dispatch(decrementNextCount());
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getInvoiceError(error));
             }
         );

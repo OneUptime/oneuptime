@@ -71,7 +71,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should send test smtp email to the provided email address', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value name',
@@ -96,7 +96,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not send test smtp email when user or pass is not valid', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value name',
@@ -121,7 +121,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not send test smtp email when host or port is invalid', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
             select: 'value',
@@ -147,7 +147,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should save custom SMTP settings', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         const data = {
             ...smtpCredential,
         };
@@ -163,7 +163,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not save custom SMTP settings if user name is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let user;
         const data = {
             ...smtpCredential,
@@ -179,7 +179,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not save custom SMTP settings if password is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let pass;
         const data = {
             ...smtpCredential,
@@ -195,7 +195,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not save custom SMTP settings if host is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let host;
         const data = {
             ...smtpCredential,
@@ -211,7 +211,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not save custom SMTP settings if port is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let port;
         const data = {
             ...smtpCredential,
@@ -226,7 +226,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not save custom SMTP settings if from is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let from;
         const data = {
             ...smtpCredential,
@@ -241,7 +241,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not save custom SMTP settings if name is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let name;
         const data = {
             ...smtpCredential,
@@ -256,7 +256,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should update a custom SMTP settings', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         const data = { ...smtpCredential, from: 'info@gmail.com' };
         const res = await request
             .put(`/emailSmtp/${projectId}/${emailSmtpId}`)
@@ -267,7 +267,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not update custom SMTP settings if user name is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let user;
         const data = {
             ...smtpCredential,
@@ -282,7 +282,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not update custom SMTP settings if password is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let pass;
         const data = {
             ...smtpCredential,
@@ -298,7 +298,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not update custom SMTP settings if host is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let host;
         const data = {
             ...smtpCredential,
@@ -315,7 +315,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not update custom SMTP settings if port is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let port;
         const data = {
             ...smtpCredential,
@@ -331,7 +331,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not update custom SMTP settings if from is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let from;
         const data = {
             ...smtpCredential,
@@ -346,7 +346,7 @@ describe('Email SMTP Api Test', function (): void {
     });
 
     it('should not update custom SMTP settings if name is missing', async () => {
-        const authorization = `Basic ${jwtToken}`;
+        const authorization: string = `Basic ${jwtToken}`;
         let name;
         const data = {
             ...smtpCredential,

@@ -31,7 +31,7 @@ class ResourceTabularList extends Component<ComponentProps> {
     generateUrlLink(componentResource: $TSFixMe) {
 
         const { currentProject, componentSlug } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
+        const baseUrl:string = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':

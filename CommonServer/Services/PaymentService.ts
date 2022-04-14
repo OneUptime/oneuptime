@@ -286,7 +286,9 @@ export default class Service {
     //Returns : promise
 
     async changeSeats(subscriptionId, seats): void {
-        if (subscriptionId === null) return;
+        if (subscriptionId === null) {
+            return;
+        }
 
         let subscription = await stripe.subscriptions.retrieve(subscriptionId);
 

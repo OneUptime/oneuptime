@@ -5,7 +5,9 @@ const testAuth = (z: $TSFixMe, bundle: $TSFixMe): void => {
 
     // This method can return any truthy value to indicate the credentials are valid.
     // Raise an error to show
-    if (bundle.cleanedRequest) return bundle.cleanedRequest;
+    if (bundle.cleanedRequest) {
+        return bundle.cleanedRequest;
+    }
     return z
         .request({
             url: `${bundle.authData.serverUrl}/zapier/test`,

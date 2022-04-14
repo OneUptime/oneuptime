@@ -59,7 +59,7 @@ describe('Twilio API', function (): void {
         });
         expect(res).to.have.status(200);
         token = res.body.tokens.jwtAccessToken;
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         res = await request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -75,7 +75,7 @@ describe('Twilio API', function (): void {
         expect(res.body).to.be.an('object');
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -93,8 +93,8 @@ describe('Twilio API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should send verification sms code for adding alert phone number', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should send verification sms code for adding alert phone number', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .post(`/twilio/sms/sendVerificationToken?projectId=${projectId}`)
             .set('Authorization', authorization)
@@ -104,8 +104,8 @@ describe('Twilio API', function (): void {
         expect(res).to.have.status(200);
     });
 
-    it('should send test sms to the provided phone number', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should send test sms to the provided phone number', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value',
@@ -127,8 +127,8 @@ describe('Twilio API', function (): void {
         expect(res.body).to.have.property('message');
     });
 
-    it('should return status code 400 when any of the payload field is missing', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should return status code 400 when any of the payload field is missing', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value',
@@ -148,8 +148,8 @@ describe('Twilio API', function (): void {
         expect(res).to.have.status(400);
     });
 
-    it('should return status code 400 when accountSid is invalid', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should return status code 400 when accountSid is invalid', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',
@@ -171,8 +171,8 @@ describe('Twilio API', function (): void {
         expect(res).to.have.status(400);
     });
 
-    it('should return status code 400 when authToken is invalid', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should return status code 400 when authToken is invalid', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
             select: 'value name',

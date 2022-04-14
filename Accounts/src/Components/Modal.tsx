@@ -51,7 +51,7 @@ const composableComponent = (ComposedComponent: $TSFixMe) => {
 
             const { extraClasses } = this.props.item;
 
-            const mainClass = `${extraClasses || ''} modal-dialog-view`;
+            const mainClass:string = `${extraClasses || ''} modal-dialog-view`;
             const modalContainerStyle = {
                 overflowX: 'auto',
                 overflowY: 'scroll',

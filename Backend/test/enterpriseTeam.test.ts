@@ -23,11 +23,11 @@ describe('Enterprise Team API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -37,7 +37,7 @@ describe('Enterprise Team API', function (): void {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -46,7 +46,7 @@ describe('Enterprise Team API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -58,8 +58,8 @@ describe('Enterprise Team API', function (): void {
         });
     });
 
-    it('should add new user with valid details for project with no billing plan', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should add new user with valid details for project with no billing plan', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/team/${projectId}`)
             .set('Authorization', authorization)
@@ -67,7 +67,7 @@ describe('Enterprise Team API', function (): void {
                 emails: teamEmail,
                 role: 'Member',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res.body[0].team[0].userId).to.be.a('string');
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');

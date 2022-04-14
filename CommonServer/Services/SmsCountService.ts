@@ -8,7 +8,7 @@ import Model, {
 } from '../Models/SmsCount';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
-export default class SslService extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,

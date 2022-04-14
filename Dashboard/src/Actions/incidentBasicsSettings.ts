@@ -25,14 +25,14 @@ export const fetchBasicIncidentSettingsVariables = (): void => {
         const promise = BackendAPI.get(`incidentSettings/variables`);
         dispatch(fetchBasicIncidentSettingsVariablesRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(
                     fetchBasicIncidentSettingsVariablesSuccess(
                         incidentBasicSettings.data
                     )
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchBasicIncidentSettingsVariablesFailure(error));
             }
         );
@@ -65,17 +65,17 @@ export const fetchIncidentTemplatesFailure = (error: ErrorPayload): void => ({
 export const fetchIncidentTemplates =
     ({ projectId, skip, limit }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
+        const url: string = `incidentSettings/${projectId}?skip=${skip}&limit=${limit}`;
 
         const promise = BackendAPI.get(url);
         dispatch(fetchIncidentTemplatesRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(
                     fetchIncidentTemplatesSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchIncidentTemplatesFailure(error));
             }
         );
@@ -101,17 +101,17 @@ export const createIncidentTemplateFailure = (error: ErrorPayload): void => ({
 export const createIncidentTemplate =
     ({ projectId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}`;
+        const url: string = `incidentSettings/${projectId}`;
 
         const promise = BackendAPI.post(url, data);
         dispatch(createIncidentTemplateRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(
                     createIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createIncidentTemplateFailure(error));
             }
         );
@@ -137,17 +137,17 @@ export const updateIncidentTemplateFailure = (error: ErrorPayload): void => ({
 export const updateIncidentTemplate =
     ({ projectId, templateId, data }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/${templateId}`;
+        const url: string = `incidentSettings/${projectId}/${templateId}`;
 
         const promise = BackendAPI.put(url, data);
         dispatch(updateIncidentTemplateRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(
                     updateIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateIncidentTemplateFailure(error));
             }
         );
@@ -173,17 +173,17 @@ export const deleteIncidentTemplateFailure = (error: ErrorPayload): void => ({
 export const deleteIncidentTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/${templateId}`;
+        const url: string = `incidentSettings/${projectId}/${templateId}`;
 
         const promise = BackendAPI.delete(url);
         dispatch(deleteIncidentTemplateRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(
                     deleteIncidentTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteIncidentTemplateFailure(error));
             }
         );
@@ -209,15 +209,15 @@ export const setDefaultTemplateFailure = (error: ErrorPayload): void => ({
 export const setDefaultTemplate =
     ({ projectId, templateId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/${templateId}/setDefault`;
+        const url: string = `incidentSettings/${projectId}/${templateId}/setDefault`;
 
         const promise = BackendAPI.put(url, {});
         dispatch(setDefaultTemplateRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(setDefaultTemplateSuccess(incidentBasicSettings.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(setDefaultTemplateFailure(error));
             }
         );
@@ -249,17 +249,17 @@ export const fetchDefaultTemplateFailure = (error: ErrorPayload): void => ({
 export const fetchDefaultTemplate =
     ({ projectId }: $TSFixMe) =>
     (dispatch: Dispatch) => {
-        const url = `incidentSettings/${projectId}/default`;
+        const url: string = `incidentSettings/${projectId}/default`;
 
         const promise = BackendAPI.get(url);
         dispatch(fetchDefaultTemplateRequest());
         promise.then(
-            function (incidentBasicSettings): void {
+            (incidentBasicSettings): void => {
                 dispatch(
                     fetchDefaultTemplateSuccess(incidentBasicSettings.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchDefaultTemplateFailure(error));
             }
         );

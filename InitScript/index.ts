@@ -37,7 +37,7 @@ if (process.env['NODE_ENV'] === 'development') {
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
     app.use(bodyParser.json({ limit: '10mb' }));
 
-    app.listen(1447, function (): void {
+    app.listen(1447, (): void => {
         logger.info('Server running on: 1447');
     });
 

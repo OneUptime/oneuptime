@@ -388,9 +388,10 @@ router.get('/sso/login', async (req: ExpressRequest, res: ExpressResponse) => {
         sp.create_login_request_url(
             idp,
             {},
-            function (error: $TSFixMe, login_url: URL): void {
-                if (error != null)
+            (error: $TSFixMe, login_url: URL): void => {
+                if (error != null) {
                     return sendErrorResponse(req, res, error as Exception);
+                }
                 return sendItemResponse(req, res, { url: login_url });
             }
         );
@@ -448,12 +449,13 @@ router.post(
         sp.post_assert(
             idp,
             options,
-            async function (err: $TSFixMe, saml_response: $TSFixMe): void {
-                if (err != null)
+            async (err: $TSFixMe, saml_response: $TSFixMe): void => {
+                if (err != null) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'Invalid request',
                     });
+                }
 
                 // The structure of the saml_response is not the same from the different servers.
                 const email =
@@ -479,17 +481,19 @@ router.post(
                     select: '_id domain saml-enabled',
                 });
 
-                if (!sso)
+                if (!sso) {
                     return sendErrorResponse(req, res, {
                         code: 400,
                         message: 'SSO not defined for the domain.',
                     });
+                }
 
-                if (!sso['saml-enabled'])
+                if (!sso['saml-enabled']) {
                     return sendErrorResponse(req, res, {
                         code: 401,
                         message: 'SSO is disabled for the domain.',
                     });
+                }
 
                 let user = await UserService.findOneBy({
                     query: { email },
@@ -740,12 +744,13 @@ router.post(
                         'This backup code was used once, use another backup code.',
                 });
             }
-            if (backupCode.length > 0)
+            if (backupCode.length > 0) {
                 user = await UserService.verifyUserBackupCode(
                     data.code,
                     user.twoFactorSecretCode,
                     backupCode[0].counter
                 );
+            }
             if (backupCode.length === 0 || !user || !user._id) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -915,7 +920,7 @@ router.post(
             // Call the UserService.
             const user = await UserService.forgotPassword(data.email);
 
-            const tokenVerifyUrl = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
+            const tokenVerifyUrl: string = `${global.accountsHost}/change-password/${user.resetPasswordToken}`;
 
             // Call the MailService.
             MailService.sendForgotPasswordMail(tokenVerifyUrl, user.email);
@@ -1054,7 +1059,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 const userId = req.user ? req.user.id : null;
                 const data = req.body;
 
@@ -1073,14 +1078,16 @@ router.put(
                     select: 'email tempEmail alertPhoneNumber isVerified name _id',
                 });
                 if (data.email !== userData.email) {
-                    if (data.email === userData.tempEmail) delete data.email;
-                    else {
+                    if (data.email === userData.tempEmail) {
+                        delete data.email;
+                    } else {
                         await UserService.sendToken(userData, data.email);
                         delete data.email;
                     }
                 }
-                if (data.alertPhoneNumber !== userData.alertPhoneNumber)
+                if (data.alertPhoneNumber !== userData.alertPhoneNumber) {
                     delete data.alertPhoneNumber;
+                }
                 // Call the UserService
                 const user = await UserService.updateOneBy(
                     { _id: userId },
@@ -1149,7 +1156,7 @@ router.put(
     '/profile/:userId',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const upload = multer({
                 storage,
@@ -1160,7 +1167,7 @@ router.put(
                 },
             ]);
 
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 const userId = req.params.userId;
                 const data = req.body;
 
@@ -1485,7 +1492,7 @@ router.get(
     '/users/:userId',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.params.userId;
             const select =
@@ -1536,7 +1543,7 @@ router.put(
     '/:userId/restoreUser',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.params.userId;
 
@@ -1564,7 +1571,7 @@ router.put(
     '/:userId/blockUser',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.params.userId;
 
@@ -1592,7 +1599,7 @@ router.put(
     '/:userId/unblockUser',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.params.userId;
 
@@ -1684,7 +1691,7 @@ router.post(
     '/:userId/addNote',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.params.userId;
             if (Array.isArray(req.body)) {
@@ -1733,7 +1740,7 @@ router.post(
     '/users/search',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const filter = req.body.filter;
             const skip = req.query['skip'] || 0;

@@ -134,7 +134,7 @@ describe('API Monitor API', () => {
                 page
             );
 
-            const editButtonSelector = `#edit_${testMonitorName}`;
+            const editButtonSelector: string = `#edit_${testMonitorName}`;
             await init.pageWaitForSelector(page, editButtonSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -469,7 +469,7 @@ describe('API Monitor API', () => {
                 testMonitorName,
                 page
             );
-            const deleteButtonSelector = `#delete_${testMonitorName}`;
+            const deleteButtonSelector: string = `#delete_${testMonitorName}`;
 
             await init.pageWaitForSelector(page, deleteButtonSelector);
             await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) =>
@@ -485,7 +485,7 @@ describe('API Monitor API', () => {
                 hidden: true,
             });
 
-            const selector = `span#monitor-title-${testMonitorName}`;
+            const selector: string = `span#monitor-title-${testMonitorName}`;
             const spanElement = await init.page$(page, selector, {
                 hidden: true,
             });

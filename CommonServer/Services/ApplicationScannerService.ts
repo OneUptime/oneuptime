@@ -11,7 +11,7 @@ import Document from '../Infrastructure/ORM';
 import OneUptimeDate from 'Common/Types/Date';
 import ObjectID from 'Common/Types/ObjectID';
 
-export default class SslService extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,

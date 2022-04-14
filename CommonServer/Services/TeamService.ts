@@ -164,7 +164,7 @@ export default class Service {
 
         //Checks if users to be added to project are not duplicate.
         let duplicateEmail = false;
-        emails.forEach(function (element: $TSFixMe, index: $TSFixMe): void {
+        emails.forEach((element: $TSFixMe, index: $TSFixMe): void => {
             // Find if there is a duplicate or not
             if (emails.indexOf(element, index + 1) > -1) {
                 duplicateEmail = true;
@@ -369,7 +369,7 @@ export default class Service {
         let members = [];
 
         for (const member of invitedTeamMembers) {
-            let registerUrl = `${global.accountsHost}/register`;
+            let registerUrl: string = `${global.accountsHost}/register`;
             if (member.name) {
                 projectUsers = await this.getTeamMembersBy({
                     parentProjectId: project._id,

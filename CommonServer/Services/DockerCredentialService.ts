@@ -12,9 +12,7 @@ import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 
-export default class DockerCredentialService extends DatabaseService<
-    typeof Model
-> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,

@@ -42,12 +42,12 @@ export const createAutomatedScript = (
         dispatch(createAutomatedScriptRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(createAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -103,12 +103,12 @@ export function updateAutomatedScript(
         dispatch(updateAutomatedScriptRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(updateAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -164,10 +164,10 @@ export function fetchSingleAutomatedScript(
         dispatch(fetchSingleAutomatedScriptRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchSingleAutomatedScriptSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -212,10 +212,10 @@ export function fetchAutomatedScript(
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchAutomatedScriptSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchAutomatedScriptFailure(error));
             }
         );
@@ -253,12 +253,12 @@ export const runScript = (
         dispatch(runAutomatedScriptRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(runAutomatedScriptSuccess(response.data));
 
                 return response.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(runAutomatedScriptFailure(error));
             }
         );
@@ -297,11 +297,11 @@ export function deleteAutomatedScript(
         dispatch(deleteAutomatedScriptRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteAutomatedScriptSuccess(response.data));
                 return true;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteAutomatedScriptFailure(error));
                 return false;
             }

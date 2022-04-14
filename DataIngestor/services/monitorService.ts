@@ -121,8 +121,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const monitor = await monitorCollection.findOne(query);
         return monitor;

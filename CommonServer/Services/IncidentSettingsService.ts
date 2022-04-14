@@ -55,17 +55,29 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
-        if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') {
+            skip = Number(skip);
+        }
 
-        if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const responseQuery = incidentSettingsModel
             .find(query)
@@ -85,12 +97,18 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         return await incidentSettingsModel.countDocuments(query);
     }
     async findOne({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) query = {};
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query) {
+            query = {};
+        }
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const responseQuery = incidentSettingsModel
             .findOne(query)
@@ -104,8 +122,12 @@ export default class Service {
     }
 
     async updateOne(query: Query, data: $TSFixMe): void {
-        if (!query) query = {};
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query) {
+            query = {};
+        }
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         if (data.name && query.projectId && query._id) {
             const incidentSetting = await this.findOne({
@@ -160,7 +182,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await incidentSettingsModel.updateMany(query, {
             $set: data,
         });

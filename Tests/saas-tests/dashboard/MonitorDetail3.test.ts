@@ -73,7 +73,7 @@ describe('Monitor Detail API', () => {
             });
 
             //Only the NAME is rendered as well as the ACTIONS to be performed.
-            const createdWebhookSelector = `#name_slack_${webHookName}`;
+            const createdWebhookSelector: string = `#name_slack_${webHookName}`;
 
             await init.page$Eval(page, '#createSlack', (e: $TSFixMe) =>
                 e.click()
@@ -108,7 +108,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const existingWebhookSelector = `#name_slack_${webHookName}`;
+            const existingWebhookSelector: string = `#name_slack_${webHookName}`;
 
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
@@ -120,7 +120,7 @@ describe('Monitor Detail API', () => {
 
             expect(existingWebhookName).toEqual(webHookName);
 
-            const editWebhookButtonSelector = `#edit_slack_${webHookName}`;
+            const editWebhookButtonSelector: string = `#edit_slack_${webHookName}`;
             await init.page$Eval(
                 page,
                 editWebhookButtonSelector,
@@ -177,7 +177,7 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(1);
 
-            const deleteWebhookButtonSelector = `#delete_slack_${newWebHookName}`;
+            const deleteWebhookButtonSelector: string = `#delete_slack_${newWebHookName}`;
             await init.page$Eval(
                 page,
                 deleteWebhookButtonSelector,

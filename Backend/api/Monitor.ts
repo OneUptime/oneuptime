@@ -45,7 +45,7 @@ router.post(
     getUser,
     isAuthorized,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
             const projectId = req.params.projectId;
@@ -293,7 +293,7 @@ router.post(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 let identityFile;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -325,7 +325,7 @@ router.post(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 let configurationFile;
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
@@ -446,7 +446,7 @@ router.get(
     getUser,
     isAuthorized,
     getSubProjects,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const subProjectIds = req.user.subProjects
                 ? req.user.subProjects.map((project: $TSFixMe) => project._id)
@@ -470,7 +470,7 @@ router.get(
     '/:projectId/paginated',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             // const { projectId } = req.params;
             const { skip, limit, componentSlug } = req.query;
@@ -625,15 +625,24 @@ router.post(
                 },
             ];
 
-            if (monitorId && !incidentId) query.monitorId = monitorId;
+            if (monitorId && !incidentId) {
+                query.monitorId = monitorId;
+            }
 
-            if (incidentId) query.incidentIds = incidentId;
+            if (incidentId) {
+                query.incidentIds = incidentId;
+            }
 
-            if (probeValue) query.probeId = probeValue;
+            if (probeValue) {
+                query.probeId = probeValue;
+            }
 
-            if (type === 'incomingHttpRequest') query.probeId = null;
-            if (startDate && endDate)
+            if (type === 'incomingHttpRequest') {
+                query.probeId = null;
+            }
+            if (startDate && endDate) {
                 query.createdAt = { $gte: startDate, $lte: endDate };
+            }
 
             const [monitorLogs, count] = await Promise.all([
                 MonitorLogService.findBy({
@@ -934,7 +943,7 @@ router.post(
     '/:projectId/addseat',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const seatresponse = await MonitorService.addSeat({
                 _id: req.params.projectId,

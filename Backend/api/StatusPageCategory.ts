@@ -164,7 +164,7 @@ router.get(
     '/:projectId/:statusPageId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { statusPageId } = req.params;
             const { limit, skip } = req.query;

@@ -39,10 +39,10 @@ export const resendToken = (values: $TSFixMe): void => {
         dispatch(resendTokenRequest(promise));
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 dispatch(resendTokenSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resendTokenError(error));
             }
         );

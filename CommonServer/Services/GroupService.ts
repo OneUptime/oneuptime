@@ -5,17 +5,29 @@ import FindBy from '../Types/DB/FindBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 export default class Service {
     async findBy({ query, limit, skip, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 10;
+        if (!limit) {
+            limit = 10;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const response = {};
         const [groups, count] = await Promise.all([
             GroupModel.find(query)
@@ -46,7 +58,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const group = await GroupModel.findOne(query)
             .populate('projectId', 'name')
             .populate({
@@ -110,7 +124,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const groupExist = await this.findOneBy({
             name: data.name,

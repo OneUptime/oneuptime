@@ -35,7 +35,9 @@ import getSlug from '../Utils/getSlug';
 
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const incidentQuery = IncidentModel.find(query)
             .lean()
@@ -383,7 +385,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await IncidentModel.countDocuments(query);
         return count;
     }
@@ -474,7 +478,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const oldIncident = await this.findOneBy({
             query: { _id: query._id, deleted: { $ne: null } },
@@ -547,7 +553,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await IncidentModel.updateMany(query, {
             $set: data,
         });
@@ -634,7 +642,7 @@ export default class Service {
 
             if (!incident.createdById) {
                 if (incident.createdByIncomingHttpRequest) {
-                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
+                    const msg: string = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
                     notification = await NotificationService.create(
                         incident.projectId._id || incident.projectId,
                         msg,
@@ -643,7 +651,7 @@ export default class Service {
                         meta
                     );
                 } else {
-                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
+                    const msg: string = `New ${incident.incidentType} Incident was created for ${monitor.name} by OneUptime`;
                     notification = await NotificationService.create(
                         incident.projectId._id || incident.projectId,
                         msg,
@@ -653,7 +661,7 @@ export default class Service {
                     );
                 }
             } else {
-                const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
+                const msg: string = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
                 notification = await NotificationService.create(
                     incident.projectId._id || incident.projectId,
                     msg,
@@ -1264,7 +1272,7 @@ export default class Service {
 
         AlertService.sendResolveIncidentMail(incident, monitor);
 
-        const msg = `${
+        const msg: string = `${
             monitor.name
         } monitor was down for ${downtimestring} and is now resolved by ${
             name ||

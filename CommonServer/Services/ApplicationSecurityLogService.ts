@@ -40,9 +40,13 @@ export default class Service {
     }
 
     async findOneBy({ query, populate, select, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const securityLogQuery = ApplicationSecurityLogModel.findOne(query)
             .sort(sort)
@@ -56,7 +60,9 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const securityLogsQuery = ApplicationSecurityLogModel.find(query)
             .lean()
@@ -72,9 +78,13 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const applicationSecurityLog =
             await ApplicationSecurityLogModel.findOneAndUpdate(

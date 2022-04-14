@@ -60,7 +60,9 @@ class Util {
             let position = 0;
             while (position < secondHalf.length - 2) {
                 fileName += `${secondHalf[position]}`;
-                if (position !== secondHalf.length - 3) fileName += ':';
+                if (position !== secondHalf.length - 3) {
+                    fileName += ':';
+                }
                 position = position + 1;
             }
             // add this onto the frames
@@ -170,7 +172,9 @@ class Util {
         frame: $TSFixMe,
         linesOfContext = 5
     ): void {
-        if (lines.length < 1) return;
+        if (lines.length < 1) {
+            return;
+        }
         const lineNumber = frame.lineNumber || 0;
         const maxLines = lines.length;
         const sourceLine = Math.max(Math.min(maxLines, lineNumber - 1), 0);

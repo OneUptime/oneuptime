@@ -27,37 +27,31 @@ describe('Audit Logs API', function (): void {
     before(function (done: $TSFixMe): void {
         testSuiteStartTime = new Date();
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             done();
@@ -70,7 +64,7 @@ describe('Audit Logs API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
             email: {
@@ -100,11 +94,11 @@ describe('Audit Logs API', function (): void {
         await AuditLogsService.hardDeleteBy({ query: deleteQuery });
     });
 
-    beforeEach(async function (): void {
+    beforeEach(async (): void => {
         testCaseStartTime = new Date();
     });
 
-    afterEach(async function (): void {
+    afterEach(async (): void => {
         // Deleting any auditLogs created between each test case in this suite.
         // Note that using timeStamp between this test suite to remove some logs, Beacuse some audit logs dont contain specific 'userId'. (Ex. /login)
         const deleteQuery = {
@@ -123,33 +117,33 @@ describe('Audit Logs API', function (): void {
         });
     });
 
-    it('should reject get audit logs request of an unauthenticated user', function (done: $TSFixMe): void {
+    it('should reject get audit logs request of an unauthenticated user', (done: $TSFixMe): void => {
         request
             .get('/audit-logs')
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject get audit logs request of NON master-admin user', function (done: $TSFixMe): void {
-        createUser(request, userData.newUser, function (): void {
+    it('should reject get audit logs request of NON master-admin user', (done: $TSFixMe): void => {
+        createUser(request, userData.newUser, (): void => {
             request
                 .post('/user/login')
                 .send({
                     email: userData.newUser.email,
                     password: userData.newUser.password,
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     const token = res.body.tokens.jwtAccessToken;
-                    const authorization = `Basic ${token}`;
+                    const authorization: string = `Basic ${token}`;
 
                     request
                         .get('/audit-logs/')
                         .set('Authorization', authorization)
                         .send()
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             expect(res).to.have.status(400);
                             done();
                         });
@@ -157,9 +151,9 @@ describe('Audit Logs API', function (): void {
         });
     });
 
-    it('should send get audit logs data for master-admin user', async function (): void {
+    it('should send get audit logs data for master-admin user', async (): void => {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         const res = await request
             .get('/audit-logs/')
@@ -174,9 +168,9 @@ describe('Audit Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when limit is provided', async function (): void {
+    it('should send appopriate data set when limit is provided', async (): void => {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         // Just making three API request to make Logs.
         await request.get('/version');
@@ -198,9 +192,9 @@ describe('Audit Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send appopriate data set when skip is provided', async function (): void {
+    it('should send appopriate data set when skip is provided', async (): void => {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         // Just making three API request to make Logs.
         await request.get('/version');
@@ -224,19 +218,19 @@ describe('Audit Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should reject search request of an unauthenticated user', function (done: $TSFixMe): void {
+    it('should reject search request of an unauthenticated user', (done: $TSFixMe): void => {
         request
             .post('/audit-logs/search')
             .send()
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should reject search request of NON master-admin user', async function (): void {
+    it('should reject search request of NON master-admin user', async (): void => {
         await UserService.updateBy({ _id: userId }, { role: 'user' }); // Resetting user to normal USER.
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         try {
             await request
@@ -248,9 +242,9 @@ describe('Audit Logs API', function (): void {
         }
     });
 
-    it('should send Searched AuditLogs data for master-admin user', async function (): void {
+    it('should send Searched AuditLogs data for master-admin user', async (): void => {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         const res = await request
             .post('/audit-logs/search')
@@ -265,9 +259,9 @@ describe('Audit Logs API', function (): void {
         await UserService.updateBy({ _id: userId }, { role: 'null' }); // Resetting user to normal USER.
     });
 
-    it('should send only matched result to provided search string when searched.', async function (): void {
+    it('should send only matched result to provided search string when searched.', async (): void => {
         await UserService.updateBy({ _id: userId }, { role: 'master-admin' }); // Making user a "MASTER-ADMIN"
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         // Just making three API request to make Logs.
         await request.get('/version');

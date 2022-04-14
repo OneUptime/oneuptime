@@ -53,7 +53,7 @@ export default {
     scanContainerSecurity: async security => {
         const { imagePath, imageTags } = security;
         const testPath = imageTags ? `${imagePath}:${imageTags}` : imagePath;
-        const outputFile = `${uuidv1()}result.json`;
+        const outputFile: string = `${uuidv1()}result.json`;
         let securityDir = 'container_security_dir';
 
         securityDir = await createDir(securityDir);
@@ -65,8 +65,8 @@ export default {
 
         return new Promise((resolve, reject) => {
             // use trivy open source package to audit a container
-            const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
-            const clearCommand = `trivy image --clear-cache ${testPath}`;
+            const scanCommand: string = `trivy image -f json -o ${outputFile} ${testPath}`;
+            const clearCommand: string = `trivy image --clear-cache ${testPath}`;
 
             const output = spawn(scanCommand, {
                 cwd: securityDir,
@@ -280,7 +280,9 @@ function createDir(dirPath): void {
         }
 
         fs.mkdir(workPath, error => {
-            if (error) reject(error);
+            if (error) {
+                reject(error);
+            }
             resolve(workPath);
         });
     });
@@ -289,16 +291,12 @@ function createDir(dirPath): void {
 function readFileContent(filePath): void {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(
-                filePath,
-                { encoding: 'utf8' },
-                function (error, data): void {
-                    if (error) {
-                        reject(error);
-                    }
-                    resolve(data);
+            fs.readFile(filePath, { encoding: 'utf8' }, (error, data): void => {
+                if (error) {
+                    reject(error);
                 }
-            );
+                resolve(data);
+            });
         }
     });
 }

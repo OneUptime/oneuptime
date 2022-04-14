@@ -123,11 +123,19 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
-        if (!limit) limit = 0;
+        if (!skip) {
+            skip = 0;
+        }
+        if (!limit) {
+            limit = 0;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
         if (!query) {
             query = {};

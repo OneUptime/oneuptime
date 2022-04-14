@@ -9,8 +9,12 @@ export function getCallRoutingNumbers(
     skip: PositiveNumber,
     limit: PositiveNumber
 ): void {
-    if (!skip) skip = 0;
-    if (!limit) limit = 10;
+    if (!skip) {
+        skip = 0;
+    }
+    if (!limit) {
+        limit = 10;
+    }
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `callRouting/${projectId}?skip=${skip}&limit=${limit}`
@@ -18,10 +22,10 @@ export function getCallRoutingNumbers(
         dispatch(getCallRoutingNumbersRequest());
 
         promise.then(
-            function (numbers): void {
+            (numbers): void => {
                 dispatch(getCallRoutingNumbersSuccess(numbers.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getCallRoutingNumbersFailure(error));
             }
         );
@@ -60,7 +64,7 @@ export const getTeamAndSchedules = (projectId: ObjectID): void => {
         dispatch(getTeamAndSchedulesRequest());
 
         promise.then(
-            function ([schedule, team]): void {
+            ([schedule, team]): void => {
                 const data = {
                     teams: team.data,
 
@@ -68,7 +72,7 @@ export const getTeamAndSchedules = (projectId: ObjectID): void => {
                 };
                 dispatch(getTeamAndSchedulesSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getTeamAndSchedulesFailure(error));
             }
         );
@@ -109,10 +113,10 @@ export const addCallRoutingNumber = (
         dispatch(addCallRoutingNumberRequest());
 
         promise.then(
-            function (number): void {
+            (number): void => {
                 dispatch(addCallRoutingNumberSuccess(number.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -172,7 +176,7 @@ export function uploadCallRoutingAudio(
         dispatch(uploadCallRoutingAudioRequest(callRoutingId, audioFieldName));
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 dispatch(
                     uploadCallRoutingAudioSuccess(
                         callRoutingId,
@@ -182,7 +186,7 @@ export function uploadCallRoutingAudio(
                     )
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -253,10 +257,10 @@ export function addCallRoutingSchedule(
         dispatch(addCallRoutingScheduleRequest());
 
         promise.then(
-            function (data): void {
+            (data): void => {
                 dispatch(addCallRoutingScheduleSuccess(data.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -308,10 +312,10 @@ export function fetchNumbers(
         dispatch(fetchNumbersRequest());
 
         promise.then(
-            function (numbers): void {
+            (numbers): void => {
                 dispatch(fetchNumbersSuccess(numbers.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchNumbersFailure(error));
             }
         );
@@ -358,10 +362,10 @@ export const removeNumbers = (
         dispatch(removeNumbersRequest(callRoutingId));
 
         promise.then(
-            function (numbers): void {
+            (numbers): void => {
                 dispatch(removeNumbersSuccess(numbers.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(removeNumbersFailure(error));
             }
         );
@@ -403,7 +407,7 @@ export function getCallRoutingLogs(
         dispatch(getCallRoutingLogsRequest());
 
         promise.then(
-            function (logs): void {
+            (logs): void => {
                 dispatch(
                     getCallRoutingLogsSuccess({
                         logs: logs.data,
@@ -414,7 +418,7 @@ export function getCallRoutingLogs(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getCallRoutingLogsFailure(error));
             }
         );
@@ -464,10 +468,10 @@ export function removeIntroAudio(
         dispatch(removeIntroAudioRequest(callRoutingId, backup));
 
         promise.then(
-            function (numbers): void {
+            (numbers): void => {
                 dispatch(removeIntroAudioSuccess(numbers.data, backup));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(removeIntroAudioFailure(error, backup));
             }
         );

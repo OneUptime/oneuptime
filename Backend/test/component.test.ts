@@ -37,37 +37,31 @@ describe('Component API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(80000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             done();
@@ -80,41 +74,41 @@ describe('Component API', function (): void {
         });
     });
 
-    it('should reject the request of an unauthenticated user', function (done: $TSFixMe): void {
+    it('should reject the request of an unauthenticated user', (done: $TSFixMe): void => {
         request
             .post(`/component/${projectId}`)
             .send({
                 name: 'New Component',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not create a component when the `name` field is null', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create a component when the `name` field is null', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: null,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should create a new component when the correct data is given by an authenticated user', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a new component when the correct data is given by an authenticated user', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Component',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 componentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component');
@@ -122,27 +116,27 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should update a component when the correct data is given by an authenticated user', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should update a component when the correct data is given by an authenticated user', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'Updated Component',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(componentId);
                 done();
             });
     });
 
-    it('should get components for an authenticated user by ProjectId', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get components for an authenticated user by ProjectId', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/component/${projectId}/component`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -151,12 +145,12 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should get a component for an authenticated user with valid componentId', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get a component for an authenticated user with valid componentId', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/component/${projectId}/component/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body._id).to.be.equal(componentId);
@@ -164,8 +158,8 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should create a new monitor when `componentId` is given`', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a new monitor when `componentId` is given`', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -175,7 +169,7 @@ describe('Component API', function (): void {
                 data: { url: 'http://www.tests.org' },
                 componentId,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 monitorId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Monitor');
@@ -184,12 +178,12 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should return a list of all resources under component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should return a list of all resources under component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/component/${projectId}/resources/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.totalResources).to.be.an('array');
                 expect(res.body.totalResources[0].type).to.be.a('string'); // type of the monitor
@@ -198,22 +192,22 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should create a new application log when `componentId` is given then get list of resources`', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a new application log when `componentId` is given then get list of resources`', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Application Log',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Application Log');
                 resourceCount++; // Increment Resource Count
                 request
                     .get(`/component/${projectId}/resources/${componentId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
                         expect(res.body.totalResources).to.be.an('array');
                         expect(res.body.totalResources[1].status).to.be.a(
@@ -230,15 +224,15 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should create a new application log then creater a log when `componentId` is given then get list of resources`', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a new application log then creater a log when `componentId` is given then get list of resources`', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Application Log II',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 resourceCount++; // Increment Resource Count
                 expect(res.body.name).to.be.equal('New Application Log II');
@@ -251,7 +245,7 @@ describe('Component API', function (): void {
                     .post(`/application-log/${res.body._id}/log`)
                     .set('Authorization', authorization)
                     .send(log)
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
 
                         request
@@ -259,7 +253,7 @@ describe('Component API', function (): void {
                                 `/component/${projectId}/resources/${componentId}`
                             )
                             .set('Authorization', authorization)
-                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                            .end((err: $TSFixMe, res: $TSFixMe): void => {
                                 expect(res).to.have.status(200);
                                 expect(res.body.totalResources).to.be.an(
                                     'array'
@@ -279,14 +273,14 @@ describe('Component API', function (): void {
             });
     });
 
-    it('should create an application security then get list of resources', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create an application security then get list of resources', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         GitCredentialService.create({
             gitUsername: gitCredential.gitUsername,
             gitPassword: gitCredential.gitPassword,
             projectId,
-        }).then(function (credential): void {
+        }).then((credential): void => {
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
@@ -298,7 +292,7 @@ describe('Component API', function (): void {
                 .post(`/security/${projectId}/${componentId}/application`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -312,7 +306,7 @@ describe('Component API', function (): void {
                     request
                         .get(`/component/${projectId}/resources/${componentId}`)
                         .set('Authorization', authorization)
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
                             expect(res.body.totalResources).to.have.lengthOf(
@@ -324,15 +318,15 @@ describe('Component API', function (): void {
         });
     });
 
-    it('should create a container security', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a container security', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         DockerCredentialService.create({
             dockerUsername: dockerCredential.dockerUsername,
             dockerPassword: dockerCredential.dockerPassword,
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
-        }).then(function (credential): void {
+        }).then((credential): void => {
             const data = {
                 name: 'Test Container',
                 dockerCredential: credential._id,
@@ -344,7 +338,7 @@ describe('Component API', function (): void {
                 .post(`/security/${projectId}/${componentId}/container`)
                 .set('Authorization', authorization)
                 .send(data)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -354,7 +348,7 @@ describe('Component API', function (): void {
                     request
                         .get(`/component/${projectId}/resources/${componentId}`)
                         .set('Authorization', authorization)
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
                             expect(res.body.totalResources).to.have.lengthOf(
@@ -366,17 +360,17 @@ describe('Component API', function (): void {
         });
     });
 
-    it('should delete a component and its monitor when componentId is valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete a component and its monitor when componentId is valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 request
                     .get(`/monitor/${projectId}/monitor/${monitorId}`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res.body).to.be.an('object');
                         expect(res.body).to.not.have.property('_id');
                         done();
@@ -399,36 +393,36 @@ describe('Component API with Sub-Projects', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(30000);
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         // create a subproject for parent project
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             request
                 .post(`/project/${projectId}/subProject`)
                 .set('Authorization', authorization)
                 .send({ subProjectName: 'New SubProject' })
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
                     createUser(
                         request,
                         userData.newUser,
-                        function (err: $TSFixMe, res: $TSFixMe): void {
+                        (err: $TSFixMe, res: $TSFixMe): void => {
                             const project = res.body.project;
                             newProjectId = project._id;
                             newUserId = res.body.id;
 
                             VerificationTokenModel.findOne(
                                 { userId: newUserId },
-                                function (
+                                (
                                     err: $TSFixMe,
                                     verificationToken: $TSFixMe
-                                ) {
+                                ) => {
                                     request
                                         .get(
                                             `/user/confirmation/${verificationToken.token}`
                                         )
                                         .redirects(0)
-                                        .end(function (): void {
+                                        .end((): void => {
                                             request
                                                 .post('/user/login')
                                                 .send({
@@ -438,32 +432,35 @@ describe('Component API with Sub-Projects', function (): void {
                                                         userData.newUser
                                                             .password,
                                                 })
-                                                .end(function (
-                                                    err: $TSFixMe,
-                                                    res: $TSFixMe
-                                                ) {
-                                                    newUserToken =
-                                                        res.body.tokens
-                                                            .jwtAccessToken;
-                                                    const authorization = `Basic ${token}`;
-                                                    // add second user to subproject
-                                                    request
-                                                        .post(
-                                                            `/team/${subProjectId}`
-                                                        )
-                                                        .set(
-                                                            'Authorization',
-                                                            authorization
-                                                        )
-                                                        .send({
-                                                            emails: userData
-                                                                .newUser.email,
-                                                            role: 'Member',
-                                                        })
-                                                        .end(function (): void {
-                                                            done();
-                                                        });
-                                                });
+                                                .end(
+                                                    (
+                                                        err: $TSFixMe,
+                                                        res: $TSFixMe
+                                                    ) => {
+                                                        newUserToken =
+                                                            res.body.tokens
+                                                                .jwtAccessToken;
+                                                        const authorization: string = `Basic ${token}`;
+                                                        // add second user to subproject
+                                                        request
+                                                            .post(
+                                                                `/team/${subProjectId}`
+                                                            )
+                                                            .set(
+                                                                'Authorization',
+                                                                authorization
+                                                            )
+                                                            .send({
+                                                                emails: userData
+                                                                    .newUser
+                                                                    .email,
+                                                                role: 'Member',
+                                                            })
+                                                            .end((): void => {
+                                                                done();
+                                                            });
+                                                    }
+                                                );
                                         });
                                 }
                             );
@@ -473,7 +470,7 @@ describe('Component API with Sub-Projects', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: {
@@ -500,54 +497,52 @@ describe('Component API with Sub-Projects', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should not create a component for user not present in project', function (done: $TSFixMe): void {
+    it('should not create a component for user not present in project', (done: $TSFixMe): void => {
         createUser(
             request,
             userData.anotherUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 const project = res.body.project;
                 otherProjectId = project._id;
                 otherUserId = res.body.id;
 
                 VerificationTokenModel.findOne(
                     { userId: otherUserId },
-                    function (
-                        err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ): void {
+                    (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                         request
                             .get(
                                 `/user/confirmation/${verificationToken.token}`
                             )
                             .redirects(0)
-                            .end(function (): void {
+                            .end((): void => {
                                 request
                                     .post('/user/login')
                                     .send({
                                         email: userData.anotherUser.email,
                                         password: userData.anotherUser.password,
                                     })
-                                    .end(function (
-                                        err: $TSFixMe,
-                                        res: $TSFixMe
-                                    ) {
-                                        const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                    .end((err: $TSFixMe, res: $TSFixMe) => {
+                                        const authorization: string = `Basic ${res.body.tokens.jwtAccessToken}`;
                                         request
                                             .post(`/component/${projectId}`)
                                             .set('Authorization', authorization)
                                             .send({ name: 'New Component 1' })
-                                            .end(function (
-                                                err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                expect(res).to.have.status(400);
-                                                expect(
-                                                    res.body.message
-                                                ).to.be.equal(
-                                                    'You are not present in this project.'
-                                                );
-                                                done();
-                                            });
+                                            .end(
+                                                (
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    expect(res).to.have.status(
+                                                        400
+                                                    );
+                                                    expect(
+                                                        res.body.message
+                                                    ).to.be.equal(
+                                                        'You are not present in this project.'
+                                                    );
+                                                    done();
+                                                }
+                                            );
                                     });
                             });
                     }
@@ -556,15 +551,15 @@ describe('Component API with Sub-Projects', function (): void {
         );
     });
 
-    it('should not create a component for user that is not `admin` in project.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${newUserToken}`;
+    it('should not create a component for user that is not `admin` in project.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${newUserToken}`;
         request
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Component 1',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -573,15 +568,15 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should create a component in parent project by valid admin.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a component in parent project by valid admin.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Component 1',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 newComponentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component 1');
@@ -589,15 +584,15 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should not create a component with exisiting name in sub-project.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create a component with exisiting name in sub-project.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Component 1',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Component with that name already exists.'
@@ -606,15 +601,15 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should create a component in sub-project.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a component in sub-project.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
             .send({
                 name: 'New Component 2',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 subProjectComponentId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.name).to.be.equal('New Component 2');
@@ -622,12 +617,12 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it("should get only sub-project's components for valid sub-project user", function (done: $TSFixMe): void {
-        const authorization = `Basic ${newUserToken}`;
+    it("should get only sub-project's components for valid sub-project user", (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${newUserToken}`;
         request
             .get(`/component/${subProjectId}/component`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -638,12 +633,12 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should get project components for valid parent project user.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get project components for valid parent project user.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/component/${projectId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('components');
@@ -653,12 +648,12 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should get sub-project components for valid parent project user.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get sub-project components for valid parent project user.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/component/${subProjectId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 expect(res.body[0]).to.have.property('components');
@@ -668,12 +663,12 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should not delete a component for user that is not `admin` in sub-project.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${newUserToken}`;
+    it('should not delete a component for user that is not `admin` in sub-project.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${newUserToken}`;
         request
             .delete(`/component/${subProjectId}/${subProjectComponentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     "You cannot edit the project because you're not an admin."
@@ -682,23 +677,23 @@ describe('Component API with Sub-Projects', function (): void {
             });
     });
 
-    it('should delete sub-project component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete sub-project component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/component/${subProjectId}/${subProjectComponentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });
     });
 
-    it('should delete project component', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete project component', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/component/${projectId}/${newComponentId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });

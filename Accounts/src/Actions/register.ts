@@ -87,7 +87,7 @@ export const signupUser = (values: $TSFixMe): void => {
         );
         dispatch(signUpRequest(promise));
         promise.then(
-            function (user): void {
+            (user): void => {
                 dispatch(signupSuccess(user.data));
 
                 if (user.data.role === 'master-admin' && !IS_SAAS_SERVICE) {
@@ -102,7 +102,7 @@ export const signupUser = (values: $TSFixMe): void => {
                     dispatch(loginSuccess(user.data));
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(signupError(error));
             }
         );
@@ -172,10 +172,10 @@ export const isUserInvited = (values: $TSFixMe): void => {
         const promise = BackendAPI.post(new Route('user/isInvited'), values);
         dispatch(isUserInvitedRequest(promise));
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(isUserInvitedSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(isUserInvitedError(error));
             }
         );
@@ -212,10 +212,10 @@ export const addCard = (data: $TSFixMe): void => {
         dispatch(addCardRequest(promise));
 
         promise.then(
-            function (card): void {
+            (card): void => {
                 dispatch(addCardSuccess(card.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(addCardFailed(error));
             }
         );
@@ -234,10 +234,10 @@ export const getEmailFromToken = (token: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`user/${token}/email`);
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(getEmailSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getEmailSuccess(error));
             }
         );

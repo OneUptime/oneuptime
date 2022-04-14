@@ -12,7 +12,8 @@ export type JSONValue =
     | Date
     | Array<Date>
     | ObjectID
-    | Array<ObjectID>;
+    | Array<ObjectID>
+    | null;
 
 export interface JSONObject {
     [x: string]: JSONValue;

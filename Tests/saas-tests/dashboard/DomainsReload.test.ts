@@ -8,7 +8,7 @@ const user = {
     password: '1234567890',
 };
 
-const customDomain = `${utils.generateRandomString()}.com`;
+const customDomain: string = `${utils.generateRandomString()}.com`;
 
 /** This is a test to check:
  * No errors on page reload

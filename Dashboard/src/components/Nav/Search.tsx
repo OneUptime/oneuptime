@@ -149,7 +149,7 @@ class Search extends Component<ComponentProps> {
     generateUrlLink(searchObj: $TSFixMe) {
 
         const { currentProject } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
+        const baseUrl:string = `/dashboard/project/${currentProject.slug}/component/${searchObj.componentSlug}/`;
         let route = '';
         switch (searchObj.type) {
             case 'url':

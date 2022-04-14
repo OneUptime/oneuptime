@@ -10,7 +10,7 @@ export default {
         //get monitors that have not been pinged for the last minute.
         const date = OneUptimeDate.getOneMinAgo();
 
-        const key = `${probeId}_pingtime`;
+        const key: string = `${probeId}_pingtime`;
 
         const emptyQuery = {
             deleted: false,

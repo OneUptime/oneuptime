@@ -347,7 +347,7 @@ class MonitorView extends React.Component<MonitorViewProps> {
             switchToProjectViewerNav,
         } = this.props;
 
-        const redirectTo = `/dashboard/project/${this.props.slug}/on-call`;
+        const redirectTo:string = `/dashboard/project/${this.props.slug}/on-call`;
         let scheduleAlert;
         if (
             scheduleWarning.includes(monitorId) === false &&
@@ -1283,7 +1283,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
 
                         const id = criterion._id;
                         const criterionBodyField = mapCriteria(criterion);
-                        const criterionFieldName = `${type}_${id}`;
+                        const criterionFieldName:string = `${type}_${id}`;
                         const scriptName =
                             criterion.scripts &&
                             criterion.scripts.map(({

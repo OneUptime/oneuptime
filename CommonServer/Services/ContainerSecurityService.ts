@@ -71,9 +71,13 @@ export default class Service {
     }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // won't be using lean() here because of iv cypher for password
         const containerSecurityQuery =
@@ -86,17 +90,29 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
-        if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') {
+            skip = Number(skip);
+        }
 
-        if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // won't be using lean() here because of iv cypher for password
         const containerSecurityQuery = ContainerSecurityModel.find(query)
@@ -111,9 +127,13 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // The received value from probe service is '{ scanning: true }'
         if (data && data.name) {
@@ -233,8 +253,9 @@ export default class Service {
 
     async decryptPassword(security: $TSFixMe): void {
         const values = [];
-        for (let i = 0; i <= 15; i++)
+        for (let i = 0; i <= 15; i++) {
             values.push(security.dockerCredential.iv[i]);
+        }
         const iv = Buffer.from(values);
         security.dockerCredential.dockerPassword = await decrypt(
             security.dockerCredential.dockerPassword,
@@ -260,7 +281,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await ContainerSecurityModel.countDocuments(query);
         return count;
     }

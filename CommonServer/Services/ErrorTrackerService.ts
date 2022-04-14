@@ -69,16 +69,22 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await ErrorTrackerModel.countDocuments(query);
         return count;
     }
 
     // find a list of error trackers
     async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -92,7 +98,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const errorTrackersQuery = ErrorTrackerModel.find(query)
             .lean()
             .sort(sort)
@@ -110,7 +118,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const errorTrackersQuery = ErrorTrackerModel.findOne(query)
             .sort(sort)
             .lean();
@@ -134,8 +144,12 @@ export default class Service {
             throw new BadDataException('Component does not exist.');
         }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const select =
             'componentId name slug key showQuickStart resourceCategory createdById createdAt';
@@ -198,7 +212,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }

@@ -37,7 +37,7 @@ export const loginSuccess = (user: $TSFixMe): void => {
     const state = store.getState();
     const { statusPageLogin, statusPageURL } = state.login;
     if (statusPageLogin) {
-        const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
+        const newURL: string = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 
         return (window.location.href = newURL);
     }
@@ -102,16 +102,18 @@ export const verifyTokenError = (error: ErrorPayload): void => {
 export const loginUser = (values: $TSFixMe): void => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
-    if (redirect) values.redirect = redirect;
+    if (redirect) {
+        values.redirect = redirect;
+    }
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('user/login'), values);
         dispatch(loginRequest(promise));
 
         promise.then(
-            function (user): void {
+            (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error.message === 'Verify your email first.') {
                     dispatch(resendToken(values));
                     dispatch({
@@ -138,8 +140,9 @@ export const loginUserSso =
             window.location.href = url;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -156,7 +159,9 @@ export const loginUserSso =
 export const verifyAuthToken = (values: $TSFixMe): void => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
-    if (redirect) values.redirect = redirect;
+    if (redirect) {
+        values.redirect = redirect;
+    }
     const email = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch): void {
@@ -167,10 +172,10 @@ export const verifyAuthToken = (values: $TSFixMe): void => {
         dispatch(verifyTokenRequest(promise));
 
         promise.then(
-            function (user): void {
+            (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(verifyTokenError(error));
             }
         );
@@ -203,7 +208,9 @@ export const useBackupCodeError = (error: ErrorPayload): void => {
 export const verifyBackupCode = (values: $TSFixMe): void => {
     const initialUrl = User.initialUrl();
     const redirect = getQueryVar('redirectTo', initialUrl);
-    if (redirect) values.redirect = redirect;
+    if (redirect) {
+        values.redirect = redirect;
+    }
     const email = User.getEmail();
     values.email = values.email || email;
     return function (dispatch: Dispatch): void {
@@ -214,10 +221,10 @@ export const verifyBackupCode = (values: $TSFixMe): void => {
         dispatch(useBackupCodeRequest(promise));
 
         promise.then(
-            function (user): void {
+            (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(useBackupCodeError(error));
             }
         );
@@ -265,10 +272,10 @@ export const checkIfMasterAdminExists = (values: $TSFixMe): void => {
         const promise = BackendAPI.get('user/masterAdminExists', values);
         dispatch(masterAdminExistsRequest(promise));
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(masterAdminExistsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(masterAdminExistsError(error));
             }
         );

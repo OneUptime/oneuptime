@@ -10,7 +10,7 @@ import moment from 'moment';
 import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
@@ -45,8 +45,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const log = await lighthouseLogCollection.findOne(query);
 

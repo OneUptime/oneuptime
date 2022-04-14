@@ -119,7 +119,7 @@ router.put(
     '/:projectId/:incidentSlaId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId, incidentSlaId } = req.params;
             const { name, handleDefault, alertTime, duration } = req.body;

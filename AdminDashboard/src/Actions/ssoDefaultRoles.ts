@@ -37,8 +37,9 @@ export const fetchSsoDefaultRoles =
             return dispatch(fetchSsoDefaultRolesSuccess(response.data));
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -82,8 +83,9 @@ export const fetchSsoDefaultRole =
             dispatch(fetchSsoDefaultRoleSuccess(response.data));
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -127,8 +129,9 @@ export const deleteSsoDefaultRole =
             dispatch(fetchSsoDefaultRoles());
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -170,8 +173,9 @@ export const addSsoDefaultRole =
             return true;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -214,8 +218,9 @@ export const updateSsoDefaultRole =
             return true;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }

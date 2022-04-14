@@ -30,12 +30,12 @@ describe('Email verification API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
-            GlobalConfig.enableEmailLog().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
+            GlobalConfig.enableEmailLog().then((): void => {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: $TSFixMe): void {
+                    (err: $TSFixMe, res: $TSFixMe): void => {
                         userId = res.body.id;
                         projectId = res.body.project._id;
 
@@ -46,7 +46,7 @@ describe('Email verification API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -63,7 +63,7 @@ describe('Email verification API', function (): void {
         await EmailStatusService.hardDeleteBy({});
     });
 
-    it('should send email verification', async function (): void {
+    it('should send email verification', async (): void => {
         await sleep(10000);
 
         const emailStatuses = await EmailStatusService.findBy({
@@ -74,7 +74,7 @@ describe('Email verification API', function (): void {
         expect(emailStatuses[0].status).to.equal('Success');
     });
 
-    it('should not login non-verified user', async function (): void {
+    it('should not login non-verified user', async (): void => {
         try {
             await request.post('/user/login').send({
                 email: userData.user.email,
@@ -85,7 +85,7 @@ describe('Email verification API', function (): void {
         }
     });
 
-    it('should verify the user', async function (): void {
+    it('should verify the user', async (): void => {
         const token = await VerificationTokenModel.findOne({ userId });
         try {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
@@ -99,7 +99,7 @@ describe('Email verification API', function (): void {
         }
     });
 
-    it('should login the verified user', async function (): void {
+    it('should login the verified user', async (): void => {
         const res = await request.post('/user/login').send({
             email: userData.user.email,
             password: userData.user.password,

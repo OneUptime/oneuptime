@@ -58,14 +58,16 @@ export default {
                 fs.unlinkSync(`./${identityFile}`);
             }
 
-            ssh.connect(config).then(async function (): void {
+            ssh.connect(config).then(async (): void => {
                 let os;
                 try {
                     const { stdout: osLine, stderr } = await ssh.execCommand(
                         'uname -a'
                     );
 
-                    if (stderr) throw stderr;
+                    if (stderr) {
+                        throw stderr;
+                    }
 
                     os = osLine.split(' ')[0];
                 } catch (e) {

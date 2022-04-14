@@ -45,7 +45,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         let customField = await MonitorCustomFieldModel.findOneAndUpdate(
             query,
@@ -75,9 +77,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip || isNaN(skip)) skip = 0;
+        if (!skip || isNaN(skip)) {
+            skip = 0;
+        }
 
-        if (!limit || isNaN(limit)) limit = 0;
+        if (!limit || isNaN(limit)) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -141,7 +147,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedCustomField = await MonitorCustomFieldModel.updateMany(
             query,
             {

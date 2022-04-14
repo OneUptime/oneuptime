@@ -25,10 +25,10 @@ export const fetchMonitors = (
         dispatch(fetchMonitorsRequest());
 
         promise.then(
-            function (monitors): void {
+            (monitors): void => {
                 dispatch(fetchMonitorsSuccess(monitors.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchMonitorsFailure(error));
             }
         );
@@ -74,7 +74,7 @@ export function fetchPaginatedMonitors({
     paginate = false,
 }: $TSFixMe) {
     return function (dispatch: Dispatch): void {
-        let url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentId=${componentId}`;
+        let url: string = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentId=${componentId}`;
         if (componentSlug) {
             url = `monitor/${projectId}/paginated?skip=${skip}&limit=${limit}&componentSlug=${componentSlug}`;
         }
@@ -82,10 +82,10 @@ export function fetchPaginatedMonitors({
         dispatch(fetchPaginatedMonitorsRequest(paginate));
 
         promise.then(
-            function (monitors): void {
+            (monitors): void => {
                 dispatch(fetchPaginatedMonitorsSuccess(monitors.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchPaginatedMonitorsFailure(error));
             }
         );
@@ -123,13 +123,13 @@ export const createMonitor = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(createMonitorRequest());
         const promise = BackendAPI.post(`monitor/${projectId}`, values);
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(createMonitorSuccess(monitor.data));
                 dispatch(resetFile());
 
                 return monitor.data;
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -164,14 +164,15 @@ export const uploadIdentityFile = (
             );
             dispatch(uploadIdentityFileRequest());
             promise.then(
-                function (response): void {
+                (response): void => {
                     const data = response.data;
                     dispatch(logFile(data.identityFile));
                     return data;
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -250,14 +251,15 @@ export const uploadConfigurationFile = (
             );
             dispatch(uploadConfigurationFileRequest());
             promise.then(
-                function (response): void {
+                (response): void => {
                     const data = response.data;
                     dispatch(logConfigFile(data.configurationFile));
                     return data;
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -332,10 +334,10 @@ export const editMonitor = (projectId: ObjectID, values: $TSFixMe): void => {
             dispatch(editMonitorRequest());
         }
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -408,10 +410,10 @@ export function addSiteUrl(
         dispatch(editMonitorRequest());
 
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -444,10 +446,10 @@ export function deleteSiteUrl(
         dispatch(editMonitorRequest());
 
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(editMonitorSuccess(monitor.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -478,10 +480,10 @@ export const deleteMonitor = (
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(deleteMonitorSuccess(monitor.data._id));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteMonitorFailure({ error: error, monitorId }));
             }
         );
@@ -533,7 +535,7 @@ export const disableMonitor = (
         dispatch(disableMonitorRequest(monitorId));
 
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(
                     disableMonitorSuccess({
                         monitorId: monitor.data._id,
@@ -542,7 +544,7 @@ export const disableMonitor = (
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(disableMonitorFailure({ error: error, monitorId }));
             }
         );
@@ -599,8 +601,9 @@ export const changeMonitorComponent = (
             return monitor;
         } catch (err) {
             let error = { ...err };
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 error = error.response.data;
+            }
             if (error && error.data) {
                 error = error.data;
             }
@@ -662,7 +665,7 @@ export function fetchMonitorsIncidents(
         dispatch(fetchMonitorsIncidentsRequest(monitorId));
 
         promise.then(
-            function (monitors): void {
+            (monitors): void => {
                 dispatch(
                     fetchMonitorsIncidentsSuccess({
                         projectId,
@@ -676,7 +679,7 @@ export function fetchMonitorsIncidents(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchMonitorsIncidentsFailure(error));
             }
         );
@@ -720,7 +723,7 @@ export function fetchMonitorsSubscribers(
         dispatch(fetchMonitorsSubscribersRequest(monitorId));
 
         promise.then(
-            function (subscribers): void {
+            (subscribers): void => {
                 dispatch(
                     fetchMonitorsSubscribersSuccess({
                         projectId,
@@ -734,7 +737,7 @@ export function fetchMonitorsSubscribers(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchMonitorsSubscribersFailure(error));
             }
         );
@@ -780,7 +783,7 @@ export function fetchMonitorLogs(
         dispatch(updateDateRange(startDate, endDate));
 
         promise.then(
-            function (monitorLogs): void {
+            (monitorLogs): void => {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         projectId,
@@ -790,7 +793,7 @@ export function fetchMonitorLogs(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -856,7 +859,7 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest());
 
         promise.then(
-            function (monitorStatuses): void {
+            (monitorStatuses): void => {
                 dispatch(
                     fetchMonitorStatusesSuccess({
                         projectId,
@@ -866,7 +869,7 @@ export function fetchMonitorStatuses(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -915,10 +918,10 @@ export const fetchMonitorCriteria = (): void => {
         dispatch(fetchMonitorCriteriaRequest());
 
         promise.then(
-            function (monitorCriteria): void {
+            (monitorCriteria): void => {
                 dispatch(fetchMonitorCriteriaSuccess(monitorCriteria));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -1013,7 +1016,7 @@ export function getMonitorLogs(
         dispatch(getMonitorLogsRequest({ monitorId }));
 
         promise.then(
-            function (monitors): void {
+            (monitors): void => {
                 dispatch(
                     getMonitorLogsSuccess({
                         monitorId,
@@ -1026,7 +1029,7 @@ export function getMonitorLogs(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getMonitorLogsFailure({ monitorId, error: error }));
             }
         );
@@ -1072,7 +1075,7 @@ export function fetchLighthouseLogs(
         dispatch(fetchLighthouseLogsRequest());
 
         promise.then(
-            function (lighthouseLogs): void {
+            (lighthouseLogs): void => {
                 dispatch(
                     fetchLighthouseLogsSuccess({
                         projectId,
@@ -1086,7 +1089,7 @@ export function fetchLighthouseLogs(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchLighthouseLogsFailure(error));
             }
         );
@@ -1127,10 +1130,10 @@ export const fetchMonitorIssue = (
         dispatch(fetchMonitorIssueRequest());
 
         promise.then(
-            function (monitorIssue): void {
+            (monitorIssue): void => {
                 dispatch(fetchMonitorIssueSuccess(monitorIssue.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchMonitorIssueFailure(error));
             }
         );
@@ -1165,12 +1168,12 @@ export const addSeat = (projectId: ObjectID): void => {
         dispatch(addSeatRequest());
 
         promise.then(
-            function (monitor): void {
+            (monitor): void => {
                 dispatch(createMonitorFailure(monitor.data));
 
                 dispatch(addSeatSuccess(monitor.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }

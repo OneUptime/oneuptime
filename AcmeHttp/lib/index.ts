@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
+const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
 
 export default {
     create: function (config: $TSFixMe): void {
@@ -14,7 +14,7 @@ export default {
 
                 // make api call to backend to store
                 // keyAuthorization, challengeUrl, and token
-                const url = `${BASE_URL}/api/ssl/challenge`;
+                const url: string = `${BASE_URL}/api/ssl/challenge`;
                 const dataConfig = {
                     token: ch.token,
                     keyAuthorization: ch.keyAuthorization,
@@ -30,14 +30,14 @@ export default {
             get: function (data: $TSFixMe): void {
                 const ch = data.challenge;
 
-                const url = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
+                const url: string = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios.get(url).then((result: $TSFixMe) => result);
             },
 
             remove: function (data: $TSFixMe): void {
                 const ch = data.challenge;
 
-                const url = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
+                const url: string = `${BASE_URL}/api/ssl/challenge/${ch.token}`;
                 return axios({ url, method: 'delete' }).finally(() => null); // always return null
             },
 

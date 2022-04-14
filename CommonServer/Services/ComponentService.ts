@@ -138,7 +138,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -184,7 +186,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await ComponentModel.updateMany(query, {
             $set: data,
         });
@@ -208,9 +212,13 @@ export default class Service {
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
     async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -224,7 +232,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const componentsQuery = ComponentModel.find(query)
             .lean()
             .sort(sort)
@@ -243,7 +253,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const componentQuery = ComponentModel.findOne(query).sort(sort).lean();
 
         componentQuery.select(select);
@@ -258,7 +270,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await ComponentModel.countDocuments(query);
         return count;
     }
@@ -369,8 +383,12 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const populateComponent = [
             { path: 'projectId', select: 'name' },
@@ -401,8 +419,12 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const populate = [
             { path: 'projectId', select: 'name' },

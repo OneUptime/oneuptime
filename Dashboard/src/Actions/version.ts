@@ -38,10 +38,10 @@ export const getVersion = (): void => {
         dispatch(getVersionRequest(promise));
 
         promise.then(
-            function (versions): void {
+            (versions): void => {
                 dispatch(getVersionSuccess(versions.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getVersionError(error));
             }
         );

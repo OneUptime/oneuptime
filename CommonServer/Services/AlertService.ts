@@ -146,11 +146,17 @@ export default class Service {
     }
 
     async findBy({ query, skip, limit, sort, populate, select }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 10;
+        if (!limit) {
+            limit = 10;
+        }
 
-        if (!sort) sort = { createdAt: -1 };
+        if (!sort) {
+            sort = { createdAt: -1 };
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -164,7 +170,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const alertsQuery = AlertModel.find(query)
             .lean()
             .sort(sort)
@@ -367,7 +375,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await AlertModel.countDocuments(query);
         return count;
     }
@@ -377,7 +387,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const updatedAlert = await AlertModel.findOneAndUpdate(
             query,
             {
@@ -395,7 +407,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await AlertModel.updateMany(query, {
             $set: data,
         });
@@ -1069,8 +1083,8 @@ export default class Service {
         }
 
         // Create payload
-        const title = `${pushMessage}Incident #${incident.idNumber} is created`;
-        const body = `Please acknowledge or resolve this incident on OneUptime Dashboard.`;
+        const title: string = `${pushMessage}Incident #${incident.idNumber} is created`;
+        const body: string = `Please acknowledge or resolve this incident on OneUptime Dashboard.`;
         const payload = JSON.stringify({ title, body });
 
         // Pass object into sendNotification
@@ -1161,13 +1175,13 @@ export default class Service {
             });
 
             const projectId = incident.projectId._id || incident.projectId;
-            const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+            const queryString: string = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
 
-            const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
+            const ack_url: string = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
 
-            const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
+            const resolve_url: string = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
 
-            const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
+            const view_url: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -1326,13 +1340,13 @@ export default class Service {
             const projectName = incident.projectId.name;
             const projectSlug = incident.projectId.slug;
             // const monitorName = monitor.name;
-            const incidentId = `#${incident.idNumber}`;
+            const incidentId: string = `#${incident.idNumber}`;
             const reason = incident.reason;
             // const componentSlug = monitor.componentId.slug;
             // const componentName = monitor.componentId.name;
-            // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
+            // const incidentUrl:string = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.slug}`;
 
-            const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
+            const incidentUrl: string = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.slug}`;
             let incidentSlaTimeline = incidentCommunicationSla.duration * 60;
 
             incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -2247,11 +2261,11 @@ export default class Service {
                 expiresIn: 12 * 60 * 60 * 1000,
             });
 
-            const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+            const queryString: string = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
 
-            const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
+            const resolve_url: string = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
 
-            const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
+            const view_url: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -2309,7 +2323,7 @@ export default class Service {
                 moment(incident.createdAt),
                 'minutes'
             );
-            let downtimestring = `${Math.ceil(downtime)} minutes`;
+            let downtimestring: string = `${Math.ceil(downtime)} minutes`;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
             } else if (downtime > 24 * 60) {
@@ -2601,9 +2615,9 @@ export default class Service {
                 expiresIn: 12 * 60 * 60 * 1000,
             });
 
-            const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+            const queryString: string = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
 
-            const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
+            const view_url: string = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.slug}?${queryString}`;
             const firstName = user.name;
 
             if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
@@ -2661,7 +2675,7 @@ export default class Service {
                 moment(incident.createdAt),
                 'minutes'
             );
-            let downtimestring = `${Math.ceil(downtime)} minutes`;
+            let downtimestring: string = `${Math.ceil(downtime)} minutes`;
             if (downtime < 1) {
                 downtimestring = 'less than a minute';
             } else if (downtime > 24 * 60) {
@@ -2970,7 +2984,7 @@ export default class Service {
     ): void {
         const date = new Date();
         const isStatusPageNoteAlert = note && incidentState && statusNoteStatus;
-        const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
+        const statusPageNoteAlertEventType: string = `Investigation note ${statusNoteStatus}`;
 
         const projectId = incident.projectId._id || incident.projectId;
         const monitorPopulate = [
@@ -3248,9 +3262,9 @@ export default class Service {
                 });
                 const alertId = subscriberAlert._id;
 
-                const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${projectId}/${alertId}/viewed`;
+                const trackEmailAsViewedUrl: string = `${global.apiHost}/subscriberAlert/${projectId}/${alertId}/viewed`;
 
-                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
+                const unsubscribeUrl: string = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowledged') {
@@ -3868,14 +3882,18 @@ export default class Service {
     }
 
     checkIsOnDuty(startTime: $TSFixMe, endTime: $TSFixMe): void {
-        if (!startTime && !endTime) return true;
+        if (!startTime && !endTime) {
+            return true;
+        }
         const oncallstart = moment(startTime).format('HH:mm');
         const oncallend = moment(endTime).format('HH:mm');
         const currentTime = moment().format('HH:mm');
         const isUserActive =
             DateTime.compareDate(oncallstart, oncallend, currentTime) ||
             oncallstart === oncallend;
-        if (isUserActive) return true;
+        if (isUserActive) {
+            return true;
+        }
         return false;
     }
 
@@ -3994,7 +4012,7 @@ export default class Service {
         const { name: userName, email: userEmail } = user;
         const { stripePlanId, name: projectName, slug: projectSlug } = project;
 
-        const projectUrl = `${global.dashboardHost}/project/${projectSlug}`;
+        const projectUrl: string = `${global.dashboardHost}/project/${projectSlug}`;
         const projectPlan = getPlanById(stripePlanId);
 
         await MailService.sendUnpaidSubscriptionReminder({
@@ -4184,7 +4202,7 @@ export default class Service {
                         select: 'sendNewScheduledEventInvestigationNoteNotificationEmail name alertEnable sendNewScheduledEventInvestigationNoteNotificationSms users _id alertOptions slug sendNewScheduledEventInvestigationNoteNotificationSms',
                     });
 
-                    const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
+                    const unsubscribeUrl: string = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                     if (subscriber.alertVia === AlertType.Email) {
                         const select =
@@ -4665,7 +4683,7 @@ export default class Service {
                 });
                 const alertId = subscriberAlert._id;
 
-                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
+                const unsubscribeUrl: string = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                 let alertStatus = null;
                 try {
@@ -5398,7 +5416,7 @@ export default class Service {
                         select: 'sendAnnouncementNotificationEmail replyAddress name sendAnnouncementNotificationSms alertEnable users _id alertEnable alertOptions slug',
                     });
 
-                    const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
+                    const unsubscribeUrl: string = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                     let announcementAlert =
                         subscriber.notificationType?.announcement;

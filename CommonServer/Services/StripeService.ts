@@ -490,6 +490,8 @@ export default class StripeService {
         if (subscription && subscription.trial_end !== null) {
             const chargeDate = new Date(subscription.trial_end * 1000);
             return chargeDate;
-        } else return false;
+        } else {
+            return false;
+        }
     }
 }

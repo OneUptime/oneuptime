@@ -112,7 +112,7 @@ router.put(
     '/:emailLogsId',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
             const emailLogsId = req.params.emailLogsId;

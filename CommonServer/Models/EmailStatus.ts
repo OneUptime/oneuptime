@@ -6,23 +6,31 @@ import mongoose, {
 
 const Schema = mongoose.Schema;
 const schema = new Schema({
-    from: { type: String, ref: 'Project', index: true },
-    to: { type: String, ref: 'User', index: true },
+    fromEmail: { type: String },
+    fromName: { type: String },
+
+    projectId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Project',
+        alias: 'project',
+        index: true,
+    },
+
+    toEmail: String,
     subject: String,
     body: String,
-    createdAt: { type: Date, default: Date.now },
-    template: String,
+    templateType: String,
     status: String,
-    content: String,
-    error: String,
+    errorDescription: String,
+    smtpHost: String,
+
+    createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
     deletedAt: {
         type: Date,
     },
 
     deletedById: { type: String, ref: 'User', index: true },
-    replyTo: String,
-    smtpServer: String, // which can be internal, smtp.gmail.com, etc
 });
 export const requiredFields: RequiredFields = schema.requiredPaths();
 

@@ -10,17 +10,29 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, limit, skip, sort, select, populate }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 10;
+        if (!limit) {
+            limit = 10;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const escalationsQuery = EscalationModel.find(query)
             .lean()
             .sort(sort)
@@ -39,7 +51,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const escalationQuery = EscalationModel.findOne(query)
             .sort(sort)
             .lean();
@@ -113,7 +127,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const escalation = await EscalationModel.findOneAndUpdate(
             query,
             {
@@ -131,7 +147,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await EscalationModel.updateMany(query, {
             $set: data,
         });

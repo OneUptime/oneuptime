@@ -21,11 +21,11 @@ describe('Enterprise Project API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -35,7 +35,7 @@ describe('Enterprise Project API', function (): void {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -44,7 +44,7 @@ describe('Enterprise Project API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -54,15 +54,15 @@ describe('Enterprise Project API', function (): void {
         });
     });
 
-    it('should create a project when `planId` is not given', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a project when `planId` is not given', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post('/project/create')
             .set('Authorization', authorization)
             .send({
                 projectName: 'Test Project',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 newProjectId = res.body._id;
                 expect(res).to.have.status(200);
                 done();
@@ -70,7 +70,7 @@ describe('Enterprise Project API', function (): void {
     });
 
     it('should delete a project', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/project/${projectId}/deleteProject`)
             .set('Authorization', authorization)
@@ -81,7 +81,7 @@ describe('Enterprise Project API', function (): void {
     });
 
     it('should restore a deleted project', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .put(`/project/${projectId}/restoreProject`)
             .set('Authorization', authorization)

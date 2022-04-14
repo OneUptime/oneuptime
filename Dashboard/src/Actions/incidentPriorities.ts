@@ -37,12 +37,12 @@ export function fetchIncidentPriorities(
         );
         dispatch(fetchIncidentPrioritiesRequest());
         promise.then(
-            function (incidentsPriorities): void {
+            (incidentsPriorities): void => {
                 dispatch(
                     fetchIncidentPrioritiesSuccess(incidentsPriorities.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchIncidentPrioritiesFailure(error));
             }
         );
@@ -60,10 +60,10 @@ export const createIncidentPriority = (
         );
         dispatch(createIncidentPriorityRequest());
         promise.then(
-            function (incidentPriority): void {
+            (incidentPriority): void => {
                 dispatch(createIncidentPrioritySuccess(incidentPriority.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createIncidentPriorityFailure(error));
             }
         );
@@ -99,10 +99,10 @@ export const updateIncidentPriority = (
         const promise = BackendAPI.put(`incidentPriorities/${projectId}`, data);
         dispatch(updateIncidentPriorityRequest());
         promise.then(
-            function (incidentPriority): void {
+            (incidentPriority): void => {
                 dispatch(updateIncidentPrioritySuccess(incidentPriority.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateIncidentPriorityFailure(error));
             }
         );
@@ -138,10 +138,10 @@ export const deleteIncidentPriority = (
         const promise = delete (`incidentPriorities/${projectId}`, data);
         dispatch(deleteIncidentPriorityRequest());
         promise.then(
-            function (incidentPriority): void {
+            (incidentPriority): void => {
                 dispatch(deleteIncidentPrioritySuccess(incidentPriority.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteIncidentPriorityFailure(error));
             }
         );

@@ -121,7 +121,7 @@ class BaseAction {
             }
 
             return async function (this: $TSFixMe, dispatch: Dispatch): void {
-                let path = `${this.apiName}`;
+                let path: string = `${this.apiName}`;
 
                 if (this.isResourceInProject) {
                     path += `/${data.projectId}`;

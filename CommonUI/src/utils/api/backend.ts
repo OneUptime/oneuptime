@@ -16,8 +16,9 @@ class BackendAPI extends API {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
         const headers: Headers = {};
-        if (User.isLoggedIn())
+        if (User.isLoggedIn()) {
             headers['Authorization'] = 'Basic ' + User.getAccessToken();
+        }
 
         defaultHeaders = {
             ...defaultHeaders,

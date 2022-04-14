@@ -24,11 +24,11 @@ describe('Enterprise User API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createEnterpriseUser(
                 request,
                 data.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userRole = res.body.role;
@@ -39,7 +39,7 @@ describe('Enterprise User API', function (): void {
                             email: data.user.email,
                             password: data.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -63,14 +63,14 @@ describe('Enterprise User API', function (): void {
         });
     });
 
-    it('should sign up initial user as `master-admin`', function (): void {
+    it('should sign up initial user as `master-admin`', (): void => {
         expect(userRole).to.equal('master-admin');
     });
 
-    it('should confirm that `master-admin` exists', function (done: $TSFixMe): void {
+    it('should confirm that `master-admin` exists', (done: $TSFixMe): void => {
         request
             .get('/user/masterAdminExists')
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).have.property('result');
                 expect(res.body.result).to.eql(true);
@@ -80,11 +80,11 @@ describe('Enterprise User API', function (): void {
 
     // 'post /user/signup'
 
-    it('should register `user` without stripeToken, stripePlanId', function (done: $TSFixMe): void {
+    it('should register `user` without stripeToken, stripePlanId', (done: $TSFixMe): void => {
         createEnterpriseUser(
             request,
             data.newUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 const project = res.body.project;
                 newProjectId = project._id;
                 expect(res).to.have.status(200);
@@ -97,14 +97,14 @@ describe('Enterprise User API', function (): void {
         );
     });
 
-    it('should login with valid credentials', function (done: $TSFixMe): void {
+    it('should login with valid credentials', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
                     data.newUser.email.toLocaleLowerCase()
@@ -114,7 +114,7 @@ describe('Enterprise User API', function (): void {
             });
     });
 
-    it('should login with valid credentials, and return sent redirect url', function (done: $TSFixMe): void {
+    it('should login with valid credentials, and return sent redirect url', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
@@ -122,7 +122,7 @@ describe('Enterprise User API', function (): void {
                 password: data.newUser.password,
                 redirect: 'http://oneuptime.com',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(
                     data.newUser.email.toLocaleLowerCase()
@@ -133,12 +133,12 @@ describe('Enterprise User API', function (): void {
             });
     });
 
-    it('should get list of users without their hashed passwords', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get list of users without their hashed passwords', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get('/user/users')
             .set('Authorization', authorization)
-            .end(async function (err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('data');
@@ -153,14 +153,14 @@ describe('Enterprise User API', function (): void {
             });
     });
 
-    it('should turn off 2fa for a user', function (done: $TSFixMe): void {
+    it('should turn off 2fa for a user', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .then(function (res: $TSFixMe): void {
+            .then((res: $TSFixMe): void => {
                 const jwtToken = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
@@ -169,7 +169,7 @@ describe('Enterprise User API', function (): void {
                         twoFactorAuthEnabled: true,
                         email: data.newUser.email,
                     })
-                    .then(function (res: $TSFixMe): void {
+                    .then((res: $TSFixMe): void => {
                         request
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${token}`)
@@ -178,7 +178,7 @@ describe('Enterprise User API', function (): void {
                                 twoFactorAuthEnabled:
                                     !res.body.twoFactorAuthEnabled,
                             })
-                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                            .end((err: $TSFixMe, res: $TSFixMe): void => {
                                 expect(res.body.twoFactorAuthEnabled).to.eql(
                                     false
                                 );
@@ -188,14 +188,14 @@ describe('Enterprise User API', function (): void {
             });
     });
 
-    it('should not turn off 2fa for a user if loged in user is not admin', function (done: $TSFixMe): void {
+    it('should not turn off 2fa for a user if loged in user is not admin', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .then(function (res: $TSFixMe): void {
+            .then((res: $TSFixMe): void => {
                 const jwtToken = res.body.tokens.jwtAccessToken;
                 request
                     .put('/user/profile')
@@ -204,7 +204,7 @@ describe('Enterprise User API', function (): void {
                         twoFactorAuthEnabled: true,
                         email: data.newUser.email,
                     })
-                    .then(function (res: $TSFixMe): void {
+                    .then((res: $TSFixMe): void => {
                         request
                             .put(`/user/${res.body._id}/2fa`)
                             .set('Authorization', `Basic ${jwtToken}`)
@@ -213,10 +213,7 @@ describe('Enterprise User API', function (): void {
                                 twoFactorAuthEnabled:
                                     !res.body.twoFactorAuthEnabled,
                             })
-                            .end(function (
-                                err: $TSFixMe,
-                                result: $TSFixMe
-                            ): void {
+                            .end((err: $TSFixMe, result: $TSFixMe): void => {
                                 expect(result).to.have.status(400);
                                 done();
                             });

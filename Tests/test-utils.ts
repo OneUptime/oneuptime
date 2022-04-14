@@ -103,7 +103,9 @@ function generateRandomWebsite(): void {
 }
 
 function capitalize(words: $TSFixMe): void {
-    if (!words || !words.trim()) return '';
+    if (!words || !words.trim()) {
+        return '';
+    }
 
     words = words.split(' ');
     words = words.map(

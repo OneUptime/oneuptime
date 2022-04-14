@@ -54,12 +54,12 @@ export function getProjectIncidents(
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 const data = incidents.data;
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(projectIncidentsError(error));
             }
         );
@@ -90,7 +90,7 @@ export function getProjectComponentIncidents(
         dispatch(projectIncidentsRequest(promise));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 const data = incidents.data;
 
                 data.count = incidents.data.data.count;
@@ -99,7 +99,7 @@ export function getProjectComponentIncidents(
                 data.projectId = projectId;
                 dispatch(projectIncidentsSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(projectIncidentsError(error));
             }
         );
@@ -142,10 +142,10 @@ export const getIncidents = (projectId: ObjectID): void => {
         dispatch(incidentsRequest(promise));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 dispatch(incidentsSuccess(incidents.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(incidentsError(error));
             }
         );
@@ -163,10 +163,10 @@ export function getComponentIncidents(
         dispatch(incidentsRequest(promise));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 dispatch(incidentsSuccess(incidents.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(incidentsError(error));
             }
         );
@@ -235,7 +235,7 @@ export function createNewIncident(
         dispatch(createIncidentRequest(projectId));
 
         promise.then(
-            function (createIncident): void {
+            (createIncident): void => {
                 dispatch({
                     type: 'ADD_NEW_INCIDENT_TO_UNRESOLVED',
 
@@ -249,7 +249,7 @@ export function createNewIncident(
 
                 dispatch(createIncidentSuccess(createIncident.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createIncidentError(error));
             }
         );
@@ -329,10 +329,10 @@ export const getIncident = (
         dispatch(incidentRequest(promise));
 
         promise.then(
-            function (incident): void {
+            (incident): void => {
                 dispatch(incidentSuccess(incident.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(incidentError(error));
             }
         );
@@ -361,10 +361,10 @@ export function getIncidentTimeline(
         dispatch(incidentTimelineRequest(promise));
 
         promise.then(
-            function (timeline): void {
+            (timeline): void => {
                 dispatch(incidentTimelineSuccess(timeline.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(incidentTimelineError(error));
             }
         );
@@ -438,7 +438,7 @@ export function acknowledgeIncident(
         }
 
         promise.then(
-            function (result): void {
+            (result): void => {
                 if (multiple) {
                     dispatch(
                         acknowledgeIncidentSuccess({
@@ -475,7 +475,7 @@ export function acknowledgeIncident(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (multiple) {
                     dispatch(
                         incidentError({
@@ -536,7 +536,7 @@ export function resolveIncident(
         }
 
         promise.then(
-            function (result): void {
+            (result): void => {
                 if (multiple) {
                     dispatch(
                         resolveIncidentSuccess({
@@ -573,7 +573,7 @@ export function resolveIncident(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (multiple) {
                     dispatch(
                         incidentError({
@@ -629,10 +629,10 @@ export const closeIncident = (
         dispatch(closeIncidentRequest(incidentId));
 
         promise.then(
-            function (incident): void {
+            (incident): void => {
                 dispatch(closeIncidentSuccess(incident.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(closeIncidentError(error));
             }
         );
@@ -684,10 +684,10 @@ export const fetchUnresolvedIncidents = (
         dispatch(UnresolvedIncidentsRequest(promise));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 dispatch(UnresolvedIncidentsSuccess(incidents.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(UnresolvedIncidentsError(error));
             }
         );
@@ -749,10 +749,10 @@ export function setInvestigationNote(
         dispatch(investigationNoteRequest(promise, isUpdate));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 dispatch(investigationNoteSuccess(incidents.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(investigationNoteError(error, isUpdate));
             }
         );
@@ -804,7 +804,7 @@ export function setInternalNote(
         dispatch(internalNoteRequest(promise, isUpdate));
 
         promise.then(
-            function (incidents): void {
+            (incidents): void => {
                 if (incidents.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
@@ -823,7 +823,7 @@ export function setInternalNote(
                     dispatch(internalNoteSuccess(incidents.data));
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(internalNoteError(error, isUpdate));
             }
         );
@@ -869,10 +869,10 @@ export const deleteIncident = (
         dispatch(deleteIncidentRequest(incidentId));
 
         promise.then(
-            function (incident): void {
+            (incident): void => {
                 dispatch(deleteIncidentSuccess(incident.data._id));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteIncidentFailure({ error: error, incidentId }));
             }
         );
@@ -903,10 +903,10 @@ export const hideIncident = (data: $TSFixMe): void => {
             hideIncident,
         });
         promise.then(
-            function (incident): void {
+            (incident): void => {
                 dispatch(hideIncidentSuccess(incident));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(hideIncidentFailure({ error: error, incidentId }));
             }
         );
@@ -937,7 +937,7 @@ export function fetchIncidentMessages(
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     fetchIncidentMessagesSuccess({
                         incidentId: incidentSlug,
@@ -952,7 +952,7 @@ export function fetchIncidentMessages(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     fetchIncidentMessagesFailure({
                         incidentId: incidentSlug,
@@ -1013,7 +1013,7 @@ export function deleteIncidentMessage(
         dispatch(deleteIncidentMessageRequest(incidentMessageId));
 
         promise.then(
-            function (incidentMessage): void {
+            (incidentMessage): void => {
                 if (incidentMessage.data.type === 'internal') {
                     dispatch(
                         fetchIncidentMessagesSuccess({
@@ -1034,7 +1034,7 @@ export function deleteIncidentMessage(
                     );
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     deleteIncidentMessageFailure({
                         error: error,
@@ -1094,10 +1094,10 @@ export function updateIncident(
         dispatch(updateIncidentRequest());
 
         promise.then(
-            function (incident): void {
+            (incident): void => {
                 dispatch(updateIncidentSuccess(incident.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateIncidentFailure(error));
             }
         );

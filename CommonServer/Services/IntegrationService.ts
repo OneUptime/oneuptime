@@ -1,6 +1,8 @@
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const integrationQuery = IntegrationModel.find(query)
             .lean()
             .sort(sort)
@@ -77,7 +79,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const integration = await IntegrationModel.findOneAndUpdate(query, {
             $set: {
                 deleted: true,
@@ -89,9 +93,13 @@ export default class Service {
     }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (query.deleted) query['deleted'] = false;
+        if (query.deleted) {
+            query['deleted'] = false;
+        }
         const integrationQuery = IntegrationModel.findOne(query)
             .lean()
             .sort(sort);
@@ -164,7 +172,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await IntegrationModel.updateMany(query, {
             $set: data,
         });

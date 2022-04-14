@@ -8,8 +8,10 @@ import {
     sendEmptyResponse,
 } from 'CommonServer/Utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
-import ClusterKeyAuthorization from 'CommonServer/middlewares/ClusterKeyAuthorization';
-import RealtimeService from '../Services/RealtimeService';
+import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
+import MailService from '../Services/MailService';
+import Mail from '../Types/Mail';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 
 router.post(
     '/:template-name',
@@ -17,11 +19,21 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const body = req.body;
-            RealtimeService.send(
-                req.params['projectId'] as string,
-                req.params['eventType'] as string,
-                body
+            
+            const mail: Mail = {
+                templateType: req.params['template-name'] as EmailTemplateType,
+                toEmail: body['toEmail'],
+                subject: body['subject'],
+                vars: body['vars'],
+                body: ''
+            }
+
+            await MailService.send(
+                mail,
+                body['projectId'], 
+                body['forceSendFromGlobalMailServer']
             );
+
             return sendEmptyResponse(req, res);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);

@@ -57,7 +57,9 @@ const _this = {
                   ).getTime()
                 : current;
 
-        if (current >= start && current <= end) return true;
+        if (current >= start && current <= end) {
+            return true;
+        }
         return false;
     },
 

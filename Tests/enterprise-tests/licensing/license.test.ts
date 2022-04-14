@@ -39,7 +39,7 @@ describe('License API', function (): void {
                 license: validLicense['License Key'],
                 email,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).have.property('token');
                 done();
@@ -53,7 +53,7 @@ describe('License API', function (): void {
                 license: invalidLicense['License Key'],
                 email,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('Invalid License');
                 done();
@@ -67,7 +67,7 @@ describe('License API', function (): void {
                 license: expiredLicense['License Key'],
                 email,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('License Expired');
                 done();
@@ -80,7 +80,7 @@ describe('License API', function (): void {
             .send({
                 license: validLicense['License Key'],
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.equal('Email must be present.');
                 done();

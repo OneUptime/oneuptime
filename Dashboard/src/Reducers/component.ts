@@ -299,12 +299,15 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                                     subProjectComponents[componentIndex]
                                 );
 
-                                if (!newComponent.skip)
+                                if (!newComponent.skip) {
                                     newComponent.skip = oldComponent.skip;
-                                if (!newComponent.limit)
+                                }
+                                if (!newComponent.limit) {
                                     newComponent.limit = oldComponent.limit;
-                                if (!newComponent.count)
+                                }
+                                if (!newComponent.count) {
                                     newComponent.count = oldComponent.count;
+                                }
 
                                 subProjectComponents[componentIndex] =
                                     newComponent;
@@ -378,9 +381,11 @@ export default function component(state = INITIAL_STATE, action: Action): void {
                                         i === action.payload ||
                                         component._id === action.payload
                                     ) {
-                                        if (!component.editMode)
+                                        if (!component.editMode) {
                                             component.editMode = true;
-                                        else component.editMode = false;
+                                        } else {
+                                            component.editMode = false;
+                                        }
                                         return component;
                                     } else {
                                         component.editMode = false;

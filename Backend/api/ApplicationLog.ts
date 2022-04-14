@@ -113,7 +113,7 @@ router.get(
     '/:projectId/:componentId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const componentId = req.params.componentId;
             if (!componentId) {
@@ -171,7 +171,7 @@ router.delete(
 router.post(
     '/:applicationLogId/log',
     isApplicationLogValid,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
             const applicationLogId = req.params.applicationLogId;
@@ -223,12 +223,17 @@ router.post(
 
             const query = {};
 
-            if (applicationLogId) query.applicationLogId = applicationLogId;
+            if (applicationLogId) {
+                query.applicationLogId = applicationLogId;
+            }
 
-            if (type) query.type = type;
+            if (type) {
+                query.type = type;
+            }
 
-            if (startDate && endDate)
+            if (startDate && endDate) {
                 query.createdAt = { $gte: startDate, $lte: endDate };
+            }
 
             if (filter) {
                 query.stringifiedContent = {
@@ -282,7 +287,9 @@ router.post(
 
             const query = {};
 
-            if (applicationLogId) query.applicationLogId = applicationLogId;
+            if (applicationLogId) {
+                query.applicationLogId = applicationLogId;
+            }
 
             const stat = {};
 

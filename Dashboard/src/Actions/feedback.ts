@@ -57,11 +57,11 @@ export function createFeedback(
         dispatch(createFeedbackRequest());
 
         return promise.then(
-            function (feedback): void {
+            (feedback): void => {
                 dispatch(createFeedbackSuccess(feedback));
                 return feedback;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createFeedbackError(error));
             }
         );

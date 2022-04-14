@@ -8,15 +8,19 @@ import ProjectService from './projectService';
 
 import { realtimeUrl } from '../Config';
 
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
         const query = {};
 
-        if (data.monitorId) query.monitorId = data.monitorId;
+        if (data.monitorId) {
+            query.monitorId = data.monitorId;
+        }
 
-        if (data.probeId) query.probeId = data.probeId;
+        if (data.probeId) {
+            query.probeId = data.probeId;
+        }
 
         let previousMonitorStatus = await this.findBy({
             query,
@@ -83,8 +87,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         await monitorStatusCollection.updateOne(query, { $set: data });
         const updatedMonitorStatus = await monitorStatusCollection.findOne(
@@ -98,16 +103,18 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const monitorStatus = await monitorStatusCollection.findOne(query);
         return monitorStatus;
     },
 
     findBy: async function ({ query, limit, skip, sort }: $TSFixMe): void {
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const incidents = await monitorStatusCollection
             .find(query)

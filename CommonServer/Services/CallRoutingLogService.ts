@@ -6,9 +6,7 @@ import Model, {
 } from '../Models/CallRoutingLog';
 import DatabaseService from './DatabaseService';
 
-export default class CallRoutingLogService extends DatabaseService<
-    typeof Model
-> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -61,3 +59,5 @@ export default class CallRoutingLogService extends DatabaseService<
         });
     }
 }
+
+export default new Service();

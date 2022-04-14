@@ -37,7 +37,7 @@ describe('Tracker Timeline', function (): void {
             request
                 .post('/user/signup')
                 .send(user)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     token = res.body.tokens.jwtAccessToken;
@@ -45,7 +45,7 @@ describe('Tracker Timeline', function (): void {
                         .post(`/component/${projectId}`)
                         .set('Authorization', `Basic ${token}`)
                         .send(component)
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             componentId = res.body._id;
                             request
                                 .post(
@@ -53,10 +53,7 @@ describe('Tracker Timeline', function (): void {
                                 )
                                 .set('Authorization', `Basic ${token}`)
                                 .send({ name: 'Application OneUptimeTracker' })
-                                .end(function (
-                                    err: $TSFixMe,
-                                    res: $TSFixMe
-                                ): void {
+                                .end((err: $TSFixMe, res: $TSFixMe): void => {
                                     expect(res).to.have.status(200);
                                     expect(res.body).to.be.an('object');
                                     expect(res.body).to.have.property('_id');
@@ -68,7 +65,7 @@ describe('Tracker Timeline', function (): void {
         });
     });
 
-    it('should take in custom timeline event', function (): void {
+    it('should take in custom timeline event', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -85,7 +82,7 @@ describe('Tracker Timeline', function (): void {
         expect(timeline[0].category).to.equal(customTimeline.category);
     });
 
-    it('should ensure timeline event contains eventId and timestamp', function (): void {
+    it('should ensure timeline event contains eventId and timestamp', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -101,7 +98,7 @@ describe('Tracker Timeline', function (): void {
         expect(timeline[0].timestamp).to.be.a('number');
     });
 
-    it('should ensure different timeline event have the same eventId', function (): void {
+    it('should ensure different timeline event have the same eventId', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -122,7 +119,7 @@ describe('Tracker Timeline', function (): void {
         expect(timeline[0].eventId).to.equal(timeline[1].eventId); // their eveentId is the same till there is an error sent to the server
     });
 
-    it('should ensure max timline cant be set as a negative number', function (): void {
+    it('should ensure max timline cant be set as a negative number', (): void => {
         const options = { maxTimeline: -5 };
         const tracker = new OneUptimeTracker(
             API_URL,
@@ -144,7 +141,7 @@ describe('Tracker Timeline', function (): void {
         expect(timeline.length).to.equal(2); // two timeline events
     });
 
-    it('should ensure new timeline event after max timeline are discarded', function (): void {
+    it('should ensure new timeline event after max timeline are discarded', (): void => {
         const options = { maxTimeline: 2 };
         const tracker = new OneUptimeTracker(
             API_URL,
@@ -182,8 +179,8 @@ describe('Tracker Timeline', function (): void {
     });
 });
 
-describe('Tags', function (): void {
-    it('should add tags ', function (): void {
+describe('Tags', (): void => {
+    it('should add tags ', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -198,7 +195,7 @@ describe('Tags', function (): void {
         expect(availableTags[0]).to.have.property('value');
     });
 
-    it('should add multiple tags ', function (): void {
+    it('should add multiple tags ', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -215,7 +212,7 @@ describe('Tags', function (): void {
         expect(availableTags.length).to.equal(3);
     });
 
-    it('should overwrite existing keys to avoid duplicate tags ', function (): void {
+    it('should overwrite existing keys to avoid duplicate tags ', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -237,8 +234,8 @@ describe('Tags', function (): void {
     });
 });
 
-describe('Fingerpint', function (): void {
-    it('should create fingerprint as message for error capture without any fingerprint', function (): void {
+describe('Fingerpint', (): void => {
+    it('should create fingerprint as message for error capture without any fingerprint', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -250,7 +247,7 @@ describe('Fingerpint', function (): void {
         expect(event.fingerprint[0]).to.equal(errorMessage);
     });
 
-    it('should use defined fingerprint array for error capture with fingerprint', function (): void {
+    it('should use defined fingerprint array for error capture with fingerprint', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -265,7 +262,7 @@ describe('Fingerpint', function (): void {
         expect(event.fingerprint[1]).to.equal(fingerprints[1]);
     });
 
-    it('should use defined fingerprint string for error capture with fingerprint', function (): void {
+    it('should use defined fingerprint string for error capture with fingerprint', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -280,8 +277,8 @@ describe('Fingerpint', function (): void {
     });
 });
 
-describe('Capture Message', function (): void {
-    it('should create an event ready for the server', function (): void {
+describe('Capture Message', (): void => {
+    it('should create an event ready for the server', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -294,7 +291,7 @@ describe('Capture Message', function (): void {
         expect(event.exception.message).to.equal(errorMessage);
     });
 
-    it('should create an event ready for the server while having the timeline with same event id', function (): void {
+    it('should create an event ready for the server while having the timeline with same event id', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -314,8 +311,8 @@ describe('Capture Message', function (): void {
     });
 });
 
-describe('Capture Exception', function (): void {
-    it('should create an event ready for the server', async function (): void {
+describe('Capture Exception', (): void => {
+    it('should create an event ready for the server', async (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -328,7 +325,7 @@ describe('Capture Exception', function (): void {
         expect(event.exception.message).to.equal(errorMessage);
     });
 
-    it('should create an event with a array of stacktrace ', async function (): void {
+    it('should create an event with a array of stacktrace ', async (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -343,7 +340,7 @@ describe('Capture Exception', function (): void {
         expect(event.exception.stacktrace.frames).to.be.an('array');
     });
 
-    it('should create an event with the object of the stacktrace in place', async function (): void {
+    it('should create an event with the object of the stacktrace in place', async (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -359,7 +356,7 @@ describe('Capture Exception', function (): void {
         expect(frame).to.have.property('fileName');
     });
 
-    it('should create an event and new event should have different id ', async function (): void {
+    it('should create an event and new event should have different id ', async (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -393,7 +390,7 @@ describe('Capture Exception', function (): void {
         expect(event._id).to.not.equal(newEvent._id);
     });
 
-    it('should create an event that has timeline and new event having tags', async function (): void {
+    it('should create an event that has timeline and new event having tags', async (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -437,8 +434,8 @@ describe('Capture Exception', function (): void {
     });
 });
 
-describe('SDK Version', function (): void {
-    it('should contain version number and sdk name in captured message', function (): void {
+describe('SDK Version', (): void => {
+    it('should contain version number and sdk name in captured message', (): void => {
         const tracker = new OneUptimeTracker(
             API_URL,
             errorTracker._id,
@@ -452,8 +449,8 @@ describe('SDK Version', function (): void {
     });
 });
 
-describe('Code Capture Snippet', function (): void {
-    it('should add code capture to stack trace when flag is passed in options', async function (): void {
+describe('Code Capture Snippet', (): void => {
+    it('should add code capture to stack trace when flag is passed in options', async (): void => {
         const options = { captureCodeSnippet: true };
         const tracker = new OneUptimeTracker(
             API_URL,
@@ -473,7 +470,7 @@ describe('Code Capture Snippet', function (): void {
         expect(incidentFrame).to.have.property('errorLine');
     });
 
-    it('should add code capture and confirm data type of fields added to frame', async function (): void {
+    it('should add code capture and confirm data type of fields added to frame', async (): void => {
         const options = { captureCodeSnippet: true };
         const tracker = new OneUptimeTracker(
             API_URL,
@@ -493,7 +490,7 @@ describe('Code Capture Snippet', function (): void {
         expect(incidentFrame.linesAfterError).to.be.an('array');
     });
 
-    it('should not add code capture to stack trace when flag is passed in options', async function (): void {
+    it('should not add code capture to stack trace when flag is passed in options', async (): void => {
         const options = { captureCodeSnippet: false };
         const tracker = new OneUptimeTracker(
             API_URL,
@@ -513,7 +510,7 @@ describe('Code Capture Snippet', function (): void {
         expect(incidentFrame).to.not.have.property('errorLine');
     });
 
-    it('should add code capture to stack trace by default when unwanted flag is passed in options', async function (): void {
+    it('should add code capture to stack trace by default when unwanted flag is passed in options', async (): void => {
         const options = { captureCodeSnippet: 'heyy' }; // expects a true or false but it defaults to true
         const tracker = new OneUptimeTracker(
             API_URL,

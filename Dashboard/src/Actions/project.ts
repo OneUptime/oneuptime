@@ -137,7 +137,7 @@ export const getProjects = (switchToProjectId: ObjectID): void => {
         dispatch(projectsRequest(promise));
 
         promise.then(
-            function (projects): void {
+            (projects): void => {
                 projects = projects.data && projects.data.data;
                 dispatch(projectsSuccess(projects));
 
@@ -178,7 +178,7 @@ export const getProjects = (switchToProjectId: ObjectID): void => {
                         dispatch(switchProject(dispatch, projects[0]));
                 }
             },
-            function (error): void {
+            (error): void => {
                 dispatch(projectsError(error));
             }
         );
@@ -212,10 +212,10 @@ export const getProjectBalance = (projectId: ObjectID): void => {
         dispatch(getProjectBalanceRequest(promise));
 
         promise.then(
-            function (balance): void {
+            (balance): void => {
                 dispatch(getProjectBalanceSuccess(balance.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getprojectError(error));
             }
         );
@@ -254,7 +254,7 @@ export const createProject = (values: $TSFixMe): void => {
         dispatch(createProjectRequest());
 
         return promise.then(
-            function (project): void {
+            (project): void => {
                 if (IS_SAAS_SERVICE) {
                     User.setCardRegistered(true);
                 }
@@ -263,7 +263,7 @@ export const createProject = (values: $TSFixMe): void => {
 
                 return project.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createProjectError(error));
             }
         );
@@ -454,12 +454,13 @@ export const resetProjectToken = (projectId: ObjectID): void => {
 
         promise
             .then(
-                function (project): void {
+                (project): void => {
                     dispatch(resetProjectTokenSuccess(project));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -471,7 +472,7 @@ export const resetProjectToken = (projectId: ObjectID): void => {
                     dispatch(resetProjectTokenError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(resetProjectTokenReset());
             });
 
@@ -518,13 +519,14 @@ export const renameProject = (
 
         promise
             .then(
-                function (project): void {
+                (project): void => {
                     dispatch(renameProjectSuccess(project));
                     return project;
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -536,7 +538,7 @@ export const renameProject = (
                     dispatch(renameProjectError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(renameProjectReset());
             });
 
@@ -578,14 +580,14 @@ export const deleteProject = (
         dispatch(deleteProjectRequest());
 
         promise.then(
-            function (): void {
+            (): void => {
                 dispatch(deleteProjectSuccess(projectId));
                 dispatch(deleteProjectIncidents(projectId));
                 dispatch(deleteProjectSchedules(projectId));
                 dispatch(deleteProjectMonitors(projectId));
                 dispatch(deleteProjectStatusPages(projectId));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteProjectError(error));
             }
         );
@@ -639,12 +641,13 @@ export function changePlan(
 
         promise
             .then(
-                function (project): void {
+                (project): void => {
                     dispatch(changePlanSuccess(project));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -656,7 +659,7 @@ export function changePlan(
                     dispatch(changePlanError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(changePlanReset());
             });
 
@@ -682,12 +685,13 @@ export function upgradeToEnterpriseMail(
 
         promise
             .then(
-                function (project): void {
+                (project): void => {
                     dispatch(changePlanSuccess(project));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -699,7 +703,7 @@ export function upgradeToEnterpriseMail(
                     dispatch(changePlanError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(changePlanReset());
             });
 
@@ -736,10 +740,10 @@ export const exitProject = (projectId: ObjectID, userId: ObjectID): void => {
         dispatch(exitProjectRequest());
 
         promise.then(
-            function (): void {
+            (): void => {
                 dispatch(exitProjectSuccess({ projectId, userId }));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(exitProjectError(error));
             }
         );
@@ -790,10 +794,10 @@ export const markProjectForDelete = (
         dispatch(markProjectForDeleteRequest());
 
         promise.then(
-            function (): void {
+            (): void => {
                 dispatch(markProjectForDeleteSuccess(projectId));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(markProjectForDeleteError(error));
             }
         );
@@ -835,10 +839,10 @@ export const alertOptionsUpdate = (
         dispatch(alertOptionsUpdateRequest());
 
         promise.then(
-            function (project): void {
+            (project): void => {
                 dispatch(alertOptionsUpdateSuccess(project));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(alertOptionsUpdateError(error));
             }
         );
@@ -873,10 +877,10 @@ export const addBalance = (projectId: ObjectID, data: $TSFixMe): void => {
         dispatch(addBalanceRequest());
 
         promise.then(
-            function (pi): void {
+            (pi): void => {
                 dispatch(addBalanceSuccess(pi));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(addBalanceError(error));
             }
         );
@@ -956,10 +960,10 @@ export const checkCard = (data: $TSFixMe): void => {
         dispatch(checkCardRequest(promise));
 
         promise.then(
-            function (card): void {
+            (card): void => {
                 dispatch(checkCardSuccess(card.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(checkCardFailed(error));
             }
         );
@@ -1415,10 +1419,10 @@ export const fetchTrial = (projectId: ObjectID): void => {
         dispatch(fetchTrialRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchTrialSuccess(response));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchTrialError(error));
             }
         );
@@ -1454,10 +1458,10 @@ export const fetchProjectSlug = (slug: $TSFixMe): void => {
         dispatch(fetchProjectSlugRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchProjectSlugSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

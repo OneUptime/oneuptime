@@ -44,7 +44,7 @@ export const getSubProjects = (
         dispatch(subProjectsRequest(promise));
 
         promise.then(
-            function (subProjects): void {
+            (subProjects): void => {
                 const subData = {
                     subProjects: subProjects.data.data,
 
@@ -54,7 +54,7 @@ export const getSubProjects = (
                 };
                 dispatch(subProjectsSuccess(subData));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(subProjectsError(error));
             }
         );
@@ -113,12 +113,12 @@ export function createSubProject(
         dispatch(createSubProjectRequest());
 
         return promise.then(
-            function (subProject): void {
+            (subProject): void => {
                 dispatch(createSubProjectSuccess(subProject.data));
 
                 return subProject.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createSubProjectError(error));
                 return { error };
             }
@@ -165,10 +165,10 @@ export const resetSubProjectToken = (subProjectId: ObjectID): void => {
         dispatch(resetSubProjectTokenRequest());
 
         promise.then(
-            function (subProject): void {
+            (subProject): void => {
                 dispatch(resetSubProjectTokenSuccess(subProject));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetSubProjectTokenError(error));
             }
         );
@@ -222,11 +222,11 @@ export function renameSubProject(
         dispatch(renameSubProjectRequest());
 
         promise.then(
-            function (project): void {
+            (project): void => {
                 dispatch(renameSubProjectSuccess(project));
                 return project;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(renameSubProjectError(error));
                 return { error };
             }
@@ -280,12 +280,12 @@ export const deleteSubProject = (
         dispatch(deleteSubProjectRequest());
 
         promise.then(
-            function (): void {
+            (): void => {
                 dispatch(setActiveSubProject(projectId, true));
                 dispatch(deleteSubProjectSuccess(subProjectId));
                 return subProjectId;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteSubProjectError(error));
                 return { error };
             }
@@ -329,10 +329,10 @@ export function exitSubProject(
         dispatch(exitSubProjectRequest());
 
         promise.then(
-            function (): void {
+            (): void => {
                 dispatch(exitSubProjectSuccess({ projectId, userId }));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(exitSubProjectError(error));
             }
         );
@@ -384,10 +384,10 @@ export function markSubProjectForDelete(
         dispatch(markSubProjectForDeleteRequest());
 
         promise.then(
-            function (): void {
+            (): void => {
                 dispatch(markSubProjectForDeleteSuccess(projectId));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(markSubProjectForDeleteError(error));
             }
         );

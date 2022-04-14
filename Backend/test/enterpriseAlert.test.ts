@@ -30,11 +30,11 @@ describe('Enterprise Alert API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -46,12 +46,9 @@ describe('Enterprise Alert API', function (): void {
                                     email: userData.user.email,
                                     password: userData.user.password,
                                 })
-                                .end(function (
-                                    err: $TSFixMe,
-                                    res: $TSFixMe
-                                ): void {
+                                .end((err: $TSFixMe, res: $TSFixMe): void => {
                                     token = res.body.tokens.jwtAccessToken;
-                                    const authorization = `Basic ${token}`;
+                                    const authorization: string = `Basic ${token}`;
                                     request
                                         .post(`/monitor/${projectId}`)
                                         .set('Authorization', authorization)
@@ -63,10 +60,7 @@ describe('Enterprise Alert API', function (): void {
                                             },
                                             componentId: component._id,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             monitorId = res.body._id;
                                             incidentData.monitors = [monitorId];
                                             done();
@@ -79,7 +73,7 @@ describe('Enterprise Alert API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await MonitorService.hardDeleteBy({ _id: monitorId });
@@ -90,13 +84,13 @@ describe('Enterprise Alert API', function (): void {
         await AlertService.hardDeleteBy({ _id: alertId });
     });
 
-    it('should create alert with valid details for project with no billing plan', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create alert with valid details for project with no billing plan', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 incidentId = res.body._id;
                 request
                     .post(`/alert/${projectId}`)
@@ -107,7 +101,7 @@ describe('Enterprise Alert API', function (): void {
                         incidentId,
                         eventType: 'identified',
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         alertId = res.body._id;
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('object');

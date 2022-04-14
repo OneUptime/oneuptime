@@ -104,15 +104,17 @@ import MonitorCustomFieldAPI from './api/monitorCustomField';
 // WORKERS
 import './backend/workers/main';
 
-app.use(async function (
-    req: ExpressRequest,
-    _res: ExpressResponse,
-    next: NextFunction
-): void {
-    req = (await getUser(req)) || req;
-    req = (await getProjectId(req)) || req;
-    next();
-});
+app.use(
+    async (
+        req: ExpressRequest,
+        _res: ExpressResponse,
+        next: NextFunction
+    ): void => {
+        req = (await getUser(req)) || req;
+        req = (await getProjectId(req)) || req;
+        next();
+    }
+);
 
 //View engine setup
 app.set('views', path.join(__dirname, 'views'));

@@ -114,7 +114,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 const probeId = req.body.id;
                 const data = req.body;
 
@@ -167,7 +167,7 @@ router.get(
 router.post(
     '/ping/:monitorId',
     isAuthorizedProbe,
-    async function (req, response): void {
+    async (req, response): void => {
         try {
             const {
                 monitor,
@@ -859,7 +859,7 @@ router.get(
     '/:projectId/probes',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const limit = req.query['limit'] || null;
             const skip = req.query['skip'] || null;

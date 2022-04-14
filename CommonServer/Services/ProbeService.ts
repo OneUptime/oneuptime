@@ -18,7 +18,7 @@ import Model, {
 } from '../Models/SSL';
 import DatabaseService from './DatabaseService';
 
-export default class ProbeService extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -162,15 +162,18 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
 
                 await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
             const incidentIdsOrRetry = await this.incidentCreateOrUpdate(data);
 
-            if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
+            if (incidentIdsOrRetry.retry) {
+                return incidentIdsOrRetry;
+            }
 
             if (
                 Array.isArray(incidentIdsOrRetry) &&
@@ -346,8 +349,9 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
                 const incident = await IncidentService.create({
                     projectId: monitor.projectId,
                     monitors: [data.monitorId],
@@ -419,8 +423,9 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
                 const incident = await IncidentService.create({
                     projectId: monitor.projectId,
                     monitors: [data.monitorId],
@@ -492,8 +497,9 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
 
                 const incident = await IncidentService.create({
                     projectId: monitor.projectId,
@@ -562,8 +568,9 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                     incident &&
                     incident.criterionCause &&
                     incident.criterionCause._id
-                )
+                ) {
                     criteriaId = String(incident.criterionCause._id);
+                }
 
                 allCriteria.forEach(criteria => {
                     if (
@@ -599,7 +606,9 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                         ) {
                             incidentsV1.push(incident);
                             return true;
-                        } else return false;
+                        } else {
+                            return false;
+                        }
                     });
                 } else {
                     incidentsV1.push(incident);
@@ -1072,7 +1081,7 @@ export default class ProbeService extends DatabaseService<typeof Model> {
                 : false;
         let timeHours = 0;
         let timeMinutes = payload;
-        let tempReason = `${payload} min`;
+        let tempReason: string = `${payload} min`;
         if (timeMinutes > 60) {
             timeHours = Math.floor(timeMinutes / 60);
             timeMinutes = Math.floor(timeMinutes % 60);
@@ -1534,7 +1543,7 @@ const checkAnd = (
                     }
                 }
             } else {
-                let tempReason = `${payload} min`;
+                let tempReason: string = `${payload} min`;
                 if (
                     con.criteria[i] &&
                     con.criteria[i].responseType &&
@@ -3905,7 +3914,7 @@ const checkOr = (
                     }
                 }
             } else {
-                let tempReason = `${payload} min`;
+                let tempReason: string = `${payload} min`;
                 if (
                     con.criteria[i] &&
                     con.criteria[i].responseType &&

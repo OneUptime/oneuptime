@@ -83,7 +83,7 @@ class PricingPlanModal extends Component<ComponentProps> {
 
             details: oldDetails,
         } = PricingPlan.getPlanById(currentPlanId);
-        const oldPlan = `${oldCategory} ${oldType}ly (${oldDetails})`;
+        const oldPlan:string = `${oldCategory} ${oldType}ly (${oldDetails})`;
         const {
 
             category: newCategory,
@@ -93,7 +93,7 @@ class PricingPlanModal extends Component<ComponentProps> {
             details: newDetails,
         } = PricingPlan.getPlanById(values.planId);
 
-        const newPlan = `${newCategory} ${newType}ly (${newDetails})`;
+        const newPlan:string = `${newCategory} ${newType}ly (${newDetails})`;
 
         changePlan(id, values.planId, name, oldPlan, newPlan).then(() => {
             if (!error) {

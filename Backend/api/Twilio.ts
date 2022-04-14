@@ -54,10 +54,11 @@ router.get(
                 case 'busy':
                 case 'no-answer':
                     // redial call in 45 seconds. upon 5 times.
-                    if (newRedialCount > 5)
+                    if (newRedialCount > 5) {
                         return sendItemResponse(req, res, {
                             status: 'call redial reached maximum',
                         });
+                    }
                     setTimeout(
                         () =>
                             sendIncidentCreatedCall(
@@ -120,7 +121,7 @@ router.post(
     '/sms/sendVerificationToken',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { to } = req.body;
 

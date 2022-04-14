@@ -46,8 +46,9 @@ export const getActiveMembers =
             dispatch(getActiveMembersSuccess(members.data));
         } catch (error) {
             let newerror = error;
-            if (newerror && newerror.response && newerror.response.data)
+            if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
+            }
             if (newerror && newerror.data) {
                 newerror = newerror.data;
             }
@@ -102,8 +103,9 @@ export const getActiveMonitors =
             dispatch(getActiveMonitorsSuccess(monitors.data));
         } catch (error) {
             let newerror = error;
-            if (newerror && newerror.response && newerror.response.data)
+            if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
+            }
             if (newerror && newerror.data) {
                 newerror = newerror.data;
             }
@@ -155,8 +157,9 @@ export const getIncidents =
             dispatch(getIncidentsSuccess(reports.data));
         } catch (error) {
             let newerror = error;
-            if (newerror && newerror.response && newerror.response.data)
+            if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
+            }
             if (newerror && newerror.data) {
                 newerror = newerror.data;
             }
@@ -208,8 +211,9 @@ export const getResolveTime =
             dispatch(getResolveTimeSuccess(reports.data));
         } catch (error) {
             let newerror = error;
-            if (newerror && newerror.response && newerror.response.data)
+            if (newerror && newerror.response && newerror.response.data) {
                 newerror = newerror.response.data;
+            }
             if (newerror && newerror.data) {
                 newerror = newerror.data;
             }

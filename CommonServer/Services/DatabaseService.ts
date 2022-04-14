@@ -125,7 +125,7 @@ class DatabaseService<ModelType> {
         return true;
     }
 
-    protected checkRequiredFields(data: Document): void {
+    protected checkRequiredFields(data: Document): Promise<void> {
         // check required fields.
         for (const requiredField of this.requiredFields) {
             if (!data.get(requiredField)) {
@@ -144,7 +144,19 @@ class DatabaseService<ModelType> {
         data.set('iv', iv);
 
         for (const key of this.encryptedFields) {
-            data.set(key, Encryption.encrypt(data.get(key), iv));
+            // if data is an object.
+            if (typeof data.get(key) === 'object') {
+                const dataObj = data.get(key);
+
+                for (const key in dataObj) {
+                    dataObj[key] = Encryption.encrypt(dataObj[key], iv);
+                }
+
+                data.set(key, dataObj);
+            } else {
+                //if its string or other type.
+                data.set(key, Encryption.encrypt(data.get(key), iv));
+            }
         }
 
         return data;
@@ -154,7 +166,19 @@ class DatabaseService<ModelType> {
         const iv: Buffer = data.get('iv');
 
         for (const key of this.encryptedFields) {
-            data.set(key, Encryption.decrypt(data.get(key), iv));
+            // if data is an object.
+            if (typeof data.get(key) === 'object') {
+                const dataObj = data.get(key);
+
+                for (const key in dataObj) {
+                    dataObj[key] = Encryption.decrypt(dataObj[key], iv);
+                }
+
+                data.set(key, dataObj);
+            } else {
+                //if its string or other type.
+                data.set(key, Encryption.decrypt(data.get(key), iv));
+            }
         }
 
         return data;
@@ -185,7 +209,7 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async onUpdateSuccess(): void {
+    protected async onUpdateSuccess(): Promise<void> {
         // a place holder method used for overriding.
         return Promise.resolve();
     }
@@ -195,7 +219,7 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async onDeleteSuccess(): void {
+    protected async onDeleteSuccess(): Promise<void> {
         // a place holder method used for overriding.
         return Promise.resolve();
     }
@@ -229,7 +253,7 @@ class DatabaseService<ModelType> {
         return Promise.resolve(error);
     }
 
-    protected async getException(error: Exception): void {
+    protected async getException(error: Exception): Promise<void> {
         throw error;
     }
 
@@ -309,7 +333,7 @@ class DatabaseService<ModelType> {
     public async deleteOneBy({
         query = {},
         deletedByUserId,
-    }: DeleteOneBy): void {
+    }: DeleteOneBy): Promise<void> {
         return await this._deleteBy({
             query,
             multiple: false,
@@ -317,7 +341,10 @@ class DatabaseService<ModelType> {
         });
     }
 
-    public async deleteBy({ query = {}, deletedByUserId }: DeleteBy): void {
+    public async deleteBy({
+        query = {},
+        deletedByUserId,
+    }: DeleteBy): Promise<void> {
         return await this._deleteBy({
             query,
             multiple: false,
@@ -325,7 +352,7 @@ class DatabaseService<ModelType> {
         });
     }
 
-    private async _hardDeleteBy(query: Query): void {
+    private async _hardDeleteBy(query: Query): Promise<void> {
         await this.model.remove(query);
     }
 
@@ -333,7 +360,7 @@ class DatabaseService<ModelType> {
         query = {},
         multiple = false,
         deletedByUserId,
-    }: InternalDeleteBy): void {
+    }: InternalDeleteBy): Promise<void> {
         try {
             const beforeDeleteBy = await this.onBeforeDelete({
                 query,
@@ -582,8 +609,8 @@ class DatabaseService<ModelType> {
 
     public async findOneBy({
         query = {},
-        populate,
-        select,
+        populate = [],
+        select = ['_id'],
         sort = [],
     }: FindOneBy): Promise<Document | null> {
         const documents = await this._findBy({
@@ -607,9 +634,11 @@ class DatabaseService<ModelType> {
         query,
         data,
         multiple = true,
-    }: InternalUpdateBy): void {
+    }: InternalUpdateBy): Promise<void> {
         try {
-            if (!query['deleted']) query['deleted'] = false;
+            if (!query['deleted']) {
+                query['deleted'] = false;
+            }
 
             const beforeUpdateBy = await this.onBeforeUpdate({
                 query,
@@ -640,11 +669,11 @@ class DatabaseService<ModelType> {
         }
     }
 
-    public async updateOneBy({ query, data }: UpdateOneBy): void {
+    public async updateOneBy({ query, data }: UpdateOneBy): Promise<void> {
         return await this._updateBy({ query, data, multiple: false });
     }
 
-    public async updateBy({ query, data }: UpdateBy): void {
+    public async updateBy({ query, data }: UpdateBy): Promise<void> {
         return await this._updateBy({ query, data, multiple: true });
     }
 
@@ -661,7 +690,7 @@ class DatabaseService<ModelType> {
         };
 
         const [items, count] = await Promise.all([
-            this.findBy({ query, skip, limit, select, populate, sort: null }),
+            this.findBy({ query, skip, limit, select, populate }),
             this.countBy({ query }),
         ]);
 

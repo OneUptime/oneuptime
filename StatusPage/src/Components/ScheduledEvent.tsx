@@ -235,7 +235,7 @@ class ScheduledEvent extends Component<ComponentProps> {
         const error = this.renderError();
 
         const { params } = match;
-        const statusPageUrl = `/StatusPage/${params.statusPageSlug}`;
+        const statusPageUrl:string = `/StatusPage/${params.statusPageSlug}`;
 
         const currentTime = moment();
 

@@ -146,7 +146,7 @@ export class StatusPageCategory extends Component<StatusPageCategoryProps>{
                 ? true
                 : false;
 
-        let canPrev = parseInt(this.props.skip) <= 0 ? false : true;
+        let canPrev:number = parseInt(this.props.skip) <= 0 ? false : true;
         const {
 
             isRequesting,

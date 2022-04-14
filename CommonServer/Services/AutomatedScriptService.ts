@@ -12,15 +12,25 @@ import Query from '../Types/DB/Query';
 
 export default class Service {
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 10;
+        if (!limit) {
+            limit = 10;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
         query['deleted'] = false;
 
@@ -120,13 +130,21 @@ export default class Service {
         skip: PositiveNumber,
         limit: PositiveNumber
     ): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 10;
+        if (!limit) {
+            limit = 10;
+        }
 
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
         if (!query) {
             query = {};
         }

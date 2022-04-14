@@ -137,8 +137,11 @@ router.get(
                 projectId
             );
             // zapier expects this as an item response and not a list response.
-            if (incidents) return sendItemResponse(req, res, incidents);
-            else return sendItemResponse(req, res, []);
+            if (incidents) {
+                return sendItemResponse(req, res, incidents);
+            } else {
+                return sendItemResponse(req, res, []);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -148,12 +151,15 @@ router.get(
 router.post(
     '/incident/resolveLastIncident',
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const monitors = req.body.monitors || [];
             const incident = await ZapierService.resolveLastIncident(monitors);
-            if (incident) return sendItemResponse(req, res, incident);
-            else return sendItemResponse(req, res, {});
+            if (incident) {
+                return sendItemResponse(req, res, incident);
+            } else {
+                return sendItemResponse(req, res, {});
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -163,13 +169,16 @@ router.post(
 router.post(
     '/incident/resolveAllIncidents',
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const monitors = req.body.monitors || [];
             const incidents = await ZapierService.resolveAllIncidents(monitors);
             // zapier expects this as an item response and not a list response.;
-            if (incidents) return sendItemResponse(req, res, incidents);
-            else return sendItemResponse(req, res, {});
+            if (incidents) {
+                return sendItemResponse(req, res, incidents);
+            } else {
+                return sendItemResponse(req, res, {});
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -179,16 +188,18 @@ router.post(
 router.post(
     '/incident/resolveIncident',
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const incidents = req.body.incidents || [];
             const resolvedIncidents = await ZapierService.resolveIncident(
                 incidents
             );
             // zapier expects this as an item response and not a list response.
-            if (resolvedIncidents)
+            if (resolvedIncidents) {
                 return sendItemResponse(req, res, resolvedIncidents);
-            else return sendItemResponse(req, res, {});
+            } else {
+                return sendItemResponse(req, res, {});
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -209,8 +220,11 @@ router.get(
                 false
             );
             // zapier expects this as an item response and not a list response.
-            if (incidents) return sendItemResponse(req, res, incidents);
-            else return sendItemResponse(req, res, []);
+            if (incidents) {
+                return sendItemResponse(req, res, incidents);
+            } else {
+                return sendItemResponse(req, res, []);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -220,14 +234,17 @@ router.get(
 router.post(
     '/incident/acknowledgeLastIncident',
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const monitors = req.body.monitors || [];
             const incident = await ZapierService.acknowledgeLastIncident(
                 monitors
             );
-            if (incident) return sendItemResponse(req, res, incident);
-            else return sendItemResponse(req, res, {});
+            if (incident) {
+                return sendItemResponse(req, res, incident);
+            } else {
+                return sendItemResponse(req, res, {});
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -237,15 +254,18 @@ router.post(
 router.post(
     '/incident/acknowledgeAllIncidents',
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const monitors = req.body.monitors || [];
             const incidents = await ZapierService.acknowledgeAllIncidents(
                 monitors
             );
             // zapier expects this as an item response and not a list response.;
-            if (incidents) return sendItemResponse(req, res, incidents);
-            else return sendItemResponse(req, res, {});
+            if (incidents) {
+                return sendItemResponse(req, res, incidents);
+            } else {
+                return sendItemResponse(req, res, {});
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -255,15 +275,17 @@ router.post(
 router.post(
     '/incident/acknowledgeIncident',
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const incidents = req.body.incidents || [];
             const acknowledgedIncidents =
                 await ZapierService.acknowledgeIncident(incidents);
             // zapier expects this as an item response and not a list response.
-            if (acknowledgedIncidents)
+            if (acknowledgedIncidents) {
                 return sendItemResponse(req, res, acknowledgedIncidents);
-            else return sendItemResponse(req, res, {});
+            } else {
+                return sendItemResponse(req, res, {});
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

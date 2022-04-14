@@ -49,8 +49,9 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: URL): void => {
                 ) {
                     dispatch(loginRequired(statusPageSlug));
                 }
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -303,8 +304,9 @@ export const getStatusPageNote = (
                 dispatch(individualNoteDisable());
             },
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -350,8 +352,9 @@ export const getStatusPageIndividualNote = (
                 );
             },
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -413,8 +416,9 @@ export const getScheduledEvent = (
                 dispatch(scheduledEventSuccess(Data.data));
             },
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -477,8 +481,9 @@ export const getOngoingScheduledEvent = (
             },
 
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -533,8 +538,9 @@ export const getIndividualEvent = (
                 );
             },
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -693,8 +699,9 @@ export const getMoreNote = (
                 dispatch(moreNoteSuccess(Data.data));
             },
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -746,8 +753,9 @@ export const getMoreEvent = (
                 dispatch(moreEventSuccess(Data.data));
             },
             error => {
-                if (error && error.response && error.response.data)
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }
@@ -866,7 +874,7 @@ export function fetchMonitorStatuses(
         dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
-            function (monitorStatuses): void {
+            (monitorStatuses): void => {
                 dispatch(
                     fetchMonitorStatusesSuccess({
                         projectId,
@@ -876,7 +884,7 @@ export function fetchMonitorStatuses(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -932,7 +940,7 @@ export function fetchMonitorLogs(
         dispatch(fetchMonitorLogsRequest(monitorId));
 
         promise.then(
-            function (monitorLogs): void {
+            (monitorLogs): void => {
                 dispatch(
                     fetchMonitorLogsSuccess({
                         monitorId,
@@ -941,7 +949,7 @@ export function fetchMonitorLogs(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -1407,10 +1415,10 @@ export function getAnnouncements(
         );
         dispatch(getAnnouncementsRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(getAnnouncementsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -1457,10 +1465,10 @@ export function getSingleAnnouncement(
         );
         dispatch(getSingleAnnouncementRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(getSingleAnnouncementSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -1508,10 +1516,10 @@ export function fetchAnnouncementLogs(
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchAnnouncementLogsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchAnnouncementLogsFailure(error));
             }
         );
@@ -1554,10 +1562,10 @@ export function calculateTime(
         });
         dispatch(calculateTimeRequest(monitorId));
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(calculateTimeSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(calculateTimeFailure(error));
             }
         );
@@ -1594,10 +1602,10 @@ export const fetchTweets = (handle: $TSFixMe, projectId: ObjectID): void => {
 
         dispatch(fetchTweetsRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchTweetsSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchTweetsFailure(error));
             }
         );
@@ -1636,10 +1644,10 @@ export function fetchExternalStatusPages(
 
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchExternalStatusPagesFailure(error));
             }
         );

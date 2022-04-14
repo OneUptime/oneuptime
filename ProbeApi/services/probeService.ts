@@ -5,7 +5,7 @@ const probeCollection = Database.getDatabase().collection('probes');
 import { v1 as uuidv1 } from 'uuid';
 import { post } from '../Utils/api';
 import { realtimeUrl } from '../Config';
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data): void {
@@ -54,8 +54,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const probe = await probeCollection.findOne(query);
         return probe;
@@ -66,8 +67,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         await probeCollection.updateOne(query, { $set: data });
         const probe = await this.findOneBy(query);

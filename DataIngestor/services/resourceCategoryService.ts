@@ -3,9 +3,13 @@ import { ObjectId } from 'mongodb';
 
 export default {
     findBy: async function ({ query, limit, skip, sort }: $TSFixMe): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -19,8 +23,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         let resourceCategories = await resourceCategoryCollection
             .find(query)

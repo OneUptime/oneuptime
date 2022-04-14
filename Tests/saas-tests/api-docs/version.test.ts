@@ -3,7 +3,7 @@ import utils from '../../test-utils';
 import axios from 'axios';
 import init from '../../test-init';
 
-describe('Version API', function (): void {
+describe('Version API', (): void => {
     beforeAll(async (done: $TSFixMe) => {
         jest.setTimeout(init.timeout);
 

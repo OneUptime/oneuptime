@@ -10,7 +10,7 @@ class ZapierBox extends Component<ComponentProps> {
 
     override componentDidMount() {
         const embededZapierTemplates = 7;
-        const zapierEmbededWidget = `https://zapier.com/apps/embed/widget.js?services=oneuptime&limit=${embededZapierTemplates}&html_id=zapierId`;
+        const zapierEmbededWidget:string = `https://zapier.com/apps/embed/widget.js?services=oneuptime&limit=${embededZapierTemplates}&html_id=zapierId`;
         const script = document.createElement('script');
 
         script.async = true;

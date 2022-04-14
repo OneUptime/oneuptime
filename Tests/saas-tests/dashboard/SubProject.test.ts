@@ -154,7 +154,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#projectSettings');
-            const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
+            const deleteSubProjectBtn: string = `#sub_project_delete_${subProjectName}`;
             await init.pageWaitForSelector(page, deleteSubProjectBtn, {
                 visible: true,
                 timeout: init.timeout,

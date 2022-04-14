@@ -13,7 +13,7 @@ const newName = 'Another';
 const newDefaultIncidentTitle = 'TEST: {{monitorName}}';
 const newDefaultIncidentDescription = 'TEST: {{incidentType}}';
 const incidentType = 'offline';
-const changedTitle = `${monitorName} is ${incidentType}.`;
+const changedTitle: string = `${monitorName} is ${incidentType}.`;
 
 describe('Incident Settings API', () => {
     const operationTimeOut = init.timeout;

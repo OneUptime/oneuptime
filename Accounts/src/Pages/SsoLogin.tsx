@@ -34,7 +34,7 @@ class SsoLoginPage extends React.Component<ComponentProps> {
         const state = store.getState();
         const { statusPageLogin, statusPageURL } = state.login;
         if (statusPageLogin) {
-            const newURL = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
+            const newURL:string = `${statusPageURL}?userId=${user.id}&accessToken=${user.tokens.jwtAccessToken}`;
 
             return (window.location.href = newURL);
         }

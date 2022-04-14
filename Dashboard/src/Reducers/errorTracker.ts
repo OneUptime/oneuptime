@@ -352,9 +352,11 @@ export default function errorTracker(
             temporaryErrorTrackers = state.errorTrackersList.errorTrackers.map(
                 errorTracker => {
                     if (errorTracker._id === action.payload) {
-                        if (!errorTracker.editMode)
+                        if (!errorTracker.editMode) {
                             errorTracker.editMode = true;
-                        else errorTracker.editMode = false;
+                        } else {
+                            errorTracker.editMode = false;
+                        }
                     } else {
                         errorTracker.editMode = false;
                     }
@@ -775,7 +777,9 @@ export default function errorTracker(
                     ].errorTrackerIssues
                 );
             }
-            if (temporaryIssues.length > 10) temporaryIssues.pop();
+            if (temporaryIssues.length > 10) {
+                temporaryIssues.pop();
+            }
             return Object.assign({}, state, {
                 errorTrackerIssues: {
                     ...state.errorTrackerIssues,

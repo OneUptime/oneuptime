@@ -54,14 +54,14 @@ export function getProbes(
         dispatch(probeRequest(promise));
 
         promise.then(
-            function (probes): void {
+            (probes): void => {
                 probes.data.skip = skip || 0;
 
                 probes.data.limit = limit || 10;
 
                 dispatch(probeSuccess(probes.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(probeError(error));
             }
         );

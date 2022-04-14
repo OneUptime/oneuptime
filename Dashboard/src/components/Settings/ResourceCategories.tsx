@@ -155,7 +155,7 @@ export class ResourceCategories extends Component<ResourceCategoriesProps>{
                 ? true
                 : false;
 
-        let canPrev = parseInt(this.props.skip) <= 0 ? false : true;
+        let canPrev:number = parseInt(this.props.skip) <= 0 ? false : true;
 
         const { isRequesting, error, resourceCategories } = this.props;
 

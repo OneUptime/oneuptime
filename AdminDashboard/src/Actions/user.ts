@@ -42,8 +42,9 @@ export const fetchUsers =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -91,8 +92,9 @@ export const fetchUser =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -150,8 +152,9 @@ export const addUser =
             return 'ok';
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -216,8 +219,9 @@ export const updateUserSetting =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -284,8 +288,9 @@ export const deleteUser =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -340,8 +345,9 @@ export const restoreUser =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -396,8 +402,9 @@ export const blockUser =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -454,8 +461,9 @@ export const enableAdminMode =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -511,8 +519,9 @@ export const disableAdminMode =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -567,8 +576,9 @@ export const unblockUser =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -625,8 +635,9 @@ export const addUserNote =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -690,8 +701,9 @@ export const searchUsers =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -733,12 +745,12 @@ export const updateTwoFactorAuthToken = (
         const promise = BackendAPI.put(`user/${userId}/2fa`, data);
         dispatch(twoFactorAuthTokenRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const payload = response.data;
                 dispatch(twoFactorAuthTokenSuccess(payload));
                 return payload;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(twoFactorAuthTokenError(error));
             }
         );
@@ -787,12 +799,12 @@ export function fetchUserloginHistory(
         );
         dispatch(fetchUserHistoryRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const payload = response.data;
                 dispatch(fetchUserHistorySuccess(payload));
                 return payload;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchUserHistoryError(error));
             }
         );

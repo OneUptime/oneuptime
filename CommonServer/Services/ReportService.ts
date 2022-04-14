@@ -168,7 +168,9 @@ export default class Service {
                 select: 'name',
             });
 
-            if (!response) response = {};
+            if (!response) {
+                response = {};
+            }
             const monitorObj = {
                 monitorId: monitor._id,
                 monitorName: response.name,

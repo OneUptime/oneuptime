@@ -59,7 +59,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let notification = await this.findOneBy({
             query,
             select: 'read closed',

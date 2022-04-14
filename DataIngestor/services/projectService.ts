@@ -3,15 +3,17 @@ export default {
         if (!query) {
             query = {};
         }
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const project = await projectCollection.findOne(query);
         return project;
     },
     findBy: async function ({ query, limit, skip }: $TSFixMe): void {
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const projects = await projectCollection
             .find(query)

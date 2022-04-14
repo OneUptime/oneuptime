@@ -26,7 +26,7 @@ export class RowData extends Component<RowDataProps>{
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        const path = `/dashboard/project/${project.slug}/StatusPage/${statusPage.slug}`;
+        const path:string = `/dashboard/project/${project.slug}/StatusPage/${statusPage.slug}`;
         let publicStatusPageurl: URL, statusPageSlug;
         if (statusPage) {
             statusPageSlug = statusPage.slug;

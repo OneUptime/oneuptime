@@ -36,7 +36,9 @@ const ping = (
     return new cron.CronJob(
         interval,
         () => {
-            if (typeof simulateData !== 'object') simulateData = null;
+            if (typeof simulateData !== 'object') {
+                simulateData = null;
+            }
             switch (simulate) {
                 case 'online':
                     try {
@@ -206,7 +208,7 @@ export default function (
          * @return {(Object | number)} The ping server cron job or the error code.
          */
         start: (id = monitorId) => {
-            const url = `monitor/${projectId}/monitor/${
+            const url: string = `monitor/${projectId}/monitor/${
                 id && typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;
 
@@ -275,7 +277,9 @@ export default function (
                     });
                 })
                 .catch((error: $TSFixMe) => {
-                    if (typeof error !== 'number') logger.error(error);
+                    if (typeof error !== 'number') {
+                        logger.error(error);
+                    }
 
                     const errorCode = typeof error === 'number' ? error : 1;
                     process.exitCode = errorCode;

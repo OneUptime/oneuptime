@@ -48,9 +48,13 @@ export default class Service {
     }
     // find a list of Issues
     async findBy({ query, limit, skip, select, populate, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -64,7 +68,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const issuesQuery = IssueModel.find(query)
             .lean()
             .sort(sort)
@@ -84,7 +90,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const issueQuery = IssueModel.findOne(query).sort(sort).lean();
 
         issueQuery.select(select);
@@ -101,7 +109,9 @@ export default class Service {
         const query = {};
         const hash = sha256(fingerprint.join('')).toString();
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         query.fingerprintHash = hash;
 
@@ -118,7 +128,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let issue = await IssueModel.findOneAndUpdate(
             query,
             { $set: data },
@@ -201,7 +213,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await IssueModel.countDocuments(query);
         return count;
     }

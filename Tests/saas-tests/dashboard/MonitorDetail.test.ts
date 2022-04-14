@@ -118,7 +118,7 @@ describe('Monitor Detail API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const selector1 = `#name_${priorityName}`;
+            const selector1: string = `#name_${priorityName}`;
             const rowContent = await init.page$Eval(
                 page,
                 selector1,
@@ -140,7 +140,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const selector = `#incident_0`;
+            const selector: string = `#incident_0`;
 
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());
@@ -264,7 +264,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            const selector = `#incident_0`;
+            const selector: string = `#incident_0`;
 
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, (e: $TSFixMe) => e.click());

@@ -74,9 +74,13 @@ export default class Service {
     }
 
     async findOneBy({ query, populate, select, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // won't be using lean() here because of iv cypher for password
         const applicationSecurityQuery =
@@ -91,7 +95,9 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // won't be using lean() here because of iv cypher for password
         const applicationSecuritiesQuery = ApplicationSecurityModel.find(query)
@@ -107,9 +113,13 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe, unsetData = null): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         if (data && data.name) {
             data.slug = getSlug(data.name);
         }
@@ -249,7 +259,9 @@ export default class Service {
 
     async decryptPassword(security: $TSFixMe): void {
         const values = [];
-        for (let i = 0; i <= 15; i++) values.push(security.gitCredential.iv[i]);
+        for (let i = 0; i <= 15; i++) {
+            values.push(security.gitCredential.iv[i]);
+        }
         const iv = Buffer.from(values);
         security.gitCredential.gitPassword = await decrypt(
             security.gitCredential.gitPassword,
@@ -276,7 +288,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await ApplicationSecurityModel.countDocuments(query);
         return count;
     }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE_URL = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
+const BASE_URL: string = `${process.env.BACKEND_PROTOCOL}://${process.env['ONEUPTIME_HOST']}`;
 
 const Manager = module.exports;
 
@@ -12,7 +12,7 @@ Manager.create = function (_opts: $TSFixMe): void {
     //
 
     manager.get = async function ({ servername }: $TSFixMe): void {
-        const url = `${BASE_URL}/api/manager/site?servername=${servername}`;
+        const url: string = `${BASE_URL}/api/manager/site?servername=${servername}`;
         const response = await axios({
             url,
             method: 'get',
@@ -26,7 +26,7 @@ Manager.create = function (_opts: $TSFixMe): void {
     //
 
     manager.set = async function (opts: $TSFixMe): void {
-        const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
+        const url: string = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
             method: 'put',
@@ -43,7 +43,7 @@ Manager.create = function (_opts: $TSFixMe): void {
     manager.find = async function (opts: $TSFixMe): void {
         // { subject, servernames, altnames, renewBefore }
         if (opts.subject) {
-            const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
+            const url: string = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
             const response = await axios({
                 url,
                 method: 'get',
@@ -56,7 +56,7 @@ Manager.create = function (_opts: $TSFixMe): void {
         }
 
         if (Array.isArray(opts.servernames) && opts.servernames.length > 0) {
-            const url = `${BASE_URL}/api/manager/site/servernames`;
+            const url: string = `${BASE_URL}/api/manager/site/servernames`;
             const response = await axios({
                 url,
                 method: 'post',
@@ -76,7 +76,7 @@ Manager.create = function (_opts: $TSFixMe): void {
         opts.renewBefore =
             opts.renewBefore || Date.now() + 21 * 24 * 60 * 60 * 1000;
 
-        const url = `${BASE_URL}/api/manager/site/opts`;
+        const url: string = `${BASE_URL}/api/manager/site/opts`;
         const response = await axios({
             url,
             method: 'post',
@@ -92,7 +92,7 @@ Manager.create = function (_opts: $TSFixMe): void {
     //
 
     manager.remove = async function (opts: $TSFixMe): void {
-        const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
+        const url: string = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
             method: 'delete',
@@ -109,7 +109,7 @@ Manager.create = function (_opts: $TSFixMe): void {
 
     manager.defaults = async function (opts: $TSFixMe): void {
         if (!opts) {
-            const url = `${BASE_URL}/api/manager/default`;
+            const url: string = `${BASE_URL}/api/manager/default`;
             const response = await axios({
                 url,
                 method: 'get',
@@ -117,7 +117,7 @@ Manager.create = function (_opts: $TSFixMe): void {
             return response.data ? response.data : {};
         }
 
-        const url = `${BASE_URL}/api/manager/default`;
+        const url: string = `${BASE_URL}/api/manager/default`;
         const response = await axios({
             url,
             method: 'put',

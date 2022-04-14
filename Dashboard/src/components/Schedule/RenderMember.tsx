@@ -74,7 +74,7 @@ let RenderMember = ({
 
     const getCurrentTimezone = () => {
         const tz = moment.tz.guess();
-        const result = `${tz} GMT${moment()
+        const result:string = `${tz} GMT${moment()
             .tz(tz)
             .format('Z')}`;
         return result;

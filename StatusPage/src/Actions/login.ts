@@ -48,12 +48,13 @@ export const loginUser = (values: $TSFixMe): void => {
         dispatch(loginRequest(promise));
 
         promise.then(
-            function (user): void {
+            (user): void => {
                 dispatch(loginSuccess(user.data));
             },
-            function (error): void {
-                if (error && error.response && error.response.data)
+            (error): void => {
+                if (error && error.response && error.response.data) {
                     error = error.response.data;
+                }
                 if (error && error.data) {
                     error = error.data;
                 }

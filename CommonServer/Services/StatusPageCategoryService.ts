@@ -6,9 +6,7 @@ import Model, {
 } from '../Models/StatusPageCategory';
 import DatabaseService from './DatabaseService';
 
-export default class StatusPageCategoryService extends DatabaseService<
-    typeof Model
-> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -61,3 +59,5 @@ export default class StatusPageCategoryService extends DatabaseService<
         });
     }
 }
+
+export default new Service();

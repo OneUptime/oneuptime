@@ -18,10 +18,14 @@ export const isApiServer = !(
 export const removeQuery = (removeField: string): void => {
     const location = Object.assign({}, history.location);
     const query = queryString.parse(location.search);
-    if (query[removeField]) delete query[removeField];
+    if (query[removeField]) {
+        delete query[removeField];
+    }
 
     // remove "token" field - keeping this to prevent regression
-    if (query['token']) delete query['token'];
+    if (query['token']) {
+        delete query['token'];
+    }
 
     location.search = queryString.stringify(query);
     history.push(location);

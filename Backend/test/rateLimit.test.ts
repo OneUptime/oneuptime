@@ -10,7 +10,7 @@ let app, request: $TSFixMe, sandbox: $TSFixMe;
 describe('API limit rate', function (): void {
     this.timeout(10000);
 
-    before(function (done: $TSFixMe): void {
+    before((done: $TSFixMe): void => {
         import sinon from 'sinon';
         sandbox = sinon.createSandbox();
         sandbox
@@ -26,7 +26,7 @@ describe('API limit rate', function (): void {
         done();
     });
 
-    it('should get too many requests response after 3 requests', async function (): void {
+    it('should get too many requests response after 3 requests', async (): void => {
         for (let i = 1; i <= 3; i++) {
             requests.push(request.get('/'));
         }
@@ -35,7 +35,7 @@ describe('API limit rate', function (): void {
         expect(response.status).to.be.equal(429);
     });
 
-    after(function (done: $TSFixMe): void {
+    after((done: $TSFixMe): void => {
         sandbox.restore();
         done();
     });

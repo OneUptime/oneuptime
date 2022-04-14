@@ -47,7 +47,7 @@ class CancelSchedule extends Component<ComponentProps> {
         const { cancelScheduledEvent, closeModal, modalId, data } = this.props;
         const { projectId, eventId } = data;
 
-        const redirect = `/dashboard/project/${this.props.slug}/scheduledEvents`;
+        const redirect:string = `/dashboard/project/${this.props.slug}/scheduledEvents`;
 
         cancelScheduledEvent(
             projectId,

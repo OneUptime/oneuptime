@@ -17,7 +17,7 @@ const statusPageName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const subscriberEmail = utils.generateRandomBusinessEmail();
-const customDomainWebsite = `www.${utils.generateRandomString()}.com`;
+const customDomainWebsite: string = `www.${utils.generateRandomString()}.com`;
 
 describe('StatusPage Advanced Options', () => {
     beforeAll(async (done: $TSFixMe) => {

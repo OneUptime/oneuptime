@@ -19,8 +19,12 @@ router.post('/:userId', async (req: ExpressRequest, res: ExpressResponse) => {
         let startingAfter = req.query.startingAfter;
         let endingBefore = req.query.endingBefore;
 
-        if (startingAfter === 'undefined') startingAfter = {};
-        if (endingBefore === 'undefined') endingBefore = {};
+        if (startingAfter === 'undefined') {
+            startingAfter = {};
+        }
+        if (endingBefore === 'undefined') {
+            endingBefore = {};
+        }
         const invoices = await InvoiceService.get(
             userId,
             startingAfter,

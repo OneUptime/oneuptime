@@ -48,9 +48,13 @@ export default class Service {
     }
 
     async findOneBy({ query, select, populate, sort }: FindOneBy): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const monitorSlaQuery = MonitorSlaModel.findOne(query)
             .sort(sort)
@@ -64,17 +68,29 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
-        if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') {
+            skip = Number(skip);
+        }
 
-        if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const monitorSlaQuery = MonitorSlaModel.find(query)
             .lean()
@@ -91,9 +107,13 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // check if we are only setting default sla
         // or using update modal for editing the details
@@ -219,7 +239,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await MonitorSlaModel.countDocuments(query);
         return count;
     }

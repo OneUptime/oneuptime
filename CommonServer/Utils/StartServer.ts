@@ -41,7 +41,7 @@ const logRequest = (
     const url = req.url;
     const status = res.statusCode;
 
-    const log = `[${formatted_date}] ${method}:${url} ${status}`;
+    const log: string = `[${formatted_date}] ${method}:${url} ${status}`;
     logger.info(log);
     next();
 };

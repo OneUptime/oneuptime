@@ -26,34 +26,34 @@ describe('Admin process.env login API', function (): void {
         await GlobalConfig.initTestConfig();
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await UserService.hardDeleteBy({});
         await AirtableService.deleteAll({ tableName: 'User' });
         await GlobalConfig.removeTestConfig();
         await AuditLogsService.hardDeleteBy({});
     });
 
-    it('should NOT log in the admin user with invalid credentials', function (done: $TSFixMe): void {
+    it('should NOT log in the admin user with invalid credentials', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: process.env.ADMIN_EMAIL,
                 password: process.env.ADMIN_PASSWORD + '1',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should log in the admin user', function (done: $TSFixMe): void {
+    it('should log in the admin user', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: process.env.ADMIN_EMAIL,
                 password: process.env.ADMIN_PASSWORD,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 token = res.body.tokens.jwtAccessToken;
                 if (token) {
                     done();

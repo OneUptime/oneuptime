@@ -54,7 +54,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const logQuery = LogModel.findOne(query).sort(sort).lean();
 
         logQuery.select(select);
@@ -65,9 +67,13 @@ export default class Service {
         return log;
     }
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -81,7 +87,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const logsQuery = LogModel.find(query)
             .lean()
             .sort(sort)
@@ -110,8 +118,12 @@ export default class Service {
             throw new BadDataException('Application Log does not exist.');
         }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const selectLog =
             'applicationLogId content stringifiedContent type tags createdById createdAt';
@@ -170,7 +182,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const { startTime, endTime } = query;
         query = {
             ...query,
@@ -202,15 +216,17 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let dateRange = { startDate: '', endDate: '' };
         // if date range is given, it returns it
-        if (query.createdAt)
+        if (query.createdAt) {
             dateRange = {
                 startDate: query.createdAt.$gte,
                 endDate: query.createdAt.$lte,
             };
-        else {
+        } else {
             // first and last log based on the query is fetched
             const [start_date, end_date] = await Promise.all([
                 LogModel.find(query).limit(1),

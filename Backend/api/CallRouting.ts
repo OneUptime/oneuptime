@@ -110,9 +110,13 @@ router.get(
             let { skip, limit } = req.query;
             const { projectId } = req.params;
 
-            if (typeof skip === 'string') skip = parseInt(skip);
+            if (typeof skip === 'string') {
+                skip = parseInt(skip);
+            }
 
-            if (typeof limit === 'string') limit = parseInt(limit);
+            if (typeof limit === 'string') {
+                limit = parseInt(limit);
+            }
 
             const populate = [{ path: 'projectId', select: 'name slug _id' }];
             const select =
@@ -186,7 +190,7 @@ router.post(
     '/:projectId/routingNumber',
     getUser,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const data = req.body;
             const { projectId } = req.params;
@@ -205,7 +209,7 @@ router.put(
     '/:projectId/:callRoutingId',
     getUser,
     isUserAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { callRoutingId } = req.params;
             const data = req.body;
@@ -235,7 +239,7 @@ router.put(
                     maxCount: 1,
                 },
             ]);
-            upload(req, res, async function (error: $TSFixMe): void {
+            upload(req, res, async (error: $TSFixMe): void => {
                 if (error) {
                     return sendErrorResponse(req, res, error as Exception);
                 }

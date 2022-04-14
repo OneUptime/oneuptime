@@ -21,7 +21,9 @@ router.post(
 router.get('/api/webhooks/:id', (req: ExpressRequest, res: ExpressResponse) => {
     const id = req.params['id'] as string;
 
-    if (hook[id] === undefined) return res.status(404).json({});
+    if (hook[id] === undefined) {
+        return res.status(404).json({});
+    }
 
     return res.status(200).json(hook[id]);
 });

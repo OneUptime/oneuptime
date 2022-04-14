@@ -51,13 +51,11 @@ const job = async (monitor: $TSFixMe): void => {
         await ProbeService.saveMonitorLog({
             monitorId: monitor._id,
             status: 'offline',
-            reason: await successReasons.filter(function (
-                item: $TSFixMe,
-                pos: $TSFixMe,
-                self: $TSFixMe
-            ) {
-                return self.indexOf(item) == pos;
-            }),
+            reason: await successReasons.filter(
+                (item: $TSFixMe, pos: $TSFixMe, self: $TSFixMe) => {
+                    return self.indexOf(item) == pos;
+                }
+            ),
         });
     }
 };

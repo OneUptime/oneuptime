@@ -134,7 +134,7 @@ describe('Components', () => {
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            const newMonitorName = `another-${monitorName}`;
+            const newMonitorName: string = `another-${monitorName}`;
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 
@@ -184,7 +184,7 @@ describe('Components', () => {
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            const monitorDetailsBtn = `#more-details-${monitorName}`;
+            const monitorDetailsBtn: string = `#more-details-${monitorName}`;
             await init.pageWaitForSelector(page, monitorDetailsBtn, {
                 visible: true,
                 timeout: init.timeout,
@@ -193,9 +193,9 @@ describe('Components', () => {
                 e.click()
             );
 
-            const projectSelector = `#cbUnnamedProject`;
-            const componentSelector = `#cb${componentName}`;
-            const monitorSelector = `#cb${monitorName}`;
+            const projectSelector: string = `#cbUnnamedProject`;
+            const componentSelector: string = `#cb${componentName}`;
+            const monitorSelector: string = `#cb${monitorName}`;
             await init.pageWaitForSelector(page, projectSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -331,8 +331,8 @@ describe('Components', () => {
                 timeout: init.timeout,
             });
 
-            const newComponentSelector = `#count_${newComponentName}`;
-            const componentSelector = `#count_${componentName}`;
+            const newComponentSelector: string = `#count_${newComponentName}`;
+            const componentSelector: string = `#count_${componentName}`;
 
             await init.pageWaitForSelector(page, newComponentSelector);
             const newResourceCount = await init.page$Eval(

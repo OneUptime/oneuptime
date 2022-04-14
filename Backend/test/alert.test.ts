@@ -38,8 +38,8 @@ const monitor = {
     data: { url: 'http://www.tests.org' },
 };
 
-describe('Alert API', function (): void {
-    after(async function (): void {
+describe('Alert API', (): void => {
+    after(async (): void => {
         await UserService.hardDeleteBy({});
     });
 
@@ -48,11 +48,11 @@ describe('Alert API', function (): void {
 
         before(function (done: $TSFixMe): void {
             this.timeout(30000);
-            GlobalConfig.initTestConfig().then(function (): void {
+            GlobalConfig.initTestConfig().then((): void => {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: $TSFixMe): void {
+                    (err: $TSFixMe, res: $TSFixMe): void => {
                         const project = res.body.project;
                         projectId = project._id;
                         userId = res.body.id;
@@ -62,7 +62,7 @@ describe('Alert API', function (): void {
                                 UserModel.findByIdAndUpdate(
                                     userId,
                                     { $set: { isVerified: true } },
-                                    function (): void {
+                                    (): void => {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -70,47 +70,55 @@ describe('Alert API', function (): void {
                                                 password:
                                                     userData.user.password,
                                             })
-                                            .end(function (
-                                                err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                token =
-                                                    res.body.tokens
-                                                        .jwtAccessToken;
-                                                const authorization = `Basic ${token}`;
-                                                request
-                                                    .post(
-                                                        `/monitor/${projectId}`
-                                                    )
-                                                    .set(
-                                                        'Authorization',
-                                                        authorization
-                                                    )
-                                                    .send({
-                                                        ...monitor,
-                                                        componentId:
-                                                            component._id,
-                                                    })
-                                                    .end(function (
-                                                        err: $TSFixMe,
-                                                        res: $TSFixMe
-                                                    ) {
-                                                        monitorId =
-                                                            res.body._id;
-                                                        incidentData.monitors =
-                                                            [monitorId];
-                                                        expect(
-                                                            res
-                                                        ).to.have.status(200);
-                                                        expect(
-                                                            res.body.name
-                                                        ).to.be.equal(
-                                                            monitor.name
-                                                        );
+                                            .end(
+                                                (
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    token =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    const authorization: string = `Basic ${token}`;
+                                                    request
+                                                        .post(
+                                                            `/monitor/${projectId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send({
+                                                            ...monitor,
+                                                            componentId:
+                                                                component._id,
+                                                        })
+                                                        .end(
+                                                            (
+                                                                err: $TSFixMe,
+                                                                res: $TSFixMe
+                                                            ) => {
+                                                                monitorId =
+                                                                    res.body
+                                                                        ._id;
+                                                                incidentData.monitors =
+                                                                    [monitorId];
+                                                                expect(
+                                                                    res
+                                                                ).to.have.status(
+                                                                    200
+                                                                );
+                                                                expect(
+                                                                    res.body
+                                                                        .name
+                                                                ).to.be.equal(
+                                                                    monitor.name
+                                                                );
 
-                                                        done();
-                                                    });
-                                            });
+                                                                done();
+                                                            }
+                                                        );
+                                                }
+                                            );
                                     }
                                 );
                             }
@@ -120,7 +128,7 @@ describe('Alert API', function (): void {
             });
         });
 
-        after(async function (): void {
+        after(async (): void => {
             await StatusPageService.hardDeleteBy({ projectId: projectId });
             await NotificationService.hardDeleteBy({ projectId: projectId });
             await AlertService.hardDeleteBy({ _id: alertId });
@@ -133,13 +141,13 @@ describe('Alert API', function (): void {
 
         // 'post /:projectId'
 
-        it('should register with valid projectId, monitorId, incidentId, alertVia', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should register with valid projectId, monitorId, incidentId, alertVia', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send(incidentData)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     incidentId = res.body._id;
                     monitorId = res.body.monitors[0].monitorId._id;
                     request
@@ -151,7 +159,7 @@ describe('Alert API', function (): void {
                             incidentId: incidentId,
                             eventType: 'identified',
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             alertId = res.body._id;
                             expect(res).to.have.status(200);
                             expect(res.body).to.be.an('object');
@@ -160,12 +168,12 @@ describe('Alert API', function (): void {
                 });
         });
 
-        it('should get an array of alerts by valid projectId', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should get an array of alerts by valid projectId', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}/alert`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -174,12 +182,12 @@ describe('Alert API', function (): void {
                 });
         });
 
-        it('should get an array alerts of by valid incidentId', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should get an array alerts of by valid incidentId', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}/incident/${incidentId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -188,23 +196,23 @@ describe('Alert API', function (): void {
                 });
         });
 
-        it('should deleted alert', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should deleted alert', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     done();
                 });
         });
 
-        it('should not delete alert with non-existing projectId', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should not delete alert with non-existing projectId', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(400);
                     done();
                 });
@@ -218,25 +226,25 @@ describe('Alert API', function (): void {
 
         before(function (done: $TSFixMe): void {
             this.timeout(30000);
-            const authorization = `Basic ${token}`;
+            const authorization: string = `Basic ${token}`;
             // create a subproject for parent project
-            GlobalConfig.initTestConfig().then(function (): void {
+            GlobalConfig.initTestConfig().then((): void => {
                 request
                     .post(`/project/${projectId}/subProject`)
                     .set('Authorization', authorization)
                     .send({ subProjectName: 'New SubProject' })
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         subProjectId = res.body[0]._id;
                         // sign up second user (subproject user)
                         createUser(
                             request,
                             userData.newUser,
-                            function (err: $TSFixMe, res: $TSFixMe): void {
+                            (err: $TSFixMe, res: $TSFixMe): void => {
                                 userId = res.body.id;
                                 UserModel.findByIdAndUpdate(
                                     userId,
                                     { $set: { isVerified: true } },
-                                    function (): void {
+                                    (): void => {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -244,32 +252,34 @@ describe('Alert API', function (): void {
                                                 password:
                                                     userData.newUser.password,
                                             })
-                                            .end(function (
-                                                err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                newUserToken =
-                                                    res.body.tokens
-                                                        .jwtAccessToken;
-                                                const authorization = `Basic ${token}`;
-                                                // add second user to subproject
-                                                request
-                                                    .post(
-                                                        `/team/${subProjectId}`
-                                                    )
-                                                    .set(
-                                                        'Authorization',
-                                                        authorization
-                                                    )
-                                                    .send({
-                                                        emails: userData.newUser
-                                                            .email,
-                                                        role: 'Member',
-                                                    })
-                                                    .end(function (): void {
-                                                        done();
-                                                    });
-                                            });
+                                            .end(
+                                                (
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    newUserToken =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    const authorization: string = `Basic ${token}`;
+                                                    // add second user to subproject
+                                                    request
+                                                        .post(
+                                                            `/team/${subProjectId}`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send({
+                                                            emails: userData
+                                                                .newUser.email,
+                                                            role: 'Member',
+                                                        })
+                                                        .end((): void => {
+                                                            done();
+                                                        });
+                                                }
+                                            );
                                     }
                                 );
                             }
@@ -278,7 +288,7 @@ describe('Alert API', function (): void {
             });
         });
 
-        after(async function (): void {
+        after(async (): void => {
             await ProjectService.hardDeleteBy({
                 _id: { $in: [projectId, subProjectId] },
             });
@@ -297,27 +307,24 @@ describe('Alert API', function (): void {
             await GlobalConfig.removeTestConfig();
         });
 
-        it('should not create alert for user not in the project.', function (done: $TSFixMe): void {
+        it('should not create alert for user not in the project.', (done: $TSFixMe): void => {
             createUser(
                 request,
                 userData.anotherUser,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     userId = res.body.id;
                     UserModel.findByIdAndUpdate(
                         userId,
                         { $set: { isVerified: true } },
-                        function (): void {
+                        (): void => {
                             request
                                 .post('/user/login')
                                 .send({
                                     email: userData.anotherUser.email,
                                     password: userData.anotherUser.password,
                                 })
-                                .end(function (
-                                    err: $TSFixMe,
-                                    res: $TSFixMe
-                                ): void {
-                                    const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                .end((err: $TSFixMe, res: $TSFixMe): void => {
+                                    const authorization: string = `Basic ${res.body.tokens.jwtAccessToken}`;
                                     request
                                         .post(`/alert/${projectId}`)
                                         .set('Authorization', authorization)
@@ -326,10 +333,7 @@ describe('Alert API', function (): void {
                                             alertVia: 'email',
                                             incidentId: incidentId,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             alertId = res.body._id;
                                             expect(res).to.have.status(400);
                                             expect(
@@ -346,8 +350,8 @@ describe('Alert API', function (): void {
             );
         });
 
-        it('should create alert in parent project', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should create alert in parent project', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .post(`/alert/${projectId}`)
                 .set('Authorization', authorization)
@@ -357,7 +361,7 @@ describe('Alert API', function (): void {
                     incidentId: incidentId,
                     eventType: 'identified',
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     alertId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
@@ -365,8 +369,8 @@ describe('Alert API', function (): void {
                 });
         });
 
-        it('should create alert in sub-project', function (done: $TSFixMe): void {
-            const authorization = `Basic ${newUserToken}`;
+        it('should create alert in sub-project', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${newUserToken}`;
             request
                 .post(`/alert/${subProjectId}`)
                 .set('Authorization', authorization)
@@ -376,19 +380,19 @@ describe('Alert API', function (): void {
                     incidentId: incidentId,
                     eventType: 'identified',
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     done();
                 });
         });
 
-        it('should get only sub-project alerts for valid user.', function (done: $TSFixMe): void {
-            const authorization = `Basic ${newUserToken}`;
+        it('should get only sub-project alerts for valid user.', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${newUserToken}`;
             request
                 .get(`/alert/${subProjectId}/alert`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     expect(res.body).to.have.property('data');
@@ -397,12 +401,12 @@ describe('Alert API', function (): void {
                 });
         });
 
-        it('should get both project and sub-project alerts for valid user.', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should get both project and sub-project alerts for valid user.', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('array');
                     expect(res.body[0]).to.have.property('alerts');
@@ -413,23 +417,23 @@ describe('Alert API', function (): void {
                 });
         });
 
-        it('should delete sub-project alert', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should delete sub-project alert', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .delete(`/alert/${subProjectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     done();
                 });
         });
 
-        it('should delete project alert', function (done: $TSFixMe): void {
-            const authorization = `Basic ${token}`;
+        it('should delete project alert', (done: $TSFixMe): void => {
+            const authorization: string = `Basic ${token}`;
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(200);
                     done();
                 });

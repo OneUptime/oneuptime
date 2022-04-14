@@ -15,7 +15,7 @@ interface RowProps {
 }
 
 function Row(props: RowProps) {
-    const path = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
+    const path:string = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"

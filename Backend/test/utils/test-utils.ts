@@ -396,11 +396,15 @@ const proxy = new Proxy(methods, {
         return this.shared;
     },
     unsetShared: function (attribute: $TSFixMe): void {
-        if (this.shared[attribute]) delete this.shared[attribute];
+        if (this.shared[attribute]) {
+            delete this.shared[attribute];
+        }
         return this.shared;
     },
     get: function (target, prop): void {
-        if (this[prop]) return (args = {}) => this[prop](args);
+        if (this[prop]) {
+            return (args = {}) => this[prop](args);
+        }
 
         return (args = {}) => target[prop]({ ...this.shared, ...args });
     },

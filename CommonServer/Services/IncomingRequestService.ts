@@ -149,7 +149,7 @@ export default class Service {
         // create a unique request url
         // update incomingRequest collection with the new url
 
-        const requestUrl = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
+        const requestUrl: string = `${global.apiHost}/incoming-request/${projectId}/request/${requestId}`;
         const updatedIncomingRequest = await this.updateOneBy(
             { requestId, projectId },
             { url: requestUrl },
@@ -168,7 +168,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         if (!excludeMonitors && data.createIncident) {
             if (
@@ -370,9 +372,13 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip || isNaN(skip)) skip = 0;
+        if (!skip || isNaN(skip)) {
+            skip = 0;
+        }
 
-        if (!limit || isNaN(limit)) limit = 0;
+        if (!limit || isNaN(limit)) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = Number(skip);
@@ -440,7 +446,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updateIncomingRequest = await IncomingRequestModel.updateMany(
             query,
             {
@@ -2085,13 +2093,10 @@ function analyseVariable(variable: $TSFixMe, data: $TSFixMe): void {
         }
 
         // remove any double currly braces from variable
-        variable = variable.replace(
-            replaceRegex,
-            function (match: $TSFixMe): void {
-                match = match.slice(2, -2);
-                return match;
-            }
-        );
+        variable = variable.replace(replaceRegex, (match: $TSFixMe): void => {
+            match = match.slice(2, -2);
+            return match;
+        });
 
         // replace variable with processedValues
         let currentValue = variable;

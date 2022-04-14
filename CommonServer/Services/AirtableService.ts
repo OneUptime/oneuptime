@@ -29,7 +29,9 @@ export default class Service {
         createdAt,
         source,
     }: $TSFixMe): void {
-        if (!base) return;
+        if (!base) {
+            return;
+        }
 
         return base('User').create({
             Name: name,
@@ -54,7 +56,9 @@ export default class Service {
         volume,
         website,
     }: $TSFixMe): void {
-        if (!base) return;
+        if (!base) {
+            return;
+        }
 
         return base('Leads').create({
             Name: name,
@@ -71,7 +75,9 @@ export default class Service {
     }
 
     deleteUser(airtableId: $TSFixMe): void {
-        if (!base) return;
+        if (!base) {
+            return;
+        }
 
         return base('User').destroy(airtableId);
     }
@@ -81,7 +87,9 @@ export default class Service {
     //Param 1: data: Feedback data (message, name, email, project, page).
     //Returns: promise
     logFeedback({ message, name, email, project, page }: $TSFixMe): void {
-        if (!base) return;
+        if (!base) {
+            return;
+        }
 
         return base('Feedback').create({
             'Feedback Text': message,
@@ -93,7 +101,9 @@ export default class Service {
     }
 
     deleteFeedback(airtableId: $TSFixMe): void {
-        if (!base) return;
+        if (!base) {
+            return;
+        }
 
         if (!airtableId) {
             return;
@@ -120,7 +130,7 @@ export default class Service {
             .firstPage();
 
         if (records && records.length > 0) {
-            const recordIds = records.map(function (record: $TSFixMe): void {
+            const recordIds = records.map((record: $TSFixMe): void => {
                 return record.id;
             });
 
@@ -134,7 +144,9 @@ export default class Service {
         name,
         email,
     }: $TSFixMe): void {
-        if (!base) return;
+        if (!base) {
+            return;
+        }
 
         return base('Project Delete').create({
             'Reason for Deletion': reason,
@@ -149,5 +161,6 @@ import Airtable from 'airtable';
 const AirtableApiKey = process.env['AIRTABLE_API_KEY'];
 const AirtableBaseId = process.env['AIRTABLE_BASE_ID'];
 let base: $TSFixMe = null;
-if (AirtableApiKey && AirtableBaseId)
+if (AirtableApiKey && AirtableBaseId) {
     base = new Airtable({ apiKey: AirtableApiKey }).base(AirtableBaseId);
+}

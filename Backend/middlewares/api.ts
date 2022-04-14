@@ -75,8 +75,11 @@ export default {
             req.user = {};
             req.user.id = 'API';
 
-            if (next) return next();
-            else return true;
+            if (next) {
+                return next();
+            } else {
+                return true;
+            }
         } else {
             if (res) {
                 return sendErrorResponse(req, res, {

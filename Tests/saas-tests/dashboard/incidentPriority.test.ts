@@ -87,7 +87,7 @@ describe('Incident Priority API', () => {
             );
             // two incident priority is automatically added to a project
             // High incident priority is marked as default
-            const lastRowFirstColumnIndentifier = `#priority_${priorityName}_2`;
+            const lastRowFirstColumnIndentifier: string = `#priority_${priorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowFirstColumnIndentifier);
             const content = await init.page$Eval(
@@ -129,7 +129,7 @@ describe('Incident Priority API', () => {
                 '.incident-priority-tab',
                 (elems: $TSFixMe) => elems[0].click()
             );
-            const editButtonLastRowIndentifier = `#priorityEdit_${priorityName}_2`;
+            const editButtonLastRowIndentifier: string = `#priorityEdit_${priorityName}_2`;
 
             await init.pageWaitForSelector(page, editButtonLastRowIndentifier);
 
@@ -158,7 +158,7 @@ describe('Incident Priority API', () => {
                 '.incident-priority-tab',
                 (elems: $TSFixMe) => elems[0].click()
             );
-            const lastRowIndentifier = `#priority_${newPriorityName}_2`;
+            const lastRowIndentifier: string = `#priority_${newPriorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowIndentifier);
             const content = await init.page$Eval(
@@ -211,7 +211,7 @@ describe('Incident Priority API', () => {
             expect(incidentsCountBeforeDeletion).toEqual(
                 'Page 1 of 1 (3 Priorities)'
             );
-            const deleteButtonLastRowIndentifier = `#priorityDelete_${newPriorityName}_2`;
+            const deleteButtonLastRowIndentifier: string = `#priorityDelete_${newPriorityName}_2`;
 
             await init.pageClick(page, deleteButtonLastRowIndentifier);
 

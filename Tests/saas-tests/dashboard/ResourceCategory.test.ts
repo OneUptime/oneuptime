@@ -177,7 +177,7 @@ describe('Resource Category', () => {
                 page.waitForNavigation(),
             ]);
 
-            const createdMonitorSelector = `#monitor-title-${utils.monitorName}`;
+            const createdMonitorSelector: string = `#monitor-title-${utils.monitorName}`;
             await init.pageWaitForSelector(page, createdMonitorSelector, {
                 visible: true,
                 timeout: operationTimeOut,
@@ -220,7 +220,7 @@ describe('Resource Category', () => {
 
             await init.pageClick(page, 'li#resources a');
 
-            const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
+            const deleteButtonSelector: string = `button#delete_${utils.resourceCategoryName}`;
 
             await init.pageWaitForSelector(page, deleteButtonSelector, {
                 visible: true,
@@ -365,7 +365,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#resources');
-            const editBtn = `#edit_${resourceCategory}`;
+            const editBtn: string = `#edit_${resourceCategory}`;
             await init.pageWaitForSelector(page, editBtn, {
                 visible: true,
                 timeout: init.timeout,
@@ -411,7 +411,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#resources');
-            const deleteBtn = `#delete_${resourceCategory}`;
+            const deleteBtn: string = `#delete_${resourceCategory}`;
             await init.pageWaitForSelector(page, deleteBtn, {
                 visible: true,
                 timeout: init.timeout,

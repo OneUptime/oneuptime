@@ -282,7 +282,7 @@ describe('Status Page', () => {
     test(
         'should update a domain',
         async (done: $TSFixMe) => {
-            const finalValue = `status.${customDomain}.com`;
+            const finalValue: string = `status.${customDomain}.com`;
 
             await gotoTheFirstStatusPage(page);
 

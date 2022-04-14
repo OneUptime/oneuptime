@@ -17,7 +17,7 @@ import { v1 as uuidv1 } from 'uuid';
 import BackendAPI from '../Utils/api';
 
 import { realtimeUrl } from '../Config';
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data): void {
@@ -66,8 +66,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const probe = await probeCollection.findOne(query);
         return probe;
@@ -78,8 +79,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         await probeCollection.updateOne(query, { $set: data });
         const probe = await this.findOneBy(query);
@@ -161,15 +163,18 @@ export default {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
 
                 await this.incidentResolveOrAcknowledge(data, allCriteria);
             }
 
             const incidentIdsOrRetry = await this.incidentCreateOrUpdate(data);
 
-            if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
+            if (incidentIdsOrRetry.retry) {
+                return incidentIdsOrRetry;
+            }
 
             if (
                 Array.isArray(incidentIdsOrRetry) &&
@@ -301,8 +306,9 @@ export default {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
 
                 const response = await BackendAPI.post(
                     'api/incident/data-ingestor/create-incident',
@@ -379,8 +385,9 @@ export default {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
 
                 const response = await BackendAPI.post(
                     'api/incident/data-ingestor/create-incident',
@@ -457,8 +464,9 @@ export default {
                     typeof data.retry === 'boolean' &&
                     data.retryCount >= 0 &&
                     data.retryCount < 3
-                )
+                ) {
                     return { retry: true, retryCount: data.retryCount };
+                }
 
                 const response = await BackendAPI.post(
                     'api/incident/data-ingestor/create-incident',
@@ -519,8 +527,9 @@ export default {
                     incident &&
                     incident.criterionCause &&
                     incident.criterionCause._id
-                )
+                ) {
                     criteriaId = String(incident.criterionCause._id);
+                }
 
                 allCriteria.forEach(criteria => {
                     if (
@@ -555,7 +564,9 @@ export default {
                         ) {
                             incidentsV1.push(incident);
                             return true;
-                        } else return false;
+                        } else {
+                            return false;
+                        }
                     });
                 } else {
                     incidentsV1.push(incident);
@@ -918,7 +929,7 @@ export default {
                 : false;
         let timeHours = 0;
         let timeMinutes = payload;
-        let tempReason = `${payload} min`;
+        let tempReason: string = `${payload} min`;
         if (timeMinutes > 60) {
             timeHours = Math.floor(timeMinutes / 60);
             timeMinutes = Math.floor(timeMinutes % 60);
@@ -1381,7 +1392,7 @@ const checkAnd = (
                     }
                 }
             } else {
-                let tempReason = `${payload} min`;
+                let tempReason: string = `${payload} min`;
                 if (
                     con.criteria[i] &&
                     con.criteria[i].responseType &&
@@ -3742,7 +3753,7 @@ const checkOr = (
                     }
                 }
             } else {
-                let tempReason = `${payload} min`;
+                let tempReason: string = `${payload} min`;
                 if (
                     con.criteria[i] &&
                     con.criteria[i].responseType &&

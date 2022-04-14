@@ -10,8 +10,12 @@ import fs from 'fs';
 
 export default class Service {
     async findOneBy({ query, populate, select, sort }: FindOneBy): void {
-        if (!query) query = {};
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query) {
+            query = {};
+        }
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const gitCredentialQuery = GitCredentialModel.findOne(query)
             .sort(sort)
@@ -26,17 +30,29 @@ export default class Service {
     }
 
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
-        if (typeof skip === 'string') skip = Number(skip);
+        if (typeof skip === 'string') {
+            skip = Number(skip);
+        }
 
-        if (typeof limit === 'string') limit = Number(limit);
+        if (typeof limit === 'string') {
+            limit = Number(limit);
+        }
 
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const gitCredentialsQuery = GitCredentialModel.find(query)
             .lean()
@@ -104,9 +120,13 @@ export default class Service {
     }
 
     async updateOneBy(query: Query, data: $TSFixMe): void {
-        if (!query) query = {};
+        if (!query) {
+            query = {};
+        }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         if (data.gitPassword) {
             const iv = Crypto.randomBytes(16);

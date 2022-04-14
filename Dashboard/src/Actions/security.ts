@@ -363,10 +363,10 @@ export function editContainerSecurity({
         dispatch(editContainerSecurityRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(editContainerSecuritySuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -749,10 +749,10 @@ export function editApplicationSecurity({
         dispatch(editApplicationSecurityRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(editApplicationSecuritySuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

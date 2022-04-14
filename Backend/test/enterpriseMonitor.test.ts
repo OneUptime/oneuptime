@@ -27,11 +27,11 @@ describe('Enterprise Monitor API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createEnterpriseUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
 
@@ -41,7 +41,7 @@ describe('Enterprise Monitor API', function (): void {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -50,7 +50,7 @@ describe('Enterprise Monitor API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({
             _id: { $in: [projectId, newProjectId] },
@@ -61,8 +61,8 @@ describe('Enterprise Monitor API', function (): void {
         });
     });
 
-    it('should create a new monitor for project with no billing plan', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should create a new monitor for project with no billing plan', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         ComponentModel.create({ name: 'Test Component' }).then(component => {
             request
@@ -71,7 +71,7 @@ describe('Enterprise Monitor API', function (): void {
                 .send({
                     projectName: 'Test Project',
                 })
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     newProjectId = res.body._id;
                     request
                         .post(`/monitor/${newProjectId}`)
@@ -82,7 +82,7 @@ describe('Enterprise Monitor API', function (): void {
                             data: { url: 'http://www.tests.org' },
                             componentId: component._id,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             monitorId = res.body._id;
                             expect(res).to.have.status(200);
                             expect(res.body.name).to.be.equal('New Monitor');

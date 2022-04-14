@@ -5,7 +5,9 @@
  */
 
 const joinNames = (arr = []): void => {
-    if (!Array.isArray(arr)) return '';
+    if (!Array.isArray(arr)) {
+        return '';
+    }
     return arr.join(', ').replace(/, ([^,]*)$/, ' and $1');
 };
 

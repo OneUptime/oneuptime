@@ -40,10 +40,10 @@ export const fetchAlert = (projectId: ObjectID): void => {
         dispatch(alertRequest());
 
         promise.then(
-            function (payload): void {
+            (payload): void => {
                 dispatch(alertSuccess(payload.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(alertError(error));
             }
         );
@@ -94,12 +94,12 @@ export function fetchProjectAlert(
         dispatch(projectAlertRequest());
 
         promise.then(
-            function (payload): void {
+            (payload): void => {
                 const data = payload.data;
                 data.projectId = projectId;
                 dispatch(projectAlertSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(projectAlertError(error));
             }
         );
@@ -152,10 +152,10 @@ export function fetchIncidentAlert(
         dispatch(incidentAlertRequest());
 
         promise.then(
-            function (alerts): void {
+            (alerts): void => {
                 dispatch(incidentAlertSuccess(alerts.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(incidentAlertError(error));
             }
         );
@@ -220,10 +220,10 @@ export function fetchSubscriberAlert(
         dispatch(subscriberAlertRequest());
 
         promise.then(
-            function (alerts): void {
+            (alerts): void => {
                 dispatch(subscriberAlertSuccess(alerts.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(subscriberAlertError(error));
             }
         );
@@ -271,10 +271,10 @@ export function fetchAlertCharges(
         dispatch(fetchAlertChargesRequest(promise));
 
         promise.then(
-            function (alertCharges): void {
+            (alertCharges): void => {
                 dispatch(fetchAlertChargesSuccess(alertCharges.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchAlertChargesFailed(error));
             }
         );
@@ -310,10 +310,10 @@ export const downloadAlertCharges = (projectId: ObjectID): void => {
         dispatch(downloadAlertChargesRequest(promise));
 
         promise.then(
-            function (alertCharges): void {
+            (alertCharges): void => {
                 dispatch(downloadAlertChargesSuccess(alertCharges.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(downloadAlertChargesFailed(error));
             }
         );

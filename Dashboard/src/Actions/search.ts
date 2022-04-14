@@ -48,11 +48,11 @@ export const search = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(searchRequest());
         const promise = BackendAPI.post(`search/${projectId}`, values);
         promise.then(
-            function (result): void {
+            (result): void => {
                 const search = result.data;
                 dispatch(searchSuccess(search.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(searchFailure(error));
             }
         );

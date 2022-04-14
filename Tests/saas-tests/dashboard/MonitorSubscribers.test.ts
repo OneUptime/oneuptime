@@ -1,9 +1,9 @@
 import puppeteer from 'puppeteer';
 import utils from '../../test-utils';
 import init from '../../test-init';
-const csvFile = `${__dirname}/MOCKS/subscribers.csv`;
-const emptyFile = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
-const existingSubscribers = `${__dirname}/MOCKS/existing.csv`;
+const csvFile: string = `${__dirname}/MOCKS/subscribers.csv`;
+const emptyFile: string = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
+const existingSubscribers: string = `${__dirname}/MOCKS/existing.csv`;
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;

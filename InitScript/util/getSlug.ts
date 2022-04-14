@@ -3,7 +3,9 @@ import generate from 'nanoid';
 
 export default function getSlug(name: $TSFixMe): void {
     name = String(name);
-    if (!name || !name.trim()) return;
+    if (!name || !name.trim()) {
+        return;
+    }
 
     let slug = slugify(name, { remove: /[&*+~.,\\/()|'"!:@]+/g });
 

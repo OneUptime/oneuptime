@@ -6,7 +6,7 @@ import Model, {
 } from '../Models/Smtp';
 import DatabaseService from './DatabaseService';
 
-export default class EmailSmtpService extends DatabaseService<typeof Model> {
+class EmailSmtpService extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -59,3 +59,5 @@ export default class EmailSmtpService extends DatabaseService<typeof Model> {
         });
     }
 }
+
+export default new EmailSmtpService();

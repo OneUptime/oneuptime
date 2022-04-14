@@ -67,8 +67,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         await monitorLogByWeekCollection.updateOne(query, { $set: data });
         const monitorLogByWeek = await monitorLogByWeekCollection.findOne(
@@ -83,8 +84,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const monitorLog = await monitorLogByWeekCollection.findOne(query);
 

@@ -46,7 +46,7 @@ describe('Tutorial API', function (): void {
         token = res1.body.tokens.jwtAccessToken;
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -61,8 +61,8 @@ describe('Tutorial API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should get the user tutorial status', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should get the user tutorial status', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get('/tutorial')
             .set('Authorization', authorization);
@@ -72,8 +72,8 @@ describe('Tutorial API', function (): void {
         expect(res.body._id).to.be.equal(userId);
     });
 
-    it('should not update the user tutorial status if project id is not given', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should not update the user tutorial status if project id is not given', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
@@ -84,8 +84,8 @@ describe('Tutorial API', function (): void {
         expect(res.body.message).to.be.equal(`Project ID can't be null`);
     });
 
-    it('should update the user custom component tutorial status per project', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should update the user custom component tutorial status per project', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const type = 'component';
         const res = await request
             .put('/tutorial')
@@ -102,8 +102,8 @@ describe('Tutorial API', function (): void {
         expect(res.body.data[projectId][type].show).to.be.equal(false);
     });
 
-    it('should update the user custom team memb er tutorial status per project', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should update the user custom team memb er tutorial status per project', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const type = 'teamMember';
         const res = await request
             .put('/tutorial')
@@ -120,8 +120,8 @@ describe('Tutorial API', function (): void {
         expect(res.body.data[projectId][type].show).to.be.equal(false);
     });
 
-    it('should get the user tutorial status for a project', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should get the user tutorial status for a project', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const res = await request
             .get('/tutorial')
             .set('Authorization', authorization);
@@ -134,8 +134,8 @@ describe('Tutorial API', function (): void {
         expect(res.body.data[projectId].teamMember.show).to.be.equal(false);
     });
 
-    it('should update the user status page tutorial status per project', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should update the user status page tutorial status per project', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const type = 'statusPage';
         const res = await request
             .put('/tutorial')

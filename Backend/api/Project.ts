@@ -267,7 +267,7 @@ router.get(
             };
 
             const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
+            const select: string = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
              sendCreatedIncidentNotificationSms sendAcknowledgedIncidentNotificationSms sendResolvedIncidentNotificationSms
              sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
              sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
@@ -302,7 +302,7 @@ router.get(
     '/:projectId/balance',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const projectId = req.params.projectId;
             if (!projectId) {
@@ -327,7 +327,7 @@ router.get(
     '/:projectId/resetToken',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const projectId = req.params.projectId;
 
@@ -874,7 +874,7 @@ router.post(
     '/:projectId/subProject',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.user ? req.user.id : null;
             const parentProjectId = req.params.projectId;
@@ -965,7 +965,7 @@ router.get(
     '/:projectId/subProjects',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         // Call the ProjectService
         try {
             const parentProjectId = req.params.projectId;
@@ -1000,7 +1000,7 @@ router.get(
     '/projects/user/:userId',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const userId = req.params.userId;
             const skip = req.query['skip'] || 0;
@@ -1021,7 +1021,7 @@ router.get(
     '/projects/allProjects',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const skip = req.query['skip'] || 0;
             const limit = req.query['limit'] || 10;
@@ -1043,7 +1043,7 @@ router.get(
     '/projects/:slug',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const slug = req.params.slug;
             const populate = [{ path: 'parentProjectId', select: 'name' }];
@@ -1177,7 +1177,7 @@ router.put(
     '/:projectId/:subProjectId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const parentProjectId = req.params.projectId;
             const subProjectId = req.params.subProjectId;
@@ -1224,7 +1224,7 @@ router.post(
     '/:projectId/addNote',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const projectId = req.params.projectId;
             if (Array.isArray(req.body)) {
@@ -1279,7 +1279,7 @@ router.post(
     '/projects/search',
     getUser,
     isUserMasterAdmin,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const filter = req.body.filter;
             const skip = req.query['skip'] || 0;

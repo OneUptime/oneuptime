@@ -29,11 +29,11 @@ export const teamLoading = (projectId: ObjectID): void => {
         const promise = BackendAPI.get(`team/${projectId}`);
         dispatch(teamLoadingRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const team = response.data;
                 dispatch(teamLoadingSuccess(team));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(teamLoadingError(error));
             }
         );
@@ -67,11 +67,11 @@ export const subProjectTeamLoading = (projectId: ObjectID): void => {
         const promise = BackendAPI.get(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
         promise.then(
-            function (response): void {
+            (response): void => {
                 const team = response.data;
                 dispatch(subProjectTeamLoadingSuccess(team));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(subProjectTeamLoadingError(error));
             }
         );
@@ -108,11 +108,11 @@ export const teamCreate = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(teamCreateRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const team = response.data;
                 dispatch(teamCreateSuccess(team));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(teamCreateError(error));
             }
         );
@@ -164,12 +164,12 @@ export const teamDelete = (
         dispatch(teamDeleteRequest(teamMemberId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const team = response.data;
                 dispatch(teamDeleteSuccess(team));
                 return { team };
             },
-            function (error): void {
+            (error): void => {
                 dispatch(teamDeleteError(error));
                 return { error };
             }
@@ -210,10 +210,10 @@ export const getTeamMember = (
         dispatch(teamMemberRequest(teamMemberId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(teamMemberSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(teamMemberError(error));
             }
         );
@@ -253,11 +253,11 @@ export const teamUpdateRole = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(teamUpdateRoleRequest(values.teamMemberId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 const team = response.data;
                 dispatch(teamUpdateRoleSuccess(team));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(teamUpdateRoleError(error));
             }
         );

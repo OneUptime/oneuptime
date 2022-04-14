@@ -197,16 +197,22 @@ export default class Service {
                 }
 
                 if (data.type === 'api') {
-                    if (data.method && data.method.length)
+                    if (data.method && data.method.length) {
                         monitor.method = data.method;
-                    if (data.bodyType && data.bodyType.length)
+                    }
+                    if (data.bodyType && data.bodyType.length) {
                         monitor.bodyType = data.bodyType;
+                    }
 
-                    if (data.text && data.text.length) monitor.text = data.text;
-                    if (data.formData && data.formData.length)
+                    if (data.text && data.text.length) {
+                        monitor.text = data.text;
+                    }
+                    if (data.formData && data.formData.length) {
                         monitor.formData = data.formData;
-                    if (data.headers && data.headers.length)
+                    }
+                    if (data.headers && data.headers.length) {
                         monitor.headers = data.headers;
+                    }
                 }
                 if (data.type === 'url') {
                     monitor.siteUrls = [monitor.data.url];
@@ -411,7 +417,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         await this.updateMonitorSlaStat(query);
 
@@ -500,7 +508,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         let updatedData = await MonitorModel.updateMany(query, {
             $set: data,
         });
@@ -525,7 +535,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const updatedData = await MonitorModel.updateMany(query, {
             $set: data,
         });
@@ -537,9 +549,13 @@ export default class Service {
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
     async findBy({ query, limit, skip, sort, populate, select }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -553,7 +569,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const monitorQuery = MonitorModel.find(query)
             .lean()
@@ -573,7 +591,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const monitorQuery = MonitorModel.findOne(query).sort(sort).lean();
 
@@ -589,7 +609,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await MonitorModel.countDocuments(query);
         return count;
     }
@@ -716,8 +738,12 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const select =
             '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
@@ -832,8 +858,12 @@ export default class Service {
         limit: PositiveNumber,
         skip: PositiveNumber
     ): void {
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const select =
             '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
@@ -1480,7 +1510,9 @@ export default class Service {
             .startOf('day')
             .diff(moment(monitorTime.createdAt).utc().startOf('day'), 'days');
 
-        if (days > 89) days = 89;
+        if (days > 89) {
+            days = 89;
+        }
         const times = [];
         for (let i = days; i >= 0; i--) {
             let incidents = [];
@@ -1507,8 +1539,11 @@ export default class Service {
                             moment(inc.resolvedAt).utc().startOf('day'),
                             'days'
                         );
-                    if (creatediff > -1 && resolveddiff < 1) return true;
-                    else return false;
+                    if (creatediff > -1 && resolveddiff < 1) {
+                        return true;
+                    } else {
+                        return false;
+                    }
                 });
                 status = incidents.some((inc: $TSFixMe) =>
                     inc.resolvedAt
@@ -1789,8 +1824,9 @@ export default class Service {
                     incidentsHappenedDuringTheDay[nextIncidentIndex];
                 if (
                     moment(firstIncident.end).isSameOrBefore(nextIncident.start)
-                )
+                ) {
                     continue;
+                }
 
                 if (firstIncident.status === nextIncident.status) {
                     const end = moment(firstIncident.end).isAfter(
@@ -1827,8 +1863,9 @@ export default class Service {
                                     moment(nextIncident.start).isBefore(
                                         incidentsHappenedDuringTheDay[j].start
                                     )
-                                )
+                                ) {
                                     break;
+                                }
                                 j += 1;
                             }
                             incidentsHappenedDuringTheDay.splice(
@@ -1862,8 +1899,9 @@ export default class Service {
                                     moment(newIncident.start).isBefore(
                                         incidentsHappenedDuringTheDay[j].start
                                     )
-                                )
+                                ) {
                                     break;
+                                }
                                 j += 1;
                             }
                             incidentsHappenedDuringTheDay.splice(
@@ -2083,8 +2121,9 @@ export default class Service {
                     incidentsHappenedDuringTheDay[nextIncidentIndex];
                 if (
                     moment(firstIncident.end).isSameOrBefore(nextIncident.start)
-                )
+                ) {
                     continue;
+                }
 
                 if (firstIncident.status === nextIncident.status) {
                     const end = moment(firstIncident.end).isAfter(
@@ -2123,8 +2162,9 @@ export default class Service {
                                     moment(nextIncident.start).isBefore(
                                         incidentsHappenedDuringTheDay[j].start
                                     )
-                                )
+                                ) {
                                     break;
+                                }
                                 j += 1;
                             }
                             incidentsHappenedDuringTheDay.splice(
@@ -2158,8 +2198,9 @@ export default class Service {
                                     moment(newIncident.start).isBefore(
                                         incidentsHappenedDuringTheDay[j].start
                                     )
-                                )
+                                ) {
                                     break;
+                                }
                                 j += 1;
                             }
                             incidentsHappenedDuringTheDay.splice(
@@ -2208,10 +2249,15 @@ export default class Service {
                 timeObj.downTime +
                 timeObj.disabledTime;
             if (timeObj.status === null || timeObj.status === 'online') {
-                if (timeObj.disabledTime > 0) timeObj.status = 'disabled';
-                else if (timeObj.downTime > 0) timeObj.status = 'offline';
-                else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
-                else if (timeObj.upTime > 0) timeObj.status = 'online';
+                if (timeObj.disabledTime > 0) {
+                    timeObj.status = 'disabled';
+                } else if (timeObj.downTime > 0) {
+                    timeObj.status = 'offline';
+                } else if (timeObj.degradedTime > 0) {
+                    timeObj.status = 'degraded';
+                } else if (timeObj.upTime > 0) {
+                    timeObj.status = 'online';
+                }
             }
             timeBlock.push(Object.assign({}, timeObj));
 

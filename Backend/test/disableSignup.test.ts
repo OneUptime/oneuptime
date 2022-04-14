@@ -56,7 +56,7 @@ describe('Disable Sign up test', function (): void {
     });
 
     it('should sign up a new user when user is admin', async () => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         const res = await request.post('/stripe/checkCard').send({
             tokenId: 'tok_visa',
             email: data.anotherUser.email,

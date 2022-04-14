@@ -38,9 +38,7 @@ import Model, {
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/DB/CreateBy';
 
-export default class CallRoutingLogService extends DatabaseService<
-    typeof Model
-> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -173,10 +171,14 @@ export default class CallRoutingLogService extends DatabaseService<
         data: $TSFixMe,
         projectId: ObjectID
     ): void {
-        if (!query) query = {};
-        if (!data) data = {};
+        if (!query) {
+            query = {};
+        }
+        if (!data) {
+            data = {};
+        }
 
-        type = type.replace(/-([a-z])/g, function (g: $TSFixMe): void {
+        type = type.replace(/-([a-z])/g, (g: $TSFixMe): void => {
             return g[1].toUpperCase();
         });
 
@@ -200,7 +202,7 @@ export default class CallRoutingLogService extends DatabaseService<
         });
         const verificationToken = await verificationTokenModel.save();
         if (verificationToken) {
-            const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
+            const verificationTokenURL: string = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
             // Checking for already verified user so that he/she will not recieve another email verification
 
             if (!user.isVerified) {
@@ -363,7 +365,9 @@ export default class CallRoutingLogService extends DatabaseService<
                 select,
             });
             const backupCodes = user.backupCodes.map((backupCode: $TSFixMe) => {
-                if (backupCode.code === code) backupCode.used = true;
+                if (backupCode.code === code) {
+                    backupCode.used = true;
+                }
                 return backupCode;
             });
             await this.updateOneBy(
@@ -751,7 +755,7 @@ export default class CallRoutingLogService extends DatabaseService<
         } else {
             const userObj = { id: user._id };
 
-            const accessToken = `${jwt.sign(userObj, jwtSecretKey, {
+            const accessToken: string = `${jwt.sign(userObj, jwtSecretKey, {
                 expiresIn: 86400,
             })}`;
             const jwtRefreshToken = randToken.uid(256);

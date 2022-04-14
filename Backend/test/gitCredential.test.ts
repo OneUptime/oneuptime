@@ -25,38 +25,32 @@ describe('Git Credential API', function (): void {
 
     this.timeout(timeout);
 
-    before(function (done: $TSFixMe): void {
-        GlobalConfig.initTestConfig().then(function (): void {
+    before((done: $TSFixMe): void => {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
                                             done();
@@ -69,7 +63,7 @@ describe('Git Credential API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -81,8 +75,8 @@ describe('Git Credential API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should add git credential', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should add git credential', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const gitUsername = 'username';
         const gitPassword = 'password';
 
@@ -93,7 +87,7 @@ describe('Git Credential API', function (): void {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 credentialId = res.body._id;
                 expect(res).to.have.status(200);
                 expect(res.body.gitUsername).to.be.equal(gitUsername);
@@ -101,8 +95,8 @@ describe('Git Credential API', function (): void {
             });
     });
 
-    it('should update a git credential', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should update a git credential', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const newGitUsername = 'newusername';
 
         request
@@ -111,15 +105,15 @@ describe('Git Credential API', function (): void {
             .send({
                 gitUsername: newGitUsername,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.gitUsername).to.be.equal(newGitUsername);
                 done();
             });
     });
 
-    it('should get all the git credentials in a project', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get all the git credentials in a project', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const gitUsername = 'anotherUsername';
         const gitPassword = 'password';
 
@@ -130,11 +124,11 @@ describe('Git Credential API', function (): void {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (): void {
+            .end((): void => {
                 request
                     .get(`/credential/${projectId}/gitCredential`)
                     .set('Authorization', authorization)
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         expect(res).to.have.status(200);
                         expect(res.body).to.be.an('array');
                         done();
@@ -142,13 +136,13 @@ describe('Git Credential API', function (): void {
             });
     });
 
-    it('should remove a git credential', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should remove a git credential', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
 
         request
             .delete(`/credential/${projectId}/gitCredential/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body._id).to.be.equal(credentialId);
                 expect(res.body.deleted).to.be.true;
@@ -156,8 +150,8 @@ describe('Git Credential API', function (): void {
             });
     });
 
-    it('should not create git credential with an existing git user in a project', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create git credential with an existing git user in a project', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const gitUsername = 'anotherUsername'; // an existing username
         const gitPassword = 'password';
 
@@ -168,7 +162,7 @@ describe('Git Credential API', function (): void {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Credential already exist in this project'
@@ -177,8 +171,8 @@ describe('Git Credential API', function (): void {
             });
     });
 
-    it('should not create git credential if git username is missing', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create git credential if git username is missing', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const gitUsername = '';
         const gitPassword = 'password';
 
@@ -189,7 +183,7 @@ describe('Git Credential API', function (): void {
                 gitUsername,
                 gitPassword,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Username is required'
@@ -198,8 +192,8 @@ describe('Git Credential API', function (): void {
             });
     });
 
-    it('should not create git credential if git password is missing', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not create git credential if git password is missing', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const gitUsername = 'username';
 
         request
@@ -208,7 +202,7 @@ describe('Git Credential API', function (): void {
             .send({
                 gitUsername,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Please provide a password'
@@ -217,14 +211,14 @@ describe('Git Credential API', function (): void {
             });
     });
 
-    it('should not remove a non-existing git credential', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not remove a non-existing git credential', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const credentialId = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
 
         request
             .delete(`/credential/${projectId}/gitCredential/${credentialId}`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 expect(res.body.message).to.be.equal(
                     'Git Credential not found or does not exist'

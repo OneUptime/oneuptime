@@ -396,10 +396,10 @@ export function updateScheduledEvent(
         dispatch(updateScheduledEventRequest());
 
         promise.then(
-            function (scheduledEvent): void {
+            (scheduledEvent): void => {
                 dispatch(updateScheduledEventSuccess(scheduledEvent.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data
@@ -762,10 +762,10 @@ export const fetchScheduledEvent = (
         dispatch(fetchScheduledEventRequest());
 
         promise.then(
-            function (component): void {
+            (component): void => {
                 dispatch(fetchScheduledEventSuccess(component.data));
             },
-            function (error): void {
+            (error): void => {
                 const errorMsg =
                     error.response && error.response.data
                         ? error.response.data

@@ -1,10 +1,16 @@
 export default class Service {
     async findBy({ query, skip, limit, sort, populate, select }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 10;
+        if (!limit) {
+            limit = 10;
+        }
 
-        if (!sort) sort = -1;
+        if (!sort) {
+            sort = -1;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -22,7 +28,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const itemsQuery = OnCallScheduleStatusModel.find(query)
             .lean()
             .limit(limit.toNumber())
@@ -67,7 +75,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await OnCallScheduleStatusModel.countDocuments(query);
         return count;
     }
@@ -77,7 +87,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const item = await OnCallScheduleStatusModel.findOneAndUpdate(
             query,
             {
@@ -95,7 +107,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         await OnCallScheduleStatusModel.updateMany(query, {
             $set: data,
         });

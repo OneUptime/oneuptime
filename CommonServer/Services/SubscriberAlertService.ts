@@ -6,9 +6,7 @@ import Model, {
 } from '../Models/SubscriberAlert';
 import DatabaseService from './DatabaseService';
 
-export default class SubscriberAlertService extends DatabaseService<
-    typeof Model
-> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -61,3 +59,5 @@ export default class SubscriberAlertService extends DatabaseService<
         });
     }
 }
+
+export default new Service();

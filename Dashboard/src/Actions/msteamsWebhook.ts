@@ -42,12 +42,12 @@ export const deleteMsTeams = (
         dispatch(deleteMsTeamsRequest());
 
         return promise.then(
-            function (msTeams): void {
+            (msTeams): void => {
                 dispatch(deleteMsTeamsSuccess(msTeams.data));
 
                 return msTeams.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteMsTeamsError(error));
             }
         );
@@ -96,10 +96,10 @@ export function getMsTeams(
         dispatch(getMsTeamsRequest(promise));
 
         promise.then(
-            function (webhooks): void {
+            (webhooks): void => {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -124,10 +124,10 @@ export function getMsTeamsMonitor(
         dispatch(getMsTeamsRequest(promise));
 
         promise.then(
-            function (webhooks): void {
+            (webhooks): void => {
                 dispatch(getMsTeamsSuccess(webhooks.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getMsTeamsError(error));
             }
         );
@@ -169,12 +169,12 @@ export const createMsTeams = (projectId: ObjectID, data: $TSFixMe): void => {
 
         dispatch(createMsTeamsRequest());
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(createMsTeamsSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createMsTeamsError(error));
             }
         );
@@ -222,12 +222,12 @@ export function updateMsTeams(
         dispatch(updateMsTeamsRequest());
 
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(updateMsTeamsSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateMsTeamsError(error));
             }
         );

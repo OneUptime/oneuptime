@@ -35,7 +35,7 @@ describe('Monitor SLA', function (): void {
 
     this.timeout(timeout);
 
-    before(async function (): void {
+    before(async (): void => {
         await GlobalConfig.initTestConfig();
         const res = await createUser(request, userData.user);
         projectId = res.body.project._id;
@@ -54,7 +54,7 @@ describe('Monitor SLA', function (): void {
         authorization = `Basic ${token}`;
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -65,7 +65,7 @@ describe('Monitor SLA', function (): void {
         });
     });
 
-    it('should not create a monitor SLA if the name is missing', async function (): void {
+    it('should not create a monitor SLA if the name is missing', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -78,7 +78,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.message).to.be.equal('SLA name is required');
     });
 
-    it('should not create monitor SLA if monitor uptime is missing', async function (): void {
+    it('should not create monitor SLA if monitor uptime is missing', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -91,7 +91,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.message).to.be.equal('Monitor uptime is required');
     });
 
-    it('should not create monitor SLA if monitor uptime is not numeric value', async function (): void {
+    it('should not create monitor SLA if monitor uptime is not numeric value', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -106,7 +106,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not create monitor SLA if frequency is not a numeric value', async function (): void {
+    it('should not create monitor SLA if frequency is not a numeric value', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -121,7 +121,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not create monitor SLA if frequency is less than a day', async function (): void {
+    it('should not create monitor SLA if frequency is less than a day', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -134,7 +134,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.message).to.be.equal('At lease a single day is needed');
     });
 
-    it('should not create monitor SLA if monitor uptime is zero', async function (): void {
+    it('should not create monitor SLA if monitor uptime is zero', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -149,7 +149,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not create monitor SLA if monitor uptime is greater than 100', async function (): void {
+    it('should not create monitor SLA if monitor uptime is greater than 100', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -164,7 +164,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should create a monitor SLA', async function (): void {
+    it('should create a monitor SLA', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -175,7 +175,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.name).to.be.equal(monitorSlaPayload.name);
     });
 
-    it('should not create a monitor SLA with an existing name', async function (): void {
+    it('should not create a monitor SLA with an existing name', async (): void => {
         const res = await request
             .post(`/monitorSla/${projectId}`)
             .set('Authorization', authorization)
@@ -187,7 +187,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not update a monitor SLA if the name is missing', async function (): void {
+    it('should not update a monitor SLA if the name is missing', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -200,7 +200,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.message).to.be.equal('SLA name is required');
     });
 
-    it('should not update monitor SLA if monitor uptime is missing', async function (): void {
+    it('should not update monitor SLA if monitor uptime is missing', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -213,7 +213,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.message).to.be.equal('Monitor uptime is required');
     });
 
-    it('should not update monitor SLA if monitor uptime is not numeric value', async function (): void {
+    it('should not update monitor SLA if monitor uptime is not numeric value', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -228,7 +228,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not update monitor SLA if frequency is not a numeric value', async function (): void {
+    it('should not update monitor SLA if frequency is not a numeric value', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -243,7 +243,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not update monitor SLA if frequency is less than a day', async function (): void {
+    it('should not update monitor SLA if frequency is less than a day', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -256,7 +256,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.message).to.be.equal('At lease a single day is needed');
     });
 
-    it('should not update monitor SLA if monitor uptime is zero', async function (): void {
+    it('should not update monitor SLA if monitor uptime is zero', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -271,7 +271,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should not update monitor SLA if monitor uptime is greater than 100', async function (): void {
+    it('should not update monitor SLA if monitor uptime is greater than 100', async (): void => {
         const res = await request
             .put(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization)
@@ -286,7 +286,7 @@ describe('Monitor SLA', function (): void {
         );
     });
 
-    it('should update a monitor SLA', async function (): void {
+    it('should update a monitor SLA', async (): void => {
         monitorSlaPayload.frequency = '10';
         monitorSlaPayload.name = 'updatedFxPro';
 
@@ -300,7 +300,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.frequency).to.be.equal(monitorSlaPayload.frequency);
     });
 
-    it('should get the list of monitor SLAs', async function (): void {
+    it('should get the list of monitor SLAs', async (): void => {
         const res = await request
             .get(`/monitorSla/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
@@ -310,7 +310,7 @@ describe('Monitor SLA', function (): void {
         expect(res.body.limit).to.be.equal(10);
     });
 
-    it('should delete a particular monitor SLA', async function (): void {
+    it('should delete a particular monitor SLA', async (): void => {
         const res = await request
             .delete(`/monitorSla/${projectId}/${slaId}`)
             .set('Authorization', authorization);

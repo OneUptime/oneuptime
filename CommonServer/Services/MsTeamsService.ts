@@ -93,7 +93,7 @@ export default class Service {
         component: $TSFixMe,
         duration: $TSFixMe
     ): void {
-        const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
+        const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const green = '#028A0F';
         let payload;
@@ -281,7 +281,7 @@ export default class Service {
         data: $TSFixMe,
         monitor: $TSFixMe
     ): void {
-        const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
+        const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
         const yellow = '#fedc56';
         const payload = {
             '@context': 'https://schema.org/extensions',

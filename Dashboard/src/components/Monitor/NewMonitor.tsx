@@ -335,7 +335,7 @@ class NewMonitor extends Component<ComponentProps> {
         const { change } = this.props;
 
         /** @type {{bodyField:Object[] | undefined, createAlert:boolean, autoAcknowledge: boolean, autoResolve:boolean}} */
-        const criterionFieldName = `${criterion.type}_${criterion.id}`;
+        const criterionFieldName:string = `${criterion.type}_${criterion.id}`;
         // add filter criteria if the criterion is not default
 
         const criterionValues = this.getCriterionInitialValue(criterion.type);
@@ -668,7 +668,7 @@ class NewMonitor extends Component<ComponentProps> {
             this.state.criteria.forEach((criterion: $TSFixMe) => {
                 const criterionData = {};
 
-                const criterionFieldName = `${criterion.type}_${criterion.id}`;
+                const criterionFieldName:string = `${criterion.type}_${criterion.id}`;
 
                 // add conditions only if the criterion isn't a default one
                 if (criterion.default) {

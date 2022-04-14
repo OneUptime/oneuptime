@@ -36,7 +36,7 @@ describe('Server Monitor', function (): void {
         request
             .post('/user/signup')
             .send(user)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 const project = res.body.project;
 
                 projectId = project._id;
@@ -48,13 +48,13 @@ describe('Server Monitor', function (): void {
                         email: user.email,
                         password: user.password,
                     })
-                    .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                    .end((err: $TSFixMe, res: $TSFixMe): void => {
                         token = res.body.tokens.jwtAccessToken;
                         request
                             .post(`/monitor/${projectId}`)
                             .set('Authorization', `Basic ${token}`)
                             .send(monitor)
-                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                            .end((err: $TSFixMe, res: $TSFixMe): void => {
                                 expect(res).to.have.status(200);
                                 expect(res.body).to.be.an('object');
                                 expect(res.body).to.have.property('_id');

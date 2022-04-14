@@ -451,7 +451,7 @@ class Incident extends React.Component<IncidentProps> {
             switchToProjectViewerNav,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
-        const redirectTo = `/dashboard/project/${slug}/on-call`;
+        const redirectTo:string = `/dashboard/project/${slug}/on-call`;
         const {
 
             component,

@@ -20,10 +20,10 @@ export function createErrorTracker(
         dispatch(createErrorTrackerRequest());
 
         promise.then(
-            function (errorTracker): void {
+            (errorTracker): void => {
                 dispatch(createErrorTrackerSuccess(errorTracker.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -76,12 +76,12 @@ export const fetchErrorTrackersByProject = (projectId: ObjectID): void => {
         dispatch(fetchErrorTrackersRequest());
 
         promise.then(
-            function (errorTrackers): void {
+            (errorTrackers): void => {
                 dispatch(
                     fetchErrorTrackersSuccess(errorTrackers.data.errorTrackers)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -104,10 +104,10 @@ export function fetchErrorTrackers(
         dispatch(fetchErrorTrackersRequest(fetchingPage));
 
         promise.then(
-            function (errorTrackers): void {
+            (errorTrackers): void => {
                 dispatch(fetchErrorTrackersSuccess(errorTrackers.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchErrorTrackersFailure(error));
             }
         );
@@ -161,7 +161,7 @@ export function fetchErrorTrackerIssues(
         dispatch(fetchErrorTrackerIssuesRequest(errorTrackerId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     fetchErrorTrackerIssuesSuccess({
                         errorTrackerId,
@@ -176,7 +176,7 @@ export function fetchErrorTrackerIssues(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchErrorTrackerIssuesFailure(error));
             }
         );
@@ -229,7 +229,7 @@ export function fetchErrorEvent(
         dispatch(fetchErrorEventRequest(errorTrackerId, errorEventId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     fetchErrorEventSuccess({
                         errorTrackerId,
@@ -245,7 +245,7 @@ export function fetchErrorEvent(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchErrorEventFailure(error));
             }
         );
@@ -304,10 +304,10 @@ export function deleteErrorTracker(
         dispatch(deleteErrorTrackerRequest(errorTrackerId));
 
         promise.then(
-            function (errorTracker): void {
+            (errorTracker): void => {
                 dispatch(deleteErrorTrackerSuccess(errorTracker.data._id));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     deleteErrorTrackerFailure({
                         error: error,
@@ -365,10 +365,10 @@ export function editErrorTracker(
         dispatch(editErrorTrackerRequest());
 
         promise.then(
-            function (errorTracker): void {
+            (errorTracker): void => {
                 dispatch(editErrorTrackerSuccess(errorTracker.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -420,10 +420,10 @@ export function resetErrorTrackerKey(
         dispatch(resetErrorTrackerKeyRequest());
 
         promise.then(
-            function (errorTracker): void {
+            (errorTracker): void => {
                 dispatch(resetErrorTrackerKeySuccess(errorTracker.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetErrorTrackerKeyFailure(error));
             }
         );
@@ -473,7 +473,7 @@ export function ignoreErrorEvent(
         dispatch(ignoreErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     ignoreErrorEventSuccess({
                         errorTrackerId,
@@ -482,7 +482,7 @@ export function ignoreErrorEvent(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(ignoreErrorEventFailure(error));
             }
         );
@@ -536,7 +536,7 @@ export function unresolveErrorEvent(
         dispatch(unresolveErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     unresolveErrorEventSuccess({
                         errorTrackerId,
@@ -545,7 +545,7 @@ export function unresolveErrorEvent(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(unresolveErrorEventFailure(error));
             }
         );
@@ -599,7 +599,7 @@ export function resolveErrorEvent(
         dispatch(resolveErrorEventRequest(errorTrackerId, issueId));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     resolveErrorEventSuccess({
                         errorTrackerId,
@@ -608,7 +608,7 @@ export function resolveErrorEvent(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resolveErrorEventFailure(error));
             }
         );
@@ -669,7 +669,7 @@ export function updateErrorEventMember(
         );
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     updateErrorEventMemberSuccess({
                         errorTrackerId,
@@ -679,7 +679,7 @@ export function updateErrorEventMember(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateErrorEventMemberFailure(error));
             }
         );
@@ -735,10 +735,10 @@ export function deleteErrorTrackerIssue(
         dispatch(deleteErrorTrackerIssueRequest(issueId));
 
         promise.then(
-            function (errorTracker): void {
+            (errorTracker): void => {
                 dispatch(deleteErrorTrackerIssueSuccess(errorTracker.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     deleteErrorTrackerIssueFailure({
                         error: error,

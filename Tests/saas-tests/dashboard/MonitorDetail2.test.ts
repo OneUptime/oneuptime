@@ -211,7 +211,7 @@ describe('Monitor Detail API', () => {
                 document.querySelector('input[name=incidentCreated]').click();
             });
 
-            const createdWebhookSelector = `#msteam_${webHookName}`;
+            const createdWebhookSelector: string = `#msteam_${webHookName}`;
 
             await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) =>
                 e.click()
@@ -249,7 +249,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const existingWebhookSelector = `#msteam_${webHookName}`;
+            const existingWebhookSelector: string = `#msteam_${webHookName}`;
 
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
@@ -261,7 +261,7 @@ describe('Monitor Detail API', () => {
 
             expect(existingWebhookName).toEqual(webHookName);
 
-            const editWebhookButtonSelector = `#edit_msteam_${webHookName}`;
+            const editWebhookButtonSelector: string = `#edit_msteam_${webHookName}`;
             await init.page$Eval(
                 page,
                 editWebhookButtonSelector,
@@ -316,7 +316,7 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(1);
 
-            const deleteWebhookButtonSelector = `#delete_msteam_${newWebHookName}`;
+            const deleteWebhookButtonSelector: string = `#delete_msteam_${newWebHookName}`;
             await init.page$Eval(
                 page,
                 deleteWebhookButtonSelector,

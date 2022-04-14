@@ -40,12 +40,12 @@ export const deleteSlack = (projectId: ObjectID, msTeamsId: $TSFixMe): void => {
         dispatch(deleteSlackRequest());
 
         return promise.then(
-            function (msTeams): void {
+            (msTeams): void => {
                 dispatch(deleteSlackSuccess(msTeams.data));
 
                 return msTeams.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteSlackError(error));
             }
         );
@@ -94,10 +94,10 @@ export const getSlack = (
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            function (webhooks): void {
+            (webhooks): void => {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getSlackError(error));
             }
         );
@@ -122,10 +122,10 @@ export function getSlackMonitor(
         dispatch(getSlackRequest(promise));
 
         promise.then(
-            function (webhooks): void {
+            (webhooks): void => {
                 dispatch(getSlackSuccess(webhooks.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getSlackError(error));
             }
         );
@@ -167,12 +167,12 @@ export const createSlack = (projectId: ObjectID, data: $TSFixMe): void => {
 
         dispatch(createSlackRequest());
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(createSlackSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createSlackError(error));
             }
         );
@@ -220,12 +220,12 @@ export function updateSlack(
         dispatch(updateSlackRequest());
 
         return promise.then(
-            function (webhook): void {
+            (webhook): void => {
                 dispatch(updateSlackSuccess(webhook.data));
 
                 return webhook.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateSlackError(error));
             }
         );

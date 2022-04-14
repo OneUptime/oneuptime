@@ -66,10 +66,10 @@ export const fetchTutorial = (): void => {
         dispatch(fetchTutorialRequest(promise));
 
         promise.then(
-            function (tutorial): void {
+            (tutorial): void => {
                 dispatch(fetchTutorialSuccess(tutorial.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchTutorialError(error));
             }
         );
@@ -86,10 +86,10 @@ export const closeTutorial = (type: $TSFixMe, projectId: ObjectID): void => {
         dispatch(closeTutorialRequest(promise));
 
         promise.then(
-            function (tutorial): void {
+            (tutorial): void => {
                 dispatch(closeTutorialSuccess(tutorial.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(closeTutorialError(error));
             }
         );

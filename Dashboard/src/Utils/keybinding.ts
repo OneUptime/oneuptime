@@ -25,7 +25,9 @@ const keyBind = (
         shortcut = route.shortcut.split('+');
         keys.push(event.key.toLowerCase());
 
-        if (keys.length === 1 && !initKeys.includes(keys[0])) resetKeys();
+        if (keys.length === 1 && !initKeys.includes(keys[0])) {
+            resetKeys();
+        }
         if (keys.length === 2) {
             if (keys[0] === shortcut[0] && keys[1] === shortcut[1]) {
                 resetKeys();

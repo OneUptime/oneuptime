@@ -43,39 +43,33 @@ describe('Subcriber Alert API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     projectId = res.body.project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
+                                            const authorization: string = `Basic ${token}`;
                                             request
                                                 .post(`/monitor/${projectId}`)
                                                 .set(
@@ -83,48 +77,50 @@ describe('Subcriber Alert API', function (): void {
                                                     authorization
                                                 )
                                                 .send(monitor)
-                                                .end(function (
-                                                    err: $TSFixMe,
-                                                    res: $TSFixMe
-                                                ) {
-                                                    monitorId = res.body._id;
-                                                    incidentData.monitors = [
-                                                        monitorId,
-                                                    ];
-                                                    request
-                                                        .post(
-                                                            `/incident/${projectId}/create-incident`
-                                                        )
-                                                        .set(
-                                                            'Authorization',
-                                                            authorization
-                                                        )
-                                                        .send(incidentData)
-                                                        .end(
-                                                            (
-                                                                err: $TSFixMe,
-                                                                res: $TSFixMe
-                                                            ) => {
-                                                                idNumber =
-                                                                    res.body
-                                                                        .idNumber; // This has replaced incidentId and is used to query subscriber alert
-                                                                incidentId =
-                                                                    res.body
-                                                                        ._id;
-                                                                expect(
-                                                                    res
-                                                                ).to.have.status(
-                                                                    200
-                                                                );
-                                                                expect(
-                                                                    res.body
-                                                                ).to.be.an(
-                                                                    'object'
-                                                                );
-                                                                done();
-                                                            }
-                                                        );
-                                                });
+                                                .end(
+                                                    (
+                                                        err: $TSFixMe,
+                                                        res: $TSFixMe
+                                                    ) => {
+                                                        monitorId =
+                                                            res.body._id;
+                                                        incidentData.monitors =
+                                                            [monitorId];
+                                                        request
+                                                            .post(
+                                                                `/incident/${projectId}/create-incident`
+                                                            )
+                                                            .set(
+                                                                'Authorization',
+                                                                authorization
+                                                            )
+                                                            .send(incidentData)
+                                                            .end(
+                                                                (
+                                                                    err: $TSFixMe,
+                                                                    res: $TSFixMe
+                                                                ) => {
+                                                                    idNumber =
+                                                                        res.body
+                                                                            .idNumber; // This has replaced incidentId and is used to query subscriber alert
+                                                                    incidentId =
+                                                                        res.body
+                                                                            ._id;
+                                                                    expect(
+                                                                        res
+                                                                    ).to.have.status(
+                                                                        200
+                                                                    );
+                                                                    expect(
+                                                                        res.body
+                                                                    ).to.be.an(
+                                                                        'object'
+                                                                    );
+                                                                    done();
+                                                                }
+                                                            );
+                                                    }
+                                                );
                                         });
                                 });
                         }
@@ -158,7 +154,7 @@ describe('Subcriber Alert API', function (): void {
         // update user to a master admin
         UserService.updateOneBy({ _id: userId }, { role: 'master-admin' }).then(
             () => {
-                const authorization = `Basic ${token}`;
+                const authorization: string = `Basic ${token}`;
                 // setup smtp settings
                 request
                     .post(`/emailSmtp/${projectId}`)

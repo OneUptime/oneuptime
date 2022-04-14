@@ -38,26 +38,22 @@ describe('Disable Sign up test', function (): void {
     });
 
     it('should not sign up the user when sign up is disabled', (done: $TSFixMe) => {
-        createUser(
-            request,
-            data.user,
-            function (err: $TSFixMe, res: $TSFixMe): void {
-                expect(res).to.have.status(400);
-                expect(res.body.message).to.be.equal('Sign up is disabled.');
-                done();
-            }
-        );
+        createUser(request, data.user, (err: $TSFixMe, res: $TSFixMe): void => {
+            expect(res).to.have.status(400);
+            expect(res.body.message).to.be.equal('Sign up is disabled.');
+            done();
+        });
     });
 
     it('should sign up a new user when user is admin', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .post('/user/signup')
             .set('Authorization', authorization)
             .send({
                 ...data.anotherUser,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.have.property('email');
                 expect(res.body).to.have.property('role');

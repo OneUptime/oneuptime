@@ -322,14 +322,18 @@ export default function incident(state = initialState, action: Action): void {
                 incident => incident._id === action.payload._id
             );
 
-            if (index >= 0) incidents[index] = action.payload;
+            if (index >= 0) {
+                incidents[index] = action.payload;
+            }
 
             if (
                 state.incident.incident &&
                 state.incident.incident._id === action.payload._id
-            )
+            ) {
                 incident = Object.assign({}, action.payload);
-            else Object.assign(incident, state.incident.incident);
+            } else {
+                Object.assign(incident, state.incident.incident);
+            }
 
             unresolvedincidents = Object.assign(
                 [],
@@ -339,7 +343,9 @@ export default function incident(state = initialState, action: Action): void {
                 incident => incident._id === action.payload._id
             );
 
-            if (index1 >= 0) unresolvedincidents[index1] = action.payload;
+            if (index1 >= 0) {
+                unresolvedincidents[index1] = action.payload;
+            }
 
             return Object.assign({}, state, {
                 incidents: {
@@ -404,7 +410,7 @@ export default function incident(state = initialState, action: Action): void {
             });
 
         case types.INCIDENT_FAILED:
-            if (action.payload.multiple)
+            if (action.payload.multiple) {
                 return Object.assign({}, state, {
                     unresolvedincidents: {
                         requesting: false,
@@ -413,7 +419,7 @@ export default function incident(state = initialState, action: Action): void {
                         incidents: state.unresolvedincidents.incidents,
                     },
                 });
-            else
+            } else {
                 return Object.assign({}, state, {
                     incident: {
                         ...state.incident,
@@ -422,6 +428,7 @@ export default function incident(state = initialState, action: Action): void {
                         success: false,
                     },
                 });
+            }
 
         case types.INCIDENT_RESET:
             return Object.assign({}, state, {
@@ -441,7 +448,9 @@ export default function incident(state = initialState, action: Action): void {
         case types.INCIDENT_TIMELINE_SUCCESS: {
             const incident = Object.assign({}, state.incident.incident);
 
-            if (incident) incident.timeline = action.payload.data;
+            if (incident) {
+                incident.timeline = action.payload.data;
+            }
             return Object.assign({}, state, {
                 incident: {
                     ...state.incident,
@@ -802,7 +811,9 @@ export default function incident(state = initialState, action: Action): void {
                               action.payload.type
                           ].incidentMessages
                       );
-            if (incidentMessages.length > 10) incidentMessages.pop();
+            if (incidentMessages.length > 10) {
+                incidentMessages.pop();
+            }
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -891,7 +902,9 @@ export default function incident(state = initialState, action: Action): void {
                               action.payload.type
                           ].incidentMessages
                       );
-            if (incidentMessages.length > 10) incidentMessages.pop();
+            if (incidentMessages.length > 10) {
+                incidentMessages.pop();
+            }
             noteStatus = action.payload.updated
                 ? { edit: { requesting: false, success: true, error: null } }
                 : { create: { requesting: false, success: true, error: null } };
@@ -1423,9 +1436,11 @@ export default function incident(state = initialState, action: Action): void {
             ][action.payload.type].incidentMessages.map(
                 (incidentMessage: $TSFixMe) => {
                     if (incidentMessage._id === action.payload._id) {
-                        if (!incidentMessage.editMode)
+                        if (!incidentMessage.editMode) {
                             incidentMessage.editMode = true;
-                        else incidentMessage.editMode = false;
+                        } else {
+                            incidentMessage.editMode = false;
+                        }
                     } else {
                         incidentMessage.editMode = false;
                     }

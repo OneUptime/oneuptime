@@ -19,10 +19,10 @@ export const createSso = ({ data }: $TSFixMe): void => {
         dispatch(createSsoRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(createSsoSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createSsoFailure(error));
             }
         );
@@ -52,10 +52,10 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe): void => {
         dispatch(fetchSsosRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchSsosSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchSsosFailure(error));
             }
         );
@@ -80,10 +80,10 @@ export const fetchSso = (ssoId: $TSFixMe): void => {
         dispatch(fetchSsoRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(fetchSsoSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchSsoFailure(error));
             }
         );
@@ -108,10 +108,10 @@ export const updateSso = ({ id, data }: $TSFixMe): void => {
         dispatch(updateSsoRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(updateSsoSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(updateSsoFailure(error));
             }
         );
@@ -136,10 +136,10 @@ export const deleteSso = (ssoId: $TSFixMe): void => {
         dispatch(deleteSsoRequest());
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(deleteSsoSuccess(response.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteSsoFailure(error));
             }
         );

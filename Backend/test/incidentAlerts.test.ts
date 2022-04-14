@@ -199,7 +199,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await OnCallScheduleStatusService.hardDeleteBy({ project: projectId });
         await SubscriberService.hardDeleteBy({ projectId });
@@ -234,7 +234,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * The project's balance is zero.
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async function (): void {
+        it('should send SMS/Call alerts to on-call teams and subscribers if project balance is 0, and custom twilio settings are not set.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -355,7 +355,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * The US numbers are disabled
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from US, the US numbers are disabled, and the custom twilio settings are not set.', async function (): void {
+        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from US, the US numbers are disabled, and the custom twilio settings are not set.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -481,7 +481,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * The High risks countries are disabled
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from high risk countries, the high risk countries numbers are disabled, and the custom twilio settings are not set.', async function (): void {
+        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are from high risk countries, the high risk countries numbers are disabled, and the custom twilio settings are not set.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -629,7 +629,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * The Non-US countries are disabled
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are outside US, the outside US numbers are disabled, and the custom twilio settings are not set.', async function (): void {
+        it('should not send SMS/Call alerts to on-call teams and subscribers if the used phone numbers are outside US, the outside US numbers are disabled, and the custom twilio settings are not set.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -776,7 +776,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally and for the project.', async function (): void {
+        it('should send SMS/Call alerts to on-call teams and subscribers if the SMS/Call alerts are enabled globally and for the project.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1129,7 +1129,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
 
             const randomId = uuid.v4();
 
-            const link = `http://localhost:${
+            const link: string = `http://localhost:${
                 process.env['PORT'] || 3002
             }/api/incomingHttpRequest/${randomId}`;
 
@@ -1368,7 +1368,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should create billing details of subscriber  when sms is sent on the chargeAlert', async function (): void {
+        it('should create billing details of subscriber  when sms is sent on the chargeAlert', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1454,7 +1454,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
             ).to.equal(4);
         });
 
-        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async function (): void {
+        it('should not send Call alerts to on-call teams if the Call alerts are disabled in the global twilio configurations.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1577,7 +1577,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async function (): void {
+        it('should not send SMS alerts to on-call teams and subscriber if the SMS alerts are disabled in the global twilio configurations.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1701,7 +1701,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): false
          */
 
-        it('should not send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function (): void {
+        it('should not send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -1821,7 +1821,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should not send statusPageNote(investigation note) SMS notification when disabled', async function (): void {
+        it('should not send statusPageNote(investigation note) SMS notification when disabled', async (): void => {
             // update global setting to enable SMS
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -1931,7 +1931,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should not cut project balance for invalid twilio settings', async function (): void {
+        it('should not cut project balance for invalid twilio settings', async (): void => {
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -2025,7 +2025,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): true
          */
 
-        it('should recharge project balance when low', async function (): void {
+        it('should recharge project balance when low', async (): void => {
             // update global setting to enable call and sms
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
@@ -2241,7 +2241,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async function (): void {
+        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled for the project (billing).', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -2366,7 +2366,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * SMS/Call alerts enabled for the project (billing): false
          */
 
-        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled in the global twilio settings.', async function (): void {
+        it('should send SMS/Call alerts to on-call teams and subscriber if the alerts are disabled in the global twilio settings.', async (): void => {
             const globalSettings = await GlobalConfigModel.findOne({
                 name: 'twilio',
             });
@@ -2495,7 +2495,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
          * Custom twilio settings: not set
          */
 
-        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async function (): void {
+        it('should not SMS/Call alerts to on-call teams and subscriber if global and custom twilio settings are removed.', async (): void => {
             await GlobalConfigModel.deleteMany({ name: 'twilio' });
             const billingEndpointResponse = await request
                 .put(`/project/${projectId}/alertOptions`)
@@ -2614,7 +2614,7 @@ describe('SMS/Calls Incident Alerts', function (): void {
     });
 });
 
-describe('Email Incident Alerts', function (): void {
+describe('Email Incident Alerts', (): void => {
     before(async function (): void {
         this.timeout(30000);
         const createdUser = await createUser(request, userData.user);

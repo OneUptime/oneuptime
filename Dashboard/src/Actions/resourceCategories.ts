@@ -25,12 +25,12 @@ export function fetchResourceCategories(
         dispatch(fetchResourceCategoriesRequest());
 
         promise.then(
-            function (resourceCategories): void {
+            (resourceCategories): void => {
                 dispatch(
                     fetchResourceCategoriesSuccess(resourceCategories.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchResourceCategoriesFailure(error));
             }
         );
@@ -72,10 +72,10 @@ export const createResourceCategory = (
         dispatch(createResourceCategoryRequest());
 
         promise.then(
-            function (resourceCategory): void {
+            (resourceCategory): void => {
                 dispatch(createResourceCategorySuccess(resourceCategory.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -107,12 +107,12 @@ export function updateResourceCategory(
         dispatch(updateResourceCategoryRequest());
 
         promise.then(
-            function (updatedResourceCategory): void {
+            (updatedResourceCategory): void => {
                 dispatch(
                     updateResourceCategorySuccess(updatedResourceCategory.data)
                 );
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -185,12 +185,12 @@ export function deleteResourceCategory(
         dispatch(deleteResourceCategoryRequest(resourceCategoryId));
 
         promise.then(
-            function (resourceCategory): void {
+            (resourceCategory): void => {
                 dispatch(
                     deleteResourceCategorySuccess(resourceCategory.data._id)
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteResourceCategoryFailure({ error: error }));
             }
         );
@@ -231,14 +231,14 @@ export const fetchResourceCategoriesForNewResource = (
         dispatch(fetchResourceCategoriesForNewResourceRequest());
 
         promise.then(
-            function (resourceCategories): void {
+            (resourceCategories): void => {
                 dispatch(
                     fetchResourceCategoriesForNewResourceSuccess(
                         resourceCategories.data
                     )
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchResourceCategoriesForNewResourceFailure(error));
             }
         );

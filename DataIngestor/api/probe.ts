@@ -20,7 +20,7 @@ import { ObjectId } from 'mongodb';
 router.post(
     '/ping/:monitorId',
     isAuthorizedProbe,
-    async function (req: ExpressRequest, response: ExpressResponse): void {
+    async (req: ExpressRequest, response: ExpressResponse): void => {
         try {
             const {
                 monitor,

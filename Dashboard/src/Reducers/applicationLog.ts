@@ -317,9 +317,11 @@ export default function applicationLog(
             applicationLogs = state.applicationLogsList.applicationLogs.map(
                 applicationLog => {
                     if (applicationLog._id === action.payload) {
-                        if (!applicationLog.editMode)
+                        if (!applicationLog.editMode) {
                             applicationLog.editMode = true;
-                        else applicationLog.editMode = false;
+                        } else {
+                            applicationLog.editMode = false;
+                        }
                     } else {
                         applicationLog.editMode = false;
                     }
@@ -475,7 +477,9 @@ export default function applicationLog(
                 logCount += 1;
                 typeCount += 1;
             }
-            if (requestLogs.length > 10) requestLogs.pop();
+            if (requestLogs.length > 10) {
+                requestLogs.pop();
+            }
             return Object.assign({}, state, {
                 logs: {
                     ...state.logs,

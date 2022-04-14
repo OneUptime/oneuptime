@@ -73,9 +73,13 @@ export default class Service {
     }
     //Description: Gets all application logs by component.
     async findBy({ query, limit, skip, populate, select, sort }: FindBy): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -88,7 +92,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const performanceTrackerQuery = PerformanceTrackerModel.find(query)
             .lean()
@@ -106,7 +112,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         // .populate({
         //     path: 'componentId',
@@ -143,8 +151,12 @@ export default class Service {
             throw new BadDataException('Component does not exist.');
         }
 
-        if (typeof limit === 'string') limit = parseInt(limit);
-        if (typeof skip === 'string') skip = parseInt(skip);
+        if (typeof limit === 'string') {
+            limit = parseInt(limit);
+        }
+        if (typeof skip === 'string') {
+            skip = parseInt(skip);
+        }
 
         const select = 'componentId name slug key showQuickStart createdById';
         const populate = [
@@ -214,7 +226,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         if (data && data.name) {
             let name = data.name;
@@ -266,7 +280,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const count = await PerformanceTrackerModel.countDocuments(query);
         return count;

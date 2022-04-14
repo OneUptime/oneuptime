@@ -6,12 +6,13 @@ import { post } from '../Utils/api';
 import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     findBy: async function ({ query, limit, skip, sort }: $TSFixMe): void {
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const incidents = await incidentCollection
             .find(query)
@@ -32,8 +33,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const incident = await incidentCollection.findOne(query);
         return incident;
@@ -44,8 +46,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const oldIncident = await this.findOneBy({
             query: { _id: ObjectId(query._id), deleted: { $ne: null } },

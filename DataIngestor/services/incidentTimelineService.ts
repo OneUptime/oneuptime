@@ -9,7 +9,7 @@ import Query from 'CommonServer/types/db/Query';
 import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
@@ -91,8 +91,9 @@ export default {
             query = {};
         }
 
-        if (!query.deleted)
+        if (!query.deleted) {
             query.$or = [{ deleted: false }, { deleted: { $exists: false } }];
+        }
 
         const incidentTimeline = await incidentTimelineCollection.findOne(
             query

@@ -19,7 +19,7 @@ export default {
             monitor.kubernetesConfig
         ) {
             const configurationFile = monitor.kubernetesConfig;
-            const updatedConfigName = `${uuidv4()}${configurationFile}`;
+            const updatedConfigName: string = `${uuidv4()}${configurationFile}`;
             const configPath = Path.resolve(process.cwd(), updatedConfigName);
             const namespace = monitor.kubernetesNamespace || 'default';
 
@@ -148,10 +148,12 @@ export default {
                                                       .restartCount
                                                 : 0,
                                     });
-                                    if (item.status.phase === 'Running')
+                                    if (item.status.phase === 'Running') {
                                         ++runningPods;
-                                    if (item.status.phase === 'Succeeded')
+                                    }
+                                    if (item.status.phase === 'Succeeded') {
                                         ++completedPods;
+                                    }
                                 }
 
                                 allPods.push({
@@ -654,7 +656,7 @@ export default {
 function loadPodOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let podOutput = '';
-        const podCommand = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        const podCommand: string = `kubectl get pods -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const podCommandOutput = spawn(podCommand, {
             cwd: process.cwd(),
@@ -677,7 +679,7 @@ function loadPodOutput(configPath, namespace): void {
 function loadJobOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let jobOutput = '';
-        const jobCommand = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        const jobCommand: string = `kubectl get jobs -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const jobCommandOutput = spawn(jobCommand, {
             cwd: process.cwd(),
@@ -700,7 +702,7 @@ function loadJobOutput(configPath, namespace): void {
 function loadServiceOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let serviceOutput = '';
-        const serviceCommand = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        const serviceCommand: string = `kubectl get services -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const serviceCommandOutput = spawn(serviceCommand, {
             cwd: process.cwd(),
@@ -723,7 +725,7 @@ function loadServiceOutput(configPath, namespace): void {
 function loadDeploymentOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let deploymentOutput = '';
-        const deploymentCommand = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        const deploymentCommand: string = `kubectl get deployments -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const deploymentCommandOutput = spawn(deploymentCommand, {
             cwd: process.cwd(),
@@ -746,7 +748,7 @@ function loadDeploymentOutput(configPath, namespace): void {
 function loadStatefulsetOutput(configPath, namespace): void {
     return new Promise(resolve => {
         let statefulsetOutput = '';
-        const statefulsetCommand = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;
+        const statefulsetCommand: string = `kubectl get statefulsets -o json --kubeconfig ${configPath} --namespace ${namespace}`;
 
         const statefulsetCommandOutput = spawn(statefulsetCommand, {
             cwd: process.cwd(),

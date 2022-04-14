@@ -17,12 +17,12 @@ const challenger = Challenger.create({});
 
 tester
     .testRecord('http-01', record, challenger)
-    .then(function (): void {
+    .then((): void => {
         //eslint-disable-next-line no-console
         console.info('PASS', record);
     })
 
-    .catch(function (e): void {
+    .catch((e): void => {
         //eslint-disable-next-line no-console
         console.error(e.message);
         //eslint-disable-next-line no-console

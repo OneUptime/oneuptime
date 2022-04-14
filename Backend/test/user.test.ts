@@ -33,11 +33,11 @@ describe('User API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 data.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     if (err) {
                         throw err;
                     }
@@ -47,10 +47,7 @@ describe('User API', function (): void {
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             if (err) {
                                 throw err;
                             }
@@ -59,17 +56,14 @@ describe('User API', function (): void {
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: data.user.email,
                                             password: data.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             if (err) {
                                                 throw err;
                                             }
@@ -103,11 +97,11 @@ describe('User API', function (): void {
 
     // 'post /user/signup'
 
-    it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', function (done: $TSFixMe): void {
+    it('should register with name, email, password, companyName, jobRole, referral, companySize, stripeToken, stripePlanId', (done: $TSFixMe): void => {
         createUser(
             request,
             data.newUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 done();
@@ -115,48 +109,44 @@ describe('User API', function (): void {
         );
     });
 
-    it('should not register when name, email, password, companyName, jobRole, referral, companySize, stripePlanId or stripeToken is null', function (done: $TSFixMe): void {
+    it('should not register when name, email, password, companyName, jobRole, referral, companySize, stripePlanId or stripeToken is null', (done: $TSFixMe): void => {
         createUser(
             request,
             data.nullUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             }
         );
     });
 
-    it('should not register with same email', function (done: $TSFixMe): void {
-        createUser(
-            request,
-            data.user,
-            function (err: $TSFixMe, res: $TSFixMe): void {
-                expect(res).to.have.status(400);
-                done();
-            }
-        );
+    it('should not register with same email', (done: $TSFixMe): void => {
+        createUser(request, data.user, (err: $TSFixMe, res: $TSFixMe): void => {
+            expect(res).to.have.status(400);
+            done();
+        });
     });
 
-    it('should not register with an invalid email', function (done: $TSFixMe): void {
+    it('should not register with an invalid email', (done: $TSFixMe): void => {
         const invalidMailUser = Object.assign({}, data.user);
         invalidMailUser.email = 'invalidMail';
         createUser(
             request,
             invalidMailUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             }
         );
     });
 
-    it('should not register with a personal email', function (done: $TSFixMe): void {
+    it('should not register with a personal email', (done: $TSFixMe): void => {
         const personalMailUser = Object.assign({}, data.user);
         personalMailUser.email = 'personalAccount@gmail.com';
         createUser(
             request,
             personalMailUser,
-            function (err: $TSFixMe, res: $TSFixMe): void {
+            (err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             }
@@ -165,14 +155,14 @@ describe('User API', function (): void {
 
     // post '/user/login'
 
-    it('should not login when email is null', function (done: $TSFixMe): void {
+    it('should not login when email is null', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: null,
                 password: data.user.password,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -180,46 +170,46 @@ describe('User API', function (): void {
 
     // post '/user/login'
 
-    it('should not login when password is null', function (done: $TSFixMe): void {
+    it('should not login when password is null', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: data.user.email,
                 password: null,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not allow to login with invalid email', function (done: $TSFixMe): void {
+    it('should not allow to login with invalid email', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: 'invalidEmail',
                 password: data.user.password,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not allow to login with invalid password', function (done: $TSFixMe): void {
+    it('should not allow to login with invalid password', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: data.user.email,
                 password: {},
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should track IP and other parameters when login in', async function (): void {
+    it('should track IP and other parameters when login in', async (): void => {
         const res = await request.post('/user/login').send({
             email: data.user.email,
             password: data.user.password,
@@ -233,14 +223,14 @@ describe('User API', function (): void {
         expect(log.ipLocation.ip).to.be.equal('::ffff:127.0.0.1');
     });
 
-    it('should login with valid credentials', function (done: $TSFixMe): void {
+    it('should login with valid credentials', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
                 email: data.newUser.email,
                 password: data.newUser.password,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).include.keys('tokens');
@@ -248,7 +238,7 @@ describe('User API', function (): void {
             });
     });
 
-    it('should login with valid credentials, and return sent redirect url', function (done: $TSFixMe): void {
+    it('should login with valid credentials, and return sent redirect url', (done: $TSFixMe): void => {
         request
             .post('/user/login')
             .send({
@@ -256,7 +246,7 @@ describe('User API', function (): void {
                 password: data.newUser.password,
                 redirect: 'http://oneuptime.com',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.email).to.equal(data.newUser.email);
                 expect(res.body).have.property('redirect');
@@ -265,37 +255,37 @@ describe('User API', function (): void {
             });
     });
 
-    it('should not accept `/forgot-password` request when email is null', function (done: $TSFixMe): void {
+    it('should not accept `/forgot-password` request when email is null', (done: $TSFixMe): void => {
         request
             .post('/user/forgot-password')
             .send({
                 email: null,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not accept `/forgot-password` request when email is invalid', function (done: $TSFixMe): void {
+    it('should not accept `/forgot-password` request when email is invalid', (done: $TSFixMe): void => {
         request
             .post('/user/forgot-password')
             .send({
                 email: '(' + data.user.email + ')',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should accept `/forgot-password` request when email is valid', function (done: $TSFixMe): void {
+    it('should accept `/forgot-password` request when email is valid', (done: $TSFixMe): void => {
         request
             .post('/user/forgot-password')
             .send({
                 email: data.newUser.email,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 done();
             });
@@ -303,14 +293,14 @@ describe('User API', function (): void {
 
     // post '/user/reset-password'
 
-    it('should not accept `/user/reset-password` request when token is null', function (done: $TSFixMe): void {
+    it('should not accept `/user/reset-password` request when token is null', (done: $TSFixMe): void => {
         request
             .post('/user/reset-password')
             .send({
                 password: data.user.password,
                 token: null,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
@@ -318,36 +308,36 @@ describe('User API', function (): void {
 
     // post '/user/reset-password'
 
-    it('should not accept `/user/reset-password` request when password is null', function (done: $TSFixMe): void {
+    it('should not accept `/user/reset-password` request when password is null', (done: $TSFixMe): void => {
         request
             .post('/user/reset-password')
             .send({
                 password: null,
                 token: 'randomToken',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should accept `/user/reset-password` request when password and token is valid', function (done: $TSFixMe): void {
+    it('should accept `/user/reset-password` request when password and token is valid', (done: $TSFixMe): void => {
         request
             .post('/user/forgot-password')
             .send({
                 email: data.newUser.email,
             })
-            .end(function (): void {
+            .end((): void => {
                 UserModel.findOne(
                     { email: data.newUser.email },
-                    function (err: $TSFixMe, user: $TSFixMe): void {
+                    (err: $TSFixMe, user: $TSFixMe): void => {
                         request
                             .post('/user/reset-password')
                             .send({
                                 password: 'newPassword',
                                 token: user.resetPasswordToken,
                             })
-                            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                            .end((err: $TSFixMe, res: $TSFixMe): void => {
                                 expect(res).to.have.status(200);
                                 done();
                             });
@@ -356,38 +346,38 @@ describe('User API', function (): void {
             });
     });
 
-    it('should not accept `/isInvited` request when email is null', function (done: $TSFixMe): void {
+    it('should not accept `/isInvited` request when email is null', (done: $TSFixMe): void => {
         request
             .post('/user/isInvited')
             .send({
                 email: null,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should return a boolean response for the `/isInvited` request', function (done: $TSFixMe): void {
+    it('should return a boolean response for the `/isInvited` request', (done: $TSFixMe): void => {
         request
             .post('/user/isInvited')
             .send({
                 email: data.user.email,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.a('boolean');
                 done();
             });
     });
 
-    it('should update the profile settings of an authenticated user', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should update the profile settings of an authenticated user', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put('/user/profile')
             .set('Authorization', authorization)
             .send(profile)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('_id');
@@ -397,8 +387,8 @@ describe('User API', function (): void {
             });
     });
 
-    it('should not change a password when the `currentPassword` field is not valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not change a password when the `currentPassword` field is not valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put('/user/changePassword')
             .set('Authorization', authorization)
@@ -407,14 +397,14 @@ describe('User API', function (): void {
                 newPassword: 'abcdefghi',
                 confirmPassword: 'abcdefghi',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not change a password when the `newPassword` field is not valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not change a password when the `newPassword` field is not valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put('/user/changePassword')
             .set('Authorization', authorization)
@@ -423,14 +413,14 @@ describe('User API', function (): void {
                 newPassword: null,
                 confirmPassword: 'abcdefghi',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should not change a password when the `confirmPassword` field is not valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not change a password when the `confirmPassword` field is not valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put('/user/changePassword')
             .set('Authorization', authorization)
@@ -439,14 +429,14 @@ describe('User API', function (): void {
                 newPassword: 'abcdefghi',
                 confirmPassword: null,
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should change a password when all fields are valid', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should change a password when all fields are valid', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put('/user/changePassword')
             .set('Authorization', authorization)
@@ -455,19 +445,19 @@ describe('User API', function (): void {
                 newPassword: 'abcdefghi',
                 confirmPassword: 'abcdefghi',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.id).to.be.equal(userId);
                 done();
             });
     });
 
-    it('should get the profile of an authenticated user', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should get the profile of an authenticated user', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get('/user/profile')
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');
                 expect(res.body).to.have.property('name');
@@ -477,13 +467,13 @@ describe('User API', function (): void {
             });
     });
 
-    it('should not update the unverified alert phone number through profile update API', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not update the unverified alert phone number through profile update API', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .put('/user/profile')
             .set('Authorization', authorization)
             .send(profile)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res.body._id).to.be.equal(userId);
                 expect(res.body.alertPhoneNumber).not.to.be.equal(
                     profile.alertPhoneNumber
@@ -493,35 +483,35 @@ describe('User API', function (): void {
             });
     });
 
-    it('should not delete account that belongs to another user', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not delete account that belongs to another user', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         const anotherUserId = '5ef84e17504ba0deaac459d9';
         request
             .delete(`/user/${anotherUserId}/delete`)
             .set('Authorization', authorization)
-            .end(function (_err: $TSFixMe, res: $TSFixMe): void {
+            .end((_err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('should not delete account without confirmation from the user', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not delete account without confirmation from the user', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
-            .end(function (_err: $TSFixMe, res: $TSFixMe): void {
+            .end((_err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('should generate backup codes when the user tries to generate a QR code.', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should generate backup codes when the user tries to generate a QR code.', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .post(`/user/totp/token/${userId}`)
             .set('Authorization', authorization)
-            .end(async function (_err: $TSFixMe, res: $TSFixMe): void {
+            .end(async (_err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 const user = await UserService.findOneBy({
                     query: { _id: userId },
@@ -534,8 +524,8 @@ describe('User API', function (): void {
             });
     });
 
-    it('should generate new backup codes.', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should generate new backup codes.', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const user = await UserService.updateOneBy(
             { _id: userId },
             { twoFactorAuthEnabled: true }
@@ -553,63 +543,57 @@ describe('User API', function (): void {
         expect(res.body[7].counter).to.eql(15);
     });
 
-    it('should delete user account and cancel all subscriptions', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should delete user account and cancel all subscriptions', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
             .send(deleteAccountConfirmation)
-            .end(function (_err: $TSFixMe, res: $TSFixMe): void {
+            .end((_err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body.user.deleted).to.equal(true);
                 done();
             });
     });
 
-    it('should not delete account twice', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it('should not delete account twice', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .delete(`/user/${userId}/delete`)
             .set('Authorization', authorization)
             .send(deleteAccountConfirmation)
-            .end(function (_err: $TSFixMe, res: $TSFixMe): void {
+            .end((_err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(401);
                 done();
             });
     });
 
-    it('Should delete user account and remove user from the project', function (done: $TSFixMe): void {
+    it('Should delete user account and remove user from the project', (done: $TSFixMe): void => {
         createUser(
             request,
             data.anotherUser,
-            function (_err: $TSFixMe, res: $TSFixMe): void {
+            (_err: $TSFixMe, res: $TSFixMe): void => {
                 const project = res.body.project;
                 const { id: userId } = res.body;
                 VerificationTokenModel.findOne(
                     { userId },
-                    function (
-                        _err: $TSFixMe,
-                        verificationToken: $TSFixMe
-                    ): void {
+                    (_err: $TSFixMe, verificationToken: $TSFixMe): void => {
                         request
                             .get(
                                 `/user/confirmation/${verificationToken.token}`
                             )
                             .redirects(0)
-                            .end(function (): void {
+                            .end((): void => {
                                 request
                                     .post('/user/login')
                                     .send({
                                         email: data.anotherUser.email,
                                         password: data.anotherUser.password,
                                     })
-                                    .end(function (
-                                        _err: $TSFixMe,
-                                        res: $TSFixMe
-                                    ) {
+                                    .end((_err: $TSFixMe, res: $TSFixMe) => {
                                         const accessToken =
                                             res.body.tokens.jwtAccessToken;
-                                        const authorization = `Basic ${accessToken}`;
+                                        const authorization: string = `Basic ${accessToken}`;
                                         request
                                             .post(`/team/${project._id}`)
                                             .set('Authorization', authorization)
@@ -617,38 +601,47 @@ describe('User API', function (): void {
                                                 emails: data.newUser.email,
                                                 role: 'Member',
                                             })
-                                            .end(function (
-                                                _err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                expect(
-                                                    res.body[0].team.length
-                                                ).to.be.equal(2);
-                                                request
-                                                    .delete(
-                                                        `/user/${userId}/delete`
-                                                    )
-                                                    .set(
-                                                        'Authorization',
-                                                        authorization
-                                                    )
-                                                    .send(
-                                                        deleteAccountConfirmation
-                                                    )
-                                                    .end(function (
-                                                        _err: $TSFixMe,
-                                                        res: $TSFixMe
-                                                    ) {
-                                                        expect(
-                                                            res
-                                                        ).to.have.status(200);
-                                                        expect(
-                                                            res.body.user
-                                                                .deleted
-                                                        ).to.equal(true);
-                                                        done();
-                                                    });
-                                            });
+                                            .end(
+                                                (
+                                                    _err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    expect(
+                                                        res.body[0].team.length
+                                                    ).to.be.equal(2);
+                                                    request
+                                                        .delete(
+                                                            `/user/${userId}/delete`
+                                                        )
+                                                        .set(
+                                                            'Authorization',
+                                                            authorization
+                                                        )
+                                                        .send(
+                                                            deleteAccountConfirmation
+                                                        )
+                                                        .end(
+                                                            (
+                                                                _err: $TSFixMe,
+                                                                res: $TSFixMe
+                                                            ) => {
+                                                                expect(
+                                                                    res
+                                                                ).to.have.status(
+                                                                    200
+                                                                );
+                                                                expect(
+                                                                    res.body
+                                                                        .user
+                                                                        .deleted
+                                                                ).to.equal(
+                                                                    true
+                                                                );
+                                                                done();
+                                                            }
+                                                        );
+                                                }
+                                            );
                                     });
                             });
                     }
@@ -687,41 +680,41 @@ describe('SSO authentication', function (): void {
 
     // GET /user/sso/login
 
-    it('Should not accept requests without email as query.', function (done: $TSFixMe): void {
+    it('Should not accept requests without email as query.', (done: $TSFixMe): void => {
         request
             .get('/user/sso/login')
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it('Should not accept requests with invalid email.', function (done: $TSFixMe): void {
+    it('Should not accept requests with invalid email.', (done: $TSFixMe): void => {
         request
             .get('/user/sso/login?email=invalid@email')
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it("Should not accept requests with domains that aren't defined in the ssos collection.", function (done: $TSFixMe): void {
+    it("Should not accept requests with domains that aren't defined in the ssos collection.", (done: $TSFixMe): void => {
         request
             .get('/user/sso/login?email=user@inexistant-domain.hackerbay.io')
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(404);
                 done();
             });
     });
 
-    it('Should not accept requests with domains having SSO disabled', function (done: $TSFixMe): void {
+    it('Should not accept requests with domains having SSO disabled', (done: $TSFixMe): void => {
         SsoModel.updateOne(
             { _id: ssoId },
             { $set: { 'saml-enabled': false } }
         ).then(() => {
             request
                 .get('/user/sso/login?email=user@tests.hackerbay.io')
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     expect(res).to.have.status(401);
                     SsoModel.updateOne(
                         { _id: ssoId },
@@ -733,7 +726,7 @@ describe('SSO authentication', function (): void {
         });
     });
 
-    it('Should create a new user and return the login details if the user login successfully', async function (): void {
+    it('Should create a new user and return the login details if the user login successfully', async (): void => {
         let userCount = await UserModel.find({
             email: 'user1@tests.hackerbay.io',
         }).countDocuments();
@@ -784,7 +777,7 @@ describe('SSO authentication', function (): void {
         expect(userCount).to.eql(1);
     });
 
-    it('Should return the login details if the user exists in the database and login successfully.', async function (): void {
+    it('Should return the login details if the user exists in the database and login successfully.', async (): void => {
         UserService.create({ email: 'user2@tests.hackerbay.io', sso: ssoId });
 
         const loginRequest = await request.get(

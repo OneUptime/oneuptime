@@ -38,40 +38,34 @@ describe('Reports API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             createUser(
                 request,
                 userData.user,
-                function (err: $TSFixMe, res: $TSFixMe): void {
+                (err: $TSFixMe, res: $TSFixMe): void => {
                     const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
                     VerificationTokenModel.findOne(
                         { userId },
-                        function (
-                            err: $TSFixMe,
-                            verificationToken: $TSFixMe
-                        ): void {
+                        (err: $TSFixMe, verificationToken: $TSFixMe): void => {
                             request
                                 .get(
                                     `/user/confirmation/${verificationToken.token}`
                                 )
                                 .redirects(0)
-                                .end(function (): void {
+                                .end((): void => {
                                     request
                                         .post('/user/login')
                                         .send({
                                             email: userData.user.email,
                                             password: userData.user.password,
                                         })
-                                        .end(function (
-                                            err: $TSFixMe,
-                                            res: $TSFixMe
-                                        ) {
+                                        .end((err: $TSFixMe, res: $TSFixMe) => {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
-                                            const authorization = `Basic ${token}`;
+                                            const authorization: string = `Basic ${token}`;
                                             ComponentModel.create({
                                                 name: 'Test Component',
                                             }).then(component => {
@@ -88,14 +82,16 @@ describe('Reports API', function (): void {
                                                         componentId:
                                                             component._id,
                                                     })
-                                                    .end(function (
-                                                        err: $TSFixMe,
-                                                        res: $TSFixMe
-                                                    ) {
-                                                        monitorId =
-                                                            res.body._id;
-                                                        done();
-                                                    });
+                                                    .end(
+                                                        (
+                                                            err: $TSFixMe,
+                                                            res: $TSFixMe
+                                                        ) => {
+                                                            monitorId =
+                                                                res.body._id;
+                                                            done();
+                                                        }
+                                                    );
                                             });
                                         });
                                 });
@@ -106,7 +102,7 @@ describe('Reports API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -125,7 +121,7 @@ describe('Reports API', function (): void {
     });
 
     it('should return list of most active members', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
 
         request
             .get(
@@ -142,7 +138,7 @@ describe('Reports API', function (): void {
     });
 
     it('should return list of most active monitors', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .get(
                 `/reports/${projectId}/active-monitors?startDate=${startDate}&&endDate=${endDate}&&skip=0&&limit=10`
@@ -158,7 +154,7 @@ describe('Reports API', function (): void {
     });
 
     it('should return average resolved incidents time', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .get(
                 `/reports/${projectId}/average-resolved?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`
@@ -172,7 +168,7 @@ describe('Reports API', function (): void {
     });
 
     it('should return number of incidents', (done: $TSFixMe) => {
-        const authorization = `Basic ${token}`;
+        const authorization: string = `Basic ${token}`;
         request
             .get(
                 `/reports/${projectId}/incidents?startDate=${startDate}&&endDate=${endDate}&&filter=${filter}`

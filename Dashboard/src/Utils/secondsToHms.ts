@@ -11,7 +11,7 @@ const secondsToHms = (value: $TSFixMe): void => {
             min = Math.floor((value % 3600) / 60),
             sec = Math.floor((value % 3600) % 60);
 
-        const formattedValue = `${hr > 0 ? `${hr} hr` : ''} ${
+        const formattedValue: string = `${hr > 0 ? `${hr} hr` : ''} ${
             min > 0
                 ? min < 10
                     ? `0${min} min`

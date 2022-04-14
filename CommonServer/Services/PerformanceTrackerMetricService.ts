@@ -28,9 +28,13 @@ export default class Service {
         select,
         populate,
     }: $TSFixMe): void {
-        if (!skip) skip = 0;
+        if (!skip) {
+            skip = 0;
+        }
 
-        if (!limit) limit = 0;
+        if (!limit) {
+            limit = 0;
+        }
 
         if (typeof skip === 'string') {
             skip = parseInt(skip);
@@ -43,7 +47,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const performanceTrackerMetricQuery =
             PerformanceTrackerMetricModel.find(query)
@@ -72,7 +78,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const performanceTrackerMetricQuery =
             PerformanceTrackerMetricModel.find(query)
@@ -87,7 +95,7 @@ export default class Service {
         // same path and method should be merged together
         const ptm = {};
         for (const metric of performanceTrackerMetrics) {
-            const key = `${metric.callIdentifier}__${metric.method}`;
+            const key: string = `${metric.callIdentifier}__${metric.method}`;
             if (!(key in ptm)) {
                 ptm[key] = [metric];
             } else {
@@ -145,7 +153,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const performanceTrackerMetricQuery =
             PerformanceTrackerMetricModel.findOne(query).sort(sort).lean();
@@ -181,7 +191,9 @@ export default class Service {
         if (!query) {
             query = {};
         }
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const performanceTrackerMetric =
             await PerformanceTrackerMetricModel.findOneAndUpdate(

@@ -46,10 +46,10 @@ export function fetchSchedules(
             `schedule/${projectId}?skip=${skip || 0}&limit=${limit || 10}`
         );
         promise.then(
-            function (schedule): void {
+            (schedule): void => {
                 dispatch(scheduleSuccess(schedule.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(scheduleError(error));
             }
         );
@@ -96,10 +96,10 @@ export const fetchSubProjectSchedules = (projectId: ObjectID): void => {
 
         dispatch(subProjectScheduleRequest());
         promise.then(
-            function (schedule): void {
+            (schedule): void => {
                 dispatch(subProjectScheduleSuccess(schedule.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(subProjectScheduleError(error));
             }
         );
@@ -148,12 +148,12 @@ export function fetchProjectSchedule(
             `schedule/${projectId}/schedule?skip=${skip}&limit=${limit}`
         );
         promise.then(
-            function (schedule): void {
+            (schedule): void => {
                 const data = schedule.data;
                 data.projectId = projectId;
                 dispatch(projectScheduleSuccess(data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(projectScheduleError(error));
             }
         );
@@ -193,10 +193,10 @@ export const createSchedule = (projectId: ObjectID, values: $TSFixMe): void => {
         dispatch(createScheduleRequest());
 
         promise.then(
-            function (schedule): void {
+            (schedule): void => {
                 dispatch(createScheduleSuccess(schedule.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(createScheduleError(error));
             }
         );
@@ -247,12 +247,13 @@ export function renameSchedule(
 
         promise
             .then(
-                function (schedule): void {
+                (schedule): void => {
                     dispatch(renameScheduleSuccess(schedule));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -264,7 +265,7 @@ export function renameSchedule(
                     dispatch(renameScheduleError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(renameScheduleReset());
             });
 
@@ -319,7 +320,7 @@ export const deleteSchedule = (
 
         promise
             .then(
-                function (schedule): void {
+                (schedule): void => {
                     const data = Object.assign(
                         {},
                         { scheduleId },
@@ -330,9 +331,10 @@ export const deleteSchedule = (
                     dispatch(fetchSchedules(projectId));
                     return dispatch(deleteScheduleSuccess({ data }));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -344,7 +346,7 @@ export const deleteSchedule = (
                     dispatch(deleteScheduleError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(deleteScheduleReset());
             });
 
@@ -396,12 +398,13 @@ export function addMonitors(
 
         promise
             .then(
-                function (schedule): void {
+                (schedule): void => {
                     dispatch(addMonitorSuccess(schedule));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -413,7 +416,7 @@ export function addMonitors(
                     dispatch(addMonitorError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(addMonitorReset());
             });
 
@@ -465,12 +468,13 @@ export function addUsers(
 
         promise
             .then(
-                function (schedule): void {
+                (schedule): void => {
                     dispatch(addUserSuccess(schedule));
                 },
-                function (error): void {
-                    if (error && error.response && error.response.data)
+                (error): void => {
+                    if (error && error.response && error.response.data) {
                         error = error.response.data;
+                    }
                     if (error && error.data) {
                         error = error.data;
                     }
@@ -482,7 +486,7 @@ export function addUsers(
                     dispatch(addUserError(error));
                 }
             )
-            .then(function (): void {
+            .then((): void => {
                 dispatch(addUserReset());
             });
 
@@ -535,10 +539,10 @@ export function addEscalation(
         dispatch(escalationRequest());
 
         promise.then(
-            function (escalation): void {
+            (escalation): void => {
                 dispatch(escalationSuccess(escalation));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(escalationError(error));
             }
         );
@@ -559,10 +563,10 @@ export const getEscalation = (
         dispatch(escalationRequest());
 
         promise.then(
-            function (escalation): void {
+            (escalation): void => {
                 dispatch(escalationSuccess(escalation.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(escalationError(error));
             }
         );
@@ -637,10 +641,10 @@ export const fetchUserSchedule = (
         dispatch(userScheduleRequest());
 
         promise.then(
-            function (schedule): void {
+            (schedule): void => {
                 dispatch(userScheduleSuccess(schedule.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(userScheduleError(error));
             }
         );

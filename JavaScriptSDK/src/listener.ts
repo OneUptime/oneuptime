@@ -223,7 +223,7 @@ class OneUptimeListener {
                 url: '',
             };
             const portDetails = log.port !== '' ? `:${log.port}` : '';
-            const absoluteUrl = `${log.protocol}//${log.host}${portDetails}${log.path}`;
+            const absoluteUrl: string = `${log.protocol}//${log.host}${portDetails}${log.path}`;
             log.url = absoluteUrl;
             return log;
         }

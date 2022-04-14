@@ -26,7 +26,7 @@ function logResponse(
     const method = oneUptimeRequest.method;
     const url = oneUptimeRequest.url;
 
-    const duration_info = `OUTGOING RESPONSE ID: ${
+    const duration_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
     } -- POD NAME: ${
         process.env['POD_NAME'] || 'NONE'
@@ -34,7 +34,7 @@ function logResponse(
         requestEndedAt.getTime() - oneUptimeRequest.requestStartedAt.getTime()
     ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
-    const body_info = `OUTGOING RESPONSE ID: ${
+    const body_info: string = `OUTGOING RESPONSE ID: ${
         oneUptimeRequest.id
     } -- RESPONSE BODY: ${
         responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
@@ -139,7 +139,9 @@ export const sendListResponse = async (
     if (count) {
         listData.count = count;
     } else {
-        if (list) listData.count = new PositiveNumber(list.length);
+        if (list) {
+            listData.count = new PositiveNumber(list.length);
+        }
     }
 
     if (oneUptimeRequest.query['skip']) {

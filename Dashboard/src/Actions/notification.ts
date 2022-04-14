@@ -79,8 +79,9 @@ export const fetchNotifications = (projectId: ObjectID): void => {
             dispatch(fetchNotificationsSuccess(notifications.data));
         } catch (error) {
             let payload;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 payload = error.response.data;
+            }
             if (error && error.data) {
                 payload = error.data;
             }
@@ -125,8 +126,9 @@ export const markAsRead = (
             }
         } catch (error) {
             let payload;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 payload = error.response.data;
+            }
             if (error && error.data) {
                 payload = error.data;
             }
@@ -161,8 +163,9 @@ export function closeNotification(
             );
         } catch (error) {
             let payload;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 payload = error.response.data;
+            }
             if (error && error.data) {
                 payload = error.data;
             }
@@ -187,8 +190,9 @@ export const markAllAsRead = (projectId: ObjectID): void => {
             dispatch(allNotificationReadSuccess(userId));
         } catch (error) {
             let payload;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 payload = error.response.data;
+            }
             if (error && error.data) {
                 payload = error.data;
             }
@@ -218,8 +222,9 @@ export function billingActionTaken(
             dispatch(notificationReadSuccess(notification));
         } catch (error) {
             let payload;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 payload = error.response.data;
+            }
             if (error && error.data) {
                 payload = error.data;
             }

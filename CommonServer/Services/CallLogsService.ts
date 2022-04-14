@@ -1,6 +1,8 @@
 export default class Service {
     async findBy({ query, limit, skip, sort, select, populate }: FindBy): void {
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
 
         const itemQuery = CallLogsModel.find(query)
             .lean()
@@ -45,7 +47,9 @@ export default class Service {
             query = {};
         }
 
-        if (!query['deleted']) query['deleted'] = false;
+        if (!query['deleted']) {
+            query['deleted'] = false;
+        }
         const count = await CallLogsModel.countDocuments(query);
         return count;
     }

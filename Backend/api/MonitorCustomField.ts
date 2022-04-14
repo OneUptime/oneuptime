@@ -107,7 +107,7 @@ router.put(
     '/:projectId/:customFieldId',
     getUser,
     isAuthorized,
-    async function (req, res): void {
+    async (req, res): void => {
         try {
             const { projectId, customFieldId } = req.params;
             const { fieldName, fieldType, uniqueField } = req.body;

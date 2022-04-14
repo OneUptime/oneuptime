@@ -5,7 +5,7 @@ export default {
         const downTime =
             (new Date().getTime() - new Date(comparedTime).getTime()) /
             (1000 * 60);
-        let downTimeString = `${Math.ceil(downTime)} minutes`;
+        let downTimeString: string = `${Math.ceil(downTime)} minutes`;
         if (downTime < 1) {
             downTimeString = 'less than a minute';
         } else if (downTime > 24 * 60) {
@@ -31,7 +31,7 @@ export default {
             moment(createdAt),
             'minutes'
         );
-        let downtimestring = `${Math.ceil(downtime)} minutes`;
+        let downtimestring: string = `${Math.ceil(downtime)} minutes`;
         if (downtime < 1) {
             downtimestring = 'less than a minute';
         } else if (downtime > 24 * 60) {

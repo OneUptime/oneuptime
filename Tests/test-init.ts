@@ -2144,7 +2144,9 @@ const _this = {
             visible: true,
         });
 
-        if (enableSms) await this.pageClick(page, 'label[for=enabled]');
+        if (enableSms) {
+            await this.pageClick(page, 'label[for=enabled]');
+        }
 
         await this.pageType(page, '#accountSid', accountSid);
 
@@ -2232,10 +2234,11 @@ const _this = {
         await this.pageClickNavigate(page, '#email');
 
         await this.pageWaitForSelector(page, '#smtpswitch');
-        if (enable)
+        if (enable) {
             await this.page$Eval(page, '#smtpswitch', (elem: $TSFixMe) =>
                 elem.click()
             );
+        }
 
         await this.pageWaitForSelector(page, '#user');
 

@@ -34,7 +34,9 @@ const run = async (
     if (isMainThread) {
         // modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration } = options;
-        if (!isCalled) return;
+        if (!isCalled) {
+            return;
+        }
         const start = performance.now();
         return new Promise(resolve => {
             const worker = new Worker(__filename, {

@@ -19,10 +19,10 @@ export function createApplicationLog(
         dispatch(createApplicationLogRequest());
 
         promise.then(
-            function (applicationLog): void {
+            (applicationLog): void => {
                 dispatch(createApplicationLogSuccess(applicationLog.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -84,10 +84,10 @@ export function fetchApplicationLogs(
         dispatch(fetchApplicationLogsRequest(paginated));
 
         promise.then(
-            function (applicationLogs): void {
+            (applicationLogs): void => {
                 dispatch(fetchApplicationLogsSuccess(applicationLogs.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchApplicationLogsFailure(error));
             }
         );
@@ -141,10 +141,10 @@ export function deleteApplicationLog(
         dispatch(deleteApplicationLogRequest(applicationLogId));
 
         promise.then(
-            function (applicationLog): void {
+            (applicationLog): void => {
                 dispatch(deleteApplicationLogSuccess(applicationLog.data._id));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     deleteApplicationLogFailure({
                         error: error,
@@ -216,7 +216,7 @@ export function fetchLogs(
         dispatch(fetchLogsRequest({ applicationLogId }));
 
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -231,7 +231,7 @@ export function fetchLogs(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );
@@ -278,10 +278,10 @@ export function resetApplicationLogKey(
         dispatch(resetApplicationLogKeyRequest());
 
         promise.then(
-            function (applicationLog): void {
+            (applicationLog): void => {
                 dispatch(resetApplicationLogKeySuccess(applicationLog.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(resetApplicationLogKeyFailure(error));
             }
         );
@@ -338,10 +338,10 @@ export function editApplicationLog(
         dispatch(editApplicationLogRequest());
 
         promise.then(
-            function (applicationLog): void {
+            (applicationLog): void => {
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
-            function (error): void {
+            (error): void => {
                 if (error && error.response && error.response.data) {
                     error = error.response.data;
                 }
@@ -396,7 +396,7 @@ export function fetchStats(
         dispatch(fetchStatsRequest({ applicationLogId }));
 
         promise.then(
-            function (logs): void {
+            (logs): void => {
                 dispatch(
                     fetchStatsSuccess({
                         applicationLogId,
@@ -405,7 +405,7 @@ export function fetchStats(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(
                     fetchStatsFailure({
                         applicationLogId,
@@ -464,7 +464,7 @@ export function searchLog(
         );
         dispatch(fetchLogsRequest({ applicationLogId }));
         promise.then(
-            function (response): void {
+            (response): void => {
                 dispatch(
                     fetchLogsSuccess({
                         applicationLogId,
@@ -475,7 +475,7 @@ export function searchLog(
                     })
                 );
             },
-            function (error): void {
+            (error): void => {
                 dispatch(fetchLogsFailure({ applicationLogId, error: error }));
             }
         );

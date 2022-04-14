@@ -43,12 +43,12 @@ export const deleteSlackLink = (
         dispatch(deleteSlackLinkRequest());
 
         return promise.then(
-            function (teams): void {
+            (teams): void => {
                 dispatch(deleteSlackLinkSuccess(teams.data));
 
                 return teams.data;
             },
-            function (error): void {
+            (error): void => {
                 dispatch(deleteSlackLinkError(error));
             }
         );
@@ -89,20 +89,20 @@ export function getSlackTeams(
 ): void {
     return function (dispatch: Dispatch): void {
         let promise = null;
-        if (skip && limit)
+        if (skip && limit) {
             promise = BackendAPI.get(
                 `slack/${projectId}/teams?skip=${skip}&limit=${limit}`
             );
-        else {
+        } else {
             promise = BackendAPI.get(`slack/${projectId}/teams`);
         }
         dispatch(getSlackTeamsRequest(promise));
 
         promise.then(
-            function (teams): void {
+            (teams): void => {
                 dispatch(getSlackTeamsSuccess(teams.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(getSlackTeamsError(error));
             }
         );

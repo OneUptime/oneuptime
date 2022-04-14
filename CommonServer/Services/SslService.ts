@@ -6,7 +6,7 @@ import Model, {
 } from '../Models/SSL';
 import DatabaseService from './DatabaseService';
 
-export default class SslService extends DatabaseService<typeof Model> {
+class Service extends DatabaseService<typeof Model> {
     constructor() {
         super({
             model: Model,
@@ -59,3 +59,5 @@ export default class SslService extends DatabaseService<typeof Model> {
         });
     }
 }
+
+export default new Service();

@@ -83,10 +83,7 @@ export default function card(state = initialState, action: Action): void {
                     requesting: false,
                     success: true,
                     error: null,
-                    cards: action.payload.sort(function (
-                        a: $TSFixMe,
-                        b: $TSFixMe
-                    ) {
+                    cards: action.payload.sort((a: $TSFixMe, b: $TSFixMe) => {
                         if (a.id > b.id) {
                             return -1;
                         }

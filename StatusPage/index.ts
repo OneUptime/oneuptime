@@ -123,7 +123,7 @@ app.use(
     async (req: ExpressRequest, res: ExpressResponse) => {
         // make api call to backend and fetch keyAuthorization
         const { token } = req.params;
-        const url = `${apiHost}/ssl/challenge/authorization/${token}`;
+        const url: string = `${apiHost}/ssl/challenge/authorization/${token}`;
         const response = await axios.get(url);
         res.send(response.data);
     }
@@ -181,11 +181,11 @@ async function handleCertificate(
 
 app.use(
     '/',
-    async function (
+    async (
         req: ExpressRequest,
         res: ExpressResponse,
         next: NextFunction
-    ): void {
+    ): void => {
         const host = req.hostname;
         if (
             host &&
@@ -280,7 +280,7 @@ async function fetchCredential(
 
 function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
     return new Promise(resolve => {
-        const command = `echo ${content} | base64 -d`;
+        const command: string = `echo ${content} | base64 -d`;
         let output = '';
 
         const commandOutput = spawn(command, {
@@ -292,7 +292,7 @@ function decodeAndSave(content: $TSFixMe, filePath: $TSFixMe): void {
             output += strData;
         });
         commandOutput.on('close', () => {
-            fs.writeFile(filePath, output, 'utf8', function (): void {
+            fs.writeFile(filePath, output, 'utf8', (): void => {
                 resolve('Done writing to disc');
             });
         });
@@ -307,7 +307,9 @@ function createDir(dirPath: $TSFixMe): void {
         }
 
         fs.mkdir(workPath, error => {
-            if (error) reject(error);
+            if (error) {
+                reject(error);
+            }
             resolve(workPath);
         });
     });

@@ -21,11 +21,11 @@ describe('Slack API', function (): void {
 
     this.beforeAll(function (done: $TSFixMe): void {
         this.timeout(30000);
-        GlobalConfig.initTestConfig().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
             request
                 .post('/user/signup')
                 .send(userData.user)
-                .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                .end((err: $TSFixMe, res: $TSFixMe): void => {
                     projectId = res.body.projectId;
                     request
                         .post('/user/login')
@@ -33,7 +33,7 @@ describe('Slack API', function (): void {
                             email: userData.user.email,
                             password: userData.user.password,
                         })
-                        .end(function (err: $TSFixMe, res: $TSFixMe): void {
+                        .end((err: $TSFixMe, res: $TSFixMe): void => {
                             token = res.body.tokens.jwtAccessToken;
                             done();
                         });
@@ -41,7 +41,7 @@ describe('Slack API', function (): void {
         });
     });
 
-    this.afterAll(async function (): void {
+    this.afterAll(async (): void => {
         await GlobalConfig.removeTestConfig();
         await ProjectService.hardDeleteBy({ _id: projectId });
         await UserService.hardDeleteBy({
@@ -56,24 +56,24 @@ describe('Slack API', function (): void {
 
     // 'post /slack/:projectId/monitor'
 
-    it('The purchase', function (done: $TSFixMe): void {
+    it('The purchase', (done: $TSFixMe): void => {
         request
             .get(`/team/${projectId}/team`)
             .send({
                 name: 'New Schedule',
             })
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(400);
                 done();
             });
     });
 
-    it.skip('The purchase', function (done: $TSFixMe): void {
-        const authorization = `Basic ${token}`;
+    it.skip('The purchase', (done: $TSFixMe): void => {
+        const authorization: string = `Basic ${token}`;
         request
             .get(`/slack/${projectId}/:teamId`)
             .set('Authorization', authorization)
-            .end(function (err: $TSFixMe, res: $TSFixMe): void {
+            .end((err: $TSFixMe, res: $TSFixMe): void => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();

@@ -27,28 +27,25 @@ describe('Feedback API', function (): void {
 
     before(function (done: $TSFixMe): void {
         this.timeout(40000);
-        GlobalConfig.initTestConfig().then(function (): void {
-            GlobalConfig.enableEmailLog().then(function (): void {
+        GlobalConfig.initTestConfig().then((): void => {
+            GlobalConfig.enableEmailLog().then((): void => {
                 createUser(
                     request,
                     userData.user,
-                    function (err: $TSFixMe, res: $TSFixMe): void {
+                    (err: $TSFixMe, res: $TSFixMe): void => {
                         const project = res.body.project;
                         projectId = project._id;
                         userId = res.body.id;
 
                         VerificationTokenModel.findOne(
                             { userId },
-                            function (
-                                err: $TSFixMe,
-                                verificationToken: $TSFixMe
-                            ) {
+                            (err: $TSFixMe, verificationToken: $TSFixMe) => {
                                 request
                                     .get(
                                         `/user/confirmation/${verificationToken.token}`
                                     )
                                     .redirects(0)
-                                    .end(function (): void {
+                                    .end((): void => {
                                         request
                                             .post('/user/login')
                                             .send({
@@ -56,15 +53,17 @@ describe('Feedback API', function (): void {
                                                 password:
                                                     userData.user.password,
                                             })
-                                            .end(function (
-                                                err: $TSFixMe,
-                                                res: $TSFixMe
-                                            ) {
-                                                token =
-                                                    res.body.tokens
-                                                        .jwtAccessToken;
-                                                done();
-                                            });
+                                            .end(
+                                                (
+                                                    err: $TSFixMe,
+                                                    res: $TSFixMe
+                                                ) => {
+                                                    token =
+                                                        res.body.tokens
+                                                            .jwtAccessToken;
+                                                    done();
+                                                }
+                                            );
                                     });
                             }
                         );
@@ -74,7 +73,7 @@ describe('Feedback API', function (): void {
         });
     });
 
-    after(async function (): void {
+    after(async (): void => {
         await GlobalConfig.removeTestConfig();
         await UserService.hardDeleteBy({
             email: {
@@ -90,8 +89,8 @@ describe('Feedback API', function (): void {
         await AirtableService.deleteAll({ tableName: 'User' });
     });
 
-    it('should create feedback and check the sent emails to oneuptime team and user', async function (): void {
-        const authorization = `Basic ${token}`;
+    it('should create feedback and check the sent emails to oneuptime team and user', async (): void => {
+        const authorization: string = `Basic ${token}`;
         const testFeedback = {
             feedback: 'test feedback',
             page: 'test page',

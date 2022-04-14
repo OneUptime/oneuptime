@@ -32,11 +32,11 @@ export default class Service {
             query: { apiKey: apiKey, _id: projectId },
             select: 'name',
         });
-        if (project)
+        if (project) {
             return await Object.assign({}, project, {
                 projectName: project.name,
             });
-        else {
+        } else {
             const error = new Error(
                 'We are not able to authenticate you because your `API Key` or `Project ID` is not valid. Please go to your project settings and retrieve your API key and Project ID.'
             );
@@ -348,7 +348,7 @@ export default class Service {
                     status: 'created',
                 });
 
-                const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
+                const msg: string = `A New Incident was created for ${monitorObj.name} by Zapier`;
 
                 NotificationService.create(
                     incident.projectId,

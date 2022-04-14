@@ -44,14 +44,14 @@ export const getProbes = (skip = 0, limit = 10): void => {
         dispatch(probeRequest(promise));
 
         promise.then(
-            function (probes): void {
+            (probes): void => {
                 probes.data.skip = skip || 0;
 
                 probes.data.limit = limit || 10;
 
                 dispatch(probeSuccess(probes.data));
             },
-            function (error): void {
+            (error): void => {
                 dispatch(probeError(error));
             }
         );
@@ -96,8 +96,9 @@ export const deleteProbe =
             return response;
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -159,8 +160,9 @@ export const addProbe =
             return 'ok';
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
@@ -223,8 +225,9 @@ export const updateProbe =
             }
         } catch (error) {
             let errorMsg;
-            if (error && error.response && error.response.data)
+            if (error && error.response && error.response.data) {
                 errorMsg = error.response.data;
+            }
             if (error && error.data) {
                 errorMsg = error.data;
             }
