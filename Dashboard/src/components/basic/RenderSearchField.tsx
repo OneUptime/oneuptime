@@ -30,7 +30,7 @@ interface RenderSearchFieldProps {
     iconLeftStyle?: object;
 }
 
-const RenderSearchField = ({
+const RenderSearchField: Function = ({
     input,
     placeholder,
     type,

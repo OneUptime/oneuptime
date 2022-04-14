@@ -228,7 +228,7 @@ const ThemesForm = new reduxForm({
     enableReinitialize: true,
 })(Themes);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateTheme,
     },
@@ -244,7 +244,7 @@ Themes.propTypes = {
     initialValues: PropTypes.shape({ theme: PropTypes.string }),
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { theme } = ownProps.data;
     return {
         statusPage: state.statusPage,

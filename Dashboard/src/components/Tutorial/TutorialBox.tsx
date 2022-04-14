@@ -13,7 +13,7 @@ interface TutorialsProps {
     currentProjectId: string;
 }
 
-const Tutorials = ({
+const Tutorials: Function = ({
     type,
     closeTutorial,
     currentProjectId
@@ -70,7 +70,7 @@ const Tutorials = ({
     </div>
 );
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeTutorial }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeTutorial }, dispatch);
 
 Tutorials.displayName = 'TutorialBox';
 

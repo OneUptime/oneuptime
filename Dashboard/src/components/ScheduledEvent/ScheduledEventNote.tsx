@@ -778,7 +778,7 @@ ScheduledEventNote.propTypes = {
     pages: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchScheduledEventNotesInternal,
@@ -787,7 +787,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     },
     dispatch
 );
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         pages: state.scheduledEvent.pages,
     };

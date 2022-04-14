@@ -556,7 +556,7 @@ const CreateIncidentTemplateForm = reduxForm({
     enableReinitialize: true,
 })(CreateIncidentTemplate);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         revealVariables: state.incidentBasicSettings.revealVariables,
@@ -571,7 +571,7 @@ const mapStateToProps = (state: RootState) => {
             state.incidentBasicSettings.createIncidentTemplate.error,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createIncidentTemplate,
         setRevealIncidentSettingsVariables,

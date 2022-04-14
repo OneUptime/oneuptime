@@ -8,7 +8,7 @@ interface CheckboxProps {
     text: string;
 }
 
-const Checkbox = ({
+const Checkbox: Function = ({
     name,
     text
 }: CheckboxProps) => {

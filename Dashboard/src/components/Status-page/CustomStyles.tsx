@@ -329,7 +329,7 @@ const CustomStylesForm = reduxForm({
     enableReinitialize: true,
 })(CustomStyles);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageCustomHTML,
         fetchProjectStatusPage,
@@ -337,7 +337,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = ({
+const mapStateToProps: Function = ({
     statusPage
 }: $TSFixMe) => {
     const { headerHTML, footerHTML, customCSS, customJS } = statusPage.status;

@@ -126,7 +126,7 @@ ResetSmsTemplate.propTypes = {
     resetSmsTemplates: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         applicationLogState: state.applicationLog,
     };

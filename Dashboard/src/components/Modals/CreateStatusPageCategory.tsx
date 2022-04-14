@@ -193,7 +193,7 @@ const CreateStatusPageCategoryForm = reduxForm({
     validate,
 })(CreateStatusPageCategory);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         creatingCategory:
             state.statusPageCategory.createStatusPageCategory.requesting,
@@ -203,7 +203,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { closeModal, createStatusPageCategory, fetchStatusPageCategories },
         dispatch

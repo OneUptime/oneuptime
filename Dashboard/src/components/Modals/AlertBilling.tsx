@@ -149,7 +149,7 @@ AlertBilling.propTypes = {
     }),
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         messageBoxId: state.modal.modals[0].id,
         title: state.modal.modals[0].title,
@@ -158,5 +158,5 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(AlertBilling);

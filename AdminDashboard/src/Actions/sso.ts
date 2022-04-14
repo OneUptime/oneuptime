@@ -3,20 +3,20 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
-export const fetchSsosRequest = (): void => {
+export const fetchSsosRequest: Function = (): void => {
     return {
         type: types.FETCH_SSOS_REQUEST,
     };
 };
 
-export const fetchSsosSuccess = (payload: $TSFixMe): void => {
+export const fetchSsosSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_SSOS_SUCCESS,
         payload,
     };
 };
 
-export const fetchSsosError = (payload: $TSFixMe): void => {
+export const fetchSsosError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_SSOS_FAILURE,
         payload,
@@ -52,20 +52,20 @@ export const fetchSsos =
         }
     };
 
-export const fetchSsoRequest = (): void => {
+export const fetchSsoRequest: Function = (): void => {
     return {
         type: types.FETCH_SSO_REQUEST,
     };
 };
 
-export const fetchSsoSuccess = (payload: $TSFixMe): void => {
+export const fetchSsoSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_SSO_SUCCESS,
         payload,
     };
 };
 
-export const fetchSsoError = (payload: $TSFixMe): void => {
+export const fetchSsoError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_SSO_FAILURE,
         payload,
@@ -97,19 +97,19 @@ export const fetchSso =
         }
     };
 
-export const deleteSsoRequest = (): void => {
+export const deleteSsoRequest: Function = (): void => {
     return {
         type: types.DELETE_SSO_REQUEST,
     };
 };
 
-export const deleteSsoSuccess = (): void => {
+export const deleteSsoSuccess: Function = (): void => {
     return {
         type: types.DELETE_SSO_SUCCESS,
     };
 };
 
-export const deleteSsoError = (payload: $TSFixMe): void => {
+export const deleteSsoError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.DELETE_SSO_FAILED,
         payload,
@@ -140,19 +140,19 @@ export const deleteSso =
         }
     };
 
-export const addSsoRequest = (): void => {
+export const addSsoRequest: Function = (): void => {
     return {
         type: types.ADD_SSO_REQUEST,
     };
 };
 
-export const addSsoSuccess = (): void => {
+export const addSsoSuccess: Function = (): void => {
     return {
         type: types.ADD_SSO_SUCCESS,
     };
 };
 
-export const addSsoError = (payload: $TSFixMe): void => {
+export const addSsoError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.ADD_SSO_FAILED,
         payload,
@@ -183,19 +183,19 @@ export const addSso =
         }
     };
 
-export const updateSsoRequest = (): void => {
+export const updateSsoRequest: Function = (): void => {
     return {
         type: types.UPDATE_SSO_REQUEST,
     };
 };
 
-export const updateSsoSuccess = (): void => {
+export const updateSsoSuccess: Function = (): void => {
     return {
         type: types.UPDATE_SSO_SUCCESS,
     };
 };
 
-export const updateSsoError = (payload: $TSFixMe): void => {
+export const updateSsoError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.UPDATE_SSO_FAILURE,
         payload,

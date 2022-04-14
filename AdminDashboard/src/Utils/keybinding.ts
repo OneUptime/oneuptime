@@ -11,7 +11,7 @@ const initKeys = ['f'];
  * @param {function} resetKeys function to reset the keys array
  */
 
-const keyBind = (
+const keyBind: Function = (
     event: $TSFixMe,
     route: $TSFixMe,
     keys: $TSFixMe,
@@ -39,18 +39,18 @@ const keyBind = (
     }
 };
 
-export const navKeyBind = (route: $TSFixMe): void => {
+export const navKeyBind: Function = (route: $TSFixMe): void => {
     let keys: $TSFixMe = [];
-    const resetKeys = (): void => (keys = []);
+    const resetKeys: Function = (): void => (keys = []);
     // reasons to use keydown
     // 1 --> gives the user impression that they can press and hold two keys simultaneously
     // 2 --> accommodate users that don't like pressing and holding two keys simultaneously (which is the actual behaviour, (^-^))
     window.addEventListener('keydown', e => keyBind(e, route, keys, resetKeys));
 };
 
-export const cleanBind = (route: $TSFixMe): void => {
+export const cleanBind: Function = (route: $TSFixMe): void => {
     let keys: $TSFixMe = [];
-    const resetKeys = (): void => (keys = []);
+    const resetKeys: Function = (): void => (keys = []);
     window.removeEventListener('keydown', e =>
         keyBind(e, route, keys, resetKeys)
     );

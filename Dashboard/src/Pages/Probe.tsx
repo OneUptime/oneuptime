@@ -173,7 +173,7 @@ class Probe extends React.Component<ProbeProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
@@ -181,7 +181,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ getProbes }, dispatch);
 };
 

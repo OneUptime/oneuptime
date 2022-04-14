@@ -29,7 +29,7 @@ interface ApplicationSecurityViewProps {
     scannedStatus?: string;
 }
 
-const ApplicationSecurityView = ({
+const ApplicationSecurityView: Function = ({
     isRequesting,
     applicationSecurityId,
     applicationSecuritySlug,
@@ -44,7 +44,7 @@ const ApplicationSecurityView = ({
     activeApplicationSecurity,
     scannedStatus
 }: ApplicationSecurityViewProps) => {
-    const handleSubmit = ({
+    const handleSubmit: Function = ({
         projectId,
         applicationSecurityId
     }: $TSFixMe) => {
@@ -61,7 +61,7 @@ const ApplicationSecurityView = ({
         });
     };
 
-    const handleEdit = ({
+    const handleEdit: Function = ({
         projectId,
         componentId,
         applicationSecurityId,
@@ -327,14 +327,14 @@ ApplicationSecurityView.propTypes = {
     scannedStatus: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.security.deleteApplication.requesting,
         securityLog: state.security.applicationSecurityLog || {},

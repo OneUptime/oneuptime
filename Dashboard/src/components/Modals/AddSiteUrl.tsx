@@ -216,7 +216,7 @@ const AddSiteUrlForm = reduxForm({
     enableReinitialize: true,
 })(AddSiteUrl);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
@@ -225,7 +225,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, addSiteUrl }, dispatch);
 };
 

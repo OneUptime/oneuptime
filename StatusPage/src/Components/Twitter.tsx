@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-const Twitter = ({
+const Twitter: Function = ({
     tweets,
     theme,
     loading,
@@ -110,7 +110,7 @@ Twitter.PropTypes = {
 
 export default Twitter;
 
-const TweetList = (tweet: $TSFixMe, index: $TSFixMe) => {
+const TweetList: Function = (tweet: $TSFixMe, index: $TSFixMe) => {
     return (
         <li
             style={{

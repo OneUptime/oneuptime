@@ -829,7 +829,7 @@ const UpdateScriptForm = new reduxForm({
     enableReinitialize: true,
 })(UpdateScript);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateAutomatedScript,
         resetScripts,
@@ -839,7 +839,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const schedules: $TSFixMe = [];
     state.schedule.subProjectSchedules.forEach((elem: $TSFixMe) => {
         elem.schedules.forEach((schedule: $TSFixMe) => {

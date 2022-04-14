@@ -106,11 +106,11 @@ ConfirmNumberDeleteModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return {};
 };
 

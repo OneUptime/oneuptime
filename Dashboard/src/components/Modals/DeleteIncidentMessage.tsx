@@ -130,7 +130,7 @@ DeleteIncidentMessage.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         incidentMessageState: state.incidentMessage,
     };

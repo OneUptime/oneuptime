@@ -17,7 +17,7 @@ interface DeleteScriptBoxProps {
     automatedSlug?: string;
 }
 
-const DeleteScriptBox = (props: DeleteScriptBoxProps) => {
+const DeleteScriptBox: Function = (props: DeleteScriptBoxProps) => {
     const { name, openModal } = props;
     const deleteModalId = uuidv4();
 
@@ -85,7 +85,7 @@ DeleteScriptBox.propTypes = {
     automatedSlug: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         scripts: state.automatedScripts.scripts,
     };

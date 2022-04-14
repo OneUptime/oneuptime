@@ -182,13 +182,13 @@ DeleteAnnouncementLog.propTypes = {
     resetDeleteAnnouncement: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     modalId: state.modal.modals[0].id,
     isRequesting: state.statusPage.updateAnnouncement.requesting,
     deleteError: state.statusPage.updateAnnouncement.error
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteAnnouncementLog,
         fetchAnnouncementLogs,

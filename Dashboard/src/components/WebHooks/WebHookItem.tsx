@@ -83,7 +83,7 @@ class WebHookInput extends React.Component<WebHookInputProps> {
     };
 
     getMonitors(monitors: $TSFixMe) {
-        const gt = (i: $TSFixMe) => monitors.length > i;
+        const gt: Function = (i: $TSFixMe) => monitors.length > i;
 
         let temp = gt(0) ? monitors[0].name : 'Not Yet Added';
         temp += gt(1)
@@ -185,7 +185,7 @@ class WebHookInput extends React.Component<WebHookInputProps> {
 
 WebHookInput.displayName = 'WebHookInput';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteWebHook,
         updateWebHook,
@@ -195,7 +195,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     webhooks: state.webHooks,
     team: state.team,
     currentProject: state.project.currentProject

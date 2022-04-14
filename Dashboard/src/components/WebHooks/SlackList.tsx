@@ -272,7 +272,7 @@ class SlackList extends React.Component<SlackListProps> {
 
 SlackList.displayName = 'SlackList';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     slacks: state.slackWebhooks.slacks,
     isRequesting: state.slackWebhooks.slacks.requesting,
     currentProject: state.project.currentProject,
@@ -285,7 +285,7 @@ const mapStateToProps = (state: RootState) => ({
     pages: state.slackWebhooks.pages
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getSlack,
         paginate,

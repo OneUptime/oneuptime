@@ -290,7 +290,7 @@ DashboardApp.propTypes = {
     loadDashboard: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     profile: state.profileSettings,
     notification: state.notifications,
     user: state.user,
@@ -307,7 +307,7 @@ const mapStateToProps = (state: RootState) => ({
     dashboardLoadState: state.dashboard
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         hideProfileMenu,
         closeNotificationMenu,

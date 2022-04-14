@@ -325,7 +325,7 @@ class ErrorTracking extends Component<ComponentProps> {
 
 
 ErrorTracking.displayName = 'ErrorTracking';
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchErrorTrackers,
@@ -334,7 +334,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

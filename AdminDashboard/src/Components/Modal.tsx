@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
-const composableComponent = (ComposedComponent: $TSFixMe) => {
+const composableComponent: Function = (ComposedComponent: $TSFixMe) => {
     class Modal extends Component<ComponentProps> {
 
         public static displayName = '';

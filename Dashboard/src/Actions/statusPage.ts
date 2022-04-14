@@ -6,46 +6,49 @@ import FormData from 'form-data';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // handle whether to show domain input field
-export const addMoreDomain = (): void => {
+export const addMoreDomain: Function = (): void => {
     return {
         type: types.ADD_MORE_DOMAIN,
     };
 };
 
-export const cancelAddMoreDomain = (): void => {
+export const cancelAddMoreDomain: Function = (): void => {
     return {
         type: types.CANCEL_ADD_MORE_DOMAIN,
     };
 };
 
 // upload cert file
-export const uploadCertFileRequest = (): void => {
+export const uploadCertFileRequest: Function = (): void => {
     return {
         type: 'CERT_FILE_REQUEST',
     };
 };
 
-export const uploadCertFileSuccess = (filename: $TSFixMe): void => {
+export const uploadCertFileSuccess: Function = (filename: $TSFixMe): void => {
     return {
         type: 'CERT_FILE_SUCCESS',
         payload: filename,
     };
 };
 
-export const uploadCertFileFailure = (error: ErrorPayload): void => {
+export const uploadCertFileFailure: Function = (error: ErrorPayload): void => {
     return {
         type: 'CERT_FILE_ERROR',
         payload: error,
     };
 };
 
-export const removeCertFile = (): void => {
+export const removeCertFile: Function = (): void => {
     return {
         type: 'REMOVE_CERT_FILE',
     };
 };
 
-export const uploadCertFile = (projectId: ObjectID, file: $TSFixMe): void => {
+export const uploadCertFile: Function = (
+    projectId: ObjectID,
+    file: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const data = new FormData();
         if (file) {
@@ -84,33 +87,38 @@ export const uploadCertFile = (projectId: ObjectID, file: $TSFixMe): void => {
 };
 
 // upload private key file
-export const uploadPrivateKeyRequest = (): void => {
+export const uploadPrivateKeyRequest: Function = (): void => {
     return {
         type: 'PRIVATE_KEY_REQUEST',
     };
 };
 
-export const uploadPrivateKeySuccess = (filename: $TSFixMe): void => {
+export const uploadPrivateKeySuccess: Function = (filename: $TSFixMe): void => {
     return {
         type: 'PRIVATE_KEY_SUCCESS',
         payload: filename,
     };
 };
 
-export const uploadPrivateKeyFailure = (error: ErrorPayload): void => {
+export const uploadPrivateKeyFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: 'PRIVATE_KEY_ERROR',
         payload: error,
     };
 };
 
-export const removePrivateKeyFile = (): void => {
+export const removePrivateKeyFile: Function = (): void => {
     return {
         type: 'REMOVE_PRIVATE_KEY',
     };
 };
 
-export const uploadPrivateKey = (projectId: ObjectID, file: $TSFixMe): void => {
+export const uploadPrivateKey: Function = (
+    projectId: ObjectID,
+    file: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const data = new FormData();
         if (file) {
@@ -150,20 +158,24 @@ export const uploadPrivateKey = (projectId: ObjectID, file: $TSFixMe): void => {
 
 //Update status page setting
 
-export const updateStatusPageSettingRequest = (): void => {
+export const updateStatusPageSettingRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_SETTING_REQUEST,
     };
 };
 
-export const updateStatusPageSettingSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageSettingSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_SETTING_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageSettingError = (error: ErrorPayload): void => {
+export const updateStatusPageSettingError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_SETTING_FAILURE,
         payload: error,
@@ -171,7 +183,7 @@ export const updateStatusPageSettingError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to update setting.
-export const updateStatusPageSetting = (
+export const updateStatusPageSetting: Function = (
     projectId: ObjectID,
     data: $TSFixMe
 ): void => {
@@ -196,20 +208,24 @@ export const updateStatusPageSetting = (
 
 //Update status page monitors
 
-export const updateStatusPageMonitorsRequest = (): void => {
+export const updateStatusPageMonitorsRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_MONITORS_REQUEST,
     };
 };
 
-export const updateStatusPageMonitorsSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageMonitorsSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_MONITORS_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageMonitorsError = (error: ErrorPayload): void => {
+export const updateStatusPageMonitorsError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_MONITORS_FAILURE,
         payload: error,
@@ -240,20 +256,24 @@ export function updateStatusPageMonitors(
 
 //Update private status page Main box
 
-export const updatePrivateStatusPageRequest = (): void => {
+export const updatePrivateStatusPageRequest: Function = (): void => {
     return {
         type: types.UPDATE_PRIVATE_STATUSPAGE_REQUEST,
     };
 };
 
-export const updatePrivateStatusPageSuccess = (statusPage: $TSFixMe): void => {
+export const updatePrivateStatusPageSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_PRIVATE_STATUSPAGE_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updatePrivateStatusPageError = (error: ErrorPayload): void => {
+export const updatePrivateStatusPageError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_PRIVATE_STATUSPAGE_FAILURE,
         payload: error,
@@ -261,7 +281,7 @@ export const updatePrivateStatusPageError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to update private statuspages.
-export const updatePrivateStatusPage = (
+export const updatePrivateStatusPage: Function = (
     projectId: ObjectID,
     values: $TSFixMe
 ): void => {
@@ -283,20 +303,24 @@ export const updatePrivateStatusPage = (
     };
 };
 // Update status page advanace subscriber options.
-export const updateSubscriberOptionRequest = (): void => {
+export const updateSubscriberOptionRequest: Function = (): void => {
     return {
         type: types.UPDATE_SUBSCRIBER_OPTION_REQUEST,
     };
 };
 
-export const updateSubscriberOptionSuccess = (statusPage: $TSFixMe): void => {
+export const updateSubscriberOptionSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_SUBSCRIBER_OPTION_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateSubscriberOptionError = (error: ErrorPayload): void => {
+export const updateSubscriberOptionError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_SUBSCRIBER_OPTION_FAILURE,
         payload: error,
@@ -326,20 +350,24 @@ export function updateStatusPageLanguage(
     };
 }
 // Update status page advanace subscriber options.
-export const updateStatusPageLanguageRequest = (): void => {
+export const updateStatusPageLanguageRequest: Function = (): void => {
     return {
         type: types.UPDATE_MULTIPLE_LANGUAGE_REQUEST,
     };
 };
 
-export const updateStatusPageLanguageSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageLanguageSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_MULTIPLE_LANGUAGE_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageLanguageError = (error: ErrorPayload): void => {
+export const updateStatusPageLanguageError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_MULTIPLE_LANGUAGE_FAILURE,
         payload: error,
@@ -347,7 +375,7 @@ export const updateStatusPageLanguageError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to update private statuspages.
-export const updateSubscriberOption = (
+export const updateSubscriberOption: Function = (
     projectId: ObjectID,
     values: $TSFixMe
 ): void => {
@@ -368,27 +396,31 @@ export const updateSubscriberOption = (
     };
 };
 // Update status page branding
-export const updateStatusSuccess = (data: $TSFixMe): void => {
+export const updateStatusSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.UPDATE_STATUSPAGE_SUCCESS,
         payload: data,
     };
 };
 
-export const updateStatusPageBrandingRequest = (): void => {
+export const updateStatusPageBrandingRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_BRANDING_REQUEST,
     };
 };
 
-export const updateStatusPageBrandingSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageBrandingSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_BRANDING_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageBrandingError = (error: ErrorPayload): void => {
+export const updateStatusPageBrandingError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_BRANDING_FAILURE,
         payload: error,
@@ -396,20 +428,24 @@ export const updateStatusPageBrandingError = (error: ErrorPayload): void => {
 };
 
 // Update status page name
-export const updateStatusPageNameRequest = (): void => {
+export const updateStatusPageNameRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_NAME_REQUEST,
     };
 };
 
-export const updateStatusPageNameSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageNameSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_NAME_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageNameError = (error: ErrorPayload): void => {
+export const updateStatusPageNameError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_NAME_FAILURE,
         payload: error,
@@ -417,20 +453,24 @@ export const updateStatusPageNameError = (error: ErrorPayload): void => {
 };
 
 // Update status page theme
-export const updateStatusPageThemeRequest = (): void => {
+export const updateStatusPageThemeRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_THEME_REQUEST,
     };
 };
 
-export const updateStatusPageThemeSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageThemeSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_THEME_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageThemeError = (error: ErrorPayload): void => {
+export const updateStatusPageThemeError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_THEME_FAILURE,
         payload: error,
@@ -487,7 +527,10 @@ export function updateStatusPageBranding(
 }
 
 // Calls the API to update the theme
-export const updateTheme = (projectId: ObjectID, data: $TSFixMe): void => {
+export const updateTheme: Function = (
+    projectId: ObjectID,
+    data: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`StatusPage/${projectId}/theme`, data);
         dispatch(updateStatusPageThemeRequest());
@@ -507,7 +550,7 @@ export const updateTheme = (projectId: ObjectID, data: $TSFixMe): void => {
 };
 
 // Calls the API to update status page name.
-export const updateStatusPageName = (
+export const updateStatusPageName: Function = (
     projectId: ObjectID,
     values: $TSFixMe
 ): void => {
@@ -530,20 +573,24 @@ export const updateStatusPageName = (
 
 //Update status page links
 
-export const updateStatusPageLinksRequest = (): void => {
+export const updateStatusPageLinksRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_LINKS_REQUEST,
     };
 };
 
-export const updateStatusPageLinksSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageLinksSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_LINKS_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageLinksError = (error: ErrorPayload): void => {
+export const updateStatusPageLinksError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_LINKS_FAILURE,
         payload: error,
@@ -551,7 +598,7 @@ export const updateStatusPageLinksError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to update links.
-export const updateStatusPageLinks = (
+export const updateStatusPageLinks: Function = (
     projectId: ObjectID,
     values: $TSFixMe
 ): void => {
@@ -574,13 +621,13 @@ export const updateStatusPageLinks = (
 
 //Update status page links
 
-export const updateStatusPageCustomHTMLRequest = (): void => {
+export const updateStatusPageCustomHTMLRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_CUSTOM_HTML_REQUEST,
     };
 };
 
-export const updateStatusPageCustomHTMLSuccess = (
+export const updateStatusPageCustomHTMLSuccess: Function = (
     statusPage: $TSFixMe
 ): void => {
     return {
@@ -589,7 +636,9 @@ export const updateStatusPageCustomHTMLSuccess = (
     };
 };
 
-export const updateStatusPageCustomHTMLError = (error: ErrorPayload): void => {
+export const updateStatusPageCustomHTMLError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_CUSTOM_HTML_FAILURE,
         payload: error,
@@ -620,26 +669,30 @@ export function updateStatusPageCustomHTML(
 
 //fetch project statuspage
 
-export const fetchProjectStatusPageRequest = (): void => {
+export const fetchProjectStatusPageRequest: Function = (): void => {
     return {
         type: types.FETCH_PROJECT_STATUSPAGE_REQUEST,
     };
 };
 
-export const resetProjectFetchStatusPage = (): void => {
+export const resetProjectFetchStatusPage: Function = (): void => {
     return {
         type: types.FETCH_PROJECT_STATUSPAGE_RESET,
     };
 };
 
-export const fetchProjectStatusPageSuccess = (statusPage: $TSFixMe): void => {
+export const fetchProjectStatusPageSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.FETCH_PROJECT_STATUSPAGE_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const fetchProjectStatusPageError = (error: ErrorPayload): void => {
+export const fetchProjectStatusPageError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_PROJECT_STATUSPAGE_FAILURE,
         payload: error,
@@ -677,19 +730,19 @@ export function fetchProjectStatusPage(
 
 //fetch subProject statuspages
 
-export const fetchSubProjectStatusPagesRequest = (): void => {
+export const fetchSubProjectStatusPagesRequest: Function = (): void => {
     return {
         type: types.FETCH_SUBPROJECT_STATUSPAGE_REQUEST,
     };
 };
 
-export const resetSubProjectFetchStatusPages = (): void => {
+export const resetSubProjectFetchStatusPages: Function = (): void => {
     return {
         type: types.FETCH_SUBPROJECT_STATUSPAGE_RESET,
     };
 };
 
-export const fetchSubProjectStatusPagesSuccess = (
+export const fetchSubProjectStatusPagesSuccess: Function = (
     statusPage: $TSFixMe
 ): void => {
     return {
@@ -698,7 +751,9 @@ export const fetchSubProjectStatusPagesSuccess = (
     };
 };
 
-export const fetchSubProjectStatusPagesError = (error: ErrorPayload): void => {
+export const fetchSubProjectStatusPagesError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_SUBPROJECT_STATUSPAGE_FAILURE,
         payload: error,
@@ -730,19 +785,19 @@ export function fetchSubProjectStatusPages(
 }
 
 //for incident statuspages
-export const fetchIncidentStatusPagesRequest = (): void => {
+export const fetchIncidentStatusPagesRequest: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_STATUSPAGE_REQUEST,
     };
 };
 
-export const resetIncidentFetchStatusPages = (): void => {
+export const resetIncidentFetchStatusPages: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_STATUSPAGE_RESET,
     };
 };
 
-export const fetchIncidentStatusPagesSuccess = (
+export const fetchIncidentStatusPagesSuccess: Function = (
     incidentStatusPages: $TSFixMe
 ): void => {
     return {
@@ -751,7 +806,9 @@ export const fetchIncidentStatusPagesSuccess = (
     };
 };
 
-export const fetchIncidentStatusPagesError = (error: ErrorPayload): void => {
+export const fetchIncidentStatusPagesError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_INCIDENT_STATUSPAGE_FAILURE,
         payload: error,
@@ -783,20 +840,24 @@ export function fetchIncidentStatusPages(
 }
 
 // Reset status bubble id
-export const resetStatusBubbleIdRequest = (): void => {
+export const resetStatusBubbleIdRequest: Function = (): void => {
     return {
         type: types.RESET_STATUS_BUBBLE_ID_REQUEST,
     };
 };
 
-export const resetStatusBubbleIdSuccess = (statusPage: $TSFixMe): void => {
+export const resetStatusBubbleIdSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.RESET_STATUS_BUBBLE_ID_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const resetStatusBubbleIdError = (error: ErrorPayload): void => {
+export const resetStatusBubbleIdError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.RESET_STATUS_BUBBLE_ID_FAILURE,
         payload: error,
@@ -828,26 +889,28 @@ export function resetStatusBubbleId(
     };
 }
 //Delete statuspage
-export const deleteStatusPageRequest = (): void => {
+export const deleteStatusPageRequest: Function = (): void => {
     return {
         type: types.DELETE_STATUSPAGE_REQUEST,
     };
 };
 
-export const deleteStatusPageReset = (): void => {
+export const deleteStatusPageReset: Function = (): void => {
     return {
         type: types.DELETE_STATUSPAGE_RESET,
     };
 };
 
-export const deleteStatusPageSuccess = (statusPage: $TSFixMe): void => {
+export const deleteStatusPageSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.DELETE_STATUSPAGE_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const deleteStatusPageError = (error: ErrorPayload): void => {
+export const deleteStatusPageError: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_STATUSPAGE_FAILED,
         payload: error,
@@ -877,27 +940,31 @@ export function deleteStatusPage(
 }
 
 //Duplicate statuspage
-export const duplicateStatusPageRequest = (): void => {
+export const duplicateStatusPageRequest: Function = (): void => {
     return {
         type: types.DUPLICATE_STATUSPAGE_REQUEST,
     };
 };
 
-export const duplicateStatusPageSuccess = (statusPage: $TSFixMe): void => {
+export const duplicateStatusPageSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.DUPLICATE_STATUSPAGE_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const duplicateStatusPageError = (error: ErrorPayload): void => {
+export const duplicateStatusPageError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.DUPLICATE_STATUSPAGE_FAILURE,
         payload: error,
     };
 };
 
-export const readStatusPage = (
+export const readStatusPage: Function = (
     statusPageSlug: $TSFixMe,
     data: $TSFixMe
 ): void => {
@@ -943,7 +1010,7 @@ export function createDuplicateStatusPage(
     };
 }
 
-export const fetchStatusPage = (statusPageSlug: $TSFixMe): void => {
+export const fetchStatusPage: Function = (statusPageSlug: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`StatusPage/${statusPageSlug}`);
         promise.then(
@@ -962,7 +1029,7 @@ export const fetchStatusPage = (statusPageSlug: $TSFixMe): void => {
     };
 };
 
-export const duplicateStatusPageReset = (): void => {
+export const duplicateStatusPageReset: Function = (): void => {
     return {
         type: types.DUPLICATE_STATUSPAGE_RESET,
     };
@@ -970,13 +1037,13 @@ export const duplicateStatusPageReset = (): void => {
 
 //Update status page embedded css
 
-export const updateStatusPageEmbeddedCssRequest = (): void => {
+export const updateStatusPageEmbeddedCssRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     };
 };
 
-export const updateStatusPageEmbeddedCssSuccess = (
+export const updateStatusPageEmbeddedCssSuccess: Function = (
     statusPage: $TSFixMe
 ): void => {
     return {
@@ -985,7 +1052,9 @@ export const updateStatusPageEmbeddedCssSuccess = (
     };
 };
 
-export const updateStatusPageEmbeddedCssError = (error: ErrorPayload): void => {
+export const updateStatusPageEmbeddedCssError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUSPAGE_EMBEDDED_CSS_FAILURE,
         payload: error,
@@ -1018,20 +1087,24 @@ export function updateStatusPageEmbeddedCss(
 }
 
 //reset branding colors
-export const resetBrandingColorsRequest = (): void => {
+export const resetBrandingColorsRequest: Function = (): void => {
     return {
         type: types.RESET_BRANDING_COLORS_REQUEST,
     };
 };
 
-export const resetBrandingColorsSuccess = (colors: $TSFixMe): void => {
+export const resetBrandingColorsSuccess: Function = (
+    colors: $TSFixMe
+): void => {
     return {
         type: types.RESET_BRANDING_COLORS_SUCCESS,
         payload: colors,
     };
 };
 
-export const resetBrandingColorsError = (error: ErrorPayload): void => {
+export const resetBrandingColorsError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.RESET_BRANDING_COLORS_FAILURE,
         payload: error,
@@ -1064,13 +1137,13 @@ export function resetBrandingColors(
 
 //Update status page embedded css
 
-export const resetStatusPageEmbeddedCssRequest = (): void => {
+export const resetStatusPageEmbeddedCssRequest: Function = (): void => {
     return {
         type: types.RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     };
 };
 
-export const resetStatusPageEmbeddedCssSuccess = (
+export const resetStatusPageEmbeddedCssSuccess: Function = (
     statusPage: $TSFixMe
 ): void => {
     return {
@@ -1079,7 +1152,9 @@ export const resetStatusPageEmbeddedCssSuccess = (
     };
 };
 
-export const resetStatusPageEmbeddedCssError = (error: ErrorPayload): void => {
+export const resetStatusPageEmbeddedCssError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
         payload: error,
@@ -1110,27 +1185,31 @@ export function resetStatusPageEmbeddedCss(
     };
 }
 //status page layout
-export const updateStatusPageLayoutRequest = (): void => {
+export const updateStatusPageLayoutRequest: Function = (): void => {
     return {
         type: types.UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
     };
 };
 
-export const updateStatusPageLayoutSuccess = (statusPage: $TSFixMe): void => {
+export const updateStatusPageLayoutSuccess: Function = (
+    statusPage: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_STATUS_PAGE_LAYOUT_SUCCESS,
         payload: statusPage,
     };
 };
 
-export const updateStatusPageLayoutError = (error: ErrorPayload): void => {
+export const updateStatusPageLayoutError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
         payload: error,
     };
 };
 
-export const updateStatusPageLayout = (
+export const updateStatusPageLayout: Function = (
     projectId: ObjectID,
     data: $TSFixMe
 ): void => {
@@ -1154,20 +1233,20 @@ export const updateStatusPageLayout = (
     };
 };
 // fetch subscribers by monitors in statuspage
-export const fetchSubscriberRequest = (): void => {
+export const fetchSubscriberRequest: Function = (): void => {
     return {
         type: types.FETCH_SUBSCRIBER_REQUEST,
     };
 };
 
-export const fetchSubscriberSuccess = (data: $TSFixMe): void => {
+export const fetchSubscriberSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.FETCH_SUBSCRIBER_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchSubscriberFailure = (error: ErrorPayload): void => {
+export const fetchSubscriberFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_SUBSCRIBER_FAILURE,
         payload: error,
@@ -1197,20 +1276,24 @@ export function fetchStatusPageSubscribers(
     };
 }
 
-export const createExternalStatusPageRequest = (): void => {
+export const createExternalStatusPageRequest: Function = (): void => {
     return {
         type: types.CREATE_EXTERNAL_STATUSPAGE_REQUEST,
     };
 };
 
-export const createExternalStatusPageSuccess = (data: $TSFixMe): void => {
+export const createExternalStatusPageSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.CREATE_EXTERNAL_STATUSPAGE_SUCCESS,
         payload: data,
     };
 };
 
-export const createExternalStatusPageFailure = (error: ErrorPayload): void => {
+export const createExternalStatusPageFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.CREATE_EXTERNAL_STATUSPAGE_FAILURE,
         payload: error,
@@ -1244,20 +1327,24 @@ export function createExternalStatusPage(
     };
 }
 
-export const updateExternalStatusPageRequest = (): void => {
+export const updateExternalStatusPageRequest: Function = (): void => {
     return {
         type: types.UPDATE_EXTERNAL_STATUSPAGE_REQUEST,
     };
 };
 
-export const updateExternalStatusPageSuccess = (data: $TSFixMe): void => {
+export const updateExternalStatusPageSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_EXTERNAL_STATUSPAGE_SUCCESS,
         payload: data,
     };
 };
 
-export const updateExternalStatusPageFailure = (error: ErrorPayload): void => {
+export const updateExternalStatusPageFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
         payload: error,
@@ -1291,20 +1378,24 @@ export function updateExternalStatusPage(
     };
 }
 
-export const fetchExternalStatusPagesRequest = (): void => {
+export const fetchExternalStatusPagesRequest: Function = (): void => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
     };
 };
 
-export const fetchExternalStatusPagesSuccess = (data: $TSFixMe): void => {
+export const fetchExternalStatusPagesSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchExternalStatusPagesFailure = (error: ErrorPayload): void => {
+export const fetchExternalStatusPagesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
         payload: error,
@@ -1336,20 +1427,24 @@ export function fetchExternalStatusPages(
     };
 }
 
-export const deleteExternalStatusPageRequest = (): void => {
+export const deleteExternalStatusPageRequest: Function = (): void => {
     return {
         type: types.DELETE_EXTERNAL_STATUSPAGE_REQUEST,
     };
 };
 
-export const deleteExternalStatusPageSuccess = (data: $TSFixMe): void => {
+export const deleteExternalStatusPageSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.DELETE_EXTERNAL_STATUSPAGE_SUCCESS,
         payload: data,
     };
 };
 
-export const deleteExternalStatusPageFailure = (error: ErrorPayload): void => {
+export const deleteExternalStatusPageFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.DELETE_EXTERNAL_STATUSPAGE_FAILURE,
         payload: error,
@@ -1381,20 +1476,22 @@ export function deleteExternalStatusPage(
     };
 }
 
-export const createAnnouncementRequest = (): void => {
+export const createAnnouncementRequest: Function = (): void => {
     return {
         type: types.CREATE_ANNOUNCEMEMT_REQUEST,
     };
 };
 
-export const createAnnouncementSuccess = (data: $TSFixMe): void => {
+export const createAnnouncementSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.CREATE_ANNOUNCEMEMT_SUCCESS,
         payload: data,
     };
 };
 
-export const createAnnouncementFailure = (error: ErrorPayload): void => {
+export const createAnnouncementFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.CREATE_ANNOUNCEMEMT_FAILURE,
         payload: error,
@@ -1456,20 +1553,22 @@ export function updateAnnouncement(
     };
 }
 
-export const fetchAnnouncementRequest = (): void => {
+export const fetchAnnouncementRequest: Function = (): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMT_REQUEST,
     };
 };
 
-export const fetchAnnouncementSuccess = (data: $TSFixMe): void => {
+export const fetchAnnouncementSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMT_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchAnnouncementFailure = (error: ErrorPayload): void => {
+export const fetchAnnouncementFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMT_FAILURE,
         payload: error,
@@ -1499,20 +1598,24 @@ export function fetchAnnouncements(
     };
 }
 
-export const fetchAnnouncementLogsRequest = (): void => {
+export const fetchAnnouncementLogsRequest: Function = (): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_REQUEST,
     };
 };
 
-export const fetchAnnouncementLogsSuccess = (data: $TSFixMe): void => {
+export const fetchAnnouncementLogsSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchAnnouncementLogsFailure = (error: ErrorPayload): void => {
+export const fetchAnnouncementLogsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
         payload: error,
@@ -1542,14 +1645,18 @@ export function fetchAnnouncementLogs(
     };
 }
 
-export const fetchSingleAnnouncementSuccess = (data: $TSFixMe): void => {
+export const fetchSingleAnnouncementSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SINCLE_ANNOUNCEMENT_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchSingleAnnouncementFailure = (error: ErrorPayload): void => {
+export const fetchSingleAnnouncementFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_SINCLE_ANNOUNCEMENT_FAILURE,
         payload: error,
@@ -1577,46 +1684,50 @@ export function fetchSingleAnnouncement(
     };
 }
 
-export const handleAnnouncementSuccess = (data: $TSFixMe): void => {
+export const handleAnnouncementSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.HANDLE_ANNOUNCEMENT_SUCCESS,
         payload: data,
     };
 };
 
-export const handleAnnouncementFailure = (error: ErrorPayload): void => {
+export const handleAnnouncementFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.HANDLE_ANNOUNCEMENT_FAILURE,
         payload: error,
     };
 };
 
-export const resetHandleAnnouncement = (): void => {
+export const resetHandleAnnouncement: Function = (): void => {
     return {
         type: types.RESET_HANDLE_ANNOUNCEMENT,
     };
 };
 
-export const resetDeleteAnnouncement = (): void => {
+export const resetDeleteAnnouncement: Function = (): void => {
     return {
         type: types.RESET_DELETE_ANNOUNCEMENT,
     };
 };
 
-export const deleteAnnouncementRequest = (): void => {
+export const deleteAnnouncementRequest: Function = (): void => {
     return {
         type: types.DELETE_ANNOUNCEMENT_REQUEST,
     };
 };
 
-export const deleteAnnouncementSuccess = (data: $TSFixMe): void => {
+export const deleteAnnouncementSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.DELETE_ANNOUNCEMENT_SUCCESS,
         payload: data,
     };
 };
 
-export const deleteAnnouncementFailure = (error: ErrorPayload): void => {
+export const deleteAnnouncementFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.DELETE_ANNOUNCEMENT_FAILURE,
         payload: error,
@@ -1665,7 +1776,9 @@ export function deleteAnnouncementLog(
 
 // Calls the API to delete StatusPages after deleting the project
 
-export const deleteProjectStatusPages = (projectId: ObjectID): void => {
+export const deleteProjectStatusPages: Function = (
+    projectId: ObjectID
+): void => {
     return {
         type: types.DELETE_PROJECT_STATUSPAGES,
         payload: projectId,
@@ -1674,7 +1787,7 @@ export const deleteProjectStatusPages = (projectId: ObjectID): void => {
 
 // Logo
 
-export const createLogoCache = (imageUrl: URL): void => {
+export const createLogoCache: Function = (imageUrl: URL): void => {
     return {
         type: types.LOGO_CACHE_INSERT,
         payload: imageUrl,
@@ -1682,46 +1795,46 @@ export const createLogoCache = (imageUrl: URL): void => {
 };
 
 // Banner
-export const createBannerCache = (imageUrl: URL): void => {
+export const createBannerCache: Function = (imageUrl: URL): void => {
     return {
         type: types.BANNER_CACHE_INSERT,
         payload: imageUrl,
     };
 };
 
-export const resetBannerCache = (): void => {
+export const resetBannerCache: Function = (): void => {
     return {
         type: types.BANNER_CACHE_RESET,
     };
 };
 
-export const setStatusPageColors = (color: $TSFixMe): void => {
+export const setStatusPageColors: Function = (color: $TSFixMe): void => {
     return {
         type: types.SET_STATUS_PAGE_COLORS,
         payload: color,
     };
 };
 
-export const createFaviconCache = (imageUrl: URL): void => {
+export const createFaviconCache: Function = (imageUrl: URL): void => {
     return {
         type: types.FAVICON_CACHE_INSERT,
         payload: imageUrl,
     };
 };
 
-export const resetLogoCache = (): void => {
+export const resetLogoCache: Function = (): void => {
     return {
         type: types.LOGO_CACHE_RESET,
     };
 };
 
-export const resetFaviconCache = (): void => {
+export const resetFaviconCache: Function = (): void => {
     return {
         type: types.FAVICON_CACHE_RESET,
     };
 };
 
-export const switchStatusPage = (statusPage: $TSFixMe): void => {
+export const switchStatusPage: Function = (statusPage: $TSFixMe): void => {
     return {
         type: types.SWITCH_STATUSPAGE_SUCCESS,
         payload: statusPage,

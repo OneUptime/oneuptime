@@ -5,16 +5,18 @@ import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
-export const createMonitorSlaRequest = (): void => ({
+export const createMonitorSlaRequest: Function = (): void => ({
     type: types.CREATE_MONITOR_SLA_REQUEST,
 });
 
-export const createMonitorSlaSuccess = (payload: $TSFixMe): void => ({
+export const createMonitorSlaSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.CREATE_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const createMonitorSlaFailure = (error: ErrorPayload): void => ({
+export const createMonitorSlaFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.CREATE_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -43,16 +45,18 @@ export const createMonitorSla =
         }
     };
 
-export const updateMonitorSlaRequest = (): void => ({
+export const updateMonitorSlaRequest: Function = (): void => ({
     type: types.UPDATE_MONITOR_SLA_REQUEST,
 });
 
-export const updateMonitorSlaSuccess = (payload: $TSFixMe): void => ({
+export const updateMonitorSlaSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.UPDATE_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const updateMonitorSlaFailure = (error: ErrorPayload): void => ({
+export const updateMonitorSlaFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.UPDATE_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -88,16 +92,18 @@ export const updateMonitorSla =
         }
     };
 
-export const fetchMonitorSlasRequest = (): void => ({
+export const fetchMonitorSlasRequest: Function = (): void => ({
     type: types.FETCH_MONITOR_SLAS_REQUEST,
 });
 
-export const fetchMonitorSlasSuccess = (payload: $TSFixMe): void => ({
+export const fetchMonitorSlasSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.FETCH_MONITOR_SLAS_SUCCESS,
     payload,
 });
 
-export const fetchMonitorSlasFailure = (error: ErrorPayload): void => ({
+export const fetchMonitorSlasFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_MONITOR_SLAS_FAILURE,
     payload: error,
 });
@@ -126,16 +132,18 @@ export const fetchMonitorSlas =
         }
     };
 
-export const deleteMonitorSlaRequest = (): void => ({
+export const deleteMonitorSlaRequest: Function = (): void => ({
     type: types.DELETE_MONITOR_SLA_REQUEST,
 });
 
-export const deleteMonitorSlaSuccess = (payload: $TSFixMe): void => ({
+export const deleteMonitorSlaSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.DELETE_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const deleteMonitorSlaFailure = (error: ErrorPayload): void => ({
+export const deleteMonitorSlaFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.DELETE_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -164,21 +172,27 @@ export const deleteMonitorSla =
     };
 
 // set active monitor sla
-export const setActiveMonitorSla = (monitorSlaId: $TSFixMe): void => ({
+export const setActiveMonitorSla: Function = (
+    monitorSlaId: $TSFixMe
+): void => ({
     type: types.SET_ACTIVE_MONITOR_SLA,
     payload: monitorSlaId,
 });
 
-export const fetchDefaultMonitorSlaRequest = (): void => ({
+export const fetchDefaultMonitorSlaRequest: Function = (): void => ({
     type: types.FETCH_DEFAULT_MONITOR_SLA_REQUEST,
 });
 
-export const fetchDefaultMonitorSlaSuccess = (payload: $TSFixMe): void => ({
+export const fetchDefaultMonitorSlaSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_DEFAULT_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const fetchDefaultMonitorSlaFailure = (error: ErrorPayload): void => ({
+export const fetchDefaultMonitorSlaFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_DEFAULT_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -205,12 +219,12 @@ export const fetchDefaultMonitorSla =
             dispatch(fetchDefaultMonitorSlaFailure(errorMsg));
         }
     };
-export const paginateNext = (): void => {
+export const paginateNext: Function = (): void => {
     return {
         type: types.NEXT_MONITOR_SLA_PAGE,
     };
 };
-export const paginatePrev = (): void => {
+export const paginatePrev: Function = (): void => {
     return {
         type: types.PREV_MONITOR_SLA_PAGE,
     };

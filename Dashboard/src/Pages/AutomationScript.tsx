@@ -151,7 +151,7 @@ class AutomationScript extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchAutomatedScript,
@@ -160,7 +160,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
     // sort subprojects names for display in alphabetical order
     const subProjectNames =

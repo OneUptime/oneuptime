@@ -4,28 +4,28 @@ import * as types from '../constants/license';
 import Route from 'Common/Types/api/route';
 // fetch license
 
-export const fetchLicenseRequest = (promise: $TSFixMe): void => {
+export const fetchLicenseRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_LICENSE_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchLicenseError = (error: $TSFixMe): void => {
+export const fetchLicenseError: Function = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_LICENSE_FAILED,
         payload: error,
     };
 };
 
-export const fetchLicenseSuccess = (license: $TSFixMe): void => {
+export const fetchLicenseSuccess: Function = (license: $TSFixMe): void => {
     return {
         type: types.FETCH_LICENSE_SUCCESS,
         payload: license,
     };
 };
 
-export const resetFetchLicense = (): void => {
+export const resetFetchLicense: Function = (): void => {
     return {
         type: types.FETCH_LICENSE_RESET,
     };
@@ -67,28 +67,28 @@ export const fetchLicense =
 
 // confirm license
 
-export const confirmLicenseRequest = (promise: $TSFixMe): void => {
+export const confirmLicenseRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.CONFIRM_LICENSE_REQUEST,
         payload: promise,
     };
 };
 
-export const confirmLicenseError = (error: $TSFixMe): void => {
+export const confirmLicenseError: Function = (error: $TSFixMe): void => {
     return {
         type: types.CONFIRM_LICENSE_FAILED,
         payload: error,
     };
 };
 
-export const confirmLicenseSuccess = (license: $TSFixMe): void => {
+export const confirmLicenseSuccess: Function = (license: $TSFixMe): void => {
     return {
         type: types.CONFIRM_LICENSE_SUCCESS,
         payload: license,
     };
 };
 
-export const resetConfirmLicense = (): void => {
+export const resetConfirmLicense: Function = (): void => {
     return {
         type: types.CONFIRM_LICENSE_RESET,
     };

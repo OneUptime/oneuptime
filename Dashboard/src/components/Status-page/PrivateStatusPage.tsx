@@ -164,7 +164,7 @@ export class PrivateStatusPage extends Component<PrivateStatusPageProps>{
         const { handleSubmit, formValues } = this.props;
 
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
-        const historyLimit = (value: $TSFixMe) => {
+        const historyLimit: Function = (value: $TSFixMe) => {
             if (value < 1) {
                 return 1;
             } else if (value > 30) {
@@ -1513,7 +1513,7 @@ PrivateStatusPage.propTypes = {
     formValues: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updatePrivateStatusPage,
         updatePrivateStatusPageRequest,
@@ -1525,7 +1525,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {};
     const { currentProject } = state.project;
     const {

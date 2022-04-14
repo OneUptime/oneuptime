@@ -4,61 +4,61 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/tutorial';
 import Route from 'Common/Types/api/route';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const fetchTutorialRequest = (promise: $TSFixMe): void => {
+export const fetchTutorialRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_TUTORIAL_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchTutorialSuccess = (tutorial: $TSFixMe): void => {
+export const fetchTutorialSuccess: Function = (tutorial: $TSFixMe): void => {
     return {
         type: types.FETCH_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
 };
 
-export const fetchTutorialError = (error: ErrorPayload): void => {
+export const fetchTutorialError: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_TUTORIAL_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchTutorial = (): void => {
+export const resetFetchTutorial: Function = (): void => {
     return {
         type: types.FETCH_TUTORIAL_RESET,
     };
 };
 
-export const closeTutorialRequest = (promise: $TSFixMe): void => {
+export const closeTutorialRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.CLOSE_TUTORIAL_REQUEST,
         payload: promise,
     };
 };
 
-export const closeTutorialSuccess = (tutorial: $TSFixMe): void => {
+export const closeTutorialSuccess: Function = (tutorial: $TSFixMe): void => {
     return {
         type: types.CLOSE_TUTORIAL_SUCCESS,
         payload: tutorial,
     };
 };
 
-export const closeTutorialError = (error: ErrorPayload): void => {
+export const closeTutorialError: Function = (error: ErrorPayload): void => {
     return {
         type: types.CLOSE_TUTORIAL_FAILURE,
         payload: error,
     };
 };
 
-export const resetCloseTutorial = (): void => {
+export const resetCloseTutorial: Function = (): void => {
     return {
         type: types.CLOSE_TUTORIAL_RESET,
     };
 };
 
-export const fetchTutorial = (): void => {
+export const fetchTutorial: Function = (): void => {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.get(new Route('tutorial'));
@@ -78,7 +78,10 @@ export const fetchTutorial = (): void => {
     };
 };
 
-export const closeTutorial = (type: $TSFixMe, projectId: ObjectID): void => {
+export const closeTutorial: Function = (
+    type: $TSFixMe,
+    projectId: ObjectID
+): void => {
     return function (dispatch: Dispatch): void {
         let promise = null;
         promise = BackendAPI.put('tutorial', { type, projectId });

@@ -103,7 +103,7 @@ class SmsLogsErrorViewModal extends Component<ComponentProps> {
 
 SmsLogsErrorViewModal.displayName = 'SmsLogsErrorViewModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.smsLogs &&

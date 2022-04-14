@@ -44,7 +44,7 @@ import {
 const selectEmailStatus =
     'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-const sleep = (waitTimeInMs: $TSFixMe): void =>
+const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let token: $TSFixMe,

@@ -38,7 +38,7 @@ interface AutomatedScripViewProps {
     subProjects?: unknown[];
 }
 
-const AutomatedScripView = (props: AutomatedScripViewProps) => {
+const AutomatedScripView: Function = (props: AutomatedScripViewProps) => {
     const { history } = props;
 
     const parentRoute = getParentRoute(history.location.pathname);
@@ -75,7 +75,7 @@ const AutomatedScripView = (props: AutomatedScripViewProps) => {
         }
     }, [props.activeProject]);
 
-    const tabSelected = (index: $TSFixMe) => {
+    const tabSelected: Function = (index: $TSFixMe) => {
         const tabSlider = document.getElementById('tab-slider');
 
         setTimeout(() => {
@@ -713,7 +713,7 @@ AutomatedScripView.propTypes = {
     subProjects: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject,
     activeProject: state.subProject.activeSubProject,
     script: state.automatedScripts.individualScript,
@@ -723,6 +723,6 @@ const mapStateToProps = (state: RootState) => ({
     subProjects: state.subProject.subProjects.subProjects
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchSingleAutomatedScript }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchSingleAutomatedScript }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AutomatedScripView);

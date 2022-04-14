@@ -239,9 +239,9 @@ PerformanceTrackerList.propTypes = {
     projectId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchLastMetrics }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchLastMetrics }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         lastMetricsObj: state.performanceTracker.lastMetrics,
     };

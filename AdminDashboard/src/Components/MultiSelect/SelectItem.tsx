@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 //#region
 
-const DefaultRenderer = ({
+const DefaultRenderer: Function = ({
     checked,
     option,
     disabled,

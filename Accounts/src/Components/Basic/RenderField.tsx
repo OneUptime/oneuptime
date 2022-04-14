@@ -19,7 +19,7 @@ interface RenderFieldProps {
     style?: object;
 }
 
-const RenderField = ({
+const RenderField: Function = ({
     input,
     placeholder,
     type,

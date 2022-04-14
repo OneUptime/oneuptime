@@ -239,7 +239,7 @@ const ProbeAddModalForm = reduxForm({
     form: 'AddProbe', // a unique identifier for this form
 })(ProbeAddModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ addProbe, resetAddProbe }, dispatch);
 };
 

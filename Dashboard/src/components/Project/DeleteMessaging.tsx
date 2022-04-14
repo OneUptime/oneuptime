@@ -138,7 +138,7 @@ DeleteMessaging.propTypes = {
     requesting: PropTypes.bool.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         changeDeleteModal,
     },

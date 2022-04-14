@@ -174,14 +174,14 @@ RemoveIncidentPriority.propTypes = {
     deleteIncidentPriority: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         deleteIncidentPriority: state.incidentPriorities.deleteIncidentPriority,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteIncidentPriorityAction,
     },

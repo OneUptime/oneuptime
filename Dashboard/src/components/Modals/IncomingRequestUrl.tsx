@@ -156,13 +156,13 @@ IncomingRequestUrl.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject,
 
     incomingRequest:
         state.incomingRequest.createIncomingRequest.incomingRequest
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncomingRequestUrl);

@@ -134,12 +134,12 @@ RemoveExternalStatusPage.propTypes = {
     data: PropTypes.object,
     requesting: PropTypes.bool,
 };
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         requesting: state.statusPage.externalStatusPages.requesting,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             deleteExternalStatusPage,

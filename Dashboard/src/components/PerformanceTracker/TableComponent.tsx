@@ -1073,7 +1073,7 @@ TableComponent.propTypes = {
     resetIncomingDate: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchIncomingMetrics,
         fetchOutgoingMetrics,
@@ -1088,7 +1088,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         incomingStartDate: state.performanceTrackerMetric.incomingStartDate,

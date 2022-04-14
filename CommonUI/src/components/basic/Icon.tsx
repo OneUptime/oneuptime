@@ -22,7 +22,7 @@ export interface ComponentProps {
     size: SizeProp;
 }
 
-const Icon = ({
+const Icon: Function = ({
     icon,
     size
 }: ComponentProps) => {

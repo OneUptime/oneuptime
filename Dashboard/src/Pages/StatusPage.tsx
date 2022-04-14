@@ -825,7 +825,7 @@ class StatusPage extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchSubProjectStatusPages,

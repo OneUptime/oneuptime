@@ -744,7 +744,7 @@ export class ScheduleComponent extends Component<ScheduleComponentProps>{
 
 
 ScheduleComponent.displayName = 'ScheduleComponent';
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

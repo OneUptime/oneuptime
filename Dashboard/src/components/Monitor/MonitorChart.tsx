@@ -18,7 +18,7 @@ import KubeStatefulset from '../modals/KubeStatefulset';
 import KubeDeployment from '../modals/KubeDeployment';
 import DataPathHoC from '../DataPathHoC';
 
-const calculateTime = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => {
+const calculateTime: Function = (statuses: $TSFixMe, start: $TSFixMe, range: $TSFixMe) => {
     const timeBlock = [];
     let totalUptime = 0;
     let totalTime = 0;
@@ -2206,7 +2206,7 @@ MonitorChart.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,
@@ -2214,6 +2214,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorChart);

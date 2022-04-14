@@ -193,7 +193,7 @@ ComponentSettingsAdvanced.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         component:
             state.component && state.component.currentComponent.component,
@@ -203,7 +203,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         showDeleteModal,
         openModal,

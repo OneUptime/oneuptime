@@ -1,6 +1,6 @@
 import { Dispatch } from 'redux';
 
-export const setStartDate = (date: $TSFixMe): void => {
+export const setStartDate: Function = (date: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: 'SET_START_DATE',
@@ -9,7 +9,7 @@ export const setStartDate = (date: $TSFixMe): void => {
     };
 };
 
-export const setEndDate = (date: $TSFixMe): void => {
+export const setEndDate: Function = (date: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: 'SET_END_DATE',

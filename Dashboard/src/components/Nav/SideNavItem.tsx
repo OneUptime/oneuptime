@@ -640,7 +640,7 @@ export class SidebarNavItem extends Component<SidebarNavItemProps>{
 
 SidebarNavItem.displayName = 'SidebarNavItem';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     component: state.component,
     currentProject: state.project.currentProject,
 
@@ -654,7 +654,7 @@ const mapStateToProps = (state: RootState) => ({
     activesubProjectId: state.subProject.activeSubProject
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { loadPage, animateSidebar, toggleProjectSettingsMore },
     dispatch
 );

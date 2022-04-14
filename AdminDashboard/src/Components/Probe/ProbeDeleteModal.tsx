@@ -144,7 +144,7 @@ class ProbeDeleteModal extends Component<ComponentProps> {
 
 ProbeDeleteModal.displayName = 'ProbeDeleteModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.probes &&
@@ -159,7 +159,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteProbe }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteProbe }, dispatch);
 
 
 ProbeDeleteModal.propTypes = {

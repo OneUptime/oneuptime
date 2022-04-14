@@ -70,7 +70,7 @@ class ComponentIssue extends Component<ComponentProps> {
         return <div>{errorTrackersList}</div>;
     }
 }
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchComponentIssues,

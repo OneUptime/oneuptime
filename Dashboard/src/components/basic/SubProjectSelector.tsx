@@ -20,7 +20,7 @@ interface SubProjectSelectorProps {
     currentProject?: object;
 }
 
-const SubProjectSelector = ({
+const SubProjectSelector: Function = ({
     input,
     className,
     disabled,
@@ -70,7 +70,7 @@ const SubProjectSelector = ({
         });
     }, [input]);
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);

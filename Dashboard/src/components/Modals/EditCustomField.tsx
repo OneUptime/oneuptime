@@ -363,7 +363,7 @@ const UpdateCustomFieldForm = reduxForm({
     destroyOnUnmount: true,
 })(UpdateCustomField);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateCustomField,
         closeModal,
@@ -371,7 +371,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const customFieldToBeUpdated = state.modal.modals[0].customField;
     const initialValues = {};
 

@@ -385,7 +385,7 @@ class AddNoteModal extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createScheduledEventNote,
         closeModal,
@@ -394,7 +394,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const currentProject = state.project.currentProject;
     const event_state =
         state.form.AddNote &&

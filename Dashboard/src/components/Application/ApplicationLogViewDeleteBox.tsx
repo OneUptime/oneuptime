@@ -118,12 +118,12 @@ class ApplicationLogViewDeleteBox extends Component<ComponentProps> {
 
 ApplicationLogViewDeleteBox.displayName = 'ApplicationLogViewDeleteBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { openModal, closeModal, deleteApplicationLog },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         applicationLogState: state.applicationLog,
         currentProject: state.project.currentProject,

@@ -283,7 +283,7 @@ const DuplicateStatusPageForm = reduxForm({
     validate,
 })(StatusPageForm);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         duplicateModalId: state.modal.modals[0].id,
@@ -292,7 +292,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, createDuplicateStatusPage },
         dispatch

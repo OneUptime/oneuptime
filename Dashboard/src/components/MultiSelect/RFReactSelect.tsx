@@ -60,7 +60,7 @@ interface RFReactSelectProps {
     valueKey?: string;
 }
 
-const RFReactSelect = ({
+const RFReactSelect: Function = ({
     input,
     options,
     valueKey,

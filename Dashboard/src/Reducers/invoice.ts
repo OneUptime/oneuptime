@@ -1,6 +1,6 @@
 import * as types from '../constants/invoice';
 import Action from 'CommonUI/src/types/action';
-const getInitialState = (): void => ({
+const getInitialState: Function = (): void => ({
     requesting: false,
     error: null,
     success: false,

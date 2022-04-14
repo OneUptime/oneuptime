@@ -730,7 +730,7 @@ class MonitorDashboardView extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             destroy,
@@ -753,7 +753,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug } = ownProps.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

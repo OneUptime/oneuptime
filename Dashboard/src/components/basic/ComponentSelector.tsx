@@ -18,7 +18,7 @@ interface ComponentSelectorProps {
     components: unknown[];
 }
 
-const ComponentSelector = ({
+const ComponentSelector: Function = ({
     input,
     className,
     disabled,
@@ -62,7 +62,7 @@ const ComponentSelector = ({
         });
     }, [input]);
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);

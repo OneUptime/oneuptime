@@ -159,11 +159,11 @@ class Projects extends Component<ComponentProps> {
 
 Projects.displayName = 'Projects';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchProjects, searchProjects }, dispatch);
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const projects = state.project.projects;
     const searchProjects = state.project.searchProjects;
     const requesting =

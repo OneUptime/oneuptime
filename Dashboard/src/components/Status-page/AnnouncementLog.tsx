@@ -416,12 +416,12 @@ AnnouncementLog.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     logs: state.statusPage.announcementLogs.logsList,
     requesting: state.statusPage.announcementLogs.requesting,
     error: state.statusPage.announcementLogs.error
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchAnnouncementLogs, openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchAnnouncementLogs, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AnnouncementLog);

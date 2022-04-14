@@ -157,7 +157,7 @@ DeleteIncident.propTypes = {
     deleting: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleting: state.incident.incident.deleteIncident
             ? state.incident.incident.deleteIncident.requesting
@@ -165,6 +165,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteIncident }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteIncident }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteIncident);

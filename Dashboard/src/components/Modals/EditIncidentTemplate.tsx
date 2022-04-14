@@ -545,7 +545,7 @@ const EditIncidentTemplateForm = reduxForm({
     enableReinitialize: true,
 })(EditIncidentTemplate);
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { data } = ownProps;
     const { template } = data;
     const initialValues = {
@@ -569,7 +569,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
         initialValues,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateIncidentTemplate,
         setRevealIncidentSettingsVariables,

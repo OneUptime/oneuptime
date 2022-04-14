@@ -67,7 +67,7 @@ class ResetPasswordPage extends React.Component<ResetPasswordPageProps> {
 
 ResetPasswordPage.displayName = 'ResetPasswordPage';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         masterAdminExists: state.login.masterAdmin.exists,
         requestingMasterAdmin: state.login.masterAdmin.requesting,

@@ -185,7 +185,7 @@ DeleteCustomField.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.customField.customField.requesting,
         deleteError: state.customField.customField.error,
@@ -193,6 +193,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteCustomField }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteCustomField }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteCustomField);

@@ -12,7 +12,7 @@ interface SelectLanguageProps {
     theme?: boolean;
 }
 
-const SelectLanguage = ({
+const SelectLanguage: Function = ({
     isShown,
     setIsShown,
     theme
@@ -31,12 +31,12 @@ const SelectLanguage = ({
         };
     }, []);
 
-    const removeDocumentClickHandler = () => {
+    const removeDocumentClickHandler: Function = () => {
 
         document.removeEventListener('click', documentClickHandler.current);
     };
 
-    const handleCloseButtonClick = () => {
+    const handleCloseButtonClick: Function = () => {
         setIsShown(false);
         removeDocumentClickHandler();
     };
@@ -65,5 +65,5 @@ SelectLanguage.propTypes = {
     theme: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu }, dispatch);
 export default connect(null, mapDispatchToProps)(SelectLanguage);

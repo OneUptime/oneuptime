@@ -149,7 +149,7 @@ DeleteNoteModal.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deletingNote: state.scheduledEvent.deleteScheduledEventNote.requesting,
         deleteError: state.scheduledEvent.deleteScheduledEventNote.error,
@@ -157,6 +157,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteScheduledEventNote, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteScheduledEventNote, closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteNoteModal);

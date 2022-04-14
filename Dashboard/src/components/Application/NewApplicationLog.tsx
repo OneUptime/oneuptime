@@ -393,7 +393,7 @@ const NewApplicationLogForm = new reduxForm({
     enableReinitialize: true,
 })(NewApplicationLog);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createApplicationLog,
         createApplicationLogSuccess,
@@ -404,7 +404,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const requesting = state.applicationLog.newApplicationLog.requesting;

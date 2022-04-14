@@ -13,7 +13,7 @@ interface ApplicationSecurityProps {
     applicationSecurityLogs?: unknown[];
 }
 
-const ApplicationSecurity = ({
+const ApplicationSecurity: Function = ({
     name,
     applicationSecurityId,
     applicationSecuritySlug,
@@ -65,7 +65,7 @@ ApplicationSecurity.propTypes = {
     applicationSecurityLogs: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         applicationSecurityLogs: state.security.applicationSecurityLogs,
     };

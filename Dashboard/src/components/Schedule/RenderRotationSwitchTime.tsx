@@ -11,7 +11,7 @@ interface RenderRotationSwitchTimeProps {
     rotateBy: string;
 }
 
-const RenderRotationSwitchTime = ({
+const RenderRotationSwitchTime: Function = ({
     policy,
     rotateBy
 }: RenderRotationSwitchTimeProps) => {

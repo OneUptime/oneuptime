@@ -39,11 +39,11 @@ TooltipModal.propTypes = {
     body: PropTypes.string,
 };
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return {};
 };
 

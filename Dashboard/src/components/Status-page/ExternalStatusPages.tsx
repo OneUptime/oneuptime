@@ -177,7 +177,7 @@ ExternalStatusPages.propTypes = {
     statusPageId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchExternalStatusPages,
         openModal,
@@ -185,7 +185,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         statusPage: state.statusPage,
     };

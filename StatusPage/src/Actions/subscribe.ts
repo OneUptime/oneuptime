@@ -12,65 +12,65 @@ export const SUBSCRIBE_FAILURE: string = 'SUBSCRIBE_FAILURE';
 export const VALIDATION_ERROR: string = 'VALIDATION_ERROR';
 export const OPEN_LANGUAGE_MENU: string = 'OPEN_LANGUAGE_MENU';
 
-export const openSubscribeMenu = (): void => {
+export const openSubscribeMenu: Function = (): void => {
     return {
         type: OPEN_SUBSCRIBE_MENU,
     };
 };
 
-export const openLanguageMenu = (): void => {
+export const openLanguageMenu: Function = (): void => {
     return {
         type: OPEN_LANGUAGE_MENU,
     };
 };
 
-export const selectedMenu = (data: $TSFixMe): void => {
+export const selectedMenu: Function = (data: $TSFixMe): void => {
     return {
         type: SELECTED_MENU,
         payload: data,
     };
 };
 
-export const userData = (data: $TSFixMe): void => {
+export const userData: Function = (data: $TSFixMe): void => {
     return {
         type: USER_DATA,
         payload: data,
     };
 };
 
-export const userDataReset = (): void => {
+export const userDataReset: Function = (): void => {
     return {
         type: USER_DATA_RESET,
     };
 };
 
-export const subscribeRequest = (): void => {
+export const subscribeRequest: Function = (): void => {
     return {
         type: SUBSCRIBE_REQUEST,
     };
 };
 
-export const subscribeSuccess = (): void => {
+export const subscribeSuccess: Function = (): void => {
     return {
         type: SUBSCRIBE_SUCCESS,
     };
 };
 
-export const subscribeFailure = (data: $TSFixMe): void => {
+export const subscribeFailure: Function = (data: $TSFixMe): void => {
     return {
         type: SUBSCRIBE_FAILURE,
         payload: data,
     };
 };
 
-export const validationError = (error: ErrorPayload): void => {
+export const validationError: Function = (error: ErrorPayload): void => {
     return {
         type: VALIDATION_ERROR,
         payload: error,
     };
 };
 // Calls the API to get status
-export const subscribeUser = (
+export const subscribeUser: Function = (
     userDetails: $TSFixMe,
     monitors: $TSFixMe,
     projectId: ObjectID,

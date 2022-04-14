@@ -19,7 +19,7 @@ interface WebsiteIssuesBoxProps {
     issues?: unknown[];
 }
 
-const WebsiteIssuesBox = ({
+const WebsiteIssuesBox: Function = ({
     id,
     category,
     description,
@@ -481,7 +481,7 @@ class WebsiteMonitorIssues extends React.Component<WebsiteMonitorIssuesProps> {
     }
 }
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { componentSlug, monitorSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
@@ -512,7 +512,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchMonitorIssue,

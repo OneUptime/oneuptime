@@ -15,7 +15,7 @@ export interface ComponentProps {
     id: string;
 }
 
-const RenderTextArea = ({
+const RenderTextArea: Function = ({
     input,
     placeholder,
     type,

@@ -3264,7 +3264,7 @@ const NewMonitorForm = new reduxForm({
     enableReinitialize: true,
 })(NewMonitor);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createMonitor,
         createMonitorSuccess,
@@ -3299,7 +3299,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name_1000');
     const type = selector(state, 'type_1000');
     const mode = selector(state, 'mode_1000');

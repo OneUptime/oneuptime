@@ -145,9 +145,9 @@ export class MonitorViewDisableBox extends Component<MonitorViewDisableBoxProps>
 
 MonitorViewDisableBox.displayName = 'MonitorViewDisableBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, disableMonitor }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, disableMonitor }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

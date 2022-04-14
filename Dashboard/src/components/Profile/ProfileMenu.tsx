@@ -304,7 +304,7 @@ export class ProfileMenu extends Component<ProfileMenuProps>{
 
 ProfileMenu.displayName = 'ProfileMenu';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         profileSettings:
             state.profileSettings && state.profileSettings.profileSetting,
@@ -312,7 +312,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, hideProfileMenu, logoutUser },
         dispatch

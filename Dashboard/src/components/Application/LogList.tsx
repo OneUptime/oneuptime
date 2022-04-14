@@ -539,7 +539,7 @@ class LogList extends Component<ComponentProps> {
 
 LogList.displayName = 'LogList';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, getLogSuccess },
         dispatch

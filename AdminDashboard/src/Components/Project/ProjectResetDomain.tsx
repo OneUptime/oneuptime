@@ -205,7 +205,7 @@ ProjectResetDomain.propTypes = {
     resetProjectDomainOnMount: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     domainId: state.modal.modals[0].id,
     domain: state.modal.modals[0].domain,
     projectId: state.modal.modals[0].projectId,
@@ -213,7 +213,7 @@ const mapStateToProps = (state: RootState) => ({
     resetError: state.project.resetDomain.error
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         resetProjectDomain,

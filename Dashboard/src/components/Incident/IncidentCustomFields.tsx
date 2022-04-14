@@ -411,7 +411,7 @@ IncidentCustomFields.propTypes = {
     page: PropTypes.number,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchCustomFields,
@@ -420,7 +420,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         customFields: state.customField.customFields.fields,

@@ -39,7 +39,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const createOptions = (fontSize: $TSFixMe, padding: $TSFixMe) => {
+const createOptions: Function = (fontSize: $TSFixMe, padding: $TSFixMe) => {
     return {
         style: {
             base: {
@@ -383,7 +383,7 @@ const ProjectForm = new reduxForm({
     validate,
 })(_ProjectForm);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let planId;
     if (
         env('STRIPE_PUBLIC_KEY') &&
@@ -409,7 +409,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             createProjectRequest,

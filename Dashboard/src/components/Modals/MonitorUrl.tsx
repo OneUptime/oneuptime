@@ -97,7 +97,7 @@ MonitorUrl.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 

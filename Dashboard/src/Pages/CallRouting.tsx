@@ -185,12 +185,12 @@ CallRouting.propTypes = {
 
 CallRouting.displayName = 'CallRouting';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { getCallRoutingNumbers, getTeamAndSchedules, getCallRoutingLogs },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

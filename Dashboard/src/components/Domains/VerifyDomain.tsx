@@ -303,7 +303,7 @@ class VerifyDomain extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     requesting: state.project.verifyDomain.requesting,
     verifyError: state.project.verifyDomain.error,
     verificationToken: state.modal.modals[0].verificationToken,
@@ -313,7 +313,7 @@ const mapStateToProps = (state: RootState) => ({
     currentProject: state.modal.modals[0].currentProject
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         verifyProjectDomain,

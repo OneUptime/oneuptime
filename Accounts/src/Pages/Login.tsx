@@ -188,7 +188,7 @@ class LoginPage extends React.Component<LoginPageProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         login: state.login,
         masterAdminExists: state.login.masterAdmin.exists,
@@ -198,7 +198,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         loginUser,
         loginUserSso,

@@ -35,7 +35,7 @@ function submitMonitorForm(values: $TSFixMe, dispatch: Dispatch, props: $TSFixMe
     });
 }
 
-export const MonitorBox = (props: $TSFixMe) => {
+export const MonitorBox: Function = (props: $TSFixMe) => {
     const { currentProject, subProjects, subProjectId, schedule } = props;
     const currentProjectId = currentProject ? currentProject._id : null;
     const slug = currentProject ? currentProject.slug : null;
@@ -328,7 +328,7 @@ const AddMonitorsForm = new reduxForm({
     enableReinitialize: true,
 })(MonitorBox);
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
     const initialValues = {};
     let schedule = state.schedule.subProjectSchedules.map(
@@ -382,7 +382,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ addMonitors }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ addMonitors }, dispatch);
 
 MonitorBox.propTypes = {
     handleSubmit: PropTypes.func.isRequired,

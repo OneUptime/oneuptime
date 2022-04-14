@@ -395,11 +395,11 @@ export class InvoiceList extends Component<InvoiceListProps>{
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const { invoices, nextCount } = state.invoice;
     const { has_more } = invoices;
     const isRequesting = state.invoice.requesting;

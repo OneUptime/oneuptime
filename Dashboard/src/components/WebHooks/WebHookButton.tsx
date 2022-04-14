@@ -48,7 +48,7 @@ class WebHookButton extends React.Component<WebHookButtonProps> {
 
 WebHookButton.displayName = 'WebHookButton';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,
@@ -56,7 +56,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject,
     modalId: state.modal.modals[0]
 });

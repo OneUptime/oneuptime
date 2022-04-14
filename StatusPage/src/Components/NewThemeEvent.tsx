@@ -8,7 +8,7 @@ import ShouldRender from './ShouldRender';
 import moment from 'moment';
 import { capitalize } from '../config';
 
-const AffectedResources = ({
+const AffectedResources: Function = ({
     event,
     monitorState,
     colorStyle
@@ -100,7 +100,7 @@ interface NewThemeEventProps {
 
 class NewThemeEvent extends Component<ComponentProps> {
     override render() {
-        const checkDuplicateDates = (items: $TSFixMe) => {
+        const checkDuplicateDates: Function = (items: $TSFixMe) => {
             const track = {};
 
             const result = [];
@@ -123,7 +123,7 @@ class NewThemeEvent extends Component<ComponentProps> {
             return result;
         };
 
-        const formatMsg = (data: $TSFixMe) => {
+        const formatMsg: Function = (data: $TSFixMe) => {
             const result = data.reduce(function (r: $TSFixMe, a: $TSFixMe) {
                 r[a.event_state] = r[a.event_state] || [];
                 r[a.event_state].push(a);
@@ -448,7 +448,7 @@ NewThemeEvent.propTypes = {
     history: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { type } = ownProps;
     const futureEvents = state.status.futureEvents.events;
     const pastEvents = state.status.pastEvents.events;

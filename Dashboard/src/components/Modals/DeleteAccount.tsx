@@ -455,7 +455,7 @@ DeleteAccount.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteAccountSetting: state.profileSettings.deleteAccount,
         profileSettings: state.profileSettings.profileSetting,
@@ -464,7 +464,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { deleteAccount, logoutUser, teamLoading, subProjectTeamLoading },
     dispatch
 );

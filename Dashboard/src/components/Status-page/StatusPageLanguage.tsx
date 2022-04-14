@@ -22,7 +22,7 @@ interface StatusPageLanguageProps {
     formValues?: object;
 }
 
-export const StatusPageLanguage = (props: StatusPageLanguageProps) => {
+export const StatusPageLanguage: Function = (props: StatusPageLanguageProps) => {
     const [error, setError] = useState('');
     const [language] = useState([
         'English',
@@ -33,7 +33,7 @@ export const StatusPageLanguage = (props: StatusPageLanguageProps) => {
     ]);
     const { formValues } = props;
 
-    const submitForm = (values: $TSFixMe) => {
+    const submitForm: Function = (values: $TSFixMe) => {
         const { status } = props.statusPage;
         const { projectId } = status;
         const { formValues } = props;
@@ -74,7 +74,7 @@ export const StatusPageLanguage = (props: StatusPageLanguageProps) => {
             });
     };
 
-    const renderLanguage = ({
+    const renderLanguage: Function = ({
         fields
     }: $TSFixMe) => {
         return (
@@ -369,7 +369,7 @@ StatusPageLanguage.propTypes = {
     formValues: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageLanguage,
         fetchProjectStatusPage,
@@ -378,7 +378,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {};
     const { currentProject } = state.project;
     const {

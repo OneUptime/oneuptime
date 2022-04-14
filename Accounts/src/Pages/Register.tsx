@@ -121,14 +121,14 @@ class RegisterPage extends React.Component<RegisterPageProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         register: state.register,
         masterAdminExists: state.login.masterAdmin.exists,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             savePlanId,

@@ -164,13 +164,13 @@ MonitorSettings.propTypes = {
     currentProject: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
 };
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

@@ -13,7 +13,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 
 //Monitor list
 //props -> {name: '', type, data -> { data.url}}
-export const fetchMonitors = (
+export const fetchMonitors: Function = (
     projectId: ObjectID,
     skip = 0,
     limit = 0
@@ -37,27 +37,27 @@ export const fetchMonitors = (
     };
 };
 
-export const fetchMonitorsSuccess = (monitors: $TSFixMe): void => {
+export const fetchMonitorsSuccess: Function = (monitors: $TSFixMe): void => {
     return {
         type: types.FETCH_MONITORS_SUCCESS,
         payload: monitors,
     };
 };
 
-export const fetchMonitorsRequest = (): void => {
+export const fetchMonitorsRequest: Function = (): void => {
     return {
         type: types.FETCH_MONITORS_REQUEST,
     };
 };
 
-export const fetchMonitorsFailure = (error: ErrorPayload): void => {
+export const fetchMonitorsFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_MONITORS_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchMonitors = (): void => {
+export const resetFetchMonitors: Function = (): void => {
     return {
         type: types.FETCH_MONITORS_RESET,
     };
@@ -94,21 +94,27 @@ export function fetchPaginatedMonitors({
     };
 }
 
-export const fetchPaginatedMonitorsSuccess = (monitors: $TSFixMe): void => {
+export const fetchPaginatedMonitorsSuccess: Function = (
+    monitors: $TSFixMe
+): void => {
     return {
         type: types.FETCH_PAGINATED_MONITORS_SUCCESS,
         payload: monitors,
     };
 };
 
-export const fetchPaginatedMonitorsRequest = (paginate: $TSFixMe): void => {
+export const fetchPaginatedMonitorsRequest: Function = (
+    paginate: $TSFixMe
+): void => {
     return {
         type: types.FETCH_PAGINATED_MONITORS_REQUEST,
         payload: paginate,
     };
 };
 
-export const fetchPaginatedMonitorsFailure = (error: ErrorPayload): void => {
+export const fetchPaginatedMonitorsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_PAGINATED_MONITORS_FAILURE,
         payload: error,
@@ -117,7 +123,10 @@ export const fetchPaginatedMonitorsFailure = (error: ErrorPayload): void => {
 
 //Create new monitor
 //props -> {name: '', type, data -> { data.url}}
-export const createMonitor = (projectId: ObjectID, values: $TSFixMe): void => {
+export const createMonitor: Function = (
+    projectId: ObjectID,
+    values: $TSFixMe
+): void => {
     values.projectId = values.projectId._id || values.projectId;
     return function (dispatch: Dispatch): void {
         dispatch(createMonitorRequest());
@@ -149,7 +158,7 @@ export const createMonitor = (projectId: ObjectID, values: $TSFixMe): void => {
     };
 };
 
-export const uploadIdentityFile = (
+export const uploadIdentityFile: Function = (
     projectId: ObjectID,
     file: $TSFixMe
 ): void => {
@@ -190,31 +199,31 @@ export const uploadIdentityFile = (
     };
 };
 
-export const uploadIdentityFileRequest = (): void => {
+export const uploadIdentityFileRequest: Function = (): void => {
     return {
         type: types.UPLOAD_IDENTITY_FILE_REQUEST,
     };
 };
 
-export const logFile = (file: $TSFixMe): void => {
+export const logFile: Function = (file: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({ type: types.UPLOAD_IDENTITY_FILE_SUCCESS, payload: file });
     };
 };
 
-export const resetFile = (): void => {
+export const resetFile: Function = (): void => {
     return function (dispatch: Dispatch): void {
         dispatch({ type: types.RESET_UPLOAD_IDENTITY_FILE });
     };
 };
 
-export const uploadConfigurationFileRequest = (): void => {
+export const uploadConfigurationFileRequest: Function = (): void => {
     return {
         type: types.UPLOAD_CONFIGURATION_FILE_REQUEST,
     };
 };
 
-export const logConfigFile = (file: $TSFixMe): void => {
+export const logConfigFile: Function = (file: $TSFixMe): void => {
     return (dispatch: Dispatch) =>
         dispatch({
             type: types.UPLOAD_CONFIGURATION_FILE_SUCCESS,
@@ -222,21 +231,21 @@ export const logConfigFile = (file: $TSFixMe): void => {
         });
 };
 
-export const resetConfigFile = (): void => {
+export const resetConfigFile: Function = (): void => {
     return (dispatch: Dispatch) =>
         dispatch({
             type: types.RESET_UPLOAD_CONFIGURATION_FILE,
         });
 };
 
-export const setConfigInputKey = (value: $TSFixMe): void => {
+export const setConfigInputKey: Function = (value: $TSFixMe): void => {
     return {
         type: types.SET_CONFIGURATION_FILE_INPUT_KEY,
         payload: value,
     };
 };
 
-export const uploadConfigurationFile = (
+export const uploadConfigurationFile: Function = (
     projectId: ObjectID,
     file: $TSFixMe
 ): void => {
@@ -277,41 +286,41 @@ export const uploadConfigurationFile = (
     };
 };
 
-export const setFileInputKey = (value: $TSFixMe): void => {
+export const setFileInputKey: Function = (value: $TSFixMe): void => {
     return {
         type: 'SET_IDENTITY_FILE_INPUT_KEY',
         payload: value,
     };
 };
 
-export const toggleEdit = (payload: $TSFixMe): void => {
+export const toggleEdit: Function = (payload: $TSFixMe): void => {
     return {
         type: types.TOGGLE_EDIT,
         payload,
     };
 };
 
-export const createMonitorSuccess = (newMonitor: $TSFixMe): void => {
+export const createMonitorSuccess: Function = (newMonitor: $TSFixMe): void => {
     return {
         type: types.CREATE_MONITOR_SUCCESS,
         payload: newMonitor,
     };
 };
 
-export const createMonitorRequest = (): void => {
+export const createMonitorRequest: Function = (): void => {
     return {
         type: types.CREATE_MONITOR_REQUEST,
     };
 };
 
-export const createMonitorFailure = (error: ErrorPayload): void => {
+export const createMonitorFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_MONITOR_FAILURE,
         payload: error,
     };
 };
 
-export const resetCreateMonitor = (): void => {
+export const resetCreateMonitor: Function = (): void => {
     return {
         type: types.CREATE_MONITOR_RESET,
     };
@@ -319,7 +328,10 @@ export const resetCreateMonitor = (): void => {
 
 //Edit new monitor
 //props -> {name: '', type, data -> { data.url}}
-export const editMonitor = (projectId: ObjectID, values: $TSFixMe): void => {
+export const editMonitor: Function = (
+    projectId: ObjectID,
+    values: $TSFixMe
+): void => {
     values.projectId = values.projectId._id || values.projectId || projectId;
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
@@ -357,7 +369,7 @@ export const editMonitor = (projectId: ObjectID, values: $TSFixMe): void => {
     };
 };
 
-export const editMonitorSuccess = (newMonitor: $TSFixMe): void => {
+export const editMonitorSuccess: Function = (newMonitor: $TSFixMe): void => {
     if (newMonitor.lighthouseScanStatus === 'scanning') {
         fetchLighthouseLogs(newMonitor.projectId._id, newMonitor._id, 0, 5);
     }
@@ -367,27 +379,27 @@ export const editMonitorSuccess = (newMonitor: $TSFixMe): void => {
     };
 };
 
-export const editMonitorRequest = (): void => {
+export const editMonitorRequest: Function = (): void => {
     return {
         type: types.EDIT_MONITOR_REQUEST,
     };
 };
 
-export const editMonitorFailure = (error: ErrorPayload): void => {
+export const editMonitorFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.EDIT_MONITOR_FAILURE,
         payload: error,
     };
 };
 
-export const editMonitorSwitch = (index: $TSFixMe): void => {
+export const editMonitorSwitch: Function = (index: $TSFixMe): void => {
     return {
         type: types.EDIT_MONITOR_SWITCH,
         payload: index,
     };
 };
 
-export const resetEditMonitor = (): void => {
+export const resetEditMonitor: Function = (): void => {
     return {
         type: types.EDIT_MONITOR_RESET,
     };
@@ -471,7 +483,7 @@ export function deleteSiteUrl(
 
 //Delete a monitor
 //props -> {name: '', type, data -> { data.url}}
-export const deleteMonitor = (
+export const deleteMonitor: Function = (
     monitorId: $TSFixMe,
     projectId: ObjectID
 ): void => {
@@ -492,28 +504,30 @@ export const deleteMonitor = (
     };
 };
 
-export const deleteMonitorSuccess = (removedMonitorId: $TSFixMe): void => {
+export const deleteMonitorSuccess: Function = (
+    removedMonitorId: $TSFixMe
+): void => {
     return {
         type: types.DELETE_MONITOR_SUCCESS,
         payload: removedMonitorId,
     };
 };
 
-export const deleteMonitorRequest = (monitorId: $TSFixMe): void => {
+export const deleteMonitorRequest: Function = (monitorId: $TSFixMe): void => {
     return {
         type: types.DELETE_MONITOR_REQUEST,
         payload: monitorId,
     };
 };
 
-export const deleteMonitorFailure = (error: ErrorPayload): void => {
+export const deleteMonitorFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_MONITOR_FAILURE,
         payload: error,
     };
 };
 
-export const deleteProjectMonitors = (projectId: ObjectID): void => {
+export const deleteProjectMonitors: Function = (projectId: ObjectID): void => {
     return {
         type: types.DELETE_PROJECT_MONITORS,
         payload: projectId,
@@ -521,7 +535,7 @@ export const deleteProjectMonitors = (projectId: ObjectID): void => {
 };
 
 //Disable a monitor
-export const disableMonitor = (
+export const disableMonitor: Function = (
     monitorId: $TSFixMe,
     projectId: ObjectID
 ): void => {
@@ -553,21 +567,23 @@ export const disableMonitor = (
     };
 };
 
-export const disableMonitorSuccess = (monitorData: $TSFixMe): void => {
+export const disableMonitorSuccess: Function = (
+    monitorData: $TSFixMe
+): void => {
     return {
         type: types.DISABLE_MONITOR_SUCCESS,
         payload: monitorData,
     };
 };
 
-export const disableMonitorRequest = (monitorId: $TSFixMe): void => {
+export const disableMonitorRequest: Function = (monitorId: $TSFixMe): void => {
     return {
         type: types.DISABLE_MONITOR_REQUEST,
         payload: monitorId,
     };
 };
 
-export const disableMonitorFailure = (error: ErrorPayload): void => {
+export const disableMonitorFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.DISABLE_MONITOR_FAILURE,
         payload: error,
@@ -575,7 +591,7 @@ export const disableMonitorFailure = (error: ErrorPayload): void => {
 };
 
 // Change monitor's parent component
-export const changeMonitorComponent = (
+export const changeMonitorComponent: Function = (
     projectId: ObjectID,
     monitorId: $TSFixMe,
     newComponentId: $TSFixMe
@@ -619,14 +635,16 @@ export const changeMonitorComponent = (
     };
 };
 
-export const changeMonitorComponentRequest = (monitorId: $TSFixMe): void => {
+export const changeMonitorComponentRequest: Function = (
+    monitorId: $TSFixMe
+): void => {
     return {
         type: types.CHANGE_MONITOR_COMPONENT_REQUEST,
         payload: monitorId,
     };
 };
 
-export const changeMonitorComponentSuccess = ({
+export const changeMonitorComponentSuccess: Function = ({
     monitorId,
     newComponentId,
 }: $TSFixMe): void => {
@@ -639,7 +657,9 @@ export const changeMonitorComponentSuccess = ({
     };
 };
 
-export const changeMonitorComponentFailure = (error: ErrorPayload): void => {
+export const changeMonitorComponentFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.CHANGE_MONITOR_COMPONENT_FAILURE,
         payload: error,
@@ -688,21 +708,27 @@ export function fetchMonitorsIncidents(
     };
 }
 
-export const fetchMonitorsIncidentsSuccess = (monitors: $TSFixMe): void => {
+export const fetchMonitorsIncidentsSuccess: Function = (
+    monitors: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITORS_INCIDENT_SUCCESS,
         payload: monitors,
     };
 };
 
-export const fetchMonitorsIncidentsRequest = (monitorId: $TSFixMe): void => {
+export const fetchMonitorsIncidentsRequest: Function = (
+    monitorId: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITORS_INCIDENT_REQUEST,
         payload: monitorId,
     };
 };
 
-export const fetchMonitorsIncidentsFailure = (error: ErrorPayload): void => {
+export const fetchMonitorsIncidentsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITORS_INCIDENT_FAILURE,
         payload: error,
@@ -746,21 +772,27 @@ export function fetchMonitorsSubscribers(
     };
 }
 
-export const fetchMonitorsSubscribersSuccess = (monitors: $TSFixMe): void => {
+export const fetchMonitorsSubscribersSuccess: Function = (
+    monitors: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITORS_SUBSCRIBER_SUCCESS,
         payload: monitors,
     };
 };
 
-export const fetchMonitorsSubscribersRequest = (monitorId: $TSFixMe): void => {
+export const fetchMonitorsSubscribersRequest: Function = (
+    monitorId: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITORS_SUBSCRIBER_REQUEST,
         payload: monitorId,
     };
 };
 
-export const fetchMonitorsSubscribersFailure = (error: ErrorPayload): void => {
+export const fetchMonitorsSubscribersFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITORS_SUBSCRIBER_FAILURE,
         payload: error,
@@ -813,7 +845,7 @@ export function fetchMonitorLogs(
     };
 }
 
-export const updateDateRange = (
+export const updateDateRange: Function = (
     startDate: $TSFixMe,
     endDate: $TSFixMe
 ): void => {
@@ -823,21 +855,25 @@ export const updateDateRange = (
     };
 };
 
-export const fetchMonitorLogsRequest = (payload: $TSFixMe): void => {
+export const fetchMonitorLogsRequest: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_MONITOR_LOGS_REQUEST,
         payload,
     };
 };
 
-export const fetchMonitorLogsSuccess = (monitorLogs: $TSFixMe): void => {
+export const fetchMonitorLogsSuccess: Function = (
+    monitorLogs: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITOR_LOGS_SUCCESS,
         payload: monitorLogs,
     };
 };
 
-export const fetchMonitorLogsFailure = (error: ErrorPayload): void => {
+export const fetchMonitorLogsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITOR_LOGS_FAILURE,
         payload: error,
@@ -889,13 +925,13 @@ export function fetchMonitorStatuses(
     };
 }
 
-export const fetchMonitorStatusesRequest = (): void => {
+export const fetchMonitorStatusesRequest: Function = (): void => {
     return {
         type: types.FETCH_MONITOR_STATUSES_REQUEST,
     };
 };
 
-export const fetchMonitorStatusesSuccess = (
+export const fetchMonitorStatusesSuccess: Function = (
     monitorStatuses: $TSFixMe
 ): void => {
     return {
@@ -904,7 +940,9 @@ export const fetchMonitorStatusesSuccess = (
     };
 };
 
-export const fetchMonitorStatusesFailure = (error: ErrorPayload): void => {
+export const fetchMonitorStatusesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITOR_STATUSES_FAILURE,
         payload: error,
@@ -912,7 +950,7 @@ export const fetchMonitorStatusesFailure = (error: ErrorPayload): void => {
 };
 
 // Fetch Monitor Criteria
-export const fetchMonitorCriteria = (): void => {
+export const fetchMonitorCriteria: Function = (): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(new Route('monitorCriteria'));
         dispatch(fetchMonitorCriteriaRequest());
@@ -941,13 +979,13 @@ export const fetchMonitorCriteria = (): void => {
     };
 };
 
-export const fetchMonitorCriteriaRequest = (): void => {
+export const fetchMonitorCriteriaRequest: Function = (): void => {
     return {
         type: types.FETCH_MONITOR_CRITERIA_REQUEST,
     };
 };
 
-export const fetchMonitorCriteriaSuccess = (
+export const fetchMonitorCriteriaSuccess: Function = (
     monitorCriteria: $TSFixMe
 ): void => {
     return {
@@ -956,7 +994,9 @@ export const fetchMonitorCriteriaSuccess = (
     };
 };
 
-export const fetchMonitorCriteriaFailure = (error: ErrorPayload): void => {
+export const fetchMonitorCriteriaFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITOR_CRITERIA_FAILURE,
         payload: error,
@@ -1037,21 +1077,21 @@ export function getMonitorLogs(
     };
 }
 
-export const getMonitorLogsSuccess = (logs: $TSFixMe): void => {
+export const getMonitorLogsSuccess: Function = (logs: $TSFixMe): void => {
     return {
         type: types.GET_MONITOR_LOGS_SUCCESS,
         payload: logs,
     };
 };
 
-export const getMonitorLogsRequest = (logs: $TSFixMe): void => {
+export const getMonitorLogsRequest: Function = (logs: $TSFixMe): void => {
     return {
         type: types.GET_MONITOR_LOGS_REQUEST,
         payload: logs,
     };
 };
 
-export const getMonitorLogsFailure = (error: ErrorPayload): void => {
+export const getMonitorLogsFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_MONITOR_LOGS_FAILURE,
         payload: error,
@@ -1098,20 +1138,24 @@ export function fetchLighthouseLogs(
     };
 }
 
-export const fetchLighthouseLogsRequest = (): void => {
+export const fetchLighthouseLogsRequest: Function = (): void => {
     return {
         type: types.FETCH_LIGHTHOUSE_LOGS_REQUEST,
     };
 };
 
-export const fetchLighthouseLogsSuccess = (lighthouseLogs: $TSFixMe): void => {
+export const fetchLighthouseLogsSuccess: Function = (
+    lighthouseLogs: $TSFixMe
+): void => {
     return {
         type: types.FETCH_LIGHTHOUSE_LOGS_SUCCESS,
         payload: lighthouseLogs,
     };
 };
 
-export const fetchLighthouseLogsFailure = (error: ErrorPayload): void => {
+export const fetchLighthouseLogsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_LIGHTHOUSE_LOGS_FAILURE,
         payload: error,
@@ -1119,7 +1163,7 @@ export const fetchLighthouseLogsFailure = (error: ErrorPayload): void => {
 };
 
 // Fetch Monitor Issue list
-export const fetchMonitorIssue = (
+export const fetchMonitorIssue: Function = (
     projectId: ObjectID,
     issueId: $TSFixMe
 ): void => {
@@ -1142,27 +1186,31 @@ export const fetchMonitorIssue = (
     };
 };
 
-export const fetchMonitorIssueRequest = (): void => {
+export const fetchMonitorIssueRequest: Function = (): void => {
     return {
         type: types.FETCH_MONITOR_ISSUE_REQUEST,
     };
 };
 
-export const fetchMonitorIssueSuccess = (monitorIssue: $TSFixMe): void => {
+export const fetchMonitorIssueSuccess: Function = (
+    monitorIssue: $TSFixMe
+): void => {
     return {
         type: types.FETCH_MONITOR_ISSUE_SUCCESS,
         payload: monitorIssue,
     };
 };
 
-export const fetchMonitorIssueFailure = (error: ErrorPayload): void => {
+export const fetchMonitorIssueFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITOR_ISSUE_FAILURE,
         payload: error,
     };
 };
 
-export const addSeat = (projectId: ObjectID): void => {
+export const addSeat: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`monitor/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
@@ -1193,40 +1241,43 @@ export const addSeat = (projectId: ObjectID): void => {
     };
 };
 
-export const addSeatSuccess = (message: $TSFixMe): void => {
+export const addSeatSuccess: Function = (message: $TSFixMe): void => {
     return {
         type: types.ADD_SEAT_SUCCESS,
         payload: message,
     };
 };
 
-export const addSeatRequest = (): void => {
+export const addSeatRequest: Function = (): void => {
     return {
         type: types.ADD_SEAT_REQUEST,
     };
 };
 
-export const addSeatFailure = (error: ErrorPayload): void => {
+export const addSeatFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.ADD_SEAT_FAILURE,
         payload: error,
     };
 };
 
-export const addSeatReset = (): void => {
+export const addSeatReset: Function = (): void => {
     return {
         type: types.ADD_SEAT_RESET,
     };
 };
 
-export const addArrayField = (val: $TSFixMe, insert: $TSFixMe): void => {
+export const addArrayField: Function = (
+    val: $TSFixMe,
+    insert: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         dispatch(change('NewMonitor', `${val}.field3`, true));
         dispatch(change('NewMonitor', `${val}.criteria`, insert));
     };
 };
 
-export const removeArrayField = (val: $TSFixMe): void => {
+export const removeArrayField: Function = (val: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch(change('NewMonitor', `${val}.field3`, false));
         dispatch(autofill('NewMonitor', `${val}.criteria`, undefined));
@@ -1248,7 +1299,7 @@ export function updateCriteriaField(
     };
 }
 
-export const selectedProbe = (val: $TSFixMe): void => {
+export const selectedProbe: Function = (val: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.SELECT_PROBE,
@@ -1257,16 +1308,20 @@ export const selectedProbe = (val: $TSFixMe): void => {
     };
 };
 
-export const closeBreachedMonitorSlaRequest = (): void => ({
+export const closeBreachedMonitorSlaRequest: Function = (): void => ({
     type: types.CLOSE_BREACHED_MONITOR_SLA_REQUEST,
 });
 
-export const closeBreachedMonitorSlaSuccess = (payload: $TSFixMe): void => ({
+export const closeBreachedMonitorSlaSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.CLOSE_BREACHED_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const closeBreachedMonitorSlaFailure = (error: ErrorPayload): void => ({
+export const closeBreachedMonitorSlaFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.CLOSE_BREACHED_MONITOR_SLA_FAILURE,
     payload: error,
 });
@@ -1295,16 +1350,20 @@ export const closeBreachedMonitorSla =
         }
     };
 
-export const fetchBreachedMonitorSlaRequest = (): void => ({
+export const fetchBreachedMonitorSlaRequest: Function = (): void => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_REQUEST,
 });
 
-export const fetchBreachedMonitorSlaSuccess = (payload: $TSFixMe): void => ({
+export const fetchBreachedMonitorSlaSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_SUCCESS,
     payload,
 });
 
-export const fetchBreachedMonitorSlaFailure = (error: ErrorPayload): void => ({
+export const fetchBreachedMonitorSlaFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_BREACHED_MONITOR_SLA_FAILURE,
     payload: error,
 });

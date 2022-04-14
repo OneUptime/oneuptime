@@ -488,7 +488,7 @@ IncidentSettings.propTypes = {
     fetchDefaultTemplate: PropTypes.func,
     switchToProjectViewerNav: PropTypes.bool,
 };
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         incidentPriorities:
@@ -498,7 +498,7 @@ const mapStateToProps = (state: RootState) => {
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

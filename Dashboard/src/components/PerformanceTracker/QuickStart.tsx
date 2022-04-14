@@ -38,7 +38,7 @@ interface QuickStartProps {
     library?: string;
 }
 
-const QuickStart = ({
+const QuickStart: Function = ({
     appId,
     appKey,
     close,
@@ -220,7 +220,7 @@ QuickStart.propTypes = {
     library: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {
         library: 'js',
     };

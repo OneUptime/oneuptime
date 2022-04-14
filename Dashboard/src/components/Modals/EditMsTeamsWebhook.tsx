@@ -997,14 +997,14 @@ const NewEditWebHook = compose(
     })
 )(EditWebHook);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateMsTeams,
     },
     dispatch
 );
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const currentMonitorValue = { value: '', label: 'Select monitor' };
     const monitors = props.data.data.monitors.map((monitor: $TSFixMe) => monitor.monitorId);
 

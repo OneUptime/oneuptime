@@ -4,7 +4,7 @@
  * @param {string} emails comma separated emails
  * @return {string} properly formatted emails
  */
-const formatEmails = (emails: $TSFixMe): void => {
+const formatEmails: Function = (emails: $TSFixMe): void => {
     if (typeof emails !== 'string') {
         return;
     }

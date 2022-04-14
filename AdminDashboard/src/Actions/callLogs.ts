@@ -4,20 +4,20 @@ import * as types from '../constants/callLogs';
 import Route from 'Common/Types/api/route';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Fetch All Call Logs
-export const fetchCallLogsRequest = (): void => {
+export const fetchCallLogsRequest: Function = (): void => {
     return {
         type: types.FETCH_CALLLOGS_REQUEST,
     };
 };
 
-export const fetchCallLogsSuccess = (callLogs: $TSFixMe): void => {
+export const fetchCallLogsSuccess: Function = (callLogs: $TSFixMe): void => {
     return {
         type: types.FETCH_CALLLOGS_SUCCESS,
         payload: callLogs,
     };
 };
 
-export const fetchCallLogsError = (error: $TSFixMe): void => {
+export const fetchCallLogsError: Function = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_CALLLOGS_FAILURE,
         payload: error,
@@ -60,20 +60,20 @@ export const fetchCallLogs =
     };
 
 // Search Call Logs.
-export const searchCallLogsRequest = (): void => {
+export const searchCallLogsRequest: Function = (): void => {
     return {
         type: types.SEARCH_CALLLOGS_REQUEST,
     };
 };
 
-export const searchCallLogsSuccess = (callLogs: $TSFixMe): void => {
+export const searchCallLogsSuccess: Function = (callLogs: $TSFixMe): void => {
     return {
         type: types.SEARCH_CALLLOGS_SUCCESS,
         payload: callLogs,
     };
 };
 
-export const searchCallLogsError = (error: $TSFixMe): void => {
+export const searchCallLogsError: Function = (error: $TSFixMe): void => {
     return {
         type: types.SEARCH_CALLLOGS_FAILURE,
         payload: error,
@@ -117,20 +117,20 @@ export const searchCallLogs =
     };
 
 // Delete All Call Logs
-export const deleteCallLogsRequest = (): void => {
+export const deleteCallLogsRequest: Function = (): void => {
     return {
         type: types.DELETE_ALL_CALLLOGS_REQUEST,
     };
 };
 
-export const deleteCallLogsSuccess = (message: $TSFixMe): void => {
+export const deleteCallLogsSuccess: Function = (message: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_CALLLOGS_SUCCESS,
         payload: message,
     };
 };
 
-export const deleteCallLogsError = (error: $TSFixMe): void => {
+export const deleteCallLogsError: Function = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_CALLLOGS_FAILURE,
         payload: error,
@@ -167,28 +167,32 @@ export const deleteCallLogs =
 
 // fetch callLogStatus
 
-export const fetchCallLogStatusRequest = (promise: $TSFixMe): void => {
+export const fetchCallLogStatusRequest: Function = (
+    promise: $TSFixMe
+): void => {
     return {
         type: types.FETCH_CALLLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchCallLogStatusError = (error: $TSFixMe): void => {
+export const fetchCallLogStatusError: Function = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_CALLLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const fetchCallLogStatusSuccess = (callLogStatus: $TSFixMe): void => {
+export const fetchCallLogStatusSuccess: Function = (
+    callLogStatus: $TSFixMe
+): void => {
     return {
         type: types.FETCH_CALLLOG_STATUS_SUCCESS,
         payload: callLogStatus,
     };
 };
 
-export const resetFetchCallLogStatus = (): void => {
+export const resetFetchCallLogStatus: Function = (): void => {
     return {
         type: types.FETCH_CALLLOG_STATUS_RESET,
     };
@@ -227,28 +231,32 @@ export const fetchCallLogStatus =
 
 // change callLogStatus
 
-export const changeCallLogStatusRequest = (promise: $TSFixMe): void => {
+export const changeCallLogStatusRequest: Function = (
+    promise: $TSFixMe
+): void => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const changeCallLogStatusError = (error: $TSFixMe): void => {
+export const changeCallLogStatusError: Function = (error: $TSFixMe): void => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const changeCallLogStatusSuccess = (callLogStatus: $TSFixMe): void => {
+export const changeCallLogStatusSuccess: Function = (
+    callLogStatus: $TSFixMe
+): void => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_SUCCESS,
         payload: callLogStatus,
     };
 };
 
-export const resetConfirmCallLogStatus = (): void => {
+export const resetConfirmCallLogStatus: Function = (): void => {
     return {
         type: types.CHANGE_CALLLOG_STATUS_RESET,
     };

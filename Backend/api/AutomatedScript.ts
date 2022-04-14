@@ -285,7 +285,7 @@ router.delete(
     }
 );
 
-const formatEvent = (arr: $TSFixMe, type: $TSFixMe): void => {
+const formatEvent: Function = (arr: $TSFixMe, type: $TSFixMe): void => {
     const result = [];
     for (const item of arr) {
         if (type) {

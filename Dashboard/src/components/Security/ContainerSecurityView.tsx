@@ -29,7 +29,7 @@ interface ContainerSecurityViewProps {
     scannedStatus?: string;
 }
 
-const ContainerSecurityView = ({
+const ContainerSecurityView: Function = ({
     containerSecurityId,
     containerSecuritySlug,
     projectId,
@@ -43,7 +43,7 @@ const ContainerSecurityView = ({
     activeContainerSecurity,
     scannedStatus
 }: ContainerSecurityViewProps) => {
-    const handleSubmit = ({
+    const handleSubmit: Function = ({
         projectId,
         containerSecurityId
     }: $TSFixMe) => {
@@ -60,7 +60,7 @@ const ContainerSecurityView = ({
         });
     };
 
-    const handleEdit = ({
+    const handleEdit: Function = ({
         projectId,
         componentId,
         containerSecurityId,
@@ -323,14 +323,14 @@ ContainerSecurityView.propTypes = {
     scannedStatus: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         scanning: state.security.scanContainerSecurity.requesting,
         securityLog: state.security.containerSecurityLog || {},

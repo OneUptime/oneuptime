@@ -163,14 +163,14 @@ class NotificationMenu extends Component<ComponentProps> {
 
 NotificationMenu.displayName = 'NotificationMenu';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         notifications: state.notifications.notifications,
         position: state.notifications.notificationsPosition,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

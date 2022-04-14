@@ -956,7 +956,7 @@ const IncidentSlaForm = reduxForm({
     destroyOnUnmount: true,
 })(IncidentCommunicationSlaModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         createCommunicationSla,
@@ -966,7 +966,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const monitorData = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.data.projectId)
     );

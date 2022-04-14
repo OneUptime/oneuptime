@@ -4,7 +4,7 @@
  * @returns a string in the formatted style
  * @example secondsToHms(3600) will return 1hr
  */
-const secondsToHms = (value: $TSFixMe): void => {
+const secondsToHms: Function = (value: $TSFixMe): void => {
     if (!isNaN(value)) {
         value = Number(value);
         const hr = Math.floor(value / 3600),

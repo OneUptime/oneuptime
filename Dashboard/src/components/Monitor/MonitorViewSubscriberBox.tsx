@@ -257,7 +257,7 @@ MonitorViewSubscriberBox.propTypes = {
     exportCSV: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMonitorsSubscribers,
         closeModal,
@@ -267,7 +267,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const monitor = state.monitor.monitorsList.monitors
         .map((monitor: $TSFixMe) => monitor.monitors.find((monitor: $TSFixMe) => monitor._id === props.monitorId)
         )

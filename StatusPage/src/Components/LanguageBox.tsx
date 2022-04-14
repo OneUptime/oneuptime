@@ -159,13 +159,13 @@ class LanguageBox extends Component<ComponentProps> {
 
 LanguageBox.displayName = 'LanguageBox';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
     statusPage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
 
 
 LanguageBox.propTypes = {

@@ -481,7 +481,7 @@ class EditIncomingRequest extends Component<ComponentProps> {
                     }}
                 ></span>
                 {fields.map((field: $TSFixMe, index: $TSFixMe) => {
-                    const fieldType = (
+                    const fieldType: Function = (
                         customFields.find(
                             (customField: $TSFixMe) => String(customField._id) ===
                                 String(
@@ -3272,7 +3272,7 @@ const EditIncomingRequestForm = reduxForm({
     destroyOnUnmount: false,
 })(EditIncomingRequest);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         editIncomingRequest,
         closeModal,
@@ -3282,7 +3282,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const incomingRequestToBeUpdated = state.modal.modals[0].incomingRequest;
     const projectId = state.modal.modals[0].projectId;
     const incidentPriorities =

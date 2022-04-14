@@ -4,28 +4,28 @@ import * as types from '../constants/resendToken';
 import Route from 'Common/Types/api/route';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 
-export const resendTokenRequest = (promise: $TSFixMe): void => {
+export const resendTokenRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.RESENDTOKEN_REQUEST,
         payload: promise,
     };
 };
 
-export const resendTokenError = (error: ErrorPayload): void => {
+export const resendTokenError: Function = (error: ErrorPayload): void => {
     return {
         type: types.RESENDTOKEN_FAILED,
         payload: error,
     };
 };
 
-export const resendTokenSuccess = (data: $TSFixMe): void => {
+export const resendTokenSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.RESENDTOKEN_SUCCESS,
         payload: data,
     };
 };
 
-export const resendTokenReset = (): void => {
+export const resendTokenReset: Function = (): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.RESENDTOKEN_RESET,
@@ -33,7 +33,7 @@ export const resendTokenReset = (): void => {
     };
 };
 
-export const resendToken = (values: $TSFixMe): void => {
+export const resendToken: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('user/resend'), values);
         dispatch(resendTokenRequest(promise));

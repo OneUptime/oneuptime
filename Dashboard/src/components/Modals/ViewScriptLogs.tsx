@@ -128,9 +128,9 @@ ViewScriptLogs.propTypes = {
     title: PropTypes.string,
 };
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(ViewScriptLogs);

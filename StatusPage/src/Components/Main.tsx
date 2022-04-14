@@ -1773,7 +1773,7 @@ class Main extends Component<ComponentProps> {
 
 Main.displayName = 'Main';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const ongoing =
         state.status &&
         state.status.ongoing &&
@@ -1806,7 +1806,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPage,
         selectedProbe,
@@ -1875,7 +1875,7 @@ interface ProbesProps {
     theme?: string;
 }
 
-const Probes = ({
+const Probes: Function = ({
     probes,
     backgroundMain,
     contentBackground,
@@ -2000,7 +2000,7 @@ interface FooterCardProps {
     theme?: boolean;
 }
 
-const FooterCard = ({
+const FooterCard: Function = ({
     footerHTML,
     statusData,
     primaryText,
@@ -2102,7 +2102,7 @@ interface HelemtCardProps {
     faviconurl?: string;
 }
 
-const HelemtCard = ({
+const HelemtCard: Function = ({
     statusData,
     faviconurl
 }: HelemtCardProps) => {

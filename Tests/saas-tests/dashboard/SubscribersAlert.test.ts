@@ -186,7 +186,7 @@ describe('Subscribers Alert logs API', () => {
                 page,
                 '#subscriberAlertTable tbody tr'
             );
-            const rowsCount = (
+            const rowsCount: Function = (
                 await init.page$$(page, '#subscriberAlertTable tbody tr', {})
             ).length;
             expect(rowsCount).toEqual(2);

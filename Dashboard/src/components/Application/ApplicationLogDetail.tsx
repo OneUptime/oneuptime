@@ -376,7 +376,7 @@ class ApplicationLogDetail extends Component<ComponentProps> {
 
 ApplicationLogDetail.displayName = 'ApplicationLogDetail';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             openModal,

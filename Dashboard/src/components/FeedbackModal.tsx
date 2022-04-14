@@ -170,13 +170,13 @@ const FeedbackModalForm = reduxForm({
     form: 'FeedbackModal', // a unique identifier for this form
 })(FeedbackModal);
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     feedback: state.feedback,
     page: state.page,
     currentProject: state.project.currentProject
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { createFeedback, closeFeedbackModal, reset, resetCreateFeedback },
     dispatch
 );

@@ -393,7 +393,7 @@ const NewComponentForm = new reduxForm({
     enableReinitialize: true,
 })(NewComponent);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createComponent,
         createComponentSuccess,
@@ -411,7 +411,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name_1000');
     const activesubProjectId = state.subProject.activeSubProject;
 

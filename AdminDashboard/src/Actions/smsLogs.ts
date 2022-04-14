@@ -4,20 +4,20 @@ import * as types from '../constants/smsLogs';
 import Route from 'Common/Types/api/route';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Fetch All Sms Logs
-export const fetchSmsLogsRequest = (): void => {
+export const fetchSmsLogsRequest: Function = (): void => {
     return {
         type: types.FETCH_SMSLOGS_REQUEST,
     };
 };
 
-export const fetchSmsLogsSuccess = (smsLogs: $TSFixMe): void => {
+export const fetchSmsLogsSuccess: Function = (smsLogs: $TSFixMe): void => {
     return {
         type: types.FETCH_SMSLOGS_SUCCESS,
         payload: smsLogs,
     };
 };
 
-export const fetchSmsLogsError = (error: $TSFixMe): void => {
+export const fetchSmsLogsError: Function = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_SMSLOGS_FAILURE,
         payload: error,
@@ -60,20 +60,20 @@ export const fetchSmsLogs =
     };
 
 // Search Sms Logs.
-export const searchSmsLogsRequest = (): void => {
+export const searchSmsLogsRequest: Function = (): void => {
     return {
         type: types.SEARCH_SMSLOGS_REQUEST,
     };
 };
 
-export const searchSmsLogsSuccess = (smsLogs: $TSFixMe): void => {
+export const searchSmsLogsSuccess: Function = (smsLogs: $TSFixMe): void => {
     return {
         type: types.SEARCH_SMSLOGS_SUCCESS,
         payload: smsLogs,
     };
 };
 
-export const searchSmsLogsError = (error: $TSFixMe): void => {
+export const searchSmsLogsError: Function = (error: $TSFixMe): void => {
     return {
         type: types.SEARCH_SMSLOGS_FAILURE,
         payload: error,
@@ -117,20 +117,20 @@ export const searchSmsLogs =
     };
 
 // Delete All Sms Logs
-export const deleteSmsLogsRequest = (): void => {
+export const deleteSmsLogsRequest: Function = (): void => {
     return {
         type: types.DELETE_ALL_SMSLOGS_REQUEST,
     };
 };
 
-export const deleteSmsLogsSuccess = (message: $TSFixMe): void => {
+export const deleteSmsLogsSuccess: Function = (message: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_SMSLOGS_SUCCESS,
         payload: message,
     };
 };
 
-export const deleteSmsLogsError = (error: $TSFixMe): void => {
+export const deleteSmsLogsError: Function = (error: $TSFixMe): void => {
     return {
         type: types.DELETE_ALL_SMSLOGS_FAILURE,
         payload: error,
@@ -167,28 +167,30 @@ export const deleteSmsLogs =
 
 // fetch smsLogStatus
 
-export const fetchSmsLogStatusRequest = (promise: $TSFixMe): void => {
+export const fetchSmsLogStatusRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_SMSLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchSmsLogStatusError = (error: $TSFixMe): void => {
+export const fetchSmsLogStatusError: Function = (error: $TSFixMe): void => {
     return {
         type: types.FETCH_SMSLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const fetchSmsLogStatusSuccess = (smsLogStatus: $TSFixMe): void => {
+export const fetchSmsLogStatusSuccess: Function = (
+    smsLogStatus: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SMSLOG_STATUS_SUCCESS,
         payload: smsLogStatus,
     };
 };
 
-export const resetFetchSmsLogStatus = (): void => {
+export const resetFetchSmsLogStatus: Function = (): void => {
     return {
         type: types.FETCH_SMSLOG_STATUS_RESET,
     };
@@ -227,28 +229,32 @@ export const fetchSmsLogStatus =
 
 // change smsLogStatus
 
-export const changeSmsLogStatusRequest = (promise: $TSFixMe): void => {
+export const changeSmsLogStatusRequest: Function = (
+    promise: $TSFixMe
+): void => {
     return {
         type: types.CHANGE_SMSLOG_STATUS_REQUEST,
         payload: promise,
     };
 };
 
-export const changeSmsLogStatusError = (error: $TSFixMe): void => {
+export const changeSmsLogStatusError: Function = (error: $TSFixMe): void => {
     return {
         type: types.CHANGE_SMSLOG_STATUS_FAILED,
         payload: error,
     };
 };
 
-export const changeSmsLogStatusSuccess = (smsLogStatus: $TSFixMe): void => {
+export const changeSmsLogStatusSuccess: Function = (
+    smsLogStatus: $TSFixMe
+): void => {
     return {
         type: types.CHANGE_SMSLOG_STATUS_SUCCESS,
         payload: smsLogStatus,
     };
 };
 
-export const resetConfirmSmsLogStatus = (): void => {
+export const resetConfirmSmsLogStatus: Function = (): void => {
     return {
         type: types.CHANGE_SMSLOG_STATUS_RESET,
     };

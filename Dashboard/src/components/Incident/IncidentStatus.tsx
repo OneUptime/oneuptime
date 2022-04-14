@@ -508,7 +508,7 @@ export class IncidentStatus extends Component<IncidentStatusProps>{
             return result.replace('did', 'Did').split('\n');
         }
 
-        const formatAckDate = (otherDate: $TSFixMe, createdDate: $TSFixMe) => {
+        const formatAckDate: Function = (otherDate: $TSFixMe, createdDate: $TSFixMe) => {
             const sec = moment(moment(otherDate).toArray()).diff(
                 moment(moment(createdDate).toArray()),
                 'seconds'
@@ -2840,7 +2840,7 @@ const EditIncidentStatusForm = reduxForm({
     enableReinitialize: true,
 })(IncidentStatus);
 const selector = formValueSelector('IncidentStatusForm');
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { incidentId } = ownProps.match.params;
     const incident = ownProps.incident;
     const initialValues = {
@@ -2871,7 +2871,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             resolveIncident,

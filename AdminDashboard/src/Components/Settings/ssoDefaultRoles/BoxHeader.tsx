@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const BoxHeader = ({
+const BoxHeader: Function = ({
     title,
     description,
     buttons = []

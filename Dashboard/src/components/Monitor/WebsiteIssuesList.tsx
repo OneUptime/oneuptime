@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const ProcessedDescription = (text: $TSFixMe) => {
+const ProcessedDescription: Function = (text: $TSFixMe) => {
     if (!text || typeof text !== 'string') return text;
 
     const tempArr = text.split(/\[Learn more\]/i);
@@ -29,7 +29,7 @@ interface WebsiteIssuesListProps {
     issues?: unknown[];
 }
 
-const WebsiteIssuesList = ({
+const WebsiteIssuesList: Function = ({
     issues
 }: WebsiteIssuesListProps) => {
     return (

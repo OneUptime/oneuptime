@@ -27,7 +27,7 @@ if (userId && accessToken) {
     removeQuery();
 }
 
-const AppLoader = () => (
+const AppLoader: Function = () => (
     <div
         id="app-loading"
         style={{
@@ -60,7 +60,7 @@ const AppLoader = () => (
     </div>
 );
 
-const App = () => {
+const App: Function = () => {
     return (
         <>
             <Socket />

@@ -23,7 +23,7 @@ interface GitSshListProps {
     modalId?: string;
 }
 
-const GitSshList = ({
+const GitSshList: Function = ({
     isRequesting,
     error,
     gitSsh,
@@ -36,7 +36,7 @@ const GitSshList = ({
 }: GitSshListProps) => {
     const [page, setPage] = useState(1);
 
-    const handleDelete = (credentialId: $TSFixMe) => {
+    const handleDelete: Function = (credentialId: $TSFixMe) => {
         getGitSecurities({ projectId, credentialId });
 
         openModal({
@@ -56,7 +56,7 @@ const GitSshList = ({
         });
     };
 
-    const handleSshCreation = () => {
+    const handleSshCreation: Function = () => {
         openModal({
             id: projectId,
             content: GitSshModal,
@@ -64,7 +64,7 @@ const GitSshList = ({
         });
     };
 
-    const handleSshUpdate = (credentialId: $TSFixMe) => {
+    const handleSshUpdate: Function = (credentialId: $TSFixMe) => {
         openModal({
             id: projectId,
             content: GitSshModal,
@@ -72,7 +72,7 @@ const GitSshList = ({
         });
     };
 
-    const handleKeyboard = (e: $TSFixMe) => {
+    const handleKeyboard: Function = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
@@ -95,10 +95,10 @@ const GitSshList = ({
         };
     });
 
-    const prev = () => {
+    const prev: Function = () => {
         setPage(page - 1);
     };
-    const next = () => {
+    const next: Function = () => {
         setPage(page + 1);
     };
 
@@ -386,12 +386,12 @@ GitSshList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { deleteGitCredential, openModal, getGitSecurities },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteError: state.credential.deleteCredential.error,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

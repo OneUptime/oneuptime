@@ -239,13 +239,13 @@ class Webhook extends Component<ComponentProps> {
 
 Webhook.displayName = 'Webhook';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
     statuspage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         userData,
         validationError,

@@ -96,9 +96,9 @@ export class ProjectBlockBox extends Component<ComponentProps>{
 
 ProjectBlockBox.displayName = 'ProjectBlockBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ blockProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ blockProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

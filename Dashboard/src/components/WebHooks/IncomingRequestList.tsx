@@ -464,7 +464,7 @@ class IncomingRequestList extends React.Component<IncomingRequestListProps> {
 
 IncomingRequestList.displayName = 'IncomingRequestList';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitor: $TSFixMe) => {
         monitors = [...monitors, ...monitor.monitors];
@@ -484,7 +484,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchAllIncomingRequest,
         openModal,

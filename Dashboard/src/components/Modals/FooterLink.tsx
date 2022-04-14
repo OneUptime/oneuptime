@@ -269,7 +269,7 @@ const CreateFooterLinkForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(CreateFooterLink);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

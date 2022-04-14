@@ -8,10 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 import RenderIfOwnerOrAdmin from '../basic/RenderIfOwnerOrAdmin';
 import ShouldRender from '../basic/ShouldRender';
 
-const getDescription = (type: $TSFixMe) => {
+const getDescription: Function = (type: $TSFixMe) => {
     return tutorials.getTutorials().filter(note => note.id === type);
 };
-const renderFeatures = (features: ExpressResponse) => {
+const renderFeatures: Function = (features: ExpressResponse) => {
     if (features) {
         return features.map((feature: $TSFixMe) => <FeatureList key={uuidv4()} content={feature} />);
     }
@@ -28,7 +28,7 @@ interface CustomTutorialProps {
     hideActionButton?: boolean;
 }
 
-const CustomTutorial = ({
+const CustomTutorial: Function = ({
     components,
     tutorialStat,
     monitors,

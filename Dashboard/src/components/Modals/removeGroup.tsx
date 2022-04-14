@@ -135,14 +135,14 @@ class removeGroup extends Component<ComponentProps> {
 
 removeGroup.displayName = 'removeGroup';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         groupDelete: state.groups.deleteGroup,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

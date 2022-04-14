@@ -372,7 +372,7 @@ const CreateCustomFieldForm = reduxForm({
     destroyOnUnmount: true,
 })(CreateCustomField);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createCustomField,
         fetchCustomFields,
@@ -381,7 +381,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         requesting: state.customField.customField.requesting,
         createFieldError: state.customField.customField.error,

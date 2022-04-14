@@ -4,7 +4,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 import { Field } from 'redux-form';
 
-const AdminNote = ({
+const AdminNote: Function = ({
     fields,
     meta: { error, submitFailed }
 }: $TSFixMe) => {

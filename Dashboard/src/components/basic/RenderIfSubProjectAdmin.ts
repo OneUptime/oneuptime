@@ -6,7 +6,7 @@ import { RootState } from '../../store';
 // Params
 // params 1: props
 // returns JSX.Element or NULL
-export const RenderIfSubProjectAdmin = (props: $TSFixMe): void => {
+export const RenderIfSubProjectAdmin: Function = (props: $TSFixMe): void => {
     const { children, currentProject, subProjects, subProjectId } = props;
     const userId = User.getUserId();
     let renderItems = null;

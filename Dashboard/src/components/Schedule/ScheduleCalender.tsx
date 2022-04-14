@@ -56,7 +56,7 @@ function ScheduleCalender({
     // to the correct localizer.
     const localizer = momentLocalizer(moment); // or globalizeLocalizer
 
-    const handleNavigate = (date: $TSFixMe, view: $TSFixMe, action: Action) => {
+    const handleNavigate: Function = (date: $TSFixMe, view: $TSFixMe, action: Action) => {
         setDefaultDate(date);
         if (view === 'month') {
             setDayOffset(prevState => {
@@ -104,7 +104,7 @@ function ScheduleCalender({
         }
     };
 
-    const handleView = (view: $TSFixMe) => {
+    const handleView: Function = (view: $TSFixMe) => {
         setDefaultDate(new Date());
         if (view === 'month') setDayOffset(47);
         if (view === 'week') setDayOffset(7);

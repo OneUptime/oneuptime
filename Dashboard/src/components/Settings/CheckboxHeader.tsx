@@ -5,7 +5,7 @@ export interface ComponentProps {
     text: string;
 }
 
-const CheckboxHeader = ({
+const CheckboxHeader: Function = ({
     text
 }: CheckboxHeaderProps) => {
     return (

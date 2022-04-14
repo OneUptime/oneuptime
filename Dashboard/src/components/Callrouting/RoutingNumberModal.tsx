@@ -872,7 +872,7 @@ RoutingNumberModal.propTypes = {
     }),
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchNumbers,
         addCallRoutingNumber,
@@ -882,7 +882,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         fetchNumber: state.callRouting.fetchNumber,
         saveNumber: state.callRouting.saveNumber,

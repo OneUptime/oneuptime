@@ -178,7 +178,7 @@ const changePasswordForm = reduxForm({
     validate,
 })(ChangePasswordForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             changePasswordError,

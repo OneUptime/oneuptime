@@ -13,7 +13,7 @@ export interface ComponentProps {
     disabled?: boolean;
 }
 
-const UptimeLegend = ({
+const UptimeLegend: Function = ({
     background,
     secondaryTextColor,
     downtimeColor,

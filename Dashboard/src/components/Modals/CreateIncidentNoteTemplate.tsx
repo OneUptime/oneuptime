@@ -509,7 +509,7 @@ const CreateIncidentNoteTemplateForm = reduxForm({
     enableReinitialize: true,
 })(CreateIncidentNoteTemplate);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         creatingNoteTemplate:
@@ -522,7 +522,7 @@ const mapStateToProps = (state: RootState) => {
         initialValues: { incidentState: 'Update' },
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         createIncidentNoteTemplate,

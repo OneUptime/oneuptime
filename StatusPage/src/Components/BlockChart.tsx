@@ -278,11 +278,11 @@ class BlockChart extends Component<ComponentProps> {
 
 BlockChart.displayName = 'BlockChart';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     statusData: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPageIndividualNote,
         getIndividualEvent,

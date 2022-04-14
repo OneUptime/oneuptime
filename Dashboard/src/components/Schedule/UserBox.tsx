@@ -226,7 +226,7 @@ const AddUsersForm = new reduxForm({
     enableReinitialize: true,
 })(UserBox);
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const initialValues = {};
     const schedules = state.schedule.schedules.data;
     const users =
@@ -268,7 +268,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ addUsers, teamLoading }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ addUsers, teamLoading }, dispatch);
 
 export default withRouter(
     connect(mapStateToProps, mapDispatchToProps)(AddUsersForm)

@@ -443,14 +443,14 @@ export class AlertChargesList extends Component<AlertChargesListProps>{
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchAlertCharges, getProjectBalance },
         dispatch
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

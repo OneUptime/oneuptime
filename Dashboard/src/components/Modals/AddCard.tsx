@@ -22,7 +22,7 @@ import { connect } from 'react-redux';
 import { post, delete, get } from '../../api';
 import { env, User } from '../../config';
 
-const createOptions = (fontSize: $TSFixMe, padding: $TSFixMe) => {
+const createOptions: Function = (fontSize: $TSFixMe, padding: $TSFixMe) => {
     return {
         style: {
             base: {
@@ -310,7 +310,7 @@ _CardForm.propTypes = {
     elementFontSize: PropTypes.number,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         CreateCardModalId: state.modal.modals[0].id,
         error: state.card.addCard.error,
@@ -319,7 +319,7 @@ const mapStateToProps = (state: RootState) => {
         userId: User.getUserId(),
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { closeModal, addCardSuccess, addCardFailed, addCardRequest },
         dispatch

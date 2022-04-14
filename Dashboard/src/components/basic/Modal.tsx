@@ -121,11 +121,11 @@ Modal.propTypes = {
     isLoading: PropTypes.bool,
 };
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return {};
 };
 

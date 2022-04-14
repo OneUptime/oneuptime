@@ -3,20 +3,24 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 
-export const fetchSsoDefaultRolesRequest = (): void => {
+export const fetchSsoDefaultRolesRequest: Function = (): void => {
     return {
         type: types.FETCH_SSO_DEFAULT_ROLES_REQUEST,
     };
 };
 
-export const fetchSsoDefaultRolesSuccess = (payload: $TSFixMe): void => {
+export const fetchSsoDefaultRolesSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SSO_DEFAULT_ROLES_SUCCESS,
         payload,
     };
 };
 
-export const fetchSsoDefaultRolesError = (payload: $TSFixMe): void => {
+export const fetchSsoDefaultRolesError: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SSO_DEFAULT_ROLES_FAILURE,
         payload,
@@ -52,20 +56,22 @@ export const fetchSsoDefaultRoles =
         }
     };
 
-export const fetchSsoDefaultRoleRequest = (): void => {
+export const fetchSsoDefaultRoleRequest: Function = (): void => {
     return {
         type: types.FETCH_SSO_DEFAULT_ROLE_REQUEST,
     };
 };
 
-export const fetchSsoDefaultRoleSuccess = (payload: $TSFixMe): void => {
+export const fetchSsoDefaultRoleSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SSO_DEFAULT_ROLE_SUCCESS,
         payload,
     };
 };
 
-export const fetchSsoDefaultRoleError = (payload: $TSFixMe): void => {
+export const fetchSsoDefaultRoleError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_SSO_DEFAULT_ROLE_FAILURE,
         payload,
@@ -98,20 +104,24 @@ export const fetchSsoDefaultRole =
         }
     };
 
-export const deleteSsoDefaultRoleRequest = (): void => {
+export const deleteSsoDefaultRoleRequest: Function = (): void => {
     return {
         type: types.DELETE_SSO_DEFAULT_ROLE_REQUEST,
     };
 };
 
-export const deleteSsoDefaultRoleSuccess = (payload: $TSFixMe): void => {
+export const deleteSsoDefaultRoleSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.DELETE_SSO_DEFAULT_ROLE_SUCCESS,
         payload,
     };
 };
 
-export const deleteSsoDefaultRoleError = (payload: $TSFixMe): void => {
+export const deleteSsoDefaultRoleError: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.DELETE_SSO_DEFAULT_ROLE_FAILED,
         payload,
@@ -144,19 +154,19 @@ export const deleteSsoDefaultRole =
         }
     };
 
-export const addSsoDefaultRoleRequest = (): void => {
+export const addSsoDefaultRoleRequest: Function = (): void => {
     return {
         type: types.ADD_SSO_DEFAULT_ROLE_REQUEST,
     };
 };
 
-export const addSsoDefaultRoleSuccess = (): void => {
+export const addSsoDefaultRoleSuccess: Function = (): void => {
     return {
         type: types.ADD_SSO_DEFAULT_ROLE_SUCCESS,
     };
 };
 
-export const addSsoDefaultRoleError = (payload: $TSFixMe): void => {
+export const addSsoDefaultRoleError: Function = (payload: $TSFixMe): void => {
     return {
         type: types.ADD_SSO_DEFAULT_ROLE_FAILED,
         payload,
@@ -189,19 +199,21 @@ export const addSsoDefaultRole =
         }
     };
 
-export const updateSsoDefaultRoleRequest = (): void => {
+export const updateSsoDefaultRoleRequest: Function = (): void => {
     return {
         type: types.UPDATE_SSO_DEFAULT_ROLE_REQUEST,
     };
 };
 
-export const updateSsoDefaultRoleSuccess = (): void => {
+export const updateSsoDefaultRoleSuccess: Function = (): void => {
     return {
         type: types.UPDATE_SSO_DEFAULT_ROLE_SUCCESS,
     };
 };
 
-export const updateSsoDefaultRoleError = (payload: $TSFixMe): void => {
+export const updateSsoDefaultRoleError: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.UPDATE_SSO_DEFAULT_ROLE_FAILURE,
         payload,
@@ -234,7 +246,7 @@ export const updateSsoDefaultRole =
         }
     };
 
-export const paginate = (type: $TSFixMe): void => {
+export const paginate: Function = (type: $TSFixMe): void => {
     if (type === 'next') {
         return {
             type: types.NEXT_PAGE,

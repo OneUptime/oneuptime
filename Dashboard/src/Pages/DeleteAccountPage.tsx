@@ -13,7 +13,7 @@ interface DeleteAccountPageProps {
     };
 }
 
-const DeleteAccountPage = (props: DeleteAccountPageProps) => {
+const DeleteAccountPage: Function = (props: DeleteAccountPageProps) => {
     const {
         location: { pathname },
     } = props;

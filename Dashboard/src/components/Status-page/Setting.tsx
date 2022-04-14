@@ -700,7 +700,7 @@ const SettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(Setting);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             verifyDomain,

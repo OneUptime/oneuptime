@@ -229,10 +229,10 @@ export default ({
         }
     };
 
-    const getMiddlewares = (props: $TSFixMe): void => {
+    const getMiddlewares: Function = (props: $TSFixMe): void => {
         const functionChain = [];
 
-        const apiPropsMiddleware = (
+        const apiPropsMiddleware: Function = (
             req: ExpressRequest,
             res: ExpressResponse,
             next: NextFunction

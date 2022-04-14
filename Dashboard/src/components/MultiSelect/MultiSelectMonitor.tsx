@@ -18,7 +18,7 @@ interface MultiSelectMonitorProps {
     fields?: unknown[] | object;
 }
 
-const MultiSelectMonitor = ({
+const MultiSelectMonitor: Function = ({
     input,
     data,
     meta,

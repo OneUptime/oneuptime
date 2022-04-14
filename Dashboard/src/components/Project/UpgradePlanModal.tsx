@@ -107,7 +107,7 @@ export class UpgradePlanModal extends Component<UpgradePlanModalProps>{
 }
 // }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
@@ -120,7 +120,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         changePlan,
         dispatch,

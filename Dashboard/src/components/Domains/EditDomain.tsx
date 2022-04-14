@@ -283,7 +283,7 @@ const EditDomainForm = reduxForm({
     validate,
 })(EditDomain);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         updateProjectDomain,
@@ -293,7 +293,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {
         domain: state.modal.modals[0].domain,
     };

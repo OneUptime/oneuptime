@@ -268,9 +268,9 @@ MonitorTitle.propTypes = {
     requesting: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         activeProbe: state.monitor.activeProbe,
         probes: state.probe.probes.data,

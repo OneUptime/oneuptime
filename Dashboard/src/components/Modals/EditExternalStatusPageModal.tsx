@@ -266,7 +266,7 @@ const EditExternalStatusPagesModalForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(EditExternalStatusPagesModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

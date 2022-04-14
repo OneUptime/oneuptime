@@ -307,14 +307,14 @@ const CreateIncidentPriorityForm = reduxForm({
     initialValues: { color: { r: 255, g: 0, b: 0, a: 1 } },
 })(CreateIncidentPriority);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         newIncidentPriority: state.incidentPriorities.newIncidentPriority,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createIncidentPriority,
         closeModal,

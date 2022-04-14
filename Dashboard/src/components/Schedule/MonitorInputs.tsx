@@ -178,12 +178,12 @@ function MonitorInputs({
 
 MonitorInputs.displayName = 'MonitorInputs';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInputs);

@@ -469,7 +469,7 @@ StatusPageCategory.propTypes = {
     statusPageCategories: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchStatusPageCategories,
         openModal,
@@ -477,7 +477,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     statusPageCategories:
         state.statusPageCategory.fetchStatusPageCategories.categories,
 

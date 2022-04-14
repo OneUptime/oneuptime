@@ -17,7 +17,7 @@ interface IncidentStatusPagesProps {
     fetchIncidentStatusPages: Function;
 }
 
-const IncidentStatusPages = ({
+const IncidentStatusPages: Function = ({
     statusPages,
     fetchIncidentStatusPages,
     requesting,
@@ -29,14 +29,14 @@ const IncidentStatusPages = ({
 }: IncidentStatusPagesProps) => {
     const [page, setPage] = useState(1);
     const numberOfPages = Math.ceil(parseInt(count) / 10);
-    const nextPage = () => {
+    const nextPage: Function = () => {
         const nextSkip = skip + limit;
         if (nextSkip < count) {
             fetchIncidentStatusPages(projectId, incidentId, nextSkip, limit);
             setPage(page < numberOfPages ? page + 1 : numberOfPages);
         }
     };
-    const previousPage = () => {
+    const previousPage: Function = () => {
         const nextSkip = skip - limit;
         if (nextSkip >= 0) {
             fetchIncidentStatusPages(projectId, incidentId, nextSkip, limit);
@@ -251,7 +251,7 @@ const IncidentStatusPages = ({
 
 IncidentStatusPages.displayName = 'IncidentStatusPage';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchIncidentStatusPages,
@@ -260,7 +260,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         requesting: state.statusPage.requesting,
         projectId: state.project.currentProject._id,

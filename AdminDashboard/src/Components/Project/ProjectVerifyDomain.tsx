@@ -288,7 +288,7 @@ class ProjectVerifyDomain extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     requesting: state.project.verifyDomain.requesting,
     verifyError: state.project.verifyDomain.error,
     domainId: state.modal.modals[0].id,
@@ -300,7 +300,7 @@ const mapStateToProps = (state: RootState) => ({
 
 ProjectVerifyDomain.displayName = 'ProjectVerifyDomain';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         fetchProjectDomains,

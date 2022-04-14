@@ -172,7 +172,7 @@ ScheduledEventBox.propTypes = {
     prevPage: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchscheduledEvents,
         fetchMonitors,
@@ -183,7 +183,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.map((data: $TSFixMe) => {
         data.monitors.map((monitor: $TSFixMe) => {

@@ -360,7 +360,7 @@ const userForm = reduxForm({
     validate,
 })(UserForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ getEmailFromToken }, dispatch);
 };
 

@@ -22,12 +22,12 @@ interface SearchInputProps {
     handleSubmit?: Function;
 }
 
-const SearchInput = (props: SearchInputProps) => {
+const SearchInput: Function = (props: SearchInputProps) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
     const [error, setError] = useState(null);
 
-    const handleClickOutside = (event: $TSFixMe) => {
+    const handleClickOutside: Function = (event: $TSFixMe) => {
 
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
@@ -93,14 +93,14 @@ const SearchInput = (props: SearchInputProps) => {
         },
     ];
 
-    const fetchLogs = () => {
+    const fetchLogs: Function = () => {
         const { projectId, componentId, applicationLogId } = props;
         props.fetchLogs(projectId, componentId, applicationLogId, 0, 10);
         props.setDisplay(null);
         setOpen(false);
     };
 
-    const handleSearch = (val: $TSFixMe, bool: $TSFixMe) => {
+    const handleSearch: Function = (val: $TSFixMe, bool: $TSFixMe) => {
         const { projectId, componentId, applicationLogId } = props;
         if (!val) {
             fetchLogs();
@@ -161,7 +161,7 @@ const SearchInput = (props: SearchInputProps) => {
         }
     };
 
-    const setAutoFocus = () => {
+    const setAutoFocus: Function = () => {
 
         document.getElementById('log_from_id').focus();
     };
@@ -342,6 +342,6 @@ SearchInput.propTypes = {
     handleSubmit: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ searchLog, fetchLogs }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ searchLog, fetchLogs }, dispatch);
 
 export default connect(null, mapDispatchToProps)(SearchInputForm);

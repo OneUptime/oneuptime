@@ -140,7 +140,7 @@ RemoveResourceCategory.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteResourceCategoryObj:
             state.resourceCategories.deletedResourceCategory,
@@ -149,7 +149,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteResourceCategory, closeModal }, dispatch);
 
 export default connect(
     mapStateToProps,

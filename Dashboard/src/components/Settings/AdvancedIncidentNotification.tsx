@@ -16,7 +16,7 @@ import { Validate } from '../../config';
 import Checkbox from '../../components/Checkbox';
 import CheckboxHeader from './CheckboxHeader';
 
-const validate = (values: $TSFixMe) => {
+const validate: Function = (values: $TSFixMe) => {
     const errors = {};
     if (values.replyAddress) {
         if (!Validate.email(values.replyAddress)) {
@@ -418,7 +418,7 @@ const IncidentNotificationForm = reduxForm({
     validate,
 })(AdvancedIncidentNotification);
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { type } = ownProps;
 
     let initialValues = {};
@@ -528,7 +528,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         setEmailNotification,
         setSmsNotification,

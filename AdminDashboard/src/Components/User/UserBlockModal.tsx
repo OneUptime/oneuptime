@@ -140,7 +140,7 @@ class UserBlockModal extends Component<ComponentProps> {
 
 UserBlockModal.displayName = 'UserBlockModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.user &&

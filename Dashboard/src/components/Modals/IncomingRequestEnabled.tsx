@@ -160,7 +160,7 @@ IncomingRequestEnabledToggle.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.incomingRequest.updateIncomingRequest.requesting,
         projectId: state.modal.modals[0].projectId,
@@ -168,7 +168,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
 
 export default connect(
     mapStateToProps,

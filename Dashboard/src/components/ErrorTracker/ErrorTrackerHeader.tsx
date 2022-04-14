@@ -300,7 +300,7 @@ class ErrorTrackerHeader extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const currentDateRange = state.errorTracker.errorTrackerIssues[
         ownProps.errorTracker._id
     ]

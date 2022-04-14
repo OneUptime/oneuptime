@@ -25,7 +25,7 @@ interface RenderSingleEscalationProps {
     fields: unknown[] | object;
 }
 
-const RenderSingleEscalation = ({
+const RenderSingleEscalation: Function = ({
     policy,
     email,
     sms,
@@ -41,7 +41,7 @@ const RenderSingleEscalation = ({
         !!rotateBy
     );
 
-    const manageRotationVisibility = (visibilityVal: $TSFixMe) => {
+    const manageRotationVisibility: Function = (visibilityVal: $TSFixMe) => {
         setRotationFreqVisibility(visibilityVal);
     };
 

@@ -69,9 +69,9 @@ export class UserRestoreBox extends Component<ComponentProps>{
 
 UserRestoreBox.displayName = 'UserRestoreBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ restoreUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const user = state.user.user.user || {};
     const userId = user._id;
 

@@ -116,7 +116,7 @@ function BreadCrumbs({
 }
 
 BreadCrumbs.displayName = 'BreadCrumbs';
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const currentProjectId =
         state.project.currentProject && state.project.currentProject._id;
     return {
@@ -126,7 +126,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeIncident,

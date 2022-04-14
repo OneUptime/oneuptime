@@ -307,7 +307,7 @@ const UploadFileForm = reduxForm({
     form: 'UploadFile',
 })(UploadFile);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         uploadSubscriberModalId: state.modal.modals[0].id,
         csvDownload: state.subscriber.csvDownload,
@@ -315,7 +315,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

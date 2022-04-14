@@ -27,7 +27,7 @@ import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
 const grid = 0;
 
-const getListStyle = (isDraggingOver: $TSFixMe) => ({
+const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
     padding: grid,
     width: '100%',
@@ -306,7 +306,7 @@ MonitorsWithCategory.propTypes = {
     change: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageMonitors,
         updateStatusPageMonitorsRequest,
@@ -322,7 +322,7 @@ const MonitorsWithCategoryForm = reduxForm({
     enableReinitialize: true,
 })(MonitorsWithCategory);
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const selector = formValueSelector(ownProps.category.name);
     const monitorsInForm =
         selector(state, 'monitors') && selector(state, 'monitors').length;

@@ -40,7 +40,7 @@ class Search extends Component<ComponentProps> {
 
 Search.displayName = 'Search';
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 

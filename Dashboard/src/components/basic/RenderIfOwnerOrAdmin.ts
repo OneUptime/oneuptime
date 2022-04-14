@@ -13,7 +13,7 @@ interface RenderIfOwnerOrAdminProps {
     currentProject?: object;
 }
 
-const RenderIfOwnerOrAdmin = ({
+const RenderIfOwnerOrAdmin: Function = ({
     currentProject,
     children,
 }: RenderIfOwnerOrAdminProps): void => {
@@ -26,7 +26,7 @@ RenderIfOwnerOrAdmin.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState): void => {
+const mapStateToProps: Function = (state: RootState): void => {
     return {
         currentProject: state.project.currentProject,
     };

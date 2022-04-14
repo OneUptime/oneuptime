@@ -504,7 +504,7 @@ export class RoutingNumberList extends Component<RoutingNumberListProps>{
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, removeNumbers, getCallRoutingNumbers },
         dispatch

@@ -289,9 +289,9 @@ export class SubscriberAlert extends Component<SubscriberAlertProps>{
 
 SubscriberAlert.displayName = 'SubscriberAlert';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         alerts: state.alert.subscribersAlert.data,
         isRequesting: state.alert.subscribersAlert.requesting,

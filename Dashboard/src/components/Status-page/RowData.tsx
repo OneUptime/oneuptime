@@ -21,7 +21,7 @@ export class RowData extends Component<RowDataProps>{
         const { statusPage, project } = this.props;
         const userId = User.getUserId();
         const monitorIds = statusPage.monitorNames;
-        const gt = (i: $TSFixMe) => monitorIds && monitorIds.length > i;
+        const gt: Function = (i: $TSFixMe) => monitorIds && monitorIds.length > i;
         let monitors = gt(0) ? monitorIds[0] : 'Not Yet Added';
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
@@ -146,6 +146,6 @@ RowData.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 export default connect(null, mapDispatchToProps)(RowData);

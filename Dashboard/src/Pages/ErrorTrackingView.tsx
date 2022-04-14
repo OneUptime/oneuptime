@@ -202,7 +202,7 @@ class ErrorTrackingView extends Component<ComponentProps> {
 
 
 ErrorTrackingView.displayName = 'ErrorTrackingView';
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchErrorTrackers,
@@ -212,7 +212,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { errorTrackerSlug, componentSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     const errorTracker = state.errorTracker.errorTrackersList.errorTrackers.filter(

@@ -883,7 +883,7 @@ class Incident extends React.Component<IncidentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const {
         componentSlug,
         incidentSlug,
@@ -961,7 +961,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             getMonitorLogs,

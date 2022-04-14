@@ -25,7 +25,7 @@ interface CustomTooltipProps {
     payload?: unknown[];
 }
 
-const CustomTooltip = ({
+const CustomTooltip: Function = ({
     active,
     payload
 }: CustomTooltipProps) => {
@@ -116,7 +116,7 @@ class AreaChart extends Component<ComponentProps> {
             ${fillChart.b}
         )`;
         if (data && data.length > 0) {
-            const processedData = (type === 'manual'
+            const processedData: Function = (type === 'manual'
                 ? data.map((a: $TSFixMe) => {
                     return {
                         name: this.parseDate(a.date),

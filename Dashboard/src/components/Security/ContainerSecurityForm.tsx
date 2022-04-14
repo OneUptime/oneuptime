@@ -388,7 +388,7 @@ ContainerSecurityForm.propTypes = {
     showCancelBtn: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         addContainerSecurity,
         getDockerCredentials,
@@ -397,7 +397,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         addingContainer: state.security.addContainer.requesting,
         addContainerError: state.security.addContainer.error,

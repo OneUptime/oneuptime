@@ -4,7 +4,7 @@
  * @returns a string
  */
 
-const joinNames = (arr = []): void => {
+const joinNames: Function = (arr = []): void => {
     if (!Array.isArray(arr)) {
         return '';
     }

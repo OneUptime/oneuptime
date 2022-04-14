@@ -16,7 +16,7 @@ interface FooterButtonProps {
     incidentId?: string;
 }
 
-const FooterButton = (props: FooterButtonProps) => {
+const FooterButton: Function = (props: FooterButtonProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

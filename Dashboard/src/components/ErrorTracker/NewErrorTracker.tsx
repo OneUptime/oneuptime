@@ -383,7 +383,7 @@ const NewErrorTrackerForm = new reduxForm({
     enableReinitialize: true,
 })(NewErrorTracker);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createErrorTracker,
         editErrorTrackerSwitch,
@@ -392,7 +392,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const requesting = ownProps.edit

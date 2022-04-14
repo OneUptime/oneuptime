@@ -18,7 +18,7 @@ import createIncidentNoteAction from './actions/createIncidentNote';
 
 // To include the API key on all outbound requests, simply define a function here.
 // It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot.
-const includeApiKey = (
+const includeApiKey: Function = (
     request: $TSFixMe,
     z: $TSFixMe,
     bundle: $TSFixMe

@@ -14,7 +14,7 @@ const email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let token: $TSFixMe;
 
-const generateOtp = (): void => {
+const generateOtp: Function = (): void => {
     const otp = speakeasy.totp({
         secret: token.trim(),
         encoding: 'base32',

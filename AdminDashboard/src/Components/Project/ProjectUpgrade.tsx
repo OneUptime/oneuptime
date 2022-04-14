@@ -380,11 +380,11 @@ ProjectUpgrade.propTypes = {
     activeForm: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ changePlan }, dispatch);
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const { requesting, error, project } =
         state.project && state.project.project;
     return {

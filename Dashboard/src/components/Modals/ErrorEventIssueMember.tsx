@@ -301,7 +301,7 @@ class ErrorEventIssueMember extends Component<ComponentProps> {
         );
     }
 }
-const mapStateToProp = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProp: Function = (state: RootState, ownProps: $TSFixMe) => {
     const errorTrackerIssueMembers =
         state.errorTracker.errorTrackerIssueMembers[
         ownProps.data.errorTrackerIssue._id

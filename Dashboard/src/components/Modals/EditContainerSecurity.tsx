@@ -414,7 +414,7 @@ EditContainerSecurity.propTypes = {
     projectSlug: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.security.editContainerSecurity.requesting,
         editError: state.security.editContainerSecurity.error,
@@ -440,7 +440,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, editContainerSecurity }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, editContainerSecurity }, dispatch);
 
 const EditContainerSecurityForm = reduxForm({
     form: 'EditContainerSecurityForm',

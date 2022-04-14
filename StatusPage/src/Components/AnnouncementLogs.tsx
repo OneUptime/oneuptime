@@ -426,12 +426,12 @@ AnnouncementLogs.propTypes = {
     monitorState: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     logs: state.status.announcementLogs.logsList,
     requesting: state.status.announcementLogs.requesting,
     error: state.status.announcementLogs.error
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchAnnouncementLogs }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchAnnouncementLogs }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(AnnouncementLogs);

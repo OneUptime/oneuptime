@@ -13,7 +13,7 @@ interface ProfileProps {
     };
 }
 
-const Profile = (props: ProfileProps) => {
+const Profile: Function = (props: ProfileProps) => {
     const {
         location: { pathname },
     } = props;

@@ -3,16 +3,18 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // CREATE INCIDENT NOTE TEMPLATE
-export const createIncidentNoteTemplateRequest = (): void => ({
+export const createIncidentNoteTemplateRequest: Function = (): void => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_REQUEST,
 });
 
-export const createIncidentNoteTemplateSuccess = (payload: $TSFixMe): void => ({
+export const createIncidentNoteTemplateSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const createIncidentNoteTemplateFailure = (
+export const createIncidentNoteTemplateFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.CREATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
@@ -49,16 +51,18 @@ export const createIncidentNoteTemplate =
     };
 
 // FETCH INCIDENT NOTE TEMPLATE
-export const fetchIncidentNoteTemplatesRequest = (): void => ({
+export const fetchIncidentNoteTemplatesRequest: Function = (): void => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_REQUEST,
 });
 
-export const fetchIncidentNoteTemplatesSuccess = (payload: $TSFixMe): void => ({
+export const fetchIncidentNoteTemplatesSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_SUCCESS,
     payload,
 });
 
-export const fetchIncidentNoteTemplatesFailure = (
+export const fetchIncidentNoteTemplatesFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.FETCH_INCIDENT_NOTE_TEMPLATES_FAILURE,
@@ -94,16 +98,18 @@ export const fetchIncidentNoteTemplates =
     };
 
 // UPDATE INCIDENT NOTE TEMPLATE
-export const updateIncidentNoteTemplateRequest = (): void => ({
+export const updateIncidentNoteTemplateRequest: Function = (): void => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_REQUEST,
 });
 
-export const updateIncidentNoteTemplateSuccess = (payload: $TSFixMe): void => ({
+export const updateIncidentNoteTemplateSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const updateIncidentNoteTemplateFailure = (
+export const updateIncidentNoteTemplateFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.UPDATE_INCIDENT_NOTE_TEMPLATE_FAILURE,
@@ -140,16 +146,18 @@ export const updateIncidentNoteTemplate =
     };
 
 // DELETE INCIDENT NOTE TEMPLATE
-export const deleteIncidentNoteTemplateRequest = (): void => ({
+export const deleteIncidentNoteTemplateRequest: Function = (): void => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_REQUEST,
 });
 
-export const deleteIncidentNoteTemplateSuccess = (payload: $TSFixMe): void => ({
+export const deleteIncidentNoteTemplateSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_SUCCESS,
     payload,
 });
 
-export const deleteIncidentNoteTemplateFailure = (
+export const deleteIncidentNoteTemplateFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.DELETE_INCIDENT_NOTE_TEMPLATE_FAILURE,

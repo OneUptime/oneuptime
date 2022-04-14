@@ -3,19 +3,19 @@ import SubscribeBox from './Subscribe/SubscribeBox';
 
 import { Translate } from 'react-auto-translate';
 
-const NewThemeSubscriber = () => {
+const NewThemeSubscriber: Function = () => {
     const [isShown, setIsShown] = useState(false);
     const popupRef = useRef();
     const subRef = useRef();
 
-    const handleToggleButtonClick = () => {
+    const handleToggleButtonClick: Function = () => {
         setIsShown(prevState => !prevState);
     };
-    const handleCloseButtonClick = () => {
+    const handleCloseButtonClick: Function = () => {
         setIsShown(false);
     };
     useEffect(() => {
-        const listener = (event: $TSFixMe) => {
+        const listener: Function = (event: $TSFixMe) => {
 
             if (!popupRef.current || popupRef.current.contains(event.target)) {
                 return;

@@ -144,13 +144,13 @@ class DeleteConfirmationModal extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     deleteRequest: state.smsLogs.smsLogs.deleteRequest,
     error: state.smsLogs.smsLogs.error,
     modalId: state.modal.modals[0].id
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteSmsLogs }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteSmsLogs }, dispatch);
 
 
 DeleteConfirmationModal.displayName = 'Delete Confirmation Modal';

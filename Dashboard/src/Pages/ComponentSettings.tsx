@@ -254,7 +254,7 @@ ComponentSettings.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     return {
         component:
@@ -272,7 +272,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ editComponent, fetchComponent }, dispatch);
 };
 

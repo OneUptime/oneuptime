@@ -70,9 +70,9 @@ export class ProjectRestoreBox extends Component<ComponentProps>{
 
 ProjectRestoreBox.displayName = 'ProjectRestoreBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ restoreProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ restoreProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

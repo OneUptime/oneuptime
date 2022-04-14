@@ -34,27 +34,31 @@ export function getCallRoutingNumbers(
     };
 }
 
-export const getCallRoutingNumbersSuccess = (numbers: $TSFixMe): void => {
+export const getCallRoutingNumbersSuccess: Function = (
+    numbers: $TSFixMe
+): void => {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_SUCCESS,
         payload: numbers,
     };
 };
 
-export const getCallRoutingNumbersRequest = (): void => {
+export const getCallRoutingNumbersRequest: Function = (): void => {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_REQUEST,
     };
 };
 
-export const getCallRoutingNumbersFailure = (error: ErrorPayload): void => {
+export const getCallRoutingNumbersFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.GET_CALL_ROUTING_NUMBERS_FAILURE,
         payload: error,
     };
 };
 
-export const getTeamAndSchedules = (projectId: ObjectID): void => {
+export const getTeamAndSchedules: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const schedules = BackendAPI.get(
             `schedule/${projectId}?skip=${0}&limit=${0}`
@@ -81,27 +85,29 @@ export const getTeamAndSchedules = (projectId: ObjectID): void => {
     };
 };
 
-export const getTeamAndSchedulesSuccess = (data: $TSFixMe): void => {
+export const getTeamAndSchedulesSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_SUCCESS,
         payload: data,
     };
 };
 
-export const getTeamAndSchedulesRequest = (): void => {
+export const getTeamAndSchedulesRequest: Function = (): void => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_REQUEST,
     };
 };
 
-export const getTeamAndSchedulesFailure = (error: ErrorPayload): void => {
+export const getTeamAndSchedulesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.GET_TEAM_MEMBERS_AND_SCHEDULES_FAILURE,
         payload: error,
     };
 };
 
-export const addCallRoutingNumber = (
+export const addCallRoutingNumber: Function = (
     projectId: ObjectID,
     values: $TSFixMe
 ): void => {
@@ -136,27 +142,31 @@ export const addCallRoutingNumber = (
     };
 };
 
-export const addCallRoutingNumberSuccess = (number: $TSFixMe): void => {
+export const addCallRoutingNumberSuccess: Function = (
+    number: $TSFixMe
+): void => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_SUCCESS,
         payload: number,
     };
 };
 
-export const addCallRoutingNumberRequest = (): void => {
+export const addCallRoutingNumberRequest: Function = (): void => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_REQUEST,
     };
 };
 
-export const addCallRoutingNumberFailure = (error: ErrorPayload): void => {
+export const addCallRoutingNumberFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_FAILURE,
         payload: error,
     };
 };
 
-export const resetAddCallRoutingNumber = (): void => {
+export const resetAddCallRoutingNumber: Function = (): void => {
     return {
         type: types.ADD_CALL_ROUTING_NUMBER_RESET,
     };
@@ -280,20 +290,24 @@ export function addCallRoutingSchedule(
     };
 }
 
-export const addCallRoutingScheduleSuccess = (data: $TSFixMe): void => {
+export const addCallRoutingScheduleSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_SUCCESS,
         payload: data,
     };
 };
 
-export const addCallRoutingScheduleRequest = (): void => {
+export const addCallRoutingScheduleRequest: Function = (): void => {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_REQUEST,
     };
 };
 
-export const addCallRoutingScheduleFailure = (error: ErrorPayload): void => {
+export const addCallRoutingScheduleFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.ADD_CALL_ROUTING_SCHEDULE_FAILURE,
         payload: error,
@@ -324,33 +338,33 @@ export function fetchNumbers(
     };
 }
 
-export const fetchNumbersSuccess = (numbers: $TSFixMe): void => {
+export const fetchNumbersSuccess: Function = (numbers: $TSFixMe): void => {
     return {
         type: types.FETCH_NUMBERS_SUCCESS,
         payload: numbers,
     };
 };
 
-export const fetchNumbersRequest = (): void => {
+export const fetchNumbersRequest: Function = (): void => {
     return {
         type: types.FETCH_NUMBERS_REQUEST,
     };
 };
 
-export const fetchNumbersFailure = (error: ErrorPayload): void => {
+export const fetchNumbersFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_NUMBERS_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchNumbers = (): void => {
+export const resetFetchNumbers: Function = (): void => {
     return {
         type: types.FETCH_NUMBERS_RESET,
     };
 };
 
-export const removeNumbers = (
+export const removeNumbers: Function = (
     projectId: ObjectID,
     callRoutingId: $TSFixMe
 ): void => {
@@ -374,21 +388,23 @@ export const removeNumbers = (
     };
 };
 
-export const removeNumbersSuccess = (numbers: $TSFixMe): void => {
+export const removeNumbersSuccess: Function = (numbers: $TSFixMe): void => {
     return {
         type: types.REMOVE_NUMBERS_SUCCESS,
         payload: numbers,
     };
 };
 
-export const removeNumbersRequest = (callRoutingId: $TSFixMe): void => {
+export const removeNumbersRequest: Function = (
+    callRoutingId: $TSFixMe
+): void => {
     return {
         type: types.REMOVE_NUMBERS_REQUEST,
         payload: callRoutingId,
     };
 };
 
-export const removeNumbersFailure = (error: ErrorPayload): void => {
+export const removeNumbersFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.REMOVE_NUMBERS_FAILURE,
         payload: error,
@@ -427,27 +443,29 @@ export function getCallRoutingLogs(
     };
 }
 
-export const getCallRoutingLogsSuccess = (logs: $TSFixMe): void => {
+export const getCallRoutingLogsSuccess: Function = (logs: $TSFixMe): void => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_SUCCESS,
         payload: logs,
     };
 };
 
-export const getCallRoutingLogsRequest = (): void => {
+export const getCallRoutingLogsRequest: Function = (): void => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_REQUEST,
     };
 };
 
-export const getCallRoutingLogsFailure = (error: ErrorPayload): void => {
+export const getCallRoutingLogsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_FAILURE,
         payload: error,
     };
 };
 
-export const getCallRoutingLogsReset = (): void => {
+export const getCallRoutingLogsReset: Function = (): void => {
     return {
         type: types.GET_CALL_ROUTING_LOGS_RESET,
     };
@@ -480,7 +498,7 @@ export function removeIntroAudio(
     };
 }
 
-export const removeIntroAudioSuccess = (
+export const removeIntroAudioSuccess: Function = (
     numbers: $TSFixMe,
     backup: $TSFixMe
 ): void => {
@@ -514,7 +532,7 @@ export function removeIntroAudioRequest(
     }
 }
 
-export const removeIntroAudioFailure = (
+export const removeIntroAudioFailure: Function = (
     error: ErrorPayload,
     backup: $TSFixMe
 ): void => {

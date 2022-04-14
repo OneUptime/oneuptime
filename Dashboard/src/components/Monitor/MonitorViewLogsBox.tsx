@@ -322,7 +322,7 @@ MonitorViewLogsBox.propTypes = {
     projectId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getMonitorLogs }, dispatch);
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
     const monitorId = props.monitorId ? props.monitorId : null;

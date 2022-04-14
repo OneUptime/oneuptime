@@ -96,9 +96,9 @@ export class ProjectDeleteBox extends Component<ComponentProps>{
 
 ProjectDeleteBox.displayName = 'ProjectDeleteBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

@@ -198,7 +198,7 @@ DeleteDomain.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.project.deleteDomain.requesting,
         deleteError: state.project.deleteDomain.error,
@@ -208,7 +208,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         deleteProjectDomain,

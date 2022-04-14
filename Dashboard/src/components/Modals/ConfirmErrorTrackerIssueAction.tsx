@@ -141,7 +141,7 @@ ConfirmErrorTrackerIssueAction.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     return {
         errorTrackerStatus:
             state.errorTracker.errorTrackerStatus[ownProps.data.errorTrackerId],

@@ -210,7 +210,7 @@ const companyForm = reduxForm({
     validate, // <------ unregister fields on unmoun
 })(CompanyForm);
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return {};
 };
 

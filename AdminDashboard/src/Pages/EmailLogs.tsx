@@ -201,7 +201,7 @@ class EmailLogs extends Component<ComponentProps> {
 
 EmailLogs.displayName = 'EmailLogs';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchEmailLogs,
@@ -212,7 +212,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const emailLogs = state.emailLogs.emailLogs;
     const searchEmailLogs = state.emailLogs.searchEmailLogs;
     const requesting =

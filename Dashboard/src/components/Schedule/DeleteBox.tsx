@@ -104,7 +104,7 @@ export class DeleteScheduleBox extends Component<ComponentProps>{
 
 DeleteScheduleBox.displayName = 'DeleteScheduleBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteSchedule,
         openModal,
@@ -113,7 +113,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(

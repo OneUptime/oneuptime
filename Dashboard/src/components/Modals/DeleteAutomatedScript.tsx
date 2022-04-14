@@ -12,9 +12,9 @@ interface DeleteAutomatedScriptProps {
     deleteScript: object;
 }
 
-const DeleteAutomatedScript = (props: DeleteAutomatedScriptProps) => {
+const DeleteAutomatedScript: Function = (props: DeleteAutomatedScriptProps) => {
     const { confirmThisDialog, closeThisDialog } = props;
-    const handleKeyBoard = (e: $TSFixMe) => {
+    const handleKeyBoard: Function = (e: $TSFixMe) => {
         switch (e.key) {
             case 'Escape':
                 return closeThisDialog();
@@ -133,7 +133,7 @@ DeleteAutomatedScript.propTypes = {
     deleteScript: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteScript: state.automatedScripts.deleteScript,
     };

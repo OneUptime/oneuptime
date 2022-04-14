@@ -3,16 +3,20 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 // Add Container Security
-export const addContainerSecurityRequest = (): void => ({
+export const addContainerSecurityRequest: Function = (): void => ({
     type: types.ADD_CONTAINER_SECURITY_REQUEST,
 });
 
-export const addContainerSecuritySuccess = (payload: $TSFixMe): void => ({
+export const addContainerSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.ADD_CONTAINER_SECURITY_SUCCESS,
     payload,
 });
 
-export const addContainerSecurityFailure = (error: ErrorPayload): void => ({
+export const addContainerSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.ADD_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -43,16 +47,20 @@ export const addContainerSecurity =
     };
 
 // Get a Container Security
-export const getContainerSecurityRequest = (): void => ({
+export const getContainerSecurityRequest: Function = (): void => ({
     type: types.GET_CONTAINER_SECURITY_REQUEST,
 });
 
-export const getContainerSecuritySuccess = (payload: $TSFixMe): void => ({
+export const getContainerSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_CONTAINER_SECURITY_SUCCESS,
     payload,
 });
 
-export const getContainerSecurityFailure = (error: ErrorPayload): void => ({
+export const getContainerSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -106,19 +114,23 @@ export const getContainerSecurityBySlug =
     };
 
 // Get all Container Security
-export const getContainerSecuritiesRequest = (
+export const getContainerSecuritiesRequest: Function = (
     fetchingPage: $TSFixMe
 ): void => ({
     type: types.GET_CONTAINER_SECURITIES_REQUEST,
     payload: fetchingPage,
 });
 
-export const getContainerSecuritiesSuccess = (payload: $TSFixMe): void => ({
+export const getContainerSecuritiesSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_CONTAINER_SECURITIES_SUCCESS,
     payload,
 });
 
-export const getContainerSecuritiesFailure = (error: ErrorPayload): void => ({
+export const getContainerSecuritiesFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_CONTAINER_SECURITIES_FAILURE,
     payload: error,
 });
@@ -154,16 +166,20 @@ export const getContainerSecurities =
     };
 
 // Delete Container Security
-export const deleteContainerSecurityRequest = (): void => ({
+export const deleteContainerSecurityRequest: Function = (): void => ({
     type: types.DELETE_CONTAINER_SECURITY_REQUEST,
 });
 
-export const deleteContainerSecuritySuccess = (payload: $TSFixMe): void => ({
+export const deleteContainerSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.DELETE_CONTAINER_SECURITY_SUCCESS,
     payload,
 });
 
-export const deleteContainerSecurityFailure = (error: ErrorPayload): void => ({
+export const deleteContainerSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.DELETE_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -195,16 +211,20 @@ export const deleteContainerSecurity =
     };
 
 // Scan Container Security
-export const scanContainerSecurityRequest = (): void => ({
+export const scanContainerSecurityRequest: Function = (): void => ({
     type: types.SCAN_CONTAINER_SECURITY_REQUEST,
 });
 
-export const scanContainerSecuritySuccess = (payload: $TSFixMe): void => ({
+export const scanContainerSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.SCAN_CONTAINER_SECURITY_SUCCESS,
     payload,
 });
 
-export const scanContainerSecurityFailure = (error: ErrorPayload): void => ({
+export const scanContainerSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.SCAN_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -233,16 +253,20 @@ export const scanContainerSecurity =
     };
 
 // Get a particular Container Security Log
-export const getContainerSecurityLogRequest = (): void => ({
+export const getContainerSecurityLogRequest: Function = (): void => ({
     type: types.GET_CONTAINER_SECURITY_LOG_REQUEST,
 });
 
-export const getContainerSecurityLogSuccess = (payload: $TSFixMe): void => ({
+export const getContainerSecurityLogSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_CONTAINER_SECURITY_LOG_SUCCESS,
     payload,
 });
 
-export const getContainerSecurityLogFailure = (error: ErrorPayload): void => ({
+export const getContainerSecurityLogFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_CONTAINER_SECURITY_LOG_FAILURE,
     payload: error,
 });
@@ -296,16 +320,20 @@ export const getContainerSecurityLogBySlug =
     };
 
 // Get Container Security Logs in a component
-export const getContainerSecurityLogsRequest = (): void => ({
+export const getContainerSecurityLogsRequest: Function = (): void => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_REQUEST,
 });
 
-export const getContainerSecurityLogsSuccess = (payload: $TSFixMe): void => ({
+export const getContainerSecurityLogsSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_SUCCESS,
     payload,
 });
 
-export const getContainerSecurityLogsFailure = (error: ErrorPayload): void => ({
+export const getContainerSecurityLogsFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_CONTAINER_SECURITY_LOGS_FAILURE,
     payload: error,
 });
@@ -335,16 +363,20 @@ export const getContainerSecurityLogs =
     };
 
 // Edit container security
-export const editContainerSecurityRequest = (): void => ({
+export const editContainerSecurityRequest: Function = (): void => ({
     type: types.EDIT_CONTAINER_SECURITY_REQUEST,
 });
 
-export const editContainerSecuritySuccess = (payload: $TSFixMe): void => ({
+export const editContainerSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.EDIT_CONTAINER_SECURITY_SUCCESS,
     payload,
 });
 
-export const editContainerSecurityFailure = (error: ErrorPayload): void => ({
+export const editContainerSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.EDIT_CONTAINER_SECURITY_FAILURE,
     payload: error,
 });
@@ -384,16 +416,20 @@ export function editContainerSecurity({
 }
 
 // Add Application Security
-export const addApplicationSecurityRequest = (): void => ({
+export const addApplicationSecurityRequest: Function = (): void => ({
     type: types.ADD_APPLICATION_SECURITY_REQUEST,
 });
 
-export const addApplicationSecuritySuccess = (payload: $TSFixMe): void => ({
+export const addApplicationSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.ADD_APPLICATION_SECURITY_SUCCESS,
     payload,
 });
 
-export const addApplicationSecurityFailure = (error: ErrorPayload): void => ({
+export const addApplicationSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.ADD_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -424,16 +460,20 @@ export const addApplicationSecurity =
     };
 
 // Get an Application Security
-export const getApplicationSecurityRequest = (): void => ({
+export const getApplicationSecurityRequest: Function = (): void => ({
     type: types.GET_APPLICATION_SECURITY_REQUEST,
 });
 
-export const getApplicationSecuritySuccess = (payload: $TSFixMe): void => ({
+export const getApplicationSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_APPLICATION_SECURITY_SUCCESS,
     payload,
 });
 
-export const getApplicationSecurityFailure = (error: ErrorPayload): void => ({
+export const getApplicationSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -487,19 +527,23 @@ export const getApplicationSecurityBySlug =
     };
 
 // Get all Application Security
-export const getApplicationSecuritiesRequest = (
+export const getApplicationSecuritiesRequest: Function = (
     fetchingPage: $TSFixMe
 ): void => ({
     type: types.GET_APPLICATION_SECURITIES_REQUEST,
     payload: fetchingPage,
 });
 
-export const getApplicationSecuritiesSuccess = (payload: $TSFixMe): void => ({
+export const getApplicationSecuritiesSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_APPLICATION_SECURITIES_SUCCESS,
     payload,
 });
 
-export const getApplicationSecuritiesFailure = (error: ErrorPayload): void => ({
+export const getApplicationSecuritiesFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_APPLICATION_SECURITIES_FAILURE,
     payload: error,
 });
@@ -535,16 +579,18 @@ export const getApplicationSecurities =
     };
 
 // Delete Application Security
-export const deleteApplicationSecurityRequest = (): void => ({
+export const deleteApplicationSecurityRequest: Function = (): void => ({
     type: types.DELETE_APPLICATION_SECURITY_REQUEST,
 });
 
-export const deleteApplicationSecuritySuccess = (payload: $TSFixMe): void => ({
+export const deleteApplicationSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.DELETE_APPLICATION_SECURITY_SUCCESS,
     payload,
 });
 
-export const deleteApplicationSecurityFailure = (
+export const deleteApplicationSecurityFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.DELETE_APPLICATION_SECURITY_FAILURE,
@@ -578,16 +624,20 @@ export const deleteApplicationSecurity =
     };
 
 // Scan Application Security
-export const scanApplicationSecurityRequest = (): void => ({
+export const scanApplicationSecurityRequest: Function = (): void => ({
     type: types.SCAN_APPLICATION_SECURITY_REQUEST,
 });
 
-export const scanApplicationSecuritySuccess = (payload: $TSFixMe): void => ({
+export const scanApplicationSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.SCAN_APPLICATION_SECURITY_SUCCESS,
     payload,
 });
 
-export const scanApplicationSecurityFailure = (error: ErrorPayload): void => ({
+export const scanApplicationSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.SCAN_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -615,16 +665,18 @@ export const scanApplicationSecurity =
     };
 
 // Get a particular Application Security Log
-export const getApplicationSecurityLogRequest = (): void => ({
+export const getApplicationSecurityLogRequest: Function = (): void => ({
     type: types.GET_APPLICATION_SECURITY_LOG_REQUEST,
 });
 
-export const getApplicationSecurityLogSuccess = (payload: $TSFixMe): void => ({
+export const getApplicationSecurityLogSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_APPLICATION_SECURITY_LOG_SUCCESS,
     payload,
 });
 
-export const getApplicationSecurityLogFailure = (
+export const getApplicationSecurityLogFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.GET_APPLICATION_SECURITY_LOG_FAILURE,
@@ -680,16 +732,18 @@ export const getApplicationSecurityLogBySlug =
     };
 
 // Get Application Security Logs in a component
-export const getApplicationSecurityLogsRequest = (): void => ({
+export const getApplicationSecurityLogsRequest: Function = (): void => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_REQUEST,
 });
 
-export const getApplicationSecurityLogsSuccess = (payload: $TSFixMe): void => ({
+export const getApplicationSecurityLogsSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_SUCCESS,
     payload,
 });
 
-export const getApplicationSecurityLogsFailure = (
+export const getApplicationSecurityLogsFailure: Function = (
     error: ErrorPayload
 ): void => ({
     type: types.GET_APPLICATION_SECURITY_LOGS_FAILURE,
@@ -721,16 +775,20 @@ export const getApplicationSecurityLogs =
     };
 
 // Edit application security
-export const editApplicationSecurityRequest = (): void => ({
+export const editApplicationSecurityRequest: Function = (): void => ({
     type: types.EDIT_APPLICATION_SECURITY_REQUEST,
 });
 
-export const editApplicationSecuritySuccess = (payload: $TSFixMe): void => ({
+export const editApplicationSecuritySuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.EDIT_APPLICATION_SECURITY_SUCCESS,
     payload,
 });
 
-export const editApplicationSecurityFailure = (error: ErrorPayload): void => ({
+export const editApplicationSecurityFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.EDIT_APPLICATION_SECURITY_FAILURE,
     payload: error,
 });
@@ -769,12 +827,16 @@ export function editApplicationSecurity({
     };
 }
 
-export const setActiveApplicationSecurity = (payload: $TSFixMe): void => ({
+export const setActiveApplicationSecurity: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.SET_ACTIVE_APPLICATION_SECURITY,
     payload,
 });
 
-export const setActiveContainerSecurity = (payload: $TSFixMe): void => ({
+export const setActiveContainerSecurity: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.SET_ACTIVE_CONTAINER_SECURITY,
     payload,
 });

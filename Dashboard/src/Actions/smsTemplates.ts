@@ -5,35 +5,35 @@ import * as types from '../constants/smstemplates';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 //Array of sms templates
 
-export const smsTemplatesRequest = (promise: $TSFixMe): void => {
+export const smsTemplatesRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.SMS_TEMPLATES_REQUEST,
         payload: promise,
     };
 };
 
-export const smsTemplatesError = (error: ErrorPayload): void => {
+export const smsTemplatesError: Function = (error: ErrorPayload): void => {
     return {
         type: types.SMS_TEMPLATES_FAILED,
         payload: error,
     };
 };
 
-export const smsTemplatesSuccess = (incidents: $TSFixMe): void => {
+export const smsTemplatesSuccess: Function = (incidents: $TSFixMe): void => {
     return {
         type: types.SMS_TEMPLATES_SUCCESS,
         payload: incidents,
     };
 };
 
-export const smsTemplatesReset = (): void => {
+export const smsTemplatesReset: Function = (): void => {
     return {
         type: types.SMS_TEMPLATES_RESET,
     };
 };
 
 // Calls the API to get sms templates
-export const getSmsTemplates = (projectId: ObjectID): void => {
+export const getSmsTemplates: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`smsTemplate/${projectId}`);
         dispatch(smsTemplatesRequest(promise));
@@ -50,34 +50,39 @@ export const getSmsTemplates = (projectId: ObjectID): void => {
 };
 
 // Edit sms templates
-export const editSmsTemplateReset = (): void => {
+export const editSmsTemplateReset: Function = (): void => {
     return {
         type: types.EDIT_SMS_TEMPLATES_RESET,
     };
 };
 
-export const editSmsTemplateRequest = (): void => {
+export const editSmsTemplateRequest: Function = (): void => {
     return {
         type: types.EDIT_SMS_TEMPLATES_REQUEST,
         payload: true,
     };
 };
 
-export const editSmsTemplateSuccess = (smsTemplates: $TSFixMe): void => {
+export const editSmsTemplateSuccess: Function = (
+    smsTemplates: $TSFixMe
+): void => {
     return {
         type: types.EDIT_SMS_TEMPLATES_SUCCESS,
         payload: smsTemplates,
     };
 };
 
-export const editSmsTemplateError = (error: ErrorPayload): void => {
+export const editSmsTemplateError: Function = (error: ErrorPayload): void => {
     return {
         type: types.EDIT_SMS_TEMPLATES_FAILED,
         payload: error,
     };
 };
 
-export const editSmsTemplates = (projectId: ObjectID, data: $TSFixMe): void => {
+export const editSmsTemplates: Function = (
+    projectId: ObjectID,
+    data: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`smsTemplate/${projectId}`, data);
         dispatch(editSmsTemplateRequest());
@@ -95,21 +100,23 @@ export const editSmsTemplates = (projectId: ObjectID, data: $TSFixMe): void => {
 
 //Array of sms templates
 
-export const resetSmsTemplatesRequest = (promise: $TSFixMe): void => {
+export const resetSmsTemplatesRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.RESET_SMS_TEMPLATES_REQUEST,
         payload: promise,
     };
 };
 
-export const resetSmsTemplatesError = (error: ErrorPayload): void => {
+export const resetSmsTemplatesError: Function = (error: ErrorPayload): void => {
     return {
         type: types.RESET_SMS_TEMPLATES_FAILED,
         payload: error,
     };
 };
 
-export const resetSmsTemplatesSuccess = (smsTemplates: $TSFixMe): void => {
+export const resetSmsTemplatesSuccess: Function = (
+    smsTemplates: $TSFixMe
+): void => {
     return {
         type: types.RESET_SMS_TEMPLATES_SUCCESS,
         payload: smsTemplates,
@@ -117,7 +124,7 @@ export const resetSmsTemplatesSuccess = (smsTemplates: $TSFixMe): void => {
 };
 
 // Calls the API to reset sms templates
-export const resetSmsTemplates = (
+export const resetSmsTemplates: Function = (
     projectId: ObjectID,
     templateId: $TSFixMe
 ): void => {
@@ -139,21 +146,21 @@ export const resetSmsTemplates = (
     };
 };
 
-export const smtpConfigRequest = (promise: $TSFixMe): void => {
+export const smtpConfigRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.SMTP_CONFIG_REQUEST,
         payload: promise,
     };
 };
 
-export const smtpConfigError = (error: ErrorPayload): void => {
+export const smtpConfigError: Function = (error: ErrorPayload): void => {
     return {
         type: types.SMTP_CONFIG_FAILED,
         payload: error,
     };
 };
 
-export const smtpConfigSuccess = (config: $TSFixMe): void => {
+export const smtpConfigSuccess: Function = (config: $TSFixMe): void => {
     return {
         type: types.SMTP_CONFIG_SUCCESS,
         payload: config,
@@ -161,7 +168,7 @@ export const smtpConfigSuccess = (config: $TSFixMe): void => {
 };
 
 // Calls the API to reset email templates
-export const getSmtpConfig = (projectId: ObjectID): void => {
+export const getSmtpConfig: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`smsSmtp/${projectId}`);
         dispatch(smtpConfigRequest(promise));
@@ -189,7 +196,10 @@ export const getSmtpConfig = (projectId: ObjectID): void => {
     };
 };
 
-export const postSmtpConfig = (projectId: ObjectID, data: $TSFixMe): void => {
+export const postSmtpConfig: Function = (
+    projectId: ObjectID,
+    data: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`smsSmtp/${projectId}`, data);
         dispatch(smtpConfigRequest(promise));
@@ -217,28 +227,28 @@ export const postSmtpConfig = (projectId: ObjectID, data: $TSFixMe): void => {
     };
 };
 
-export const deleteSmtpConfigRequest = (promise: $TSFixMe): void => {
+export const deleteSmtpConfigRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.DELETE_SMTP_CONFIG_REQUEST,
         payload: promise,
     };
 };
 
-export const deleteSmtpConfigError = (error: ErrorPayload): void => {
+export const deleteSmtpConfigError: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_SMTP_CONFIG_FAILED,
         payload: error,
     };
 };
 
-export const deleteSmtpConfigSuccess = (config: $TSFixMe): void => {
+export const deleteSmtpConfigSuccess: Function = (config: $TSFixMe): void => {
     return {
         type: types.DELETE_SMTP_CONFIG_SUCCESS,
         payload: config,
     };
 };
 
-export const deleteSmtpConfig = (
+export const deleteSmtpConfig: Function = (
     projectId: ObjectID,
     smtpId: $TSFixMe
 ): void => {
@@ -301,7 +311,9 @@ export function updateSmtpConfig(
     };
 }
 
-export const changeShowingTemplate = (smsTemplate: $TSFixMe): void => {
+export const changeShowingTemplate: Function = (
+    smsTemplate: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.CHANGE_SHOWING_TEMPLATE,
@@ -310,7 +322,7 @@ export const changeShowingTemplate = (smsTemplate: $TSFixMe): void => {
     };
 };
 
-export const setRevealVariable = (smstype: $TSFixMe): void => {
+export const setRevealVariable: Function = (smstype: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.SET_REVEAL_VARIABLE,
@@ -319,7 +331,7 @@ export const setRevealVariable = (smstype: $TSFixMe): void => {
     };
 };
 
-export const setSmtpConfig = (val: $TSFixMe): void => {
+export const setSmtpConfig: Function = (val: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.SET_SMTP_CONFIG,

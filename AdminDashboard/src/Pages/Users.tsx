@@ -413,14 +413,14 @@ class Users extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchUsers, searchUsers, openModal, closeModal },
         dispatch
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const requesting =
         state.user.users.requesting || state.user.searchUsers.requesting
             ? true

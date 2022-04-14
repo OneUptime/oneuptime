@@ -4,35 +4,41 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/automatedScript';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const resetScripts = (data: $TSFixMe): void => {
+export const resetScripts: Function = (data: $TSFixMe): void => {
     return {
         type: types.RESET_AUTOMATED_SCRIPT,
         payload: data,
     };
 };
 
-export const createAutomatedScriptRequest = (data: $TSFixMe): void => {
+export const createAutomatedScriptRequest: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_REQUEST,
         payload: data,
     };
 };
 
-export const createAutomatedScriptSuccess = (data: $TSFixMe): void => {
+export const createAutomatedScriptSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
 };
 
-export const createAutomatedScriptFailure = (error: ErrorPayload): void => {
+export const createAutomatedScriptFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
     };
 };
 
-export const createAutomatedScript = (
+export const createAutomatedScript: Function = (
     projectId: ObjectID,
     data: $TSFixMe
 ): void => {
@@ -68,21 +74,27 @@ export const createAutomatedScript = (
     };
 };
 
-export const updateAutomatedScriptRequest = (data: $TSFixMe): void => {
+export const updateAutomatedScriptRequest: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_REQUEST,
         payload: data,
     };
 };
 
-export const updateAutomatedScriptSuccess = (data: $TSFixMe): void => {
+export const updateAutomatedScriptSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
 };
 
-export const updateAutomatedScriptFailure = (error: ErrorPayload): void => {
+export const updateAutomatedScriptFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -129,21 +141,27 @@ export function updateAutomatedScript(
     };
 }
 
-export const fetchSingleAutomatedScriptSuccess = (data: $TSFixMe): void => {
+export const fetchSingleAutomatedScriptSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SINGLE_SCRIPT_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchSingleAutomatedScriptRequest = (data: $TSFixMe): void => {
+export const fetchSingleAutomatedScriptRequest: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SINGLE_SCRIPT_REQUEST,
         payload: data,
     };
 };
 
-export const fetchSingleAutomatedScriptFailure = (data: $TSFixMe): void => {
+export const fetchSingleAutomatedScriptFailure: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SINGLE_SCRIPT_FAILURE,
         payload: data,
@@ -188,13 +206,17 @@ export function fetchSingleAutomatedScript(
     };
 }
 
-export const fetchAutomatedScriptSuccess = (scripts: $TSFixMe): void => {
+export const fetchAutomatedScriptSuccess: Function = (
+    scripts: $TSFixMe
+): void => {
     return {
         type: types.FETCH_AUTOMATED_SCRIPT_SUCCESS,
         payload: scripts,
     };
 };
-export const fetchAutomatedScriptFailure = (error: ErrorPayload): void => {
+export const fetchAutomatedScriptFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
@@ -224,25 +246,27 @@ export function fetchAutomatedScript(
     };
 }
 
-export const runAutomatedScriptRequest = (): void => {
+export const runAutomatedScriptRequest: Function = (): void => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_REQUEST,
     };
 };
-export const runAutomatedScriptFailure = (error: ErrorPayload): void => {
+export const runAutomatedScriptFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_FAILURE,
         payload: error,
     };
 };
-export const runAutomatedScriptSuccess = (data: $TSFixMe): void => {
+export const runAutomatedScriptSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.RUN_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
 };
 
-export const runScript = (
+export const runScript: Function = (
     projectId: ObjectID,
     automatedScriptId: $TSFixMe
 ): void => {
@@ -267,20 +291,20 @@ export const runScript = (
     };
 };
 
-const deleteAutomatedScriptSuccess = (data: $TSFixMe): void => {
+const deleteAutomatedScriptSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.DELETE_AUTOMATED_SCRIPT_SUCCESS,
         payload: data,
     };
 };
 
-const deleteAutomatedScriptRequest = (): void => {
+const deleteAutomatedScriptRequest: Function = (): void => {
     return {
         type: types.DELETE_AUTOMATED_SCRIPT_REQUEST,
     };
 };
 
-const deleteAutomatedScriptFailure = (error: ErrorPayload): void => {
+const deleteAutomatedScriptFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_AUTOMATED_SCRIPT_FAILURE,
         payload: error,

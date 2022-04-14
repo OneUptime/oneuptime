@@ -108,7 +108,7 @@ export class DuplicateStatusPageBox extends Component<ComponentProps>{
 
 DuplicateStatusPageBox.displayName = 'DuplicateStatusPageBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,
@@ -116,7 +116,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.statusPage &&

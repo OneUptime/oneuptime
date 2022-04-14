@@ -280,7 +280,7 @@ class MSTeamsList extends React.Component<MSTeamsListProps> {
 
 MSTeamsList.displayName = 'MsTeamsList';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         msTeams: state.msTeams.msTeams,
         isRequesting: state.msTeams.msTeams.requesting,
@@ -294,7 +294,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getMsTeams,
         paginate,

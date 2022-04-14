@@ -15,7 +15,7 @@ interface SecurityLogProps {
     containerSecurityLog?: object;
 }
 
-const SecurityLog = ({
+const SecurityLog: Function = ({
     type,
     applicationSecurityLog,
     containerSecurityLog,
@@ -60,8 +60,8 @@ const SecurityLog = ({
         containerLogs = paginate(containerLogs, page);
     }
 
-    const prev = () => setPage(page - 1);
-    const next = () => setPage(page + 1);
+    const prev: Function = () => setPage(page - 1);
+    const next: Function = () => setPage(page + 1);
 
     return (
         <div
@@ -507,7 +507,7 @@ SecurityLog.propTypes = {
     containerSecurityLog: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         levelToFilter:
             state.form.Filter &&

@@ -141,7 +141,7 @@ ExitProjectModal.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     isRequesting:
         state.project &&
         state.project.exitProject &&

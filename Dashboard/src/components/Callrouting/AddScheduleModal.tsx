@@ -590,7 +590,7 @@ const AddScheduleModalForm = reduxForm({
     enableReinitialize: true,
 })(AddScheduleModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             addCallRoutingSchedule,

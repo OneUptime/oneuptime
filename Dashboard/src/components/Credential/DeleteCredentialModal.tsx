@@ -237,7 +237,7 @@ DeleteCredentialModal.propTypes = {
     slug: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialType } = propArr[0];
 

@@ -22,7 +22,7 @@ interface ApplicationLogListProps {
     fetchingPage?: boolean;
 }
 
-export const ApplicationLogList = (props: ApplicationLogListProps) => {
+export const ApplicationLogList: Function = (props: ApplicationLogListProps) => {
     const applicationLogs = props.applicationLogs ? props.applicationLogs : [];
     let applicationLogDetails = null;
     const skip = props.skip;
@@ -180,9 +180,9 @@ ApplicationLogList.propTypes = {
     fetchingPage: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 

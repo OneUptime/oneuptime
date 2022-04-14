@@ -256,7 +256,7 @@ const ChangePasswordSettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(ChangePasswordSetting);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             updateChangePasswordSetting,

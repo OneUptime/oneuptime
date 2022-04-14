@@ -24,13 +24,13 @@ interface IncidentProjectBoxProps {
     showProjectName?: boolean;
 }
 
-const IncidentProjectBox = (props: IncidentProjectBoxProps) => {
+const IncidentProjectBox: Function = (props: IncidentProjectBoxProps) => {
     const [incidents, setIncidents] = useState({});
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [filterOption, setFilterOption] = useState('Filter By');
     const [isFiltered, setIsFiltered] = useState(false);
 
-    const filterIncidentLogs = (status: $TSFixMe) => {
+    const filterIncidentLogs: Function = (status: $TSFixMe) => {
         const unFilteredIncidents = props.subProjectIncident;
         const filtered: $TSFixMe = [];
         switch (status) {
@@ -60,7 +60,7 @@ const IncidentProjectBox = (props: IncidentProjectBoxProps) => {
     };
 
     useEffect(() => {
-        const handleKeyboard = (event: $TSFixMe) => {
+        const handleKeyboard: Function = (event: $TSFixMe) => {
             const { modalList, allProjectLength } = props;
 
             if (allProjectLength === 1) {

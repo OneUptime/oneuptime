@@ -93,7 +93,7 @@ class Billing extends Component<ComponentProps> {
 
 Billing.displayName = 'Billing';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     return {
@@ -106,7 +106,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             getSmtpConfig,

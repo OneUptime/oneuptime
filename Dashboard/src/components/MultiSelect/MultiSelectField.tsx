@@ -54,7 +54,7 @@ interface MultiSelectFieldProps {
     placeholder?: string;
 }
 
-const MultiSelectField = ({
+const MultiSelectField: Function = ({
     options,
     className,
     classNamePrefix,

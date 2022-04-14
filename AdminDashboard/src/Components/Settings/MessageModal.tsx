@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 
-const MessageModal = (props: $TSFixMe) => {
+const MessageModal: Function = (props: $TSFixMe) => {
     const { closeThisDialog, testError, email } = props;
 
     return (
@@ -83,7 +83,7 @@ MessageModal.propTypes = {
     email: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         testError: state.settings.error,
     };

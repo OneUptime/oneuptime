@@ -7,7 +7,7 @@ export interface ComponentProps {
     fileInputKey?: string | Date;
 }
 
-const UploadFile = ({
+const UploadFile: Function = ({
     fileInputKey,
     input: { value: omitValue, ...inputProps },
     meta: omitMeta,

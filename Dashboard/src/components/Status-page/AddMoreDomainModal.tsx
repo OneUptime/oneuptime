@@ -698,7 +698,7 @@ const AddMoreDomainForm = reduxForm({
     validate,
 })(AddMoreDomainModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         uploadCertFile,
@@ -710,7 +710,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {
         enableHttps: true,
         autoProvisioning: true,

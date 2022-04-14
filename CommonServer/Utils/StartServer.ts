@@ -18,7 +18,7 @@ const app = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);
 
-const logRequest = (
+const logRequest: Function = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction
@@ -46,7 +46,7 @@ const logRequest = (
     next();
 };
 
-const setDefaultHeaders = (
+const setDefaultHeaders: Function = (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction

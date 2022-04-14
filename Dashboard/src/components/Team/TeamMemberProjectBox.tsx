@@ -25,8 +25,8 @@ export interface ComponentProps {
     showProjectName?: boolean;
 }
 
-const TeamMemberProjectBox = (props: TeamMemberProjectBoxProps) => {
-    const handleKeyboard = (event: $TSFixMe) => {
+const TeamMemberProjectBox: Function = (props: TeamMemberProjectBoxProps) => {
+    const handleKeyboard: Function = (event: $TSFixMe) => {
         const { modalList, allTeamLength } = props;
 
         if (allTeamLength === 1) {

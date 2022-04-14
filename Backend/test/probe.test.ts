@@ -31,10 +31,10 @@ import GlobalConfig from './utils/globalConfig';
 import AirtableService from '../backend/services/airtableService';
 let token: $TSFixMe, userId, projectId: ObjectID, componentId: $TSFixMe;
 const probeKey: string = 'test-key';
-const sleep = (waitTimeInMs: $TSFixMe): void =>
+const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const generateRandomString = require('./utils/string').generateRandomString;
-const probeServerRequestHeader = ({
+const probeServerRequestHeader: Function = ({
     probeName,
     probeKey,
     clusterKey,

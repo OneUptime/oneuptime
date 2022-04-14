@@ -12,7 +12,7 @@ interface ChartContainerProps {
     data: unknown[];
 }
 
-const ChartContainer = ({
+const ChartContainer: Function = ({
     label,
     name,
     data
@@ -130,13 +130,13 @@ LineChartsContainer.propTypes = {
     logs: PropTypes.array.isRequired,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const {
         status: { logs },
     } = state;
     return { logs };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMonitorLogs,
     },

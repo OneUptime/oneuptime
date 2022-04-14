@@ -429,7 +429,7 @@ const TeamMemberForm = reduxForm({
     form: 'TeamMember',
 })(TeamMember);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             teamDelete,

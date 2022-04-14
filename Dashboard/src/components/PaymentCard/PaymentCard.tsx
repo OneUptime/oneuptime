@@ -583,7 +583,7 @@ PaymentCard.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         cards: state.card.fetchCards.cards,
         count: state.card.fetchCards.cards.length,
@@ -595,6 +595,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchCards, setDefaultCard }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchCards, setDefaultCard }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(PaymentCard);

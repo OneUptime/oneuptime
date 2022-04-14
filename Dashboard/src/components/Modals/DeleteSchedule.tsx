@@ -183,7 +183,7 @@ DeleteSchedule.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.scheduledEvent.deletedScheduledEvent.requesting,
         deleteError: state.scheduledEvent.deletedScheduledEvent.error,
@@ -192,6 +192,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteScheduledEvent }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteScheduledEvent }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteSchedule);

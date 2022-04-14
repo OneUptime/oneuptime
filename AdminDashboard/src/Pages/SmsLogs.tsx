@@ -196,7 +196,7 @@ class SmsLogs extends Component<ComponentProps> {
 
 SmsLogs.displayName = 'SmsLogs';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchSmsLogs,
@@ -207,7 +207,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const smsLogs = state.smsLogs.smsLogs;
     const searchSmsLogs = state.smsLogs.searchSmsLogs;
     const requesting =

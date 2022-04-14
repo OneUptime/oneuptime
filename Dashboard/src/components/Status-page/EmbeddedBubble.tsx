@@ -23,7 +23,7 @@ import { openModal, closeModal } from 'CommonUI/actions/modal';
 
 const selector = formValueSelector('EmbeddedBubble');
 
-const css = (colors: $TSFixMe) => `<style>
+const css: Function = (colors: $TSFixMe) => `<style>
     .all {
         width: 20px;
         height: 20px;
@@ -64,7 +64,7 @@ const css = (colors: $TSFixMe) => `<style>
       }
     </style>`;
 
-const createScript = (url: URL, css: $TSFixMe) => {
+const createScript: Function = (url: URL, css: $TSFixMe) => {
     return `<div class='bubble-box'>
     <div id="oneuptime-status-bubble"></div>
     <div id='oneuptime-bubble-text'></div>
@@ -618,7 +618,7 @@ const EmbeddedBubbleForm = reduxForm({
     enableReinitialize: true,
 })(EmbeddedBubble);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         resetStatusBubbleId,
         change,
@@ -630,7 +630,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const customCodeValue = selector(state, 'embeddedcode');
     const {
         statusBubbleId,

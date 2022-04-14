@@ -16,7 +16,7 @@ const theme = createTheme({
     },
 });
 
-const styles = () => ({
+const styles: Function = () => ({
     input: {
         flex: '0 0 auto',
         padding: '4px 7px 2px',
@@ -54,7 +54,7 @@ interface DateTimeSelectorProps {
     maxDate?: string | object;
 }
 
-const DateTimeSelector = ({
+const DateTimeSelector: Function = ({
     input,
     meta: { touched, error },
     style,
@@ -68,7 +68,7 @@ const DateTimeSelector = ({
         input.value = null;
     }
     const [value, setValue] = useState(input.value);
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(new Date(option).toUTCString());

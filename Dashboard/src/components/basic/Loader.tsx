@@ -4,7 +4,7 @@ const loaderStyle = {
     backgroundColor: '#96d8ff',
 };
 
-export const FlatLoader = () => (
+export const FlatLoader: Function = () => (
     <div className="ball-pulse">
         <div style={loaderStyle}></div>
         <div style={loaderStyle}></div>
@@ -14,7 +14,7 @@ export const FlatLoader = () => (
 
 FlatLoader.displayName = 'FlatLoader';
 
-export const FormLoader = () => (
+export const FormLoader: Function = () => (
     <div className="ball-beat">
         <div style={{ height: '8px', width: '8px' }}></div>
         <div style={{ height: '8px', width: '8px' }}></div>
@@ -24,7 +24,7 @@ export const FormLoader = () => (
 
 FormLoader.displayName = 'FormLoader';
 
-export const FormLoader2 = () => (
+export const FormLoader2: Function = () => (
     <div className="ball-beat bs-size-btn">
         <div
             style={{ height: '8px', width: '8px', backgroundColor: '#000' }}
@@ -41,7 +41,7 @@ export const FormLoader2 = () => (
 FormLoader2.displayName = 'FormLoader2';
 
 // eslint-disable-next-line react/prop-types
-export const ListLoader = ({
+export const ListLoader: Function = ({
     style
 }: $TSFixMe) => (
     <div
@@ -62,7 +62,7 @@ export const ListLoader = ({
 
 ListLoader.displayName = 'ListLoader';
 
-export const TeamListLoader = () => (
+export const TeamListLoader: Function = () => (
     <div className="ball-beat" style={{ textAlign: 'center', width: '95px' }}>
         <div
             style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
@@ -79,7 +79,7 @@ export const TeamListLoader = () => (
 TeamListLoader.displayName = 'TeamListLoader';
 
 // eslint-disable-next-line react/prop-types
-export const Spinner = ({
+export const Spinner: Function = ({
     style
 }: $TSFixMe) => (
     <div
@@ -105,7 +105,7 @@ export const Spinner = ({
 
 Spinner.displayName = 'Spinner';
 
-export const LargeSpinner = () => (
+export const LargeSpinner: Function = () => (
     <div className="Spinner bs-SpinnerLegacy Spinner--size--large Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center">
         <svg
             viewBox="0 0 24 24"
@@ -125,7 +125,7 @@ export const LargeSpinner = () => (
 
 LargeSpinner.displayName = 'LargeSpinner';
 
-export const LoadingState = () => (
+export const LoadingState: Function = () => (
     <div className="Box-root Margin-bottom--12">
         <div className="bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">

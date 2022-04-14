@@ -556,7 +556,7 @@ Application.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     return {
         componentId:
@@ -583,7 +583,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getApplicationSecurities,
         getApplicationSecurityLogs,

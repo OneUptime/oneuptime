@@ -5,7 +5,7 @@ export interface ComponentProps {
     level?: string;
 }
 
-const IssueLabel = ({
+const IssueLabel: Function = ({
     level
 }: IssueLabelProps) => {
     let color;

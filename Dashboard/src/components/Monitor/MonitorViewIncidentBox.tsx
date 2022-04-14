@@ -277,12 +277,12 @@ MonitorViewIncidentBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { fetchMonitorsIncidents, openModal, closeModal, createNewIncident },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         create: state.incident.newIncident.requesting,

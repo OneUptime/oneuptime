@@ -172,7 +172,7 @@ CancelSchedule.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.scheduledEvent.cancelScheduledEvent.requesting,
         cancelError: state.scheduledEvent.cancelScheduledEvent.error,
@@ -181,6 +181,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, cancelScheduledEvent }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, cancelScheduledEvent }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(CancelSchedule);

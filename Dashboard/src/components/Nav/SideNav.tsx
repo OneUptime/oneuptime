@@ -528,7 +528,7 @@ interface WrappedSideNavProps {
 // since sideNav is above page routes we have no access to the pages' props.match,
 // we rebuild the routes here to enable access to these properties
 
-const WrappedSideNav = (props: WrappedSideNavProps) => {
+const WrappedSideNav: Function = (props: WrappedSideNavProps) => {
     const hideProjectNav =
         props.currentProject?._id !== props.activesubProjectId;
 

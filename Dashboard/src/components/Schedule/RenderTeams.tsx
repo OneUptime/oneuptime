@@ -12,7 +12,7 @@ interface RenderTeamsProps {
     rotateBy: string;
 }
 
-const RenderTeams = ({
+const RenderTeams: Function = ({
     fields,
     subProjectId,
     policyIndex,

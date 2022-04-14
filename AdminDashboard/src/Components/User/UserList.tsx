@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 
-const UserList = ({
+const UserList: Function = ({
     users
 }: $TSFixMe) =>
     users.map((user: $TSFixMe, k: $TSFixMe) => {

@@ -246,7 +246,7 @@ Component.propTypes = {
     fetchSettings: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             saveSettings,

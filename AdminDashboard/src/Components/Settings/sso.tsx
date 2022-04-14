@@ -454,7 +454,7 @@ Component.propTypes = {
     fetchSsoDefaultRoles: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchSsos,

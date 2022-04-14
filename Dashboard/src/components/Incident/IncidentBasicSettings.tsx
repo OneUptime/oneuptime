@@ -362,7 +362,7 @@ const IncidentBasicSettingsForm = reduxForm({
     enableReinitialize: true,
 })(IncidentBasicSettings);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         initialValues: state.incidentBasicSettings.incidentBasicSettings,
@@ -376,7 +376,7 @@ const mapStateToProps = (state: RootState) => {
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateBasicIncidentSettings,
         setRevealIncidentSettingsVariables,

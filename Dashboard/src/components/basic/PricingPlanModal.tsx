@@ -326,7 +326,7 @@ PricingPlanModal.propTypes = {
     activePlan: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const currentPlanId =
         state.project &&
             state.project.currentProject &&
@@ -349,7 +349,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, changePlan }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, changePlan }, dispatch);
 
 const PricingForm = new reduxForm({
     form: 'PricingForm',

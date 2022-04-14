@@ -6,16 +6,16 @@ import { User } from '../config.js';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Add Group
-export const addGroupRequest = (): void => ({
+export const addGroupRequest: Function = (): void => ({
     type: types.CREATE_GROUP_REQUEST,
 });
 
-export const addGroupSuccess = (payload: $TSFixMe): void => ({
+export const addGroupSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.CREATE_GROUP_SUCCESS,
     payload,
 });
 
-export const addGroupFailure = (error: ErrorPayload): void => ({
+export const addGroupFailure: Function = (error: ErrorPayload): void => ({
     type: types.CREATE_GROUP_FAILURE,
     payload: error,
 });
@@ -45,17 +45,17 @@ export const createGroup =
     };
 
 // Edit and update Groups
-export const updateGroupRequest = (payload: $TSFixMe): void => ({
+export const updateGroupRequest: Function = (payload: $TSFixMe): void => ({
     type: types.UPDATE_GROUP_REQUEST,
     payload,
 });
 
-export const updateGroupSuccess = (payload: $TSFixMe): void => ({
+export const updateGroupSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.UPDATE_GROUP_SUCCESS,
     payload,
 });
 
-export const updateGroupFailure = (error: ErrorPayload): void => ({
+export const updateGroupFailure: Function = (error: ErrorPayload): void => ({
     type: types.UPDATE_GROUP_FAILURE,
     payload: error,
 });
@@ -88,16 +88,16 @@ export const updateGroup =
     };
 
 // Get all project and subproject groups
-export const getGroupsRequest = (): void => ({
+export const getGroupsRequest: Function = (): void => ({
     type: types.GET_GROUPS_REQUEST,
 });
 
-export const getGroupsSuccess = (payload: $TSFixMe): void => ({
+export const getGroupsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.GET_GROUPS_SUCCESS,
     payload,
 });
 
-export const getGroupsFailure = (error: ErrorPayload): void => ({
+export const getGroupsFailure: Function = (error: ErrorPayload): void => ({
     type: types.GET_GROUPS_FAILURE,
     payload: error,
 });
@@ -125,16 +125,18 @@ export const getGroups =
     };
 
 // Get project groups
-export const getProjectGroupsRequest = (): void => ({
+export const getProjectGroupsRequest: Function = (): void => ({
     type: types.GET_PROJECT_GROUPS_REQUEST,
 });
 
-export const getProjectGroupsSuccess = (payload: $TSFixMe): void => ({
+export const getProjectGroupsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.GET_PROJECT_GROUPS_SUCCESS,
     payload,
 });
 
-export const getProjectGroupsFailure = (error: ErrorPayload): void => ({
+export const getProjectGroupsFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.GET_PROJECT_GROUPS_FAILURE,
     payload: error,
 });
@@ -163,16 +165,16 @@ export const getProjectGroups =
     };
 
 // Delete Group
-export const deleteGroupRequest = (): void => ({
+export const deleteGroupRequest: Function = (): void => ({
     type: types.DELETE_GROUP_REQUEST,
 });
 
-export const deleteGroupSuccess = (payload: $TSFixMe): void => ({
+export const deleteGroupSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.DELETE_GROUP_SUCCESS,
     payload,
 });
 
-export const deleteGroupFailure = (error: ErrorPayload): void => ({
+export const deleteGroupFailure: Function = (error: ErrorPayload): void => ({
     type: types.DELETE_GROUP_FAILURE,
     payload: error,
 });
@@ -203,6 +205,6 @@ export const deleteGroup =
     };
 
 //Reset error message
-export const resetErrorMessage = (): void => ({
+export const resetErrorMessage: Function = (): void => ({
     type: types.RESET_ERROR_MESSAGE,
 });

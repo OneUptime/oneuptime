@@ -375,13 +375,13 @@ class ApplicationLogView extends Component<ComponentProps> {
 
 ApplicationLogView.displayName = 'ApplicationLogView';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchApplicationLogs, editApplicationLog, fetchComponent },
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { componentSlug, applicationLogSlug } = props.match.params;
     const applicationLog = state.applicationLog.applicationLogsList.applicationLogs.filter(
         (applicationLog: $TSFixMe) => applicationLog.slug === applicationLogSlug

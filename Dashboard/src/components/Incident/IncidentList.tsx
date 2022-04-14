@@ -1244,7 +1244,7 @@ export class IncidentList extends Component<IncidentListProps>{
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 

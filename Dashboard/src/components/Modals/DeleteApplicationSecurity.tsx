@@ -205,7 +205,7 @@ DeleteApplicationSecurity.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.security.deleteApplication.requesting,
         deleteApplicationError: state.security.deleteApplication.error,
@@ -214,7 +214,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteApplicationSecurity, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteApplicationSecurity, closeModal }, dispatch);
 
 export default connect(
     mapStateToProps,

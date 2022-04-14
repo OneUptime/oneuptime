@@ -14,7 +14,7 @@ interface RenderHeadersProps {
     fields: unknown[] | object;
 }
 
-const RenderHeaders = ({
+const RenderHeaders: Function = ({
     fields
 }: RenderHeadersProps) => {
     if (!fields || !fields.length)

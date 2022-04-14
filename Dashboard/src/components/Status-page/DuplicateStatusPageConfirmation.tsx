@@ -129,7 +129,7 @@ class DuplicateStatusPageConfirmation extends Component<ComponentProps> {
 
 DuplicateStatusPageConfirmation.displayName = 'DuplicateStatusPageConfirmation';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         duplicateModalId: state.modal.modals[0].id,
         statusPageId: state.modal.modals[0].statusPageId,
@@ -137,7 +137,7 @@ const mapStateToProps = (state: RootState) => {
         slug: state.modal.modals[0].slug,
     };
 };
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { closeModal, fetchStatusPage, duplicateStatusPageReset },
         dispatch

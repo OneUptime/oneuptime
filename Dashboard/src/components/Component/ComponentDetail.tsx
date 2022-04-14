@@ -262,7 +262,7 @@ export class ComponentDetail extends Component<ComponentDetailProps>{
 
 ComponentDetail.displayName = 'ComponentDetail';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,
@@ -276,7 +276,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 };
 
 function mapStateToProps(state: RootState, props: $TSFixMe) {
-    const componentMonitors = (
+    const componentMonitors: Function = (
         state.monitor.monitorsList.monitors.find(
             (o: $TSFixMe) => o._id === props.projectId
         ) || {

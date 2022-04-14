@@ -10,7 +10,7 @@ import { Validate } from '../../config';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
 
-const SmtpTestModal = ({
+const SmtpTestModal: Function = ({
     confirmThisDialog,
     closeThisDialog,
     testing,
@@ -247,7 +247,7 @@ const SmtpTestModal = ({
     );
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     testing: state.settings.testing,
     testError: state.settings.error,
     smtp: state.form['smtp-test-form']

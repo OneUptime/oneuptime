@@ -9,7 +9,7 @@ export interface ComponentProps {
     zIndex: number;
 }
 
-const composableComponent = (ComposedComponent: $TSFixMe) => {
+const composableComponent: Function = (ComposedComponent: $TSFixMe) => {
     class Modal extends Component<ComponentProps> {
         constructor(props: $TSFixMe) {
             super(props);

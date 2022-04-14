@@ -3181,7 +3181,7 @@ const CreateIncomingRequestForm = reduxForm({
     destroyOnUnmount: false,
 })(CreateIncomingRequest);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createIncomingRequest,
         closeModal,
@@ -3192,7 +3192,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitor: $TSFixMe) => {
         monitors = [...monitors, ...monitor.monitors];

@@ -236,12 +236,12 @@ class Schedule extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { getEscalation, subProjectTeamLoading, teamLoading },
     dispatch
 );
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
 
     let schedule =

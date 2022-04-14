@@ -116,6 +116,6 @@ QuickTipBox.propTypes = {
     hideActionButton: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeTutorial }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeTutorial }, dispatch);
 
 export default connect(null, mapDispatchToProps)(QuickTipBox);

@@ -208,7 +208,7 @@ const UpdateComponentForm = reduxForm({
     validate,
 })(EditComponent);
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     return {
         editComponentModalId: state.modal.modals[0].id,
         initialValues: state.component.componentList.components.map(
@@ -224,7 +224,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, editComponent }, dispatch);
 };
 

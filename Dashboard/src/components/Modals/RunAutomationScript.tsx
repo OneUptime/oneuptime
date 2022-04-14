@@ -191,13 +191,13 @@ RunAutomationScript.propTypes = {
     fetchSingleAutomatedScript: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         scriptRun: state.automatedScripts.runScript,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { runScript, fetchAutomatedScript, fetchSingleAutomatedScript },
     dispatch
 );

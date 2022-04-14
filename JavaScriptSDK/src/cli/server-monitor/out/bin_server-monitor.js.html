@@ -129,7 +129,7 @@ const checkParams = params => {
  * @param {string} name - The name of the cli param.
  * @return {Promise} The cli param value promise.
  */
-const getParamValue = (params, name) => {
+const getParamValue: Function = (params, name) => {
     return new Promise(resolve => {
         if (program[name] === true || program[name] === undefined) {
             if (name === 'monitorId') {

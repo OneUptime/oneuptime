@@ -274,7 +274,7 @@ export class ProjectDetails extends Component<ComponentProps>{
 
 ProjectDetails.displayName = 'ProjectDetails';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const project = state.project.project.project || {};
     return {
         project,
@@ -282,7 +282,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 
 ProjectDetails.propTypes = {

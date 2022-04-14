@@ -6,7 +6,10 @@
 
 import ObjectID from 'Common/Types/ObjectID';
 
-const isSubProjectViewer = (userId: ObjectID, subProject: $TSFixMe): void => {
+const isSubProjectViewer: Function = (
+    userId: ObjectID,
+    subProject: $TSFixMe
+): void => {
     const user = subProject
         ? subProject.users.find(
               (user: $TSFixMe) =>

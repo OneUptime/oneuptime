@@ -441,7 +441,7 @@ ApplicationSecurityDetail.propTypes = {
     fetchCredentialError: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getGitCredentials,
         scanApplicationSecuritySuccess,
@@ -453,7 +453,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug, applicationSecuritySlug } = ownProps.match.params;
     const components: $TSFixMe = [];
     // filter to get the actual component

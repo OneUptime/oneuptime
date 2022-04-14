@@ -149,13 +149,13 @@ class ConfirmResetLayout extends Component<ComponentProps> {
 
 ConfirmResetLayout.displayName = 'ConfirmResetLayout';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         statusPage: state.statusPage,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

@@ -142,13 +142,13 @@ class TopContent extends Component<ComponentProps> {
 
 TopContent.displayName = 'TopContent';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         notifications: state.notifications.notifications,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         showProfileMenu,
         openNotificationMenu,

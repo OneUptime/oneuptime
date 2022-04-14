@@ -75,11 +75,11 @@ class UserProject extends Component<ComponentProps> {
 
 UserProject.displayName = 'UserProject';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchUserProjects }, dispatch);
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

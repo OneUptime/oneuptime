@@ -122,7 +122,7 @@ ResetAPIKey.displayName = 'ResetAPIKeyModal';
 
 const mapDispatchToProps = null;
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     isRequesting: state.project.resetToken.requesting
 });
 

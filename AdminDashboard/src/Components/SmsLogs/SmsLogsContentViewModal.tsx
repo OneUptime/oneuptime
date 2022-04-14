@@ -125,7 +125,7 @@ class SmsLogsContentViewModal extends Component<ComponentProps> {
 
 SmsLogsContentViewModal.displayName = 'SmsLogsContentViewModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.smsLogs &&

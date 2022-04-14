@@ -168,7 +168,7 @@ class AuditLogsJsonViewModal extends Component<ComponentProps> {
 
 AuditLogsJsonViewModal.displayName = 'AuditLogsJsonViewModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.auditLogs &&

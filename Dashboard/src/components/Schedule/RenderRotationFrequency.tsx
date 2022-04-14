@@ -14,7 +14,7 @@ interface RenderRotationFrequencyProps {
     id?: string;
 }
 
-const RenderRotationFrequency = ({
+const RenderRotationFrequency: Function = ({
     input,
     placeholder,
     className,
@@ -51,7 +51,7 @@ const RenderRotationFrequency = ({
         });
     }, [input, placeholder]);
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);

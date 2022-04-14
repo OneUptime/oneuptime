@@ -300,7 +300,7 @@ const ThirdPartyVariableForm = reduxForm({
     destroyOnUnmount: true,
 })(ThirdPartyVariables);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         editMonitor,
         fetchCustomFields,
@@ -309,7 +309,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { monitor } = ownProps;
     const initialValues = {};
     if (monitor && monitor.customFields && monitor.customFields.length > 0) {

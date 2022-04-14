@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Translate } from 'react-auto-translate';
 
-const NoMonitor = () => (
+const NoMonitor: Function = () => (
     <div className="largestatus">
         <span className="legend-item">
             <div className="title-wrapper">

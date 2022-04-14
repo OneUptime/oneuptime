@@ -23,7 +23,7 @@ interface DockerCredentialListProps {
     modalId?: string;
 }
 
-const DockerCredentialList = ({
+const DockerCredentialList: Function = ({
     isRequesting,
     error,
     dockerCredentials,
@@ -36,7 +36,7 @@ const DockerCredentialList = ({
 }: DockerCredentialListProps) => {
     const [page, setPage] = useState(1);
 
-    const handleDelete = (credentialId: $TSFixMe) => {
+    const handleDelete: Function = (credentialId: $TSFixMe) => {
         getDockerSecurities({ projectId, credentialId });
 
         openModal({
@@ -56,7 +56,7 @@ const DockerCredentialList = ({
         });
     };
 
-    const handleCredentialCreation = () => {
+    const handleCredentialCreation: Function = () => {
         openModal({
             id: projectId,
             content: DockerCredentialModal,
@@ -64,7 +64,7 @@ const DockerCredentialList = ({
         });
     };
 
-    const handleCredentialUpdate = (credentialId: $TSFixMe) => {
+    const handleCredentialUpdate: Function = (credentialId: $TSFixMe) => {
         openModal({
             id: projectId,
             content: DockerCredentialModal,
@@ -72,7 +72,7 @@ const DockerCredentialList = ({
         });
     };
 
-    const handleKeyboard = (e: $TSFixMe) => {
+    const handleKeyboard: Function = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
@@ -95,8 +95,8 @@ const DockerCredentialList = ({
         };
     });
 
-    const prev = () => setPage(page - 1);
-    const next = () => setPage(page + 1);
+    const prev: Function = () => setPage(page - 1);
+    const next: Function = () => setPage(page + 1);
     const { next_page, pre_page, data, count } = paginate(
         dockerCredentials,
         page,
@@ -421,12 +421,12 @@ DockerCredentialList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { deleteDockerCredential, openModal, getDockerSecurities },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteError: state.credential.deleteCredential.error,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

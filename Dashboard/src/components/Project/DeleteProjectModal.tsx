@@ -107,7 +107,7 @@ export class DeleteProjectModal extends Component<ComponentProps>{
 
 DeleteProjectModal.displayName = 'DeleteProjectModal';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteProject,
         hideDeleteModal,
@@ -117,7 +117,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const { projects } = state.project.projects;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

@@ -19,7 +19,7 @@ interface IncidentTimelineListProps {
     error?: any;
 }
 
-const IncidentTimelineList = (props: IncidentTimelineListProps) => {
+const IncidentTimelineList: Function = (props: IncidentTimelineListProps) => {
     const {
         incident: { timeline },
         prevClicked,
@@ -468,7 +468,7 @@ IncidentTimelineList.propTypes = {
     error: PropTypes.any,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 function mapStateToProps(state: RootState) {
     return {

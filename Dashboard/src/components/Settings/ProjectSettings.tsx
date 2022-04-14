@@ -183,7 +183,7 @@ ProjectSettings.propTypes = {
 
 const  formName: string = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
+const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const ProjectSettingsForm = new reduxForm({
     form: formName,
@@ -192,9 +192,9 @@ const ProjectSettingsForm = new reduxForm({
     onSubmitSuccess,
 })(ProjectSettings);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renameProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ renameProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     isRequesting: state.project.renameProject.isRequesting,
     projectId: state.project.currentProject && state.project.currentProject._id,
 

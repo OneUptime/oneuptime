@@ -105,13 +105,13 @@ Box.propTypes = {
     page: PropTypes.number,
     ssoPaginate: PropTypes.object,
 };
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     ssoDefaultRoles: state.ssoDefaultRoles.ssoDefaultRoles.ssoDefaultRoles,
     count: state.ssoDefaultRoles.ssoDefaultRoles.count,
     ssoPaginate: state.ssoDefaultRoles.ssoDefaultRoles,
     page: state.ssoDefaultRoles.page
 });
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchSsoDefaultRoles,
         fetchProjects,

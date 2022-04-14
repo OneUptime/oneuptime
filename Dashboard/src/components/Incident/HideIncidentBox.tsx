@@ -103,13 +103,13 @@ class HideIncidentBox extends Component<ComponentProps> {
 
 HideIncidentBox.displayName = 'HideIncidentBox';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         hideIncidentError: state.incident.hideIncident,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ hideIncident }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ hideIncident }, dispatch);
 
 
 HideIncidentBox.propTypes = {

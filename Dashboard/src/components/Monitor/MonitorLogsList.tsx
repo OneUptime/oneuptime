@@ -1308,7 +1308,7 @@ export class MonitorLogsList extends Component<MonitorLogsListProps>{
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, updatemonitorlogbysocket },
         dispatch

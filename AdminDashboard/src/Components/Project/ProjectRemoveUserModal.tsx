@@ -146,7 +146,7 @@ class ProjectRemoveUserModal extends Component<ComponentProps> {
 
 ProjectRemoveUserModal.displayName = 'ProjectRemoveUserModal';
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const userId =
         props.data && props.data.values && props.data.values.userId
             ? props.data.values.userId
@@ -157,7 +157,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, resetTeamDelete }, dispatch);
 };
 

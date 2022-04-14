@@ -7,7 +7,7 @@ export interface ComponentProps {
     sms?: boolean;
 }
 
-const RenderAlertOptions = ({
+const RenderAlertOptions: Function = ({
     call,
     sms,
     email

@@ -7,20 +7,20 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import { loginRequired, loginError } from './login';
 import { probeRequest } from './probe';
 
-export const statusPageSuccess = (data: $TSFixMe): void => {
+export const statusPageSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.STATUSPAGE_SUCCESS,
         payload: data,
     };
 };
 
-export const statusPageRequest = (): void => {
+export const statusPageRequest: Function = (): void => {
     return {
         type: types.STATUSPAGE_REQUEST,
     };
 };
 
-export const statusPageFailure = (error: ErrorPayload): void => {
+export const statusPageFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.STATUSPAGE_FAILURE,
         payload: error,
@@ -28,7 +28,10 @@ export const statusPageFailure = (error: ErrorPayload): void => {
 };
 
 // Calls the API to get status
-export const getStatusPage = (statusPageSlug: $TSFixMe, url: URL): void => {
+export const getStatusPage: Function = (
+    statusPageSlug: $TSFixMe,
+    url: URL
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(
             `StatusPage/${statusPageSlug}?url=${url}`
@@ -70,7 +73,7 @@ export const getStatusPage = (statusPageSlug: $TSFixMe, url: URL): void => {
 };
 
 // Calls the API to get all status page resources
-export const getAllStatusPageResource = (
+export const getAllStatusPageResource: Function = (
     statusPageSlug: $TSFixMe,
     url: URL,
     range: $TSFixMe
@@ -222,66 +225,66 @@ export const getAllStatusPageResource = (
     };
 };
 
-export const getAllStatusPageSuccess = (data: $TSFixMe): void => {
+export const getAllStatusPageSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.FETCH_ALL_RESOURCES_SUCCESS,
         payload: data,
     };
 };
-export const statusPageNoteSuccess = (data: $TSFixMe): void => {
+export const statusPageNoteSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.STATUSPAGE_NOTES_SUCCESS,
         payload: data,
     };
 };
 
-export const newThemeIncidentNote = (data: $TSFixMe): void => {
+export const newThemeIncidentNote: Function = (data: $TSFixMe): void => {
     return {
         type: types.NEW_THEME_NOTES_SUCCESS,
         payload: data,
     };
 };
 
-export const statusPageNoteRequest = (): void => {
+export const statusPageNoteRequest: Function = (): void => {
     return {
         type: types.STATUSPAGE_NOTES_REQUEST,
     };
 };
 
-export const statusPageNoteFailure = (error: ErrorPayload): void => {
+export const statusPageNoteFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.STATUSPAGE_NOTES_FAILURE,
         payload: error,
     };
 };
 
-export const statusPageNoteReset = (): void => {
+export const statusPageNoteReset: Function = (): void => {
     return {
         type: types.STATUSPAGE_NOTES_RESET,
     };
 };
 
-export const showIncidentCard = (payload: $TSFixMe): void => ({
+export const showIncidentCard: Function = (payload: $TSFixMe): void => ({
     // payload => true or false
     type: types.SHOW_INCIDENT_CARD,
 
     payload,
 });
 
-export const individualNoteEnable = (message: $TSFixMe): void => {
+export const individualNoteEnable: Function = (message: $TSFixMe): void => {
     return {
         type: types.INDIVIDUAL_NOTES_ENABLE,
         payload: message,
     };
 };
-export const individualNoteDisable = (): void => {
+export const individualNoteDisable: Function = (): void => {
     return {
         type: types.INDIVIDUAL_NOTES_DISABLE,
     };
 };
 
 // Calls the API to get notes
-export const getStatusPageNote = (
+export const getStatusPageNote: Function = (
     projectId: ObjectID,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
@@ -322,7 +325,7 @@ export const getStatusPageNote = (
     };
 };
 
-export const getStatusPageIndividualNote = (
+export const getStatusPageIndividualNote: Function = (
     projectId: ObjectID,
     monitorId: $TSFixMe,
     date: $TSFixMe,
@@ -370,34 +373,34 @@ export const getStatusPageIndividualNote = (
     };
 };
 
-export const scheduledEventSuccess = (data: $TSFixMe): void => {
+export const scheduledEventSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.SCHEDULED_EVENTS_SUCCESS,
         payload: data,
     };
 };
 
-export const scheduledEventRequest = (): void => {
+export const scheduledEventRequest: Function = (): void => {
     return {
         type: types.SCHEDULED_EVENTS_REQUEST,
     };
 };
 
-export const scheduledEventFailure = (error: ErrorPayload): void => {
+export const scheduledEventFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.SCHEDULED_EVENTS_FAILURE,
         payload: error,
     };
 };
 
-export const scheduledEventReset = (): void => {
+export const scheduledEventReset: Function = (): void => {
     return {
         type: types.SCHEDULED_EVENTS_RESET,
     };
 };
 
 // Calls the API to get events
-export const getScheduledEvent = (
+export const getScheduledEvent: Function = (
     projectId: ObjectID,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
@@ -434,34 +437,34 @@ export const getScheduledEvent = (
     };
 };
 
-export const ongoingEventSuccess = (data: $TSFixMe): void => {
+export const ongoingEventSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.ONGOING_SCHEDULED_EVENTS_SUCCESS,
         payload: data,
     };
 };
 
-export const ongoingEventRequest = (): void => {
+export const ongoingEventRequest: Function = (): void => {
     return {
         type: types.ONGOING_SCHEDULED_EVENTS_REQUEST,
     };
 };
 
-export const ongoingEventFailure = (error: ErrorPayload): void => {
+export const ongoingEventFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.ONGOING_SCHEDULED_EVENTS_FAILURE,
         payload: error,
     };
 };
 
-export const ongoingEventReset = (): void => {
+export const ongoingEventReset: Function = (): void => {
     return {
         type: types.ONGOING_SCHEDULED_EVENTS_RESET,
     };
 };
 
 // Calls the API to get events
-export const getOngoingScheduledEvent = (
+export const getOngoingScheduledEvent: Function = (
     projectId: ObjectID,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber,
@@ -499,21 +502,23 @@ export const getOngoingScheduledEvent = (
     };
 };
 
-export const individualEventsRequest = (): void => ({
+export const individualEventsRequest: Function = (): void => ({
     type: types.INDIVIDUAL_EVENTS_REQUEST,
 });
 
-export const individualEventsSuccess = (payload: $TSFixMe): void => ({
+export const individualEventsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.INDIVIDUAL_EVENTS_SUCCESS,
     payload,
 });
 
-export const individualEventsFailure = (error: ErrorPayload): void => ({
+export const individualEventsFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.INDIVIDUAL_EVENTS_FAILURE,
     payload: error,
 });
 
-export const getIndividualEvent = (
+export const getIndividualEvent: Function = (
     projectId: ObjectID,
     monitorId: $TSFixMe,
     date: $TSFixMe,
@@ -556,16 +561,16 @@ export const getIndividualEvent = (
     };
 };
 
-export const futureEventsRequest = (): void => ({
+export const futureEventsRequest: Function = (): void => ({
     type: types.FUTURE_EVENTS_REQUEST,
 });
 
-export const futureEventsSuccess = (payload: $TSFixMe): void => ({
+export const futureEventsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.FUTURE_EVENTS_SUCCESS,
     payload,
 });
 
-export const futureEventsFailure = (error: ErrorPayload): void => ({
+export const futureEventsFailure: Function = (error: ErrorPayload): void => ({
     type: types.FUTURE_EVENTS_FAILURE,
     payload: error,
 });
@@ -599,16 +604,16 @@ export const fetchFutureEvents =
         }
     };
 
-export const pastEventsRequest = (): void => ({
+export const pastEventsRequest: Function = (): void => ({
     type: types.PAST_EVENTS_REQUEST,
 });
 
-export const pastEventsSuccess = (payload: $TSFixMe): void => ({
+export const pastEventsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.PAST_EVENTS_SUCCESS,
     payload,
 });
 
-export const pastEventsFailure = (error: ErrorPayload): void => ({
+export const pastEventsFailure: Function = (error: ErrorPayload): void => ({
     type: types.PAST_EVENTS_FAILURE,
     payload: error,
 });
@@ -642,7 +647,7 @@ export const fetchPastEvents =
         }
     };
 
-export const notmonitoredDays = (
+export const notmonitoredDays: Function = (
     monitorId: $TSFixMe,
     date: $TSFixMe,
     name: $TSFixMe,
@@ -663,27 +668,27 @@ export const notmonitoredDays = (
     };
 };
 
-export const moreNoteSuccess = (data: $TSFixMe): void => {
+export const moreNoteSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.MORE_NOTES_SUCCESS,
         payload: data,
     };
 };
 
-export const moreNoteRequest = (): void => {
+export const moreNoteRequest: Function = (): void => {
     return {
         type: types.MORE_NOTES_REQUEST,
     };
 };
 
-export const moreNoteFailure = (error: ErrorPayload): void => {
+export const moreNoteFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.MORE_NOTES_FAILURE,
         payload: error,
     };
 };
 
-export const getMoreNote = (
+export const getMoreNote: Function = (
     projectId: ObjectID,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
@@ -717,27 +722,27 @@ export const getMoreNote = (
     };
 };
 
-export const moreEventSuccess = (data: $TSFixMe): void => {
+export const moreEventSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.MORE_EVENTS_SUCCESS,
         payload: data,
     };
 };
 
-export const moreEventRequest = (): void => {
+export const moreEventRequest: Function = (): void => {
     return {
         type: types.MORE_EVENTS_REQUEST,
     };
 };
 
-export const moreEventFailure = (error: ErrorPayload): void => {
+export const moreEventFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.MORE_EVENTS_FAILURE,
         payload: error,
     };
 };
 
-export const getMoreEvent = (
+export const getMoreEvent: Function = (
     projectId: ObjectID,
     statusPageSlug: $TSFixMe,
     skip: PositiveNumber
@@ -771,16 +776,18 @@ export const getMoreEvent = (
     };
 };
 
-export const moreFutureEventsRequest = (): void => ({
+export const moreFutureEventsRequest: Function = (): void => ({
     type: types.MORE_FUTURE_EVENTS_REQUEST,
 });
 
-export const moreFutureEventsSuccess = (payload: $TSFixMe): void => ({
+export const moreFutureEventsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.MORE_FUTURE_EVENTS_SUCCESS,
     payload,
 });
 
-export const moreFutureEventsFailure = (error: ErrorPayload): void => ({
+export const moreFutureEventsFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.MORE_FUTURE_EVENTS_FAILURE,
     payload: error,
 });
@@ -813,16 +820,16 @@ export const fetchMoreFutureEvents =
         }
     };
 
-export const morePastEventsRequest = (): void => ({
+export const morePastEventsRequest: Function = (): void => ({
     type: types.MORE_PAST_EVENTS_REQUEST,
 });
 
-export const morePastEventsSuccess = (payload: $TSFixMe): void => ({
+export const morePastEventsSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.MORE_PAST_EVENTS_SUCCESS,
     payload,
 });
 
-export const morePastEventsFailure = (error: ErrorPayload): void => ({
+export const morePastEventsFailure: Function = (error: ErrorPayload): void => ({
     type: types.MORE_PAST_EVENTS_FAILURE,
     payload: error,
 });
@@ -850,7 +857,7 @@ export const fetchMorePastEvents =
         }
     };
 
-export const selectedProbe = (val: $TSFixMe): void => {
+export const selectedProbe: Function = (val: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         dispatch({
             type: types.SELECT_PROBE,
@@ -904,14 +911,14 @@ export function fetchMonitorStatuses(
     };
 }
 
-export const fetchMonitorStatusesRequest = (id: $TSFixMe): void => {
+export const fetchMonitorStatusesRequest: Function = (id: $TSFixMe): void => {
     return {
         type: types.FETCH_MONITOR_STATUSES_REQUEST,
         payload: id,
     };
 };
 
-export const fetchMonitorStatusesSuccess = (
+export const fetchMonitorStatusesSuccess: Function = (
     monitorStatuses: $TSFixMe
 ): void => {
     return {
@@ -920,7 +927,9 @@ export const fetchMonitorStatusesSuccess = (
     };
 };
 
-export const fetchMonitorStatusesFailure = (error: ErrorPayload): void => {
+export const fetchMonitorStatusesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_MONITOR_STATUSES_FAILURE,
         payload: error,
@@ -990,27 +999,27 @@ function fetchMonitorLogsFailure(error: ErrorPayload): void {
 }
 
 // Handle a scheduled event
-export const fetchEventRequest = (): void => {
+export const fetchEventRequest: Function = (): void => {
     return {
         type: types.FETCH_EVENT_REQUEST,
     };
 };
 
-export const fetchEventSuccess = (payload: $TSFixMe): void => {
+export const fetchEventSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_EVENT_SUCCESS,
         payload,
     };
 };
 
-export const fetchEventFailure = (error: ErrorPayload): void => {
+export const fetchEventFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_EVENT_FAILURE,
         payload: error,
     };
 };
 
-export const fetchEvent = (
+export const fetchEvent: Function = (
     projectId: ObjectID,
     scheduledEventId: $TSFixMe
 ): void => {
@@ -1038,20 +1047,20 @@ export const fetchEvent = (
 };
 
 // Handle scheduled event note
-export const fetchEventNoteRequest = (): void => {
+export const fetchEventNoteRequest: Function = (): void => {
     return {
         type: types.FETCH_EVENT_NOTES_REQUEST,
     };
 };
 
-export const fetchEventNoteSuccess = (payload: $TSFixMe): void => {
+export const fetchEventNoteSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_EVENT_NOTES_SUCCESS,
         payload,
     };
 };
 
-export const fetchEventNoteFailure = (error: ErrorPayload): void => {
+export const fetchEventNoteFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_EVENT_NOTES_FAILURE,
         payload: error,
@@ -1086,20 +1095,20 @@ export function fetchEventNote(
     };
 }
 
-export const moreEventNoteRequest = (): void => {
+export const moreEventNoteRequest: Function = (): void => {
     return {
         type: types.MORE_EVENT_NOTE_REQUEST,
     };
 };
 
-export const moreEventNoteSuccess = (payload: $TSFixMe): void => {
+export const moreEventNoteSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.MORE_EVENT_NOTE_SUCCESS,
         payload,
     };
 };
 
-export const moreEventNoteFailure = (error: ErrorPayload): void => {
+export const moreEventNoteFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.MORE_EVENT_NOTE_FAILURE,
         payload: error,
@@ -1136,27 +1145,27 @@ export function moreEventNote(
 }
 
 // handle incident
-export const fetchIncidentRequest = (): void => {
+export const fetchIncidentRequest: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_REQUEST,
     };
 };
 
-export const fetchIncidentSuccess = (payload: $TSFixMe): void => {
+export const fetchIncidentSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_INCIDENT_SUCCESS,
         payload,
     };
 };
 
-export const fetchIncidentFailure = (error: ErrorPayload): void => {
+export const fetchIncidentFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_INCIDENT_FAILURE,
         payload: error,
     };
 };
 
-export const fetchIncident = (
+export const fetchIncident: Function = (
     projectId: ObjectID,
     incidentSlug: $TSFixMe
 ): void => {
@@ -1182,20 +1191,24 @@ export const fetchIncident = (
     };
 };
 
-export const fetchIncidentNotesRequest = (): void => {
+export const fetchIncidentNotesRequest: Function = (): void => {
     return {
         type: types.FETCH_INCIDENT_NOTES_REQUEST,
     };
 };
 
-export const fetchIncidentNotesSuccess = (payload: $TSFixMe): void => {
+export const fetchIncidentNotesSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_INCIDENT_NOTES_SUCCESS,
         payload,
     };
 };
 
-export const fetchIncidentNotesFailure = (error: ErrorPayload): void => {
+export const fetchIncidentNotesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_INCIDENT_NOTES_FAILURE,
         payload: error,
@@ -1230,20 +1243,22 @@ export function fetchIncidentNotes(
     };
 }
 
-export const moreIncidentNotesRequest = (): void => {
+export const moreIncidentNotesRequest: Function = (): void => {
     return {
         type: types.MORE_INCIDENT_NOTES_REQUEST,
     };
 };
 
-export const moreIncidentNotesSuccess = (payload: $TSFixMe): void => {
+export const moreIncidentNotesSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.MORE_INCIDENT_NOTES_SUCCESS,
         payload,
     };
 };
 
-export const moreIncidentNotesFailure = (error: ErrorPayload): void => {
+export const moreIncidentNotesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.MORE_INCIDENT_NOTES_FAILURE,
         payload: error,
@@ -1279,20 +1294,24 @@ export function moreIncidentNotes(
     };
 }
 
-export const fetchLastIncidentTimelineRequest = (): void => {
+export const fetchLastIncidentTimelineRequest: Function = (): void => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_REQUEST,
     };
 };
 
-export const fetchLastIncidentTimelineSuccess = (payload: $TSFixMe): void => {
+export const fetchLastIncidentTimelineSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_SUCCESS,
         payload,
     };
 };
 
-export const fetchLastIncidentTimelineFailure = (error: ErrorPayload): void => {
+export const fetchLastIncidentTimelineFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINE_FAILURE,
         payload: error,
@@ -1326,20 +1345,22 @@ export function fetchLastIncidentTimeline(
     };
 }
 
-export const fetchLastIncidentTimelinesRequest = (): void => {
+export const fetchLastIncidentTimelinesRequest: Function = (): void => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_REQUEST,
     };
 };
 
-export const fetchLastIncidentTimelinesSuccess = (payload: $TSFixMe): void => {
+export const fetchLastIncidentTimelinesSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_LAST_INCIDENT_TIMELINES_SUCCESS,
         payload,
     };
 };
 
-export const fetchLastIncidentTimelinesFailure = (
+export const fetchLastIncidentTimelinesFailure: Function = (
     error: ErrorPayload
 ): void => {
     return {
@@ -1375,7 +1396,7 @@ export function fetchLastIncidentTimelines(
     };
 }
 
-export const showEventCard = (payload: $TSFixMe): void => {
+export const showEventCard: Function = (payload: $TSFixMe): void => {
     // payload => true or false
     return {
         type: types.SHOW_EVENT_CARD,
@@ -1383,20 +1404,20 @@ export const showEventCard = (payload: $TSFixMe): void => {
     };
 };
 
-export const getAnnouncementsRequest = (): void => {
+export const getAnnouncementsRequest: Function = (): void => {
     return {
         type: types.FETCH_ANNOUNCEMENTS_REQUEST,
     };
 };
 
-export const getAnnouncementsSuccess = (data: $TSFixMe): void => {
+export const getAnnouncementsSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.FETCH_ANNOUNCEMENTS_SUCCESS,
         payload: data,
     };
 };
 
-export const getAnnouncementsFailure = (data: $TSFixMe): void => {
+export const getAnnouncementsFailure: Function = (data: $TSFixMe): void => {
     return {
         type: types.FETCH_ANNOUNCEMENTS_FAILURE,
         payload: data,
@@ -1434,20 +1455,24 @@ export function getAnnouncements(
     };
 }
 
-export const getSingleAnnouncementSuccess = (data: $TSFixMe): void => {
+export const getSingleAnnouncementSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
         payload: data,
     };
 };
 
-export const getSingleAnnouncementRequest = (): void => {
+export const getSingleAnnouncementRequest: Function = (): void => {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_REQUEST,
     };
 };
 
-export const getSingleAnnouncementFailure = (error: ErrorPayload): void => {
+export const getSingleAnnouncementFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_SINGLE_ANNOUNCEMENTS_FAILURE,
         payload: error,
@@ -1484,20 +1509,24 @@ export function getSingleAnnouncement(
     };
 }
 
-export const fetchAnnouncementLogsRequest = (): void => {
+export const fetchAnnouncementLogsRequest: Function = (): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_REQUEST,
     };
 };
 
-export const fetchAnnouncementLogsSuccess = (data: $TSFixMe): void => {
+export const fetchAnnouncementLogsSuccess: Function = (
+    data: $TSFixMe
+): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
         payload: data,
     };
 };
 
-export const fetchAnnouncementLogsFailure = (error: ErrorPayload): void => {
+export const fetchAnnouncementLogsFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
         payload: error,
@@ -1527,21 +1556,21 @@ export function fetchAnnouncementLogs(
     };
 }
 
-export const calculateTimeRequest = (monitorId: $TSFixMe): void => {
+export const calculateTimeRequest: Function = (monitorId: $TSFixMe): void => {
     return {
         type: types.CALCULATE_TIME_REQUEST,
         payload: monitorId,
     };
 };
 
-export const calculateTimeSuccess = (payload: $TSFixMe): void => {
+export const calculateTimeSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.CALCULATE_TIME_SUCCESS,
         payload,
     };
 };
 
-export const calculateTimeFailure = (error: ErrorPayload): void => {
+export const calculateTimeFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.CALCULATE_TIME_FAILURE,
         payload: error,
@@ -1573,28 +1602,31 @@ export function calculateTime(
     };
 }
 
-export const fetchTweetsRequest = (monitorId: $TSFixMe): void => {
+export const fetchTweetsRequest: Function = (monitorId: $TSFixMe): void => {
     return {
         type: types.FETCH_TWEETS_REQUEST,
         payload: monitorId,
     };
 };
 
-export const fetchTweetsSuccess = (payload: $TSFixMe): void => {
+export const fetchTweetsSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_TWEETS_SUCCESS,
         payload,
     };
 };
 
-export const fetchTweetsFailure = (error: ErrorPayload): void => {
+export const fetchTweetsFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_TWEETS_FAILURE,
         payload: error,
     };
 };
 
-export const fetchTweets = (handle: $TSFixMe, projectId: ObjectID): void => {
+export const fetchTweets: Function = (
+    handle: $TSFixMe,
+    projectId: ObjectID
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`StatusPage/${projectId}/tweets`, {
             handle,
@@ -1613,20 +1645,24 @@ export const fetchTweets = (handle: $TSFixMe, projectId: ObjectID): void => {
     };
 };
 
-export const fetchExternalStatusPagesRequest = (): void => {
+export const fetchExternalStatusPagesRequest: Function = (): void => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
     };
 };
 
-export const fetchExternalStatusPagesSuccess = (payload: $TSFixMe): void => {
+export const fetchExternalStatusPagesSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
         payload,
     };
 };
 
-export const fetchExternalStatusPagesFailure = (error: ErrorPayload): void => {
+export const fetchExternalStatusPagesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
         payload: error,
@@ -1654,7 +1690,7 @@ export function fetchExternalStatusPages(
         return promise;
     };
 }
-export const translateLanguage = (payload: $TSFixMe): void => {
+export const translateLanguage: Function = (payload: $TSFixMe): void => {
     return {
         type: types.TRANSLATE_LANGUAGE,
         payload,

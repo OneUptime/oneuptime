@@ -306,7 +306,7 @@ class VerifyDomainModal extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     domainField: state.statusPage.verifyDomain,
     requesting: state.statusPage.requesting
 });
@@ -324,6 +324,6 @@ VerifyDomainModal.propTypes = {
     resetDomain: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ resetDomain }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ resetDomain }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(VerifyDomainModal);

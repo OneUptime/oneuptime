@@ -13,7 +13,7 @@ interface BreachedMonitorSlaProps {
     closeSla?: Function;
 }
 
-const BreachedMonitorSla = ({
+const BreachedMonitorSla: Function = ({
     monitor,
     sla,
     userId,

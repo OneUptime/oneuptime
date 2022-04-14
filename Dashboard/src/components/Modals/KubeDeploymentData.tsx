@@ -333,7 +333,7 @@ KubeDeploymentData.propTypes = {
     data: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
     },

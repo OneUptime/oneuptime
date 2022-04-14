@@ -83,7 +83,7 @@ const questions = [
  * @return {Promise} The cli params promise.
  */
 
-const checkParams = (params): void => {
+const checkParams: Function = (params): void => {
     const values = [];
 
     return new Promise(resolve => {
@@ -110,7 +110,7 @@ const checkParams = (params): void => {
  * @return {Promise} The cli param value promise.
  */
 
-const getParamValue = (params, name): void => {
+const getParamValue: Function = (params, name): void => {
     const options = program.opts();
     return new Promise(resolve => {
         if (options[name] === true || options[name] === undefined) {

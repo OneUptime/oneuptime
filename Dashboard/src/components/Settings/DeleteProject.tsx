@@ -79,11 +79,11 @@ DeleteProjectBox.propTypes = {
     showDeleteModal: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         showDeleteModal,
     },

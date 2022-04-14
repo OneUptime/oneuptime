@@ -2,13 +2,13 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/settings';
 import Route from 'Common/Types/api/route';
-export const requestingSettings = (): void => {
+export const requestingSettings: Function = (): void => {
     return {
         type: types.REQUESTING_SETTINGS,
     };
 };
 
-export const requestingSettingsSucceeded = (
+export const requestingSettingsSucceeded: Function = (
     payload: $TSFixMe,
     payloadType: $TSFixMe
 ): void => {
@@ -19,37 +19,37 @@ export const requestingSettingsSucceeded = (
     };
 };
 
-export const requestingSettingsFailed = (payload: $TSFixMe): void => {
+export const requestingSettingsFailed: Function = (payload: $TSFixMe): void => {
     return {
         type: types.REQUESTING_SETTINGS_FAILED,
         payload,
     };
 };
 
-export const testSmtpRequest = (): void => ({
+export const testSmtpRequest: Function = (): void => ({
     type: types.TEST_SMTP_REQUEST,
 });
 
-export const testSmtpSuccess = (payload: $TSFixMe): void => ({
+export const testSmtpSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.TEST_SMTP_SUCCESS,
     payload,
 });
 
-export const testSmtpFailure = (error: $TSFixMe): void => ({
+export const testSmtpFailure: Function = (error: $TSFixMe): void => ({
     type: types.TEST_SMTP_FAILURE,
     payload: error,
 });
 
-export const testTwilioRequest = (): void => ({
+export const testTwilioRequest: Function = (): void => ({
     type: types.TEST_TWILIO_REQUEST,
 });
 
-export const testTwilioSuccess = (payload: $TSFixMe): void => ({
+export const testTwilioSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.TEST_TWILIO_SUCCESS,
     payload,
 });
 
-export const testTwilioFailure = (error: $TSFixMe): void => ({
+export const testTwilioFailure: Function = (error: $TSFixMe): void => ({
     type: types.TEST_TWILIO_FAILURE,
     payload: error,
 });

@@ -197,14 +197,14 @@ class ProjectUnverifyDomain extends Component<ComponentProps> {
 
 ProjectUnverifyDomain.displayName = 'ProjectUnverifyDomain';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     requesting: state.project.unverifyDomain.requesting,
     unverifyError: state.project.unverifyDomain.error,
     domainId: state.modal.modals[0].id,
     projectId: state.modal.modals[0].projectId
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         unVerifyProjectDomain,

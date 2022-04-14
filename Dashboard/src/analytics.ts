@@ -1,14 +1,14 @@
 /* eslint-disable */
 
-export const setUserId = (userId: ObjectID): void => {
+export const setUserId: Function = (userId: ObjectID): void => {
     
 };
-export const identify = (userId: ObjectID): void => {
+export const identify: Function = (userId: ObjectID): void => {
     
 };
-export const setUserProperties = (properties: $TSFixMe): void => {
+export const setUserProperties: Function = (properties: $TSFixMe): void => {
     
 };
-export const logEvent = (event: $TSFixMe, data: $TSFixMe): void => {
+export const logEvent: Function = (event: $TSFixMe, data: $TSFixMe): void => {
     
 };

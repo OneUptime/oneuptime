@@ -122,7 +122,7 @@ class LogTail extends Component<ComponentProps> {
 
 LogTail.displayName = 'LogTail';
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {
@@ -131,7 +131,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getLogSuccess }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getLogSuccess }, dispatch);
 
 
 LogTail.propTypes = {
@@ -147,7 +147,7 @@ interface LogItemProps {
     value?: object;
 }
 
-const LogItem = ({
+const LogItem: Function = ({
     value
 }: LogItemProps) => {
     const [show, setShow] = useState(false);
@@ -160,7 +160,7 @@ const LogItem = ({
     const content =
         typeof value.content === 'object' ? value.content : { message: null };
 
-    const copyHandler = (text: $TSFixMe) => {
+    const copyHandler: Function = (text: $TSFixMe) => {
         copyToClipboard(text);
         setCopy(true);
     };

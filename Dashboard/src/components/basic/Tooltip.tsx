@@ -64,11 +64,11 @@ Tooltip.propTypes = {
     children: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
 };
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ openModal, closeModal }, dispatch);
 };
 export default connect(mapStateToProps, mapDispatchToProps)(Tooltip);

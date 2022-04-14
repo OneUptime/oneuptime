@@ -890,7 +890,7 @@ Incident.propTypes = {
     status: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         statusData: state.status.statusPage,
         login: state.login,
@@ -907,7 +907,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPage,
         fetchIncident,

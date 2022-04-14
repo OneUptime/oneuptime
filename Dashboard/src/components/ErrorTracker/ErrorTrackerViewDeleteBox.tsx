@@ -100,9 +100,9 @@ class ErrorTrackerViewDeleteBox extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteErrorTracker }, dispatch);
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const componentId = props.errorTracker.componentId._id;
     let component;
     state.component.componentList.components.forEach((item: $TSFixMe) => {

@@ -395,7 +395,7 @@ ScheduledEventDetail.propTypes = {
     history: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { scheduledEventSlug } = props.match.params;
     const monitorList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.map((data: $TSFixMe) => {
@@ -427,7 +427,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchscheduledEvent,
         fetchScheduledEventNotesInternal,

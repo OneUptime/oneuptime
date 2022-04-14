@@ -79,7 +79,7 @@ Settings.propTypes = {
 
 Settings.displayName = 'Settings';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

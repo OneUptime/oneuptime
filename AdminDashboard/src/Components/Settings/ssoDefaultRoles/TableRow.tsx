@@ -11,7 +11,7 @@ import RoleDeleteModal from './RoleDeleteModal';
 import { UpdateDefaultRoleModal } from './DefaultRoleModal';
 import PropTypes from 'prop-types';
 
-const TableRow = ({
+const TableRow: Function = ({
     data,
     fetchSsoDefaultRole,
     deleteSsoDefaultRole,

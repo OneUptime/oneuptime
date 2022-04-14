@@ -216,7 +216,7 @@ class ErrorEventDetail extends Component<ComponentProps> {
         );
     }
 }
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             ignoreErrorEvent,
@@ -228,7 +228,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const errorTrackerId = ownProps.errorTrackerId;
     const errorTrackers = state.errorTracker.errorTrackersList.errorTrackers;
     const currentErrorTracker = errorTrackers.filter(

@@ -8,7 +8,7 @@ const errorStyle = {
     topMargin: '5px',
 };
 
-const MultiSelectMonitor = ({
+const MultiSelectMonitor: Function = ({
     input,
     data,
     meta,

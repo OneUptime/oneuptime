@@ -17,7 +17,10 @@ const monitorMutexStorage = new Map();
  * @param {*} id unique id of the resource to lock
  * @return {*} a mutex for the project
  */
-const getMutex = (mutexResource: $TSFixMe, resourceId: $TSFixMe): void => {
+const getMutex: Function = (
+    mutexResource: $TSFixMe,
+    resourceId: $TSFixMe
+): void => {
     let mutex;
     let mutexStorage;
     try {

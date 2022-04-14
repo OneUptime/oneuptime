@@ -131,7 +131,7 @@ class ConfirmScanModal extends Component<ComponentProps> {
 
 
 ConfirmScanModal.displayName = 'ConfirmScanModal';
-const mapStateToProps = () => ({});
+const mapStateToProps: Function = () => ({});
 
 ConfirmScanModal.propTypes = {
     closeThisDialog: PropTypes.func.isRequired,
@@ -142,7 +142,7 @@ ConfirmScanModal.propTypes = {
     propArr: PropTypes.array,
     containerSecurityId: PropTypes.func.isRequired,
 };
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { closeModal, scanContainerSecurity, scanApplicationSecurity },
     dispatch
 );

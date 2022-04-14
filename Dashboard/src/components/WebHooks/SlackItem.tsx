@@ -83,7 +83,7 @@ class SlackItem extends React.Component<SlackItemProps> {
     };
 
     getMonitors(monitors: $TSFixMe) {
-        const gt = (i: $TSFixMe) => monitors.length > i;
+        const gt: Function = (i: $TSFixMe) => monitors.length > i;
 
         let temp = gt(0) ? monitors[0].name : 'Not Yet Added';
         temp += gt(1)
@@ -213,7 +213,7 @@ class SlackItem extends React.Component<SlackItemProps> {
 
 SlackItem.displayName = 'SlackItem';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         deleteSlack,
         openModal,
@@ -223,7 +223,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     webhooks: state.webHooks,
     team: state.team,
     currentProject: state.project.currentProject

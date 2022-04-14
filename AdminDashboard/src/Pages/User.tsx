@@ -189,14 +189,14 @@ class User extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchUserProjects, addUserNote, fetchUser, fetchUserloginHistory },
         dispatch
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const user = state.user.user.user || {};
     const history = state.user.loginHistory.history;
 

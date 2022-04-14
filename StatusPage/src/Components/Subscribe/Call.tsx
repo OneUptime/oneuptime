@@ -476,13 +476,13 @@ class Call extends Component<ComponentProps> {
 
 Call.displayName = 'Call';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     subscribed: state.subscribe.subscribed,
     statuspage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         userData,
         validationError,

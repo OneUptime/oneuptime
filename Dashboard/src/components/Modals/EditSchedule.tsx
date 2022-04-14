@@ -1267,7 +1267,7 @@ const NewUpdateSchedule = reduxForm({
     destroyOnUnmount: true,
 })(UpdateSchedule);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateScheduledEvent,
         closeModal,
@@ -1278,7 +1278,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const selector = formValueSelector('newUpdateSchedule');
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const scheduledEventToBeUpdated = state.modal.modals[0].event;
     const monitors: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((monitorObj: $TSFixMe) => {

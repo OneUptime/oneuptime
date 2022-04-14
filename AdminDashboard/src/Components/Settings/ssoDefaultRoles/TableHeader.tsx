@@ -1,5 +1,5 @@
 import React from 'react';
-const TableHeader = () => (
+const TableHeader: Function = () => (
     <thead className="Table-body">
         <tr className="Table-row db-ListViewItem db-ListViewItem-header">
             <td

@@ -529,12 +529,12 @@ ApplicationSecurityForm.propTypes = {
     formValues: PropTypes.obj,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { addApplicationSecurity, getGitCredentials, openModal },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.security.addApplication.requesting,
         addApplicationError: state.security.addApplication.error,

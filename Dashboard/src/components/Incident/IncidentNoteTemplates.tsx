@@ -438,7 +438,7 @@ IncidentNoteTemplates.propTypes = {
     fetchIncidentNoteTemplates: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         fetchIncidentNoteTemplates,
@@ -446,7 +446,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         fetchingTemplates: state.incidentNoteTemplate.noteTemplates.requesting,
         skip: state.incidentNoteTemplate.noteTemplates.skip,

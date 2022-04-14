@@ -37,8 +37,8 @@ interface ScheduleProjectBoxProps {
     page?: number;
 }
 
-const ScheduleProjectBox = (props: ScheduleProjectBoxProps) => {
-    const handleKeyboard = (event: $TSFixMe) => {
+const ScheduleProjectBox: Function = (props: ScheduleProjectBoxProps) => {
+    const handleKeyboard: Function = (event: $TSFixMe) => {
         const { modalList, allScheduleLength } = props;
 
         if (allScheduleLength === 1) {

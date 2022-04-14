@@ -78,8 +78,8 @@ function parseSchedule(schedule: $TSFixMe) {
             }
         }
     }
-    const gt = (i: $TSFixMe) => monitorIds.length > i;
-    const ut = (i: $TSFixMe) => userIds.length > i;
+    const gt: Function = (i: $TSFixMe) => monitorIds.length > i;
+    const ut: Function = (i: $TSFixMe) => userIds.length > i;
 
     const id = _id;
 

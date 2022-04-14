@@ -9,7 +9,7 @@ interface OnCallScheduleProps {
     slug?: string;
 }
 
-const OnCallSchedule = ({
+const OnCallSchedule: Function = ({
     status,
     schedules,
     slug

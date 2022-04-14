@@ -384,13 +384,13 @@ TrackerInfo.propTypes = {
     resetPerformanceTrackerKey: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         trackerObj: state.performanceTracker.resetPerformanceTrackerKey,
         data: state.modal.modals[0],
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ resetPerformanceTrackerKey, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ resetPerformanceTrackerKey, closeModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(TrackerInfo);

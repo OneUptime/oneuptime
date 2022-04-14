@@ -196,7 +196,7 @@ DeleteAnnouncement.propTypes = {
     fetchAnnouncements: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         modalId: state.modal.modals[0].id,
         isRequesting: state.statusPage.updateAnnouncement.requesting,
@@ -205,7 +205,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         deleteAnnouncement,

@@ -4,13 +4,13 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/component';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const showDeleteModal = (): void => {
+export const showDeleteModal: Function = (): void => {
     return {
         type: types.SHOW_DELETE_MODAL,
     };
 };
 
-export const hideDeleteModal = (): void => {
+export const hideDeleteModal: Function = (): void => {
     return {
         type: types.HIDE_DELETE_MODAL,
     };
@@ -18,7 +18,7 @@ export const hideDeleteModal = (): void => {
 
 // Component list
 // props -> {name: '', type, data -> { data.url}}
-export const fetchComponents = ({
+export const fetchComponents: Function = ({
     projectId,
     skip = 0,
     limit = 3,
@@ -42,27 +42,29 @@ export const fetchComponents = ({
     };
 };
 
-export const fetchComponentsSuccess = (components: $TSFixMe): void => {
+export const fetchComponentsSuccess: Function = (
+    components: $TSFixMe
+): void => {
     return {
         type: types.FETCH_COMPONENTS_SUCCESS,
         payload: components,
     };
 };
 
-export const fetchComponentsRequest = (): void => {
+export const fetchComponentsRequest: Function = (): void => {
     return {
         type: types.FETCH_COMPONENTS_REQUEST,
     };
 };
 
-export const fetchComponentsFailure = (error: ErrorPayload): void => {
+export const fetchComponentsFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_COMPONENTS_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchComponents = (): void => {
+export const resetFetchComponents: Function = (): void => {
     return {
         type: types.FETCH_COMPONENTS_RESET,
     };
@@ -94,14 +96,18 @@ export function fetchPaginatedComponents({
     };
 }
 
-export const fetchPaginatedComponentsSuccess = (payload: $TSFixMe): void => {
+export const fetchPaginatedComponentsSuccess: Function = (
+    payload: $TSFixMe
+): void => {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_SUCCESS,
         payload,
     };
 };
 
-export const fetchPaginatedComponentsRequest = (projectId: ObjectID): void => {
+export const fetchPaginatedComponentsRequest: Function = (
+    projectId: ObjectID
+): void => {
     return {
         type: types.FETCH_PAGINATED_COMPONENTS_REQUEST,
         payload: projectId,
@@ -118,7 +124,7 @@ export function fetchPaginatedComponentsFailure(
     };
 }
 
-export const createComponent = (
+export const createComponent: Function = (
     projectId: ObjectID,
     values: $TSFixMe
 ): void => {
@@ -151,33 +157,38 @@ export const createComponent = (
     };
 };
 
-export const createComponentSuccess = (newComponent: $TSFixMe): void => {
+export const createComponentSuccess: Function = (
+    newComponent: $TSFixMe
+): void => {
     return {
         type: types.CREATE_COMPONENT_SUCCESS,
         payload: newComponent,
     };
 };
 
-export const createComponentRequest = (): void => {
+export const createComponentRequest: Function = (): void => {
     return {
         type: types.CREATE_COMPONENT_REQUEST,
     };
 };
 
-export const createComponentFailure = (error: ErrorPayload): void => {
+export const createComponentFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_COMPONENT_FAILURE,
         payload: error,
     };
 };
 
-export const resetCreateComponent = (): void => {
+export const resetCreateComponent: Function = (): void => {
     return {
         type: types.CREATE_COMPONENT_RESET,
     };
 };
 
-export const editComponent = (projectId: ObjectID, values: $TSFixMe): void => {
+export const editComponent: Function = (
+    projectId: ObjectID,
+    values: $TSFixMe
+): void => {
     values.projectId = values.projectId._id || values.projectId;
 
     return function (dispatch: Dispatch): void {
@@ -211,34 +222,36 @@ export const editComponent = (projectId: ObjectID, values: $TSFixMe): void => {
     };
 };
 
-export const editComponentSuccess = (newComponent: $TSFixMe): void => {
+export const editComponentSuccess: Function = (
+    newComponent: $TSFixMe
+): void => {
     return {
         type: types.EDIT_COMPONENT_SUCCESS,
         payload: newComponent,
     };
 };
 
-export const editComponentRequest = (): void => {
+export const editComponentRequest: Function = (): void => {
     return {
         type: types.EDIT_COMPONENT_REQUEST,
     };
 };
 
-export const editComponentFailure = (error: ErrorPayload): void => {
+export const editComponentFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.EDIT_COMPONENT_FAILURE,
         payload: error,
     };
 };
 
-export const editComponentSwitch = (index: $TSFixMe): void => {
+export const editComponentSwitch: Function = (index: $TSFixMe): void => {
     return {
         type: types.EDIT_COMPONENT_SWITCH,
         payload: index,
     };
 };
 
-export const resetEditComponent = (): void => {
+export const resetEditComponent: Function = (): void => {
     return {
         type: types.EDIT_COMPONENT_RESET,
     };
@@ -246,7 +259,7 @@ export const resetEditComponent = (): void => {
 
 // Delete a component
 // props -> {name: '', type, data -> { data.url}}
-export const deleteComponent = (
+export const deleteComponent: Function = (
     componentId: $TSFixMe,
     projectId: ObjectID
 ): void => {
@@ -275,35 +288,41 @@ export const deleteComponent = (
     };
 };
 
-export const deleteComponentSuccess = (removedComponentId: $TSFixMe): void => {
+export const deleteComponentSuccess: Function = (
+    removedComponentId: $TSFixMe
+): void => {
     return {
         type: types.DELETE_COMPONENT_SUCCESS,
         payload: removedComponentId,
     };
 };
 
-export const deleteComponentRequest = (componentId: $TSFixMe): void => {
+export const deleteComponentRequest: Function = (
+    componentId: $TSFixMe
+): void => {
     return {
         type: types.DELETE_COMPONENT_REQUEST,
         payload: componentId,
     };
 };
 
-export const deleteComponentFailure = (error: ErrorPayload): void => {
+export const deleteComponentFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_COMPONENT_FAILURE,
         payload: error,
     };
 };
 
-export const deleteProjectComponents = (projectId: ObjectID): void => {
+export const deleteProjectComponents: Function = (
+    projectId: ObjectID
+): void => {
     return {
         type: types.DELETE_PROJECT_COMPONENTS,
         payload: projectId,
     };
 };
 
-export const addSeat = (projectId: ObjectID): void => {
+export const addSeat: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`component/${projectId}/addseat`, {});
         dispatch(addSeatRequest());
@@ -334,27 +353,27 @@ export const addSeat = (projectId: ObjectID): void => {
     };
 };
 
-export const addSeatSuccess = (message: $TSFixMe): void => {
+export const addSeatSuccess: Function = (message: $TSFixMe): void => {
     return {
         type: types.ADD_SEAT_SUCCESS,
         payload: message,
     };
 };
 
-export const addSeatRequest = (): void => {
+export const addSeatRequest: Function = (): void => {
     return {
         type: types.ADD_SEAT_REQUEST,
     };
 };
 
-export const addSeatFailure = (error: ErrorPayload): void => {
+export const addSeatFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.ADD_SEAT_FAILURE,
         payload: error,
     };
 };
 
-export const addSeatReset = (): void => {
+export const addSeatReset: Function = (): void => {
     return {
         type: types.ADD_SEAT_RESET,
     };
@@ -387,28 +406,34 @@ export function fetchComponentResources(
     };
 }
 
-export const fetchComponentResourcesSuccess = (resources: $TSFixMe): void => {
+export const fetchComponentResourcesSuccess: Function = (
+    resources: $TSFixMe
+): void => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_SUCCESS,
         payload: resources,
     };
 };
 
-export const fetchComponentResourcesRequest = (componentId: $TSFixMe): void => {
+export const fetchComponentResourcesRequest: Function = (
+    componentId: $TSFixMe
+): void => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_REQUEST,
         payload: { componentId: componentId },
     };
 };
 
-export const fetchComponentResourcesFailure = (error: ErrorPayload): void => {
+export const fetchComponentResourcesFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchComponentResources = (): void => {
+export const resetFetchComponentResources: Function = (): void => {
     return {
         type: types.FETCH_COMPONENT_RESOURCES_RESET,
     };
@@ -441,61 +466,72 @@ export function fetchComponentSummary(
     };
 }
 
-export const fetchComponentSummarySuccess = (summary: $TSFixMe): void => {
+export const fetchComponentSummarySuccess: Function = (
+    summary: $TSFixMe
+): void => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_SUCCESS,
         payload: summary,
     };
 };
 
-export const fetchComponentSummaryRequest = (componentId: $TSFixMe): void => {
+export const fetchComponentSummaryRequest: Function = (
+    componentId: $TSFixMe
+): void => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_REQUEST,
         payload: componentId,
     };
 };
 
-export const fetchComponentSummaryFailure = (error: ErrorPayload): void => {
+export const fetchComponentSummaryFailure: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_FAILURE,
         payload: error,
     };
 };
 
-export const resetFetchComponentSummary = (): void => {
+export const resetFetchComponentSummary: Function = (): void => {
     return {
         type: types.FETCH_COMPONENT_SUMMARY_RESET,
     };
 };
 
-export const addCurrentComponent = (currentComponent: $TSFixMe): void => {
+export const addCurrentComponent: Function = (
+    currentComponent: $TSFixMe
+): void => {
     return {
         type: types.ADD_CURRENT_COMPONENT,
         payload: currentComponent,
     };
 };
 
-export const fetchComponentRequest = (): void => {
+export const fetchComponentRequest: Function = (): void => {
     return {
         type: types.FETCH_COMPONENT_REQUEST,
     };
 };
 
-export const fetchComponentSuccess = (payload: $TSFixMe): void => {
+export const fetchComponentSuccess: Function = (payload: $TSFixMe): void => {
     return {
         type: types.FETCH_COMPONENT_SUCCESS,
         payload,
     };
 };
 
-export const fetchComponentFailure = (error: ErrorPayload): void => {
+export const fetchComponentFailure: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_COMPONENT_FAILURE,
         payload: error,
     };
 };
 
-export const fetchComponent = (projectId: ObjectID, slug: $TSFixMe): void => {
+export const fetchComponent: Function = (
+    projectId: ObjectID,
+    slug: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`component/${projectId}/slug/${slug}`);
         dispatch(fetchComponentRequest());

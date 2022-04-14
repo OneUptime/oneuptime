@@ -143,7 +143,7 @@ class DeleteStatusPageModal extends Component<ComponentProps> {
 
 DeleteStatusPageModal.displayName = 'DeleteStatusPageModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.statusPage &&

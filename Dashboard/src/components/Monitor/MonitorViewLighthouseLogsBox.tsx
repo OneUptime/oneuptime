@@ -341,7 +341,7 @@ MonitorViewLighthouseLogsBox.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         editMonitor,
         fetchLighthouseLogs,

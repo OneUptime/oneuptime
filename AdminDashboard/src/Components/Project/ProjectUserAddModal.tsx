@@ -512,7 +512,7 @@ const ProjectUserAddModal = reduxForm({
     validate,
 })(FormModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { userCreate, userCreateRequest, userCreateSuccess, userCreateError },
         dispatch

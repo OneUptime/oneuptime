@@ -156,7 +156,7 @@ const resetPasswordForm = reduxForm({
     validate,
 })(ResetPasswordForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             resetPasswordError,

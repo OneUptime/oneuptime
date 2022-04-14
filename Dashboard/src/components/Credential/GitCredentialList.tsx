@@ -23,7 +23,7 @@ interface GitCredentialListProps {
     modalId?: string;
 }
 
-const GitCredentialList = ({
+const GitCredentialList: Function = ({
     isRequesting,
     error,
     gitCredentials,
@@ -36,7 +36,7 @@ const GitCredentialList = ({
 }: GitCredentialListProps) => {
     const [page, setPage] = useState(1);
 
-    const handleDelete = (credentialId: $TSFixMe) => {
+    const handleDelete: Function = (credentialId: $TSFixMe) => {
         getGitSecurities({ projectId, credentialId });
 
         openModal({
@@ -56,7 +56,7 @@ const GitCredentialList = ({
         });
     };
 
-    const handleCredentialCreation = () => {
+    const handleCredentialCreation: Function = () => {
         openModal({
             id: projectId,
             content: GitCredentialModal,
@@ -64,7 +64,7 @@ const GitCredentialList = ({
         });
     };
 
-    const handleCredentialUpdate = (credentialId: $TSFixMe) => {
+    const handleCredentialUpdate: Function = (credentialId: $TSFixMe) => {
         openModal({
             id: projectId,
             content: GitCredentialModal,
@@ -72,7 +72,7 @@ const GitCredentialList = ({
         });
     };
 
-    const handleKeyboard = (e: $TSFixMe) => {
+    const handleKeyboard: Function = (e: $TSFixMe) => {
         if (e.target.localName === 'body' && e.key) {
             switch (e.key) {
                 case 'N':
@@ -95,10 +95,10 @@ const GitCredentialList = ({
         };
     });
 
-    const prev = () => {
+    const prev: Function = () => {
         setPage(page - 1);
     };
-    const next = () => {
+    const next: Function = () => {
         setPage(page + 1);
     };
 
@@ -390,12 +390,12 @@ GitCredentialList.propTypes = {
     modalId: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { deleteGitCredential, openModal, getGitSecurities },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteError: state.credential.deleteCredential.error,
         modalId: state.modal.modals[0] && state.modal.modals[0].id,

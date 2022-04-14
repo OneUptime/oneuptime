@@ -171,14 +171,14 @@ class RemoveSubProject extends Component<ComponentProps> {
 
 RemoveSubProject.displayName = 'RemoveSubProjectFormModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         subProjectDelete: state.subProject.deleteSubProject,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

@@ -69,9 +69,9 @@ export class UserAdminModeDisableBox extends Component<ComponentProps>{
 
 UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ disableAdminMode }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ disableAdminMode }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

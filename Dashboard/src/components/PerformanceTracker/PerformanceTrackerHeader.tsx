@@ -352,7 +352,7 @@ PerformanceTrackerHeader.propTypes = {
     updatePerformanceTracker: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     return {
         updateTrackerObj: state.performanceTracker.updatePerformanceTracker,
         initialValues: {
@@ -361,7 +361,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, updatePerformanceTracker }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, updatePerformanceTracker }, dispatch);
 
 const PerformanceTrackerHeaderForm = new reduxForm({
     form: 'PerformanceTrackerHeaderForm',

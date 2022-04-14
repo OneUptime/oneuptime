@@ -469,7 +469,7 @@ ResourceCategories.propTypes = {
     modalList: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchResourceCategories,
         openModal,
@@ -478,7 +478,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,
 
     resourceCategories:

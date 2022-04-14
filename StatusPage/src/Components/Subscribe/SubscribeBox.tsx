@@ -303,14 +303,14 @@ class SubscribeBox extends Component<ComponentProps> {
 
 SubscribeBox.displayName = 'SubscribeBox';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     select: state.subscribe.selectedMenu,
     subscribed: state.subscribe.subscribed,
     openSelectedBox: state.subscribe.openSelectedBox,
     statusPage: state.status.statusPage
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openSubscribeMenu, selectedMenu }, dispatch);
 
 
 SubscribeBox.propTypes = {

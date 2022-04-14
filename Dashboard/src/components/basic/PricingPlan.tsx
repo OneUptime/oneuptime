@@ -20,7 +20,7 @@ interface PricingPlanComponentProps {
     disabled?: boolean;
 }
 
-const PricingPlanComponent = ({
+const PricingPlanComponent: Function = ({
     plan,
     hideChildren,
     children,
@@ -45,7 +45,7 @@ const PricingPlanComponent = ({
         }
     }
 
-    const createAllowedPlans = (plan: $TSFixMe) => {
+    const createAllowedPlans: Function = (plan: $TSFixMe) => {
         const plans = ['Startup', 'Growth', 'Scale', 'Enterprise'];
         const planIndex = plans.indexOf(plan);
         const allowedPlans = [];
@@ -56,12 +56,12 @@ const PricingPlanComponent = ({
         return allowedPlans;
     };
 
-    const isAllowed = (plan: $TSFixMe, category: $TSFixMe) => {
+    const isAllowed: Function = (plan: $TSFixMe, category: $TSFixMe) => {
         const allowedPlans = createAllowedPlans(plan);
         return allowedPlans.includes(category);
     };
 
-    const handleModal = (e: $TSFixMe) => {
+    const handleModal: Function = (e: $TSFixMe) => {
         e.preventDefault();
         // javascript enables bubbling by default
         // prevent propagation of the bubble
@@ -107,7 +107,7 @@ PricingPlanComponent.propTypes = {
     disabled: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const currentPlanId =
         state.project &&
             state.project.currentProject &&
@@ -122,7 +122,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
 export default connect(
     mapStateToProps,

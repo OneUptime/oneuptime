@@ -12,7 +12,7 @@ interface OngoingScheduledEventProps {
     slug?: string;
 }
 
-const OngoingScheduledEvent = ({
+const OngoingScheduledEvent: Function = ({
     event,
     monitorList,
     history,

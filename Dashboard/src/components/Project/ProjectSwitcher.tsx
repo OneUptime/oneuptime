@@ -229,12 +229,12 @@ export class ProjectSwitcher extends Component<ProjectSwitcherProps>{
 
 ProjectSwitcher.displayName = 'ProjectSwitcher';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     project: state.project,
     currentProject: state.project.currentProject
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         switchProject,
         hideProjectSwitcher,

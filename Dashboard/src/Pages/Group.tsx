@@ -146,7 +146,7 @@ Groups.propTypes = {
 
 Groups.displayName = 'Groups';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         team: state.team,
         currentProject: state.project.currentProject,
@@ -156,5 +156,5 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getGroups, subProjectTeamLoading }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getGroups, subProjectTeamLoading }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(Groups);

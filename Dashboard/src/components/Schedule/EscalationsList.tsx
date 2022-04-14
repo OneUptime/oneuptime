@@ -9,7 +9,7 @@ interface EscalationsListProps {
     subProjectId: string;
 }
 
-const EscalationsList = ({
+const EscalationsList: Function = ({
     escalations,
     subProjectId
 }: EscalationsListProps) => {
@@ -53,7 +53,7 @@ EscalationsList.propTypes = {
     subProjectId: PropTypes.string.isRequired,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const { escalations } = state.schedule;
     return { escalations };
 };

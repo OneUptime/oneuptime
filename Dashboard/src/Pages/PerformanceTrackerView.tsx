@@ -385,7 +385,7 @@ class PerformanceTrackerView extends Component<ComponentProps> {
 
 
 PerformanceTrackerView.displayName = 'PerformanceTrackerView';
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchComponent,
@@ -399,7 +399,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { componentSlug, performanceTrackerSlug } = ownProps.match.params;
     const currentProject = state.project.currentProject;
     return {

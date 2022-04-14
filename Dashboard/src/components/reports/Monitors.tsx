@@ -471,11 +471,11 @@ const actionCreators = {
     getActiveMonitorsError,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     activeMonitors: state.report.activeMonitors
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => ({
+const mapDispatchToProps: Function = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 

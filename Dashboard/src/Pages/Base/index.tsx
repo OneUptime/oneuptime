@@ -81,11 +81,11 @@ class Page extends Component<ComponentProps> {
     }
 }
 
-export const defaultMapDispatchToProps = () => {
+export const defaultMapDispatchToProps: Function = () => {
     return {};
 };
 
-export const defaultMapStateToProps = (state: RootState) => {
+export const defaultMapStateToProps: Function = (state: RootState) => {
     return {
         projectId: state.project?.currentProject?._id,
         subProjectId: state.subProject?.activeSubProject?._id,

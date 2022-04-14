@@ -4,7 +4,7 @@
 // returns JSX.Element or NULL
 
 import ObjectID from 'Common/Types/ObjectID';
-const HasProjectOwner = (
+const HasProjectOwner: Function = (
     project: $TSFixMe,
     projectId: ObjectID,
     subProjects: $TSFixMe

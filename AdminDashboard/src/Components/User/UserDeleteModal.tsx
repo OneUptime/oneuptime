@@ -140,7 +140,7 @@ class UserDeleteModal extends Component<ComponentProps> {
 
 UserDeleteModal.displayName = 'UserDeleteModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.user &&

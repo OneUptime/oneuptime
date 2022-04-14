@@ -169,7 +169,7 @@ export class IncidentInvestigation extends Component<IncidentInvestigationProps>
 
 IncidentInvestigation.displayName = 'IncidentInvestigation';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchIncidentMessages,
         openModal,

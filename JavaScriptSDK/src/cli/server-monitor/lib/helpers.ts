@@ -20,7 +20,7 @@ const headers = {
  * @param {Object} - The error object of the request.
  * @default
  */
-const defaultErrorHandler = (error: $TSFixMe): void => {
+const defaultErrorHandler: Function = (error: $TSFixMe): void => {
     logger.debug(error.config);
     if (error.response) {
         logger.debug(error.response.data);
@@ -46,7 +46,7 @@ const defaultErrorHandler = (error: $TSFixMe): void => {
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const get = (
+const get: Function = (
     apiUrl: URL,
     url: URL,
     key: $TSFixMe,
@@ -72,7 +72,7 @@ const get = (
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const post = (
+const post: Function = (
     apiUrl: URL,
     url: URL,
     data: $TSFixMe,

@@ -189,7 +189,7 @@ export class IncidentInternal extends Component<IncidentInternalProps>{
 
 IncidentInternal.displayName = 'IncidentInternal';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchIncidentMessages,
         openModal,

@@ -6,7 +6,7 @@ export interface ComponentProps {
     name?: string;
 }
 
-const ConsoleLogView = ({
+const ConsoleLogView: Function = ({
     consoleLogs = [],
     name
 }: ConsoleLogViewProps) => {

@@ -150,7 +150,7 @@ class AddSeats extends Component<ComponentProps> {
 
 AddSeats.displayName = 'AddSeatsFormModal';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

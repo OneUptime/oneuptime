@@ -138,9 +138,9 @@ export class MonitorViewDeleteBox extends Component<MonitorViewDeleteBoxProps>{
 
 MonitorViewDeleteBox.displayName = 'MonitorViewDeleteBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteMonitor }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,

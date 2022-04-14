@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const RenderField = ({
+const RenderField: Function = ({
     input,
     placeholder,
     type,

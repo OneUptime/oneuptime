@@ -4,34 +4,36 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/webHook';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const deleteWebHookRequest = (): void => {
+export const deleteWebHookRequest: Function = (): void => {
     return {
         type: types.DELETE_WEB_HOOK_REQUEST,
     };
 };
 
-export const deleteWebHookError = (error: ErrorPayload): void => {
+export const deleteWebHookError: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_WEB_HOOK_FAILED,
         payload: error,
     };
 };
 
-export const deleteWebHookSuccess = (deleteWebHook: $TSFixMe): void => {
+export const deleteWebHookSuccess: Function = (
+    deleteWebHook: $TSFixMe
+): void => {
     return {
         type: types.DELETE_WEB_HOOK_SUCCESS,
         payload: deleteWebHook,
     };
 };
 
-export const resetDeleteWebHook = (): void => {
+export const resetDeleteWebHook: Function = (): void => {
     return {
         type: types.DELETE_WEB_HOOK_RESET,
     };
 };
 
 // Calls the API to link webhook team to project
-export const deleteWebHook = (
+export const deleteWebHook: Function = (
     projectId: ObjectID,
     webhookId: $TSFixMe
 ): void => {
@@ -54,28 +56,28 @@ export const deleteWebHook = (
     };
 };
 
-export const getWebHookRequest = (promise: $TSFixMe): void => {
+export const getWebHookRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.GET_WEB_HOOK_REQUEST,
         payload: promise,
     };
 };
 
-export const getWebHookError = (error: ErrorPayload): void => {
+export const getWebHookError: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_WEB_HOOK_FAILED,
         payload: error,
     };
 };
 
-export const getWebHookSuccess = (webhooks: $TSFixMe): void => {
+export const getWebHookSuccess: Function = (webhooks: $TSFixMe): void => {
     return {
         type: types.GET_WEB_HOOK_SUCCESS,
         payload: webhooks,
     };
 };
 
-export const resetGetWebHook = (): void => {
+export const resetGetWebHook: Function = (): void => {
     return {
         type: types.GET_WEB_HOOK_RESET,
     };
@@ -134,34 +136,37 @@ export function getWebHookMonitor(
     };
 }
 
-export const createWebHookRequest = (): void => {
+export const createWebHookRequest: Function = (): void => {
     return {
         type: types.CREATE_WEB_HOOK_REQUEST,
     };
 };
 
-export const createWebHookError = (error: ErrorPayload): void => {
+export const createWebHookError: Function = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_WEB_HOOK_FAILED,
         payload: error,
     };
 };
 
-export const createWebHookSuccess = (newWebHook: $TSFixMe): void => {
+export const createWebHookSuccess: Function = (newWebHook: $TSFixMe): void => {
     return {
         type: types.CREATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
     };
 };
 
-export const resetCreateWebHook = (): void => {
+export const resetCreateWebHook: Function = (): void => {
     return {
         type: types.CREATE_WEB_HOOK_RESET,
     };
 };
 
 // Calls the API to add webhook to project
-export const createWebHook = (projectId: ObjectID, data: $TSFixMe): void => {
+export const createWebHook: Function = (
+    projectId: ObjectID,
+    data: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`webhook/${projectId}/create`, data);
 
@@ -180,27 +185,27 @@ export const createWebHook = (projectId: ObjectID, data: $TSFixMe): void => {
     };
 };
 
-export const updateWebHookRequest = (): void => {
+export const updateWebHookRequest: Function = (): void => {
     return {
         type: types.UPDATE_WEB_HOOK_REQUEST,
     };
 };
 
-export const updateWebHookError = (error: ErrorPayload): void => {
+export const updateWebHookError: Function = (error: ErrorPayload): void => {
     return {
         type: types.UPDATE_WEB_HOOK_FAILED,
         payload: error,
     };
 };
 
-export const updateWebHookSuccess = (newWebHook: $TSFixMe): void => {
+export const updateWebHookSuccess: Function = (newWebHook: $TSFixMe): void => {
     return {
         type: types.UPDATE_WEB_HOOK_SUCCESS,
         payload: newWebHook,
     };
 };
 
-export const resetUpdateWebHook = (): void => {
+export const resetUpdateWebHook: Function = (): void => {
     return {
         type: types.UPDATE_WEB_HOOK_RESET,
     };
@@ -235,25 +240,25 @@ export function updateWebHook(
 
 // Implements pagination for Webhooks Members table
 
-export const paginateNext = (): void => {
+export const paginateNext: Function = (): void => {
     return {
         type: types.PAGINATE_NEXT,
     };
 };
 
-export const paginatePrev = (): void => {
+export const paginatePrev: Function = (): void => {
     return {
         type: types.PAGINATE_PREV,
     };
 };
 
-export const paginateReset = (): void => {
+export const paginateReset: Function = (): void => {
     return {
         type: types.PAGINATE_RESET,
     };
 };
 
-export const paginate = (type: $TSFixMe): void => {
+export const paginate: Function = (type: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());

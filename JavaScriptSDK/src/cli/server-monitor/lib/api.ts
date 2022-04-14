@@ -24,7 +24,7 @@ import { onlineTestData, degradedTestData, offlineTestData } from './config';
  * @param {string} interval - The interval of the cron job, must ba a valid cron format.
  * @return {Object} The ping server cron job.
  */
-const ping = (
+const ping: Function = (
     projectId: ObjectID,
     monitorId: $TSFixMe,
     apiUrl: URL,

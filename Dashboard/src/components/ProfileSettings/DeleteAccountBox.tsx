@@ -100,9 +100,9 @@ export class DeleteAccountBox extends Component<DeleteAccountBoxProps>{
 
 DeleteAccountBox.displayName = 'DeleteAccountBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleteAccountSetting: state.profileSettings.deleteAccount,
     };

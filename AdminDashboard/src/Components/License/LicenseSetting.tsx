@@ -189,7 +189,7 @@ const LicenseSettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(LicenseSetting);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initValues = state.license.license
         ? Object.assign({}, state.license.license.data)
         : {};
@@ -201,7 +201,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ confirmLicense }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ confirmLicense }, dispatch);
 
 
 LicenseSetting.propTypes = {

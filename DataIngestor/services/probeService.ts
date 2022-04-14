@@ -1016,7 +1016,7 @@ export default {
 
 import _ from 'lodash';
 
-const incomingCheckAnd = (payload, condition): void => {
+const incomingCheckAnd: Function = (payload, condition): void => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
@@ -1166,7 +1166,7 @@ const incomingCheckAnd = (payload, condition): void => {
     return validity;
 };
 
-const incomingCheckOr = (payload, condition): void => {
+const incomingCheckOr: Function = (payload, condition): void => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
@@ -1315,7 +1315,7 @@ const incomingCheckOr = (payload, condition): void => {
     return validity;
 };
 
-const checkAnd = (
+const checkAnd: Function = (
     payload,
 
     con,
@@ -3679,7 +3679,7 @@ const checkAnd = (
     return validity;
 };
 
-const checkOr = (
+const checkOr: Function = (
     payload,
 
     con,
@@ -5930,7 +5930,7 @@ const checkOr = (
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
 
-const checkScriptCondition = (condition, body): void => {
+const checkScriptCondition: Function = (condition, body): void => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6028,7 +6028,12 @@ const checkScriptCondition = (condition, body): void => {
     return validity;
 };
 
-const checkScriptAnd = (con, body, successReasons, failedReasons): void => {
+const checkScriptAnd: Function = (
+    con,
+    body,
+    successReasons,
+    failedReasons
+): void => {
     let valid = true;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6083,7 +6088,12 @@ const checkScriptAnd = (con, body, successReasons, failedReasons): void => {
     return valid;
 };
 
-const checkScriptOr = (con, body, successReasons, failedReasons): void => {
+const checkScriptOr: Function = (
+    con,
+    body,
+    successReasons,
+    failedReasons
+): void => {
     let valid = false;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6156,7 +6166,7 @@ const criteriaStrings = {
     ip: 'IP is',
 };
 
-const formatDecimal = (value, decimalPlaces, roundType): void => {
+const formatDecimal: Function = (value, decimalPlaces, roundType): void => {
     let formattedNumber;
     switch (roundType) {
         case 'up':
@@ -6179,7 +6189,7 @@ const formatDecimal = (value, decimalPlaces, roundType): void => {
     );
 };
 
-const formatBytes = (a, b, c, d, e): void => {
+const formatBytes: Function = (a, b, c, d, e): void => {
     let value = a;
     let decimalPlaces;
     let roundType;

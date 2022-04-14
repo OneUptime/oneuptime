@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const Button = ({
+const Button: Function = ({
     id,
     onClick = () => {},
     text,

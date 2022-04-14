@@ -47,7 +47,7 @@ let RenderMember = ({
     const [forcedTimeHide, forceTimeHide] = useState(false);
     const [type, setType] = useState({});
 
-    const manageVisibility = (timeVisible: $TSFixMe, memberHasCallTimes: $TSFixMe) => {
+    const manageVisibility: Function = (timeVisible: $TSFixMe, memberHasCallTimes: $TSFixMe) => {
         setTimeVisible(timeVisible);
         if (memberHasCallTimes && !timeVisible) {
             forceTimeHide(true);
@@ -57,7 +57,7 @@ let RenderMember = ({
             forceTimeHide(false);
         }
     };
-    const updateTypeOnMount = () => {
+    const updateTypeOnMount: Function = () => {
         setType({
             ...type,
             [teamIndex.toString() + nameIndex.toString()]: form[policyIndex]
@@ -72,7 +72,7 @@ let RenderMember = ({
     const memberHasCallTimes = !!(memberValue.startTime && memberValue.endTime);
     const showTimes = memberHasCallTimes ? !forcedTimeHide : timeVisible;
 
-    const getCurrentTimezone = () => {
+    const getCurrentTimezone: Function = () => {
         const tz = moment.tz.guess();
         const result:string = `${tz} GMT${moment()
             .tz(tz)
@@ -80,7 +80,7 @@ let RenderMember = ({
         return result;
     };
 
-    const handleSwitch = (val: $TSFixMe) => {
+    const handleSwitch: Function = (val: $TSFixMe) => {
         setType({ [teamIndex.toString() + nameIndex.toString()]: val });
         if (val === 'team') {
             change('OnCallAlertBox', `${inputarray}.groupId`, '');
@@ -339,7 +339,7 @@ let RenderMember = ({
 
 RenderMember.displayName = 'RenderMember';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ change }, dispatch);
 };
 

@@ -103,7 +103,7 @@ class CallLogsErrorViewModal extends Component<ComponentProps> {
 
 CallLogsErrorViewModal.displayName = 'CallLogsErrorViewModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.callLogs &&

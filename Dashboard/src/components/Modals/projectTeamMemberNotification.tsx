@@ -121,7 +121,7 @@ ProjectTeamMemberNotification.propTypes = {
     team: PropTypes.object.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({}, dispatch);
 };
 

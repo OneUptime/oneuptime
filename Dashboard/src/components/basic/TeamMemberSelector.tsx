@@ -23,7 +23,7 @@ interface TeamMemberSelectorProps {
     renderType?: string;
 }
 
-const TeamMemberSelector = ({
+const TeamMemberSelector: Function = ({
     id,
     input,
     placeholder,
@@ -131,7 +131,7 @@ const TeamMemberSelector = ({
         });
     }, [input, placeholder]);
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);

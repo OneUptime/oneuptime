@@ -8,7 +8,7 @@ interface AffectedResourcesProps {
     colorStyle?: "white" | "grey";
 }
 
-const AffectedResources = ({
+const AffectedResources: Function = ({
     event,
     monitorState,
     colorStyle

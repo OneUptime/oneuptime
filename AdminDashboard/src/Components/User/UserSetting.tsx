@@ -368,7 +368,7 @@ export class UserSetting extends Component<ComponentProps>{
 
 UserSetting.displayName = 'UserSetting';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { updateTwoFactorAuthToken, openModal, setTwoFactorAuth },
         dispatch

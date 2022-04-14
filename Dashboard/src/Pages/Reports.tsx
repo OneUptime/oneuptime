@@ -701,7 +701,7 @@ export class Reports extends Component<ReportsProps>{
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProjectId:
             state.project.currentProject && state.project.currentProject._id,

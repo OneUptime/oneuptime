@@ -3,7 +3,7 @@ import React from 'react';
 import Select from 'react-select';
 import PropTypes from 'prop-types';
 
-const ReactSelectOneUptime = (props: $TSFixMe) => <Select
+const ReactSelectOneUptime: Function = (props: $TSFixMe) => <Select
     {...props}
     styles={{
         control: (provided: $TSFixMe) => ({

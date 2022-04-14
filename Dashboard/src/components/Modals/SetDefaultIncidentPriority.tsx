@@ -140,7 +140,7 @@ SetDefaultIncidentPriority.propTypes = {
     data: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         updatedIncident:
             state.incidentBasicSettings.updateIncidentBasicSettings,
@@ -148,7 +148,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateDefaultIncidentSettings,
     },

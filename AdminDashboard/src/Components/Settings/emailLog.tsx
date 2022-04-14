@@ -159,7 +159,7 @@ class EmailLog extends Component<ComponentProps> {
 
 EmailLog.displayName = 'EmailLog';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchEmailLogStatus, emailLogStatusChange },
         dispatch

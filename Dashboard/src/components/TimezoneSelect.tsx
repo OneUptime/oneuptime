@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 
-const TimezoneSelect = () => (
+const TimezoneSelect: Function = () => (
     <div>
         <div className="bs-BIM">
             <div className="ContextualLayer-layer--topleft ContextualLayer-layer--anytop ContextualLayer-layer--anyleft ContextualLayer-context--bottomleft ContextualLayer-context--anybottom ContextualLayer-context--anyleft ContextualLayer-container ContextualLayer--pointerEvents">

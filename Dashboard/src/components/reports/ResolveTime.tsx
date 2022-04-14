@@ -176,11 +176,11 @@ const actionCreators = {
     getResolveTimeSuccess,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     resolveTimeReports: state.report.averageTime
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => ({
+const mapDispatchToProps: Function = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 

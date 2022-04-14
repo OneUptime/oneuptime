@@ -554,9 +554,9 @@ Announcements.propTypes = {
     announceError: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAnnouncements }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         announcements: state.statusPage.announcements.announcementsList,
         requesting: state.statusPage.announcements.requesting,

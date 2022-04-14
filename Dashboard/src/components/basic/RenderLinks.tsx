@@ -15,7 +15,7 @@ interface RenderLinksProps {
     fields: unknown[] | object;
 }
 
-const RenderLinks = ({
+const RenderLinks: Function = ({
     fields,
     openModal,
     createFooterLinkModalId,

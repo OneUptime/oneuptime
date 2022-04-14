@@ -670,7 +670,7 @@ const NewUpdateSchedule = reduxForm({
     destroyOnUnmount: true,
 })(SubscriberAdvanceOption);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         updateSubscriberOption,
@@ -678,7 +678,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {};
     const {
         statusPage,

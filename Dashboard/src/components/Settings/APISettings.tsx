@@ -232,12 +232,12 @@ export class APISettings extends Component<ComponentProps>{
 
 APISettings.displayName = 'APISettings';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject,
     isRequesting: state.project.resetToken.requesting
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ resetProjectToken, openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ resetProjectToken, openModal }, dispatch);
 
 
 APISettings.propTypes = {

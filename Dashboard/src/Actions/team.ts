@@ -3,20 +3,20 @@ import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/team';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const teamLoadingRequest = (): void => {
+export const teamLoadingRequest: Function = (): void => {
     return {
         type: types.TEAM_LOADING_REQUEST,
     };
 };
 
-export const teamLoadingSuccess = (team: $TSFixMe): void => {
+export const teamLoadingSuccess: Function = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_LOADING_SUCCESS,
         payload: team,
     };
 };
 
-export const teamLoadingError = (error: ErrorPayload): void => {
+export const teamLoadingError: Function = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_LOADING_FAILURE,
         payload: error,
@@ -24,7 +24,7 @@ export const teamLoadingError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to load team.
-export const teamLoading = (projectId: ObjectID): void => {
+export const teamLoading: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}`);
         dispatch(teamLoadingRequest());
@@ -42,27 +42,31 @@ export const teamLoading = (projectId: ObjectID): void => {
     };
 };
 
-export const subProjectTeamLoadingRequest = (): void => {
+export const subProjectTeamLoadingRequest: Function = (): void => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_REQUEST,
     };
 };
 
-export const subProjectTeamLoadingSuccess = (team: $TSFixMe): void => {
+export const subProjectTeamLoadingSuccess: Function = (
+    team: $TSFixMe
+): void => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_SUCCESS,
         payload: team,
     };
 };
 
-export const subProjectTeamLoadingError = (error: ErrorPayload): void => {
+export const subProjectTeamLoadingError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.TEAM_SUBPROJECT_LOADING_FAILURE,
         payload: error,
     };
 };
 // Calls the API to load team.
-export const subProjectTeamLoading = (projectId: ObjectID): void => {
+export const subProjectTeamLoading: Function = (projectId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`team/${projectId}/teamMembers`);
         dispatch(subProjectTeamLoadingRequest());
@@ -81,20 +85,20 @@ export const subProjectTeamLoading = (projectId: ObjectID): void => {
 };
 
 // Team create
-export const teamCreateRequest = (): void => {
+export const teamCreateRequest: Function = (): void => {
     return {
         type: types.TEAM_CREATE_REQUEST,
     };
 };
 
-export const teamCreateSuccess = (team: $TSFixMe): void => {
+export const teamCreateSuccess: Function = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_CREATE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamCreateError = (error: ErrorPayload): void => {
+export const teamCreateError: Function = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_CREATE_FAILURE,
         payload: error,
@@ -102,7 +106,10 @@ export const teamCreateError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to create team members.
-export const teamCreate = (projectId: ObjectID, values: $TSFixMe): void => {
+export const teamCreate: Function = (
+    projectId: ObjectID,
+    values: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`team/${projectId}`, values);
         dispatch(teamCreateRequest());
@@ -121,41 +128,41 @@ export const teamCreate = (projectId: ObjectID, values: $TSFixMe): void => {
     };
 };
 
-export const teamDeleteRequest = (id: $TSFixMe): void => {
+export const teamDeleteRequest: Function = (id: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_REQUEST,
         payload: id,
     };
 };
 
-export const teamDeleteSuccess = (team: $TSFixMe): void => {
+export const teamDeleteSuccess: Function = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_DELETE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamDeleteError = (error: ErrorPayload): void => {
+export const teamDeleteError: Function = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_DELETE_FAILURE,
         payload: error,
     };
 };
 
-export const teamDeleteReset = (): void => {
+export const teamDeleteReset: Function = (): void => {
     return {
         type: types.TEAM_DELETE_RESET,
     };
 };
 
-export const resetTeamDelete = (): void => {
+export const resetTeamDelete: Function = (): void => {
     return function (dispatch: Dispatch): void {
         dispatch(teamDeleteReset());
     };
 };
 
 // Calls the API to delete team meber.
-export const teamDelete = (
+export const teamDelete: Function = (
     projectId: ObjectID,
     teamMemberId: $TSFixMe
 ): void => {
@@ -179,21 +186,21 @@ export const teamDelete = (
     };
 };
 
-export const teamMemberRequest = (teamMemberId: $TSFixMe): void => {
+export const teamMemberRequest: Function = (teamMemberId: $TSFixMe): void => {
     return {
         type: types.TEAM_MEMBER_REQUEST,
         payload: teamMemberId,
     };
 };
 
-export const teamMemberSuccess = (teamMember: $TSFixMe): void => {
+export const teamMemberSuccess: Function = (teamMember: $TSFixMe): void => {
     return {
         type: types.TEAM_MEMBER_SUCCESS,
         payload: teamMember,
     };
 };
 
-export const teamMemberError = (error: ErrorPayload): void => {
+export const teamMemberError: Function = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_MEMBER_FAILURE,
         payload: error,
@@ -201,7 +208,7 @@ export const teamMemberError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to get team member.
-export const getTeamMember = (
+export const getTeamMember: Function = (
     projectId: ObjectID,
     teamMemberId: $TSFixMe
 ): void => {
@@ -222,21 +229,21 @@ export const getTeamMember = (
     };
 };
 
-export const teamUpdateRoleRequest = (id: $TSFixMe): void => {
+export const teamUpdateRoleRequest: Function = (id: $TSFixMe): void => {
     return {
         type: types.TEAM_UPDATE_ROLE_REQUEST,
         payload: id,
     };
 };
 
-export const teamUpdateRoleSuccess = (team: $TSFixMe): void => {
+export const teamUpdateRoleSuccess: Function = (team: $TSFixMe): void => {
     return {
         type: types.TEAM_UPDATE_ROLE_SUCCESS,
         payload: team,
     };
 };
 
-export const teamUpdateRoleError = (error: ErrorPayload): void => {
+export const teamUpdateRoleError: Function = (error: ErrorPayload): void => {
     return {
         type: types.TEAM_UPDATE_ROLE_FAILURE,
         payload: error,
@@ -244,7 +251,10 @@ export const teamUpdateRoleError = (error: ErrorPayload): void => {
 };
 
 // Calls the API to update team member role.
-export const teamUpdateRole = (projectId: ObjectID, values: $TSFixMe): void => {
+export const teamUpdateRole: Function = (
+    projectId: ObjectID,
+    values: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(
             `team/${projectId}/${values.teamMemberId}/changerole`,
@@ -267,27 +277,27 @@ export const teamUpdateRole = (projectId: ObjectID, values: $TSFixMe): void => {
 };
 
 // Implements pagination for Team Members table
-export const paginateNext = (Id: $TSFixMe): void => {
+export const paginateNext: Function = (Id: $TSFixMe): void => {
     return {
         type: types.PAGINATE_NEXT,
         payload: Id,
     };
 };
 
-export const paginatePrev = (Id: $TSFixMe): void => {
+export const paginatePrev: Function = (Id: $TSFixMe): void => {
     return {
         type: types.PAGINATE_PREV,
         payload: Id,
     };
 };
 
-export const paginateReset = (): void => {
+export const paginateReset: Function = (): void => {
     return {
         type: types.PAGINATE_RESET,
     };
 };
 
-export const paginate = (type: $TSFixMe, Id: $TSFixMe): void => {
+export const paginate: Function = (type: $TSFixMe, Id: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext(Id));
         type === 'prev' && dispatch(paginatePrev(Id));

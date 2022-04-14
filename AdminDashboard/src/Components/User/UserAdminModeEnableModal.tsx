@@ -194,7 +194,7 @@ class UserAdminModeEnableModal extends Component<ComponentProps> {
 
 UserAdminModeEnableModal.displayName = 'UserAdminModeEnableModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.user &&

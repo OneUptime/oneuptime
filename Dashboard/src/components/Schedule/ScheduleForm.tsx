@@ -219,14 +219,14 @@ const CreateScheduleForm = reduxForm({
     validate,
 })(ScheduleForm);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         scheduleModalId: state.modal.modals[0].id,
         schedule: state.schedule,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, createSchedule }, dispatch);
 };
 

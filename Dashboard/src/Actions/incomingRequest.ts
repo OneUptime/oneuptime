@@ -4,16 +4,20 @@ import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/incomingRequest';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-export const createIncomingRequestRequest = (): void => ({
+export const createIncomingRequestRequest: Function = (): void => ({
     type: types.CREATE_INCOMING_REQUEST_REQUEST,
 });
 
-export const createIncomingRequestSuccess = (payload: $TSFixMe): void => ({
+export const createIncomingRequestSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.CREATE_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const createIncomingRequestFailure = (error: ErrorPayload): void => ({
+export const createIncomingRequestFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.CREATE_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -42,16 +46,20 @@ export const createIncomingRequest =
         }
     };
 
-export const editIncomingRequestRequest = (): void => ({
+export const editIncomingRequestRequest: Function = (): void => ({
     type: types.EDIT_INCOMING_REQUEST_REQUEST,
 });
 
-export const editIncomingRequestSuccess = (payload: $TSFixMe): void => ({
+export const editIncomingRequestSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.EDIT_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const editIncomingRequestFailure = (error: ErrorPayload): void => ({
+export const editIncomingRequestFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.EDIT_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -81,16 +89,20 @@ export const editIncomingRequest =
         }
     };
 
-export const deleteIncomingRequestRequest = (): void => ({
+export const deleteIncomingRequestRequest: Function = (): void => ({
     type: types.DELETE_INCOMING_REQUEST_REQUEST,
 });
 
-export const deleteIncomingRequestSuccess = (payload: $TSFixMe): void => ({
+export const deleteIncomingRequestSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.DELETE_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const deleteIncomingRequestFailure = (error: ErrorPayload): void => ({
+export const deleteIncomingRequestFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.DELETE_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -118,16 +130,20 @@ export const deleteIncomingRequest =
         }
     };
 
-export const fetchAllIncomingRequestRequest = (): void => ({
+export const fetchAllIncomingRequestRequest: Function = (): void => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_REQUEST,
 });
 
-export const fetchAllIncomingRequestSuccess = (payload: $TSFixMe): void => ({
+export const fetchAllIncomingRequestSuccess: Function = (
+    payload: $TSFixMe
+): void => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_SUCCESS,
     payload,
 });
 
-export const fetchAllIncomingRequestFailure = (error: ErrorPayload): void => ({
+export const fetchAllIncomingRequestFailure: Function = (
+    error: ErrorPayload
+): void => ({
     type: types.FETCH_ALL_INCOMING_REQUEST_FAILURE,
     payload: error,
 });
@@ -156,7 +172,9 @@ export const fetchAllIncomingRequest =
         }
     };
 
-export const setActiveIncomingRequest = (requestId: $TSFixMe): void => ({
+export const setActiveIncomingRequest: Function = (
+    requestId: $TSFixMe
+): void => ({
     type: types.SET_ACTIVE_INCOMING_REQUEST,
     payload: requestId,
 });

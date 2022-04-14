@@ -13,7 +13,7 @@ interface CompanySizeSelectorProps {
     id?: string;
 }
 
-const CompanySizeSelector = ({
+const CompanySizeSelector: Function = ({
     input,
     id,
     meta: { touched, error }

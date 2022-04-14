@@ -359,7 +359,7 @@ OnCallAlertBox.propTypes = {
     getProjectGroups: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     // NOTE: pushArray / arrayPush MUST be aliased or it will not work. https://justinnoel.dev/2018/09/22/adding-to-redux-form-fieldarray/
     {
         getEscalation,
@@ -371,7 +371,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     /* state.schedule.escalations && state.schedule.escalations.length ?
      state.schedule.escalations.map((value)=>{
          return {escalation: [value]};

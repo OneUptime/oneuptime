@@ -533,7 +533,7 @@ class ProjectUser extends Component<ComponentProps> {
 
 ProjectUser.displayName = 'ProjectUser';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             openModal,

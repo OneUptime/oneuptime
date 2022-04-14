@@ -196,7 +196,7 @@ DeleteIncidentNoteTemplate.propTypes = {
     fetchIncidentNoteTemplates: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         projectId: state.modal.modals[0].projectId,
         templateId: state.modal.modals[0].templateId,
@@ -208,7 +208,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         deleteIncidentNoteTemplate,

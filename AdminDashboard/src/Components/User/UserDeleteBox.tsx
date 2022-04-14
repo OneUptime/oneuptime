@@ -96,9 +96,9 @@ export class UserDeleteBox extends Component<ComponentProps>{
 
 UserDeleteBox.displayName = 'UserDeleteBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const userId = state.user.user.user ? state.user.user.user._id : null;
 
     return {

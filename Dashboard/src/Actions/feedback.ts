@@ -16,27 +16,27 @@ export const closeFeedbackModal = function (): void {
 
 // Create a new project
 
-export const createFeedbackRequest = (): void => {
+export const createFeedbackRequest: Function = (): void => {
     return {
         type: types.CREATE_FEEDBACK_REQUEST,
     };
 };
 
-export const createFeedbackError = (error: ErrorPayload): void => {
+export const createFeedbackError: Function = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_FEEDBACK_FAILED,
         payload: error,
     };
 };
 
-export const createFeedbackSuccess = (project: $TSFixMe): void => {
+export const createFeedbackSuccess: Function = (project: $TSFixMe): void => {
     return {
         type: types.CREATE_FEEDBACK_SUCCESS,
         payload: project,
     };
 };
 
-export const resetCreateFeedback = (): void => {
+export const resetCreateFeedback: Function = (): void => {
     return {
         type: types.CREATE_FEEDBACK_RESET,
     };

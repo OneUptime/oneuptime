@@ -286,7 +286,7 @@ class NotesMain extends Component<ComponentProps> {
             webhookNotification ||
             emailNotification;
 
-        const checkDuplicateDates = (items: $TSFixMe) => {
+        const checkDuplicateDates: Function = (items: $TSFixMe) => {
             const track = {};
 
             const result = [];
@@ -890,7 +890,7 @@ class NotesMain extends Component<ComponentProps> {
 
 NotesMain.displayName = 'NotesMain';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let skip =
         state.status.notes && state.status.notes.skip
             ? state.status.notes.skip
@@ -924,7 +924,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getStatusPageNote,
         getStatusPageIndividualNote,

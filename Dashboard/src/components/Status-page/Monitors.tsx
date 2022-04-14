@@ -29,14 +29,14 @@ import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
 const grid = 8;
 
-const getListStyle = (isDraggingOver: $TSFixMe) => ({
+const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
     padding: grid,
     width: '100%',
     height: '90%'
 });
 
-const validate = (values: $TSFixMe) => {
+const validate: Function = (values: $TSFixMe) => {
     const errors = {};
     const { monitors = [] } = values;
     const monitorsArrayErrors = {};
@@ -408,7 +408,7 @@ const MonitorsForm = reduxForm({
     validate,
 })(Monitors);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageMonitors,
         updateStatusPageMonitorsRequest,
@@ -422,7 +422,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const selector = formValueSelector('StatuspageMonitors');
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { subProjectId } = ownProps;
     const { currentProject } = state.project;
 

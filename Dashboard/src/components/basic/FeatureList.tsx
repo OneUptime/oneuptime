@@ -5,7 +5,7 @@ export interface ComponentProps {
     content: string;
 }
 
-const FeatureList = (props: FeatureListProps) => <li className="Margin-vertical--4">
+const FeatureList: Function = (props: FeatureListProps) => <li className="Margin-vertical--4">
     <img
         alt="check"
         src="/dashboard/assets/img/icons/acceptance.svg"

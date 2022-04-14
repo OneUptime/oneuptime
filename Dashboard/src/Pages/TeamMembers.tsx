@@ -19,7 +19,7 @@ import RenderIfUserInSubProject from '../components/basic/RenderIfUserInSubProje
 
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 
-const LoadingState = () => (
+const LoadingState: Function = () => (
     <div className="Box-root Margin-bottom--12">
         <div className="bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">
@@ -73,7 +73,7 @@ interface LoadedTeamProps {
     modalList?: unknown[];
 }
 
-const LoadedTeam = (props: LoadedTeamProps) => {
+const LoadedTeam: Function = (props: LoadedTeamProps) => {
     const {
         pages,
         inviteModalId,
@@ -321,7 +321,7 @@ TeamApp.propTypes = {
     activeProjectId: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let subProjects = state.subProject.subProjects.subProjects;
 
     // sort subprojects names for display in alphabetical order
@@ -342,7 +342,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         subProjectTeamLoading,
         subProjectTeamLoadingRequest,

@@ -13,7 +13,7 @@ interface ContainerSecurityProps {
     containerSecurityLogs?: unknown[];
 }
 
-const ContainerSecurity = ({
+const ContainerSecurity: Function = ({
     name,
     containerSecurityId,
     containerSecuritySlug,
@@ -64,7 +64,7 @@ ContainerSecurity.propTypes = {
     containerSecurityLogs: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         containerSecurityLogs: state.security.containerSecurityLogs,
     };

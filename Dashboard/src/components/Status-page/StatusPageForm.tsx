@@ -219,7 +219,7 @@ const CreateStatusPageForm = reduxForm({
     validate,
 })(StatusPageForm);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         statusPageModalId: state.modal.modals[0].id,
@@ -227,7 +227,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, createStatusPage }, dispatch);
 };
 

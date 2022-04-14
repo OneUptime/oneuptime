@@ -363,12 +363,12 @@ const NewPerformanceTrackerForm = new reduxForm({
     enableReinitialize: true,
 })(NewPerformanceTracker);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { createPerformanceTracker, updatePerformanceTracker },
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const name = selector(state, 'name');
     const componentId = ownProps.componentId;
     const currentProject = state.project.currentProject;

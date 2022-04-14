@@ -49,7 +49,7 @@ export function fetchIncidentPriorities(
     };
 }
 
-export const createIncidentPriority = (
+export const createIncidentPriority: Function = (
     projectId: ObjectID,
     data: $TSFixMe
 ): void => {
@@ -91,7 +91,7 @@ function createIncidentPriorityFailure(data: $TSFixMe): void {
     };
 }
 
-export const updateIncidentPriority = (
+export const updateIncidentPriority: Function = (
     projectId: ObjectID,
     data: $TSFixMe
 ): void => {
@@ -130,7 +130,7 @@ function updateIncidentPriorityFailure(data: $TSFixMe): void {
     };
 }
 
-export const deleteIncidentPriority = (
+export const deleteIncidentPriority: Function = (
     projectId: ObjectID,
     data: $TSFixMe
 ): void => {

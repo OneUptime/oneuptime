@@ -69,9 +69,9 @@ export class UserUnblockBox extends Component<ComponentProps>{
 
 UserUnblockBox.displayName = 'UserUnblockBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const user = state.user.user.user || {};
     const userId = user._id;
     return {

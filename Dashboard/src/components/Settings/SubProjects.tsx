@@ -347,14 +347,14 @@ SubProjects.propTypes = {
     modalList: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, getSubProjects },
         dispatch
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let skip =
         state.subProject.subProjects && state.subProject.subProjects.skip
             ? state.subProject.subProjects.skip

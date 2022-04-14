@@ -4,7 +4,7 @@ import { PropTypes } from 'prop-types';
 
 import ClickOutside from 'react-click-outside';
 
-const MessageModal = (props: $TSFixMe) => {
+const MessageModal: Function = (props: $TSFixMe) => {
     const { closeThisDialog } = props;
 
     return (

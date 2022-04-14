@@ -5,7 +5,7 @@ let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
-export const env = (value: $TSFixMe): void => {
+export const env: Function = (value: $TSFixMe): void => {
     const { _env } = window;
     return (
         (_env && _env[`REACT_APP_${value}`]) ||
@@ -118,7 +118,7 @@ export const Validate = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: URL): void => {
+export const getQueryVar: Function = (variable: $TSFixMe, url: URL): void => {
     if (!url) {
         url = window.location.href;
     }
@@ -134,11 +134,11 @@ export const getQueryVar = (variable: $TSFixMe, url: URL): void => {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 };
 
-export const bindRaf = (fn: $TSFixMe): void => {
+export const bindRaf: Function = (fn: $TSFixMe): void => {
     let isRunning: $TSFixMe = null;
     let args: $TSFixMe = null;
 
-    const run = (): void => {
+    const run: Function = (): void => {
         isRunning = false;
         fn(...args);
     };
@@ -155,7 +155,7 @@ export const bindRaf = (fn: $TSFixMe): void => {
     };
 };
 
-export const filterProbeData = (
+export const filterProbeData: Function = (
     monitor: $TSFixMe,
     probe: $TSFixMe,
     backupStatus: $TSFixMe
@@ -184,10 +184,10 @@ export const filterProbeData = (
     return statuses;
 };
 
-export const getMonitorStatus = (statuses: $TSFixMe): void =>
+export const getMonitorStatus: Function = (statuses: $TSFixMe): void =>
     statuses && statuses.length > 0 ? statuses[0].status || 'online' : 'online';
 
-export const getServiceStatus = (
+export const getServiceStatus: Function = (
     monitorsData: $TSFixMe,
     probes: $TSFixMe
 ): void => {
@@ -225,7 +225,7 @@ export const getServiceStatus = (
     }
 };
 
-export const formatDecimal = (
+export const formatDecimal: Function = (
     value: $TSFixMe,
     decimalPlaces: $TSFixMe
 ): void => {
@@ -236,7 +236,7 @@ export const formatDecimal = (
     ).toFixed(decimalPlaces);
 };
 
-export const formatBytes = (
+export const formatBytes: Function = (
     a: $TSFixMe,
     b: $TSFixMe,
     c: $TSFixMe,
@@ -257,7 +257,7 @@ export const formatBytes = (
     );
 };
 
-export const capitalize = (words: $TSFixMe): void => {
+export const capitalize: Function = (words: $TSFixMe): void => {
     if (!words || !words.trim()) {
         return '';
     }
@@ -271,7 +271,7 @@ export const capitalize = (words: $TSFixMe): void => {
     return words.join(' ').trim();
 };
 
-export const handleResources = (
+export const handleResources: Function = (
     monitorState: $TSFixMe,
     announcement: $TSFixMe
 ): void => {

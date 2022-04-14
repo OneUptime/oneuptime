@@ -647,7 +647,7 @@ class NewIncidentMessage extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         setInvestigationNote,
         editIncidentMessageSwitch,
@@ -659,7 +659,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const incidentMessageState =
         ownProps.data.type === 'investigation'
             ? state.incident.investigationNotes

@@ -271,9 +271,9 @@ export class IncidentAlert extends Component<IncidentAlertProps>{
 
 IncidentAlert.displayName = 'IncidentAlert';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         alerts: state.alert.incidentalerts.data,
         isRequesting: state.alert.incidentalerts.requesting,

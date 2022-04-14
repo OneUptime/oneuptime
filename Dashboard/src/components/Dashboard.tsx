@@ -132,7 +132,7 @@ export class DashboardApp extends Component<DashboardAppProps>{
             location.pathname === '/dashboard/profile/changePassword' ||
             location.pathname === '/dashboard/profile/advanced';
 
-        const profileFunc = () => {
+        const profileFunc: Function = () => {
             let val;
             if (location.pathname === '/dashboard/profile/billing') {
                 const path = location.pathname.split('/');
@@ -412,7 +412,7 @@ DashboardApp.propTypes = {
     pageName: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     project: state.project,
     profile: state.profileSettings,
     projectId: state.project.currentProject && state.project.currentProject._id,
@@ -427,7 +427,7 @@ const mapStateToProps = (state: RootState) => ({
     pageName: state.page.title
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getProjects,
         showForm,

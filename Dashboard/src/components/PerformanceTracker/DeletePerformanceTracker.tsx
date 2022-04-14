@@ -169,7 +169,7 @@ class DeletePerformanceTracker extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         deletePerformanceTracker,
@@ -177,7 +177,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         trackerObj: state.performanceTracker.deletePerformanceTracker,
         data: state.modal.modals[0],

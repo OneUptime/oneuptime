@@ -108,7 +108,7 @@ AlertDisabledWarning.propTypes = {
     page: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const areAlertsEnabledInCustomTwilioSettings =
         state.smsTemplates &&
         state.smsTemplates.smsSmtpConfiguration &&

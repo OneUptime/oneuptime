@@ -3,7 +3,7 @@ import React from 'react';
 
 import CreatableSelect from 'react-select/creatable';
 
-const FilterSelect = (props: $TSFixMe) => <CreatableSelect
+const FilterSelect: Function = (props: $TSFixMe) => <CreatableSelect
     {...props}
     formatCreateLabel={(val: $TSFixMe) => `Create ${val}`}
     noOptionsMessage={() => `No options yet...`}

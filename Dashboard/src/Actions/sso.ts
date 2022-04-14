@@ -2,18 +2,18 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import * as types from '../constants/sso';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const createSsoRequest = (): void => ({
+export const createSsoRequest: Function = (): void => ({
     type: types.CREATE_SSO_REQUEST,
 });
-export const createSsoSuccess = (payload: $TSFixMe): void => ({
+export const createSsoSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.CREATE_SSO_SUCCESS,
     payload,
 });
-export const createSsoFailure = (error: ErrorPayload): void => ({
+export const createSsoFailure: Function = (error: ErrorPayload): void => ({
     type: types.CREATE_SSO_FAILURE,
     payload: error,
 });
-export const createSso = ({ data }: $TSFixMe): void => {
+export const createSso: Function = ({ data }: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`sso`, data);
         dispatch(createSsoRequest());
@@ -30,18 +30,22 @@ export const createSso = ({ data }: $TSFixMe): void => {
     };
 };
 
-export const fetchSsosRequest = (): void => ({
+export const fetchSsosRequest: Function = (): void => ({
     type: types.FETCH_SSOS_REQUEST,
 });
-export const fetchSsosSuccess = (payload: $TSFixMe): void => ({
+export const fetchSsosSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.FETCH_SSOS_SUCCESS,
     payload,
 });
-export const fetchSsosFailure = (error: ErrorPayload): void => ({
+export const fetchSsosFailure: Function = (error: ErrorPayload): void => ({
     type: types.FETCH_SSOS_FAILURE,
     payload: error,
 });
-export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe): void => {
+export const fetchSsos: Function = ({
+    projectId,
+    skip,
+    limit,
+}: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         skip = skip ? parseInt(skip) : 0;
         limit = limit ? parseInt(limit) : 10;
@@ -63,18 +67,18 @@ export const fetchSsos = ({ projectId, skip, limit }: $TSFixMe): void => {
     };
 };
 
-export const fetchSsoRequest = (): void => ({
+export const fetchSsoRequest: Function = (): void => ({
     type: types.FETCH_SSO_REQUEST,
 });
-export const fetchSsoSuccess = (payload: $TSFixMe): void => ({
+export const fetchSsoSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.FETCH_SSO_SUCCESS,
     payload,
 });
-export const fetchSsoFailure = (error: ErrorPayload): void => ({
+export const fetchSsoFailure: Function = (error: ErrorPayload): void => ({
     type: types.FETCH_SSO_FAILURE,
     payload: error,
 });
-export const fetchSso = (ssoId: $TSFixMe): void => {
+export const fetchSso: Function = (ssoId: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`sso/${ssoId}`);
         dispatch(fetchSsoRequest());
@@ -91,18 +95,18 @@ export const fetchSso = (ssoId: $TSFixMe): void => {
     };
 };
 
-export const updateSsoRequest = (): void => ({
+export const updateSsoRequest: Function = (): void => ({
     type: types.UPDATE_SSO_REQUEST,
 });
-export const updateSsoSuccess = (payload: $TSFixMe): void => ({
+export const updateSsoSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.UPDATE_SSO_SUCCESS,
     payload,
 });
-export const updateSsoFailure = (error: ErrorPayload): void => ({
+export const updateSsoFailure: Function = (error: ErrorPayload): void => ({
     type: types.UPDATE_SSO_FAILURE,
     payload: error,
 });
-export const updateSso = ({ id, data }: $TSFixMe): void => {
+export const updateSso: Function = ({ id, data }: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`sso/${id}`, data);
         dispatch(updateSsoRequest());
@@ -119,18 +123,18 @@ export const updateSso = ({ id, data }: $TSFixMe): void => {
     };
 };
 
-export const deleteSsoRequest = (): void => ({
+export const deleteSsoRequest: Function = (): void => ({
     type: types.DELETE_SSO_REQUEST,
 });
-export const deleteSsoSuccess = (payload: $TSFixMe): void => ({
+export const deleteSsoSuccess: Function = (payload: $TSFixMe): void => ({
     type: types.DELETE_SSO_SUCCESS,
     payload,
 });
-export const deleteSsoFailure = (error: ErrorPayload): void => ({
+export const deleteSsoFailure: Function = (error: ErrorPayload): void => ({
     type: types.DELETE_SSO_FAILURE,
     payload: error,
 });
-export const deleteSso = (ssoId: $TSFixMe): void => {
+export const deleteSso: Function = (ssoId: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete `sso/${ssoId}`;
         dispatch(deleteSsoRequest());

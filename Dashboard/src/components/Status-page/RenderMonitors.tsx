@@ -6,7 +6,7 @@ import { Draggable } from 'react-beautiful-dnd';
 
 const grid = 8;
 
-const getItemStyle = (isDragging: $TSFixMe, draggableStyle: $TSFixMe) => {
+const getItemStyle: Function = (isDragging: $TSFixMe, draggableStyle: $TSFixMe) => {
     return {
         userSelect: 'none',
         padding: grid * 2,
@@ -28,7 +28,7 @@ interface RenderMonitorsProps {
     statusPageCategory?: string;
 }
 
-const RenderMonitors = ({
+const RenderMonitors: Function = ({
     fields,
     subProject,
     form,

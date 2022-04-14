@@ -70,9 +70,9 @@ export class ProjectUnblockBox extends Component<ComponentProps>{
 
 ProjectUnblockBox.displayName = 'ProjectUnblockBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ unblockProject, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ unblockProject, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

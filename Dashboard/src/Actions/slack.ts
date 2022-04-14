@@ -6,34 +6,36 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // UNLINK a new SLACK LINK
 
-export const deleteSlackLinkRequest = (): void => {
+export const deleteSlackLinkRequest: Function = (): void => {
     return {
         type: types.DELETE_SLACK_LINK_REQUEST,
     };
 };
 
-export const deleteSlackLinkError = (error: ErrorPayload): void => {
+export const deleteSlackLinkError: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_SLACK_LINK_FAILED,
         payload: error,
     };
 };
 
-export const deleteSlackLinkSuccess = (deletedTeam: $TSFixMe): void => {
+export const deleteSlackLinkSuccess: Function = (
+    deletedTeam: $TSFixMe
+): void => {
     return {
         type: types.DELETE_SLACK_LINK_SUCCESS,
         payload: deletedTeam,
     };
 };
 
-export const resetdeleteSlackLink = (): void => {
+export const resetdeleteSlackLink: Function = (): void => {
     return {
         type: types.DELETE_SLACK_LINK_RESET,
     };
 };
 
 // Calls the API to link slack team to project
-export const deleteSlackLink = (
+export const deleteSlackLink: Function = (
     projectId: ObjectID,
     teamId: $TSFixMe
 ): void => {
@@ -55,28 +57,28 @@ export const deleteSlackLink = (
     };
 };
 
-export const getSlackTeamsRequest = (promise: $TSFixMe): void => {
+export const getSlackTeamsRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.GET_SLACK_TEAM_REQUEST,
         payload: promise,
     };
 };
 
-export const getSlackTeamsError = (error: ErrorPayload): void => {
+export const getSlackTeamsError: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_SLACK_TEAM_FAILED,
         payload: error,
     };
 };
 
-export const getSlackTeamsSuccess = (teams: $TSFixMe): void => {
+export const getSlackTeamsSuccess: Function = (teams: $TSFixMe): void => {
     return {
         type: types.GET_SLACK_TEAM_SUCCESS,
         payload: teams,
     };
 };
 
-export const resetGetSlackTeams = (): void => {
+export const resetGetSlackTeams: Function = (): void => {
     return {
         type: types.GET_SLACK_TEAM_RESET,
     };
@@ -113,25 +115,25 @@ export function getSlackTeams(
 
 // Implements pagination for Webhooks Members table
 
-export const paginateNext = (): void => {
+export const paginateNext: Function = (): void => {
     return {
         type: types.PAGINATE_NEXT,
     };
 };
 
-export const paginatePrev = (): void => {
+export const paginatePrev: Function = (): void => {
     return {
         type: types.PAGINATE_PREV,
     };
 };
 
-export const paginateReset = (): void => {
+export const paginateReset: Function = (): void => {
     return {
         type: types.PAGINATE_RESET,
     };
 };
 
-export const paginate = (type: $TSFixMe): void => {
+export const paginate: Function = (type: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         type === 'next' && dispatch(paginateNext());
         type === 'prev' && dispatch(paginatePrev());

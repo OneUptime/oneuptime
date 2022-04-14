@@ -10,7 +10,7 @@ interface DropDownMenuProps {
     showMainProject?: boolean;
 }
 
-const DropDownMenu = ({
+const DropDownMenu: Function = ({
     options,
     value,
     updateState,
@@ -20,7 +20,7 @@ const DropDownMenu = ({
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
-    const handleClickOutside = (event: $TSFixMe) => {
+    const handleClickOutside: Function = (event: $TSFixMe) => {
 
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
@@ -36,7 +36,7 @@ const DropDownMenu = ({
         };
     });
 
-    const onClick = (val: $TSFixMe) => {
+    const onClick: Function = (val: $TSFixMe) => {
         setOpen(false);
         updateState(val);
     };

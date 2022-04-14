@@ -2289,7 +2289,7 @@ router.delete(
     }
 );
 
-const formatNotes = (data = [], days: $TSFixMe): void => {
+const formatNotes: Function = (data = [], days: $TSFixMe): void => {
     const result: $TSFixMe = [];
     const limit = days - 1;
 
@@ -3007,7 +3007,7 @@ async function calculateTime(
     return result;
 }
 
-const filterProbeData = (
+const filterProbeData: Function = (
     monitor: $TSFixMe,
     probe: $TSFixMe,
     backupStatus: $TSFixMe

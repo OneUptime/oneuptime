@@ -7,7 +7,7 @@
 
 import ObjectID from 'Common/Types/ObjectID';
 
-const isMainProjectViewer = (
+const isMainProjectViewer: Function = (
     userId: ObjectID,
     subProjects: $TSFixMe,
     currentProject: $TSFixMe

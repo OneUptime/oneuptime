@@ -202,7 +202,7 @@ DeleteContainerSecurity.propTypes = {
     propArr: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.security.deleteContainer.requesting,
         deleteContainerError: state.security.deleteContainer.error,
@@ -211,7 +211,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteContainerSecurity }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteContainerSecurity }, dispatch);
 
 export default connect(
     mapStateToProps,

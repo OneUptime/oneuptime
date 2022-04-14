@@ -18,7 +18,7 @@ interface TooltipMiniProps {
     content?: object;
 }
 
-const TooltipMini = (props: TooltipMiniProps) => <TooltipDesign title={props.title}>{props.content}</TooltipDesign>;
+const TooltipMini: Function = (props: TooltipMiniProps) => <TooltipDesign title={props.title}>{props.content}</TooltipDesign>;
 
 TooltipMini.propTypes = {
     title: PropTypes.string,

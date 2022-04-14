@@ -21,7 +21,7 @@ export const RealtimeHostname: string = process.env['REALTIME_HOSTNAME'] || '';
 
 export const Version: string = process.env['npm_package_version'] || '';
 
-export const HttpProtocol: Protocol = (
+export const HttpProtocol: Protocol: Function = (
     process.env['HTTP_PROTOCOL'] || ''
 ).includes('https')
     ? Protocol.HTTPS

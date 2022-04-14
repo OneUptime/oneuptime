@@ -186,7 +186,7 @@ DeleteCard.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         userId: User.getUserId(),
         requesting: state.card.deleteCard.requesting,
@@ -196,5 +196,5 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteCard }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, deleteCard }, dispatch);
 export default connect(mapStateToProps, mapDispatchToProps)(DeleteCard);

@@ -11,7 +11,7 @@ import CallLog from '../components/settings/callLog';
 import SmsLog from '../components/settings/smsLog';
 
 
-const getChild = (key: $TSFixMe) => {
+const getChild: Function = (key: $TSFixMe) => {
     switch (key) {
         case '/admin/settings/smtp':
             return <Smtp />;
@@ -37,7 +37,7 @@ const getChild = (key: $TSFixMe) => {
     }
 };
 
-const Component = ({
+const Component: Function = ({
     location: { pathname }
 }: $TSFixMe) => {
     return (

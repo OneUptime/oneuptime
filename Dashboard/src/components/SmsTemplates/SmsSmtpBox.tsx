@@ -18,7 +18,7 @@ import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 
-const validate = (values: $TSFixMe, props: $TSFixMe) => {
+const validate: Function = (values: $TSFixMe, props: $TSFixMe) => {
     const errors = {};
     if (props.showSmsSmtpConfiguration) {
         if (values.accountSid) {
@@ -516,7 +516,7 @@ const SmsSmtpBoxForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(SmsSmtpBox);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             setSmtpConfig,

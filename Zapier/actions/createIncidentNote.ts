@@ -1,4 +1,4 @@
-const createIncidentNote = (z: $TSFixMe, bundle: $TSFixMe): void => {
+const createIncidentNote: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     if (bundle.cleanedRequest) {
         return bundle.cleanedRequest;
     }

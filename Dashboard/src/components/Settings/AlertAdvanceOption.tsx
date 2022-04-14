@@ -977,9 +977,9 @@ const AlertAdvanceOptionForm = new reduxForm({
     form: formName,
 })(AlertAdvanceOption);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ change, alertOptionsUpdate, openModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     projectId: state.project.currentProject && state.project.currentProject._id,
     project: state.project.currentProject,
 

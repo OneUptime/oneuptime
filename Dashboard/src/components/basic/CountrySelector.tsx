@@ -12,7 +12,7 @@ interface CountrySelectorProps {
     input: object;
 }
 
-const CountrySelector = ({
+const CountrySelector: Function = ({
     input,
     meta: { touched, error }
 }: CountrySelectorProps) => (

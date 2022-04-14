@@ -57,7 +57,7 @@ interface AppProps {
     masterAdmin?: object;
 }
 
-const App = ({
+const App: Function = ({
     masterAdmin: { exists },
     checkIfMasterAdminExists,
     saveStatusPage

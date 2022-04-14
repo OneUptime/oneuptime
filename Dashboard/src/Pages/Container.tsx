@@ -568,7 +568,7 @@ Container.propTypes = {
     error: PropTypes.string,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     // ids from url
     const { componentSlug } = ownProps.match.params;
 
@@ -595,7 +595,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getContainerSecurities,
         getContainerSecurityLogs,

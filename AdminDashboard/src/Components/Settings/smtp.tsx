@@ -536,7 +536,7 @@ Component.propTypes = {
     testSmtp: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             saveSettings,

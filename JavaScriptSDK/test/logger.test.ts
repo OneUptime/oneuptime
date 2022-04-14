@@ -13,7 +13,7 @@ const timeout = 5000;
 import OneUptimeLogger from '../src/logger';
 
 describe('OneUptimeLogger', function (): void {
-    const sleep = (milliseconds: $TSFixMe): void => {
+    const sleep: Function = (milliseconds: $TSFixMe): void => {
         return new Promise(resolve => setTimeout(resolve, milliseconds));
     };
     this.timeout(timeout + 1000);

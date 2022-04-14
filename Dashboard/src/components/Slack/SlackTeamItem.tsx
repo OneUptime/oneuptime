@@ -118,12 +118,12 @@ class SlackTeamItem extends React.Component<SlackTeamItemProps> {
 
 SlackTeamItem.displayName = 'SlackTeamItem';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject,
     deleteTeam: state.slack.deleteTeam
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,

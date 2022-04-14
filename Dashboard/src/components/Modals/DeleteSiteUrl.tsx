@@ -114,7 +114,7 @@ export class DeleteSiteUrl extends Component<DeleteSiteUrlProps>{
 
 DeleteSiteUrl.displayName = 'DeleteSiteUrl';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         requesting: state.monitor.editMonitor.requesting,
     };

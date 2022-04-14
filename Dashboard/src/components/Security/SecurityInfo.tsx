@@ -37,7 +37,7 @@ interface SecurityInfoProps {
     scannedStatus?: unknown[];
 }
 
-const SecurityInfo = ({
+const SecurityInfo: Function = ({
     name,
     projectId,
     componentSlug,
@@ -75,7 +75,7 @@ const SecurityInfo = ({
         }
     });
 
-    const scanSecurity = () => {
+    const scanSecurity: Function = () => {
         if (applicationSecurityId) {
             openModal({
                 id: applicationSecurityId,
@@ -105,7 +105,7 @@ const SecurityInfo = ({
         }
     };
 
-    const more = () => {
+    const more: Function = () => {
         const securitySlug = containerSecuritySlug || applicationSecuritySlug;
 
         type =
@@ -117,7 +117,7 @@ const SecurityInfo = ({
         );
     };
 
-    const getSecurityInfo = () => {
+    const getSecurityInfo: Function = () => {
         let security = null;
         if (applicationSecurityId) {
             applicationSecurities.map((applicationSecurity: $TSFixMe) => {
@@ -428,9 +428,9 @@ SecurityInfo.propTypes = {
     scannedStatus: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         scanningApplication: state.security.scanApplicationSecurity.requesting,
         scanningContainer: state.security.scanContainerSecurity.requesting,

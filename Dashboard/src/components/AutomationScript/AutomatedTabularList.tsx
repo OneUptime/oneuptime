@@ -22,14 +22,14 @@ interface AutomatedTabularListProps {
     showProjectName?: boolean;
 }
 
-const AutomatedTabularList = (props: AutomatedTabularListProps) => {
+const AutomatedTabularList: Function = (props: AutomatedTabularListProps) => {
     const [automatedId] = useState(uuidv4);
     const { scripts, count, requesting } = props.scriptsObj;
     let { skip, limit } = props.scriptsObj;
     const projectId = props.currentProject && props.currentProject._id;
     const pathName = props.history.location.pathname;
 
-    const handleNewScript = (e: $TSFixMe) => {
+    const handleNewScript: Function = (e: $TSFixMe) => {
         if (e.keyCode === 78) {
             props.toggleNewScript();
         }
@@ -384,13 +384,13 @@ AutomatedTabularList.propTypes = {
     showProjectName: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         scriptsObj: state.automatedScripts.fetchScripts,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
 
 export default connect(
     mapStateToProps,

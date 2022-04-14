@@ -92,7 +92,7 @@ class StatusPages extends Page<StatusPagesProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             ...defaultMapDispatchToProps(),

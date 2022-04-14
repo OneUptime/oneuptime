@@ -97,7 +97,7 @@ export class ExitProjectBox extends Component<ComponentProps>{
 
 ExitProjectBox.displayName = 'ExitProjectBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getProjects,
         openModal,
@@ -109,7 +109,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const userId = User.getUserId();
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

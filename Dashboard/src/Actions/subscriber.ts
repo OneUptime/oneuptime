@@ -8,28 +8,30 @@ import { saveFile } from '../config';
 
 // Create a new subscriber
 
-export const createSubscriberRequest = (promise: $TSFixMe): void => {
+export const createSubscriberRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.CREATE_SUBSCRIBER_REQUEST,
         payload: promise,
     };
 };
 
-export const createSubscriberError = (error: ErrorPayload): void => {
+export const createSubscriberError: Function = (error: ErrorPayload): void => {
     return {
         type: types.CREATE_SUBSCRIBER_FAILED,
         payload: error,
     };
 };
 
-export const createSubscriberSuccess = (subscriber: $TSFixMe): void => {
+export const createSubscriberSuccess: Function = (
+    subscriber: $TSFixMe
+): void => {
     return {
         type: types.CREATE_SUBSCRIBER_SUCCESS,
         payload: subscriber,
     };
 };
 
-export const resetCreateSubscriber = (): void => {
+export const resetCreateSubscriber: Function = (): void => {
     return {
         type: types.CREATE_SUBSCRIBER_RESET,
     };
@@ -64,28 +66,28 @@ export function createSubscriber(
 
 // Export subscribers to csv
 
-export const exportCsvRequest = (promise: $TSFixMe): void => {
+export const exportCsvRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.EXPORT_CSV_REQUEST,
         payload: promise,
     };
 };
 
-export const exportCsvError = (error: ErrorPayload): void => {
+export const exportCsvError: Function = (error: ErrorPayload): void => {
     return {
         type: types.EXPORT_CSV_FAILED,
         payload: error,
     };
 };
 
-export const exportCsvSuccess = (data: $TSFixMe): void => {
+export const exportCsvSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.EXPORT_CSV_SUCCESS,
         payload: data,
     };
 };
 
-export const resetExportCsv = (): void => {
+export const resetExportCsv: Function = (): void => {
     return {
         type: types.EXPORT_CSV_RESET,
     };
@@ -123,35 +125,37 @@ export function exportCSV(
 
 // Delete a subscriber
 
-export const deleteSubscriberRequest = (promise: $TSFixMe): void => {
+export const deleteSubscriberRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.DELETE_SUBSCRIBER_REQUEST,
         payload: promise,
     };
 };
 
-export const deleteSubscriberError = (error: ErrorPayload): void => {
+export const deleteSubscriberError: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_SUBSCRIBER_FAILED,
         payload: error,
     };
 };
 
-export const deleteSubscriberSuccess = (subscriber: $TSFixMe): void => {
+export const deleteSubscriberSuccess: Function = (
+    subscriber: $TSFixMe
+): void => {
     return {
         type: types.DELETE_SUBSCRIBER_SUCCESS,
         payload: subscriber,
     };
 };
 
-export const resetDeleteSubscriber = (): void => {
+export const resetDeleteSubscriber: Function = (): void => {
     return {
         type: types.DELETE_SUBSCRIBER_RESET,
     };
 };
 
 // Calls the API to delete a subscriber.
-export const deleteSubscriber = (
+export const deleteSubscriber: Function = (
     projectId: ObjectID,
     subscriberId: $TSFixMe
 ): void => {
@@ -179,20 +183,22 @@ export const deleteSubscriber = (
 };
 
 // Import subscriber from csv
-export const downloadCsvTemplateRequest = (): void => {
+export const downloadCsvTemplateRequest: Function = (): void => {
     return {
         type: types.DOWNLOAD_CSV_TEMPLATE_REQUEST,
     };
 };
 
-export const downloadCsvTemplateError = (error: ErrorPayload): void => {
+export const downloadCsvTemplateError: Function = (
+    error: ErrorPayload
+): void => {
     return {
         type: types.DOWNLOAD_CSV_TEMPLATE_FAILED,
         payload: error,
     };
 };
 
-export const downloadCsvTemplateSuccess = (): void => {
+export const downloadCsvTemplateSuccess: Function = (): void => {
     return {
         type: types.DOWNLOAD_CSV_TEMPLATE_SUCCESS,
     };
@@ -201,7 +207,7 @@ export const downloadCsvTemplateSuccess = (): void => {
 /**
  * Downloads a CSV template
  */
-export const downloadCsvTemplate = (): void => {
+export const downloadCsvTemplate: Function = (): void => {
     const fields =
         'alertVia,contactEmail,contactPhone,countryCode,contactWebhook\nsms,,585-364-1200,us,\nemail,sampleemail@sample.com,,,\nwebhook,sampleemail1@sample.com,,,https://sample.com/webhook';
     return function (dispatch: Dispatch): void {

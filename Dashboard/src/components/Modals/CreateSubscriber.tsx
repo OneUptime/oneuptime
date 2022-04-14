@@ -561,7 +561,7 @@ const CreateSubscriberForm = reduxForm({
     validate,
 })(CreateSubscriber);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             createSubscriberRequest,

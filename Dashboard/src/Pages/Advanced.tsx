@@ -78,7 +78,7 @@ class Advanced extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ hideDeleteModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ hideDeleteModal }, dispatch);
 
 
 Advanced.propTypes = {
@@ -93,7 +93,7 @@ Advanced.propTypes = {
 
 Advanced.displayName = 'Advanced';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,

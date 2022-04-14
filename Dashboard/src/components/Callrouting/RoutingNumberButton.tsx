@@ -53,7 +53,7 @@ class RoutingNumberButton extends React.Component<RoutingNumberButtonProps> {
 
 RoutingNumberButton.displayName = 'RoutingNumberButton';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
         closeModal,
@@ -61,7 +61,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject,
     modalId: state.modal.modals[0]
 });

@@ -21,7 +21,7 @@ interface ErrorTrackerListProps {
     showComponentWithIssue?: boolean;
 }
 
-export const ErrorTrackerList = (props: ErrorTrackerListProps) => {
+export const ErrorTrackerList: Function = (props: ErrorTrackerListProps) => {
     const errorTrackers = props.errorTrackers || [];
     let errorTrackerDetails = null;
     const skip = props.skip;
@@ -178,7 +178,7 @@ ErrorTrackerList.propTypes = {
     showComponentWithIssue: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     currentProject: state.project.currentProject
 });
 

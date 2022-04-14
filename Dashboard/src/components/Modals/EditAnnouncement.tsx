@@ -575,7 +575,7 @@ EditAnnouncement.propTypes = {
     change: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const {
         data: { announcement },
     } = ownProps;
@@ -624,7 +624,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { closeModal, updateAnnouncement, fetchAnnouncements },
     dispatch
 );

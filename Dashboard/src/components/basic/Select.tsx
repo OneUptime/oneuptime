@@ -7,7 +7,7 @@ export interface ComponentProps {
     style?: object;
 }
 
-const Select = (props: SelectProps) => <ReactSelect
+const Select: Function = (props: SelectProps) => <ReactSelect
     {...props}
     styles={{
         control: (provided: $TSFixMe) => ({

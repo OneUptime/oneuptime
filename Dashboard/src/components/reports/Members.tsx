@@ -473,11 +473,11 @@ const actionCreators = {
     getActiveMembersSuccess,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => ({
+const mapDispatchToProps: Function = (dispatch: Dispatch) => ({
     ...bindActionCreators(actionCreators, dispatch)
 });
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         activeMembers: state.report.activeMembers,
     };

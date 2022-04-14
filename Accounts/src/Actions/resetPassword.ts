@@ -7,34 +7,34 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
 // There are three possible states for our resetPassword
 // process and we need actions for each of them
 
-export const resetPasswordRequest = (promise: $TSFixMe): void => {
+export const resetPasswordRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.PASSWORDRESET_REQUEST,
         payload: promise,
     };
 };
 
-export const resetPasswordError = (error: ErrorPayload): void => {
+export const resetPasswordError: Function = (error: ErrorPayload): void => {
     return {
         type: types.PASSWORDRESET_FAILED,
         payload: error,
     };
 };
 
-export const resetPasswordSuccess = (data: $TSFixMe): void => {
+export const resetPasswordSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.PASSWORDRESET_SUCCESS,
         payload: data,
     };
 };
 
-export const resetResetPassword = (): void => {
+export const resetResetPassword: Function = (): void => {
     return {
         type: types.RESET_PASSWORDRESET,
     };
 };
 
-export const resetPassword = (values: $TSFixMe): void => {
+export const resetPassword: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(
             new Route('user/forgot-password'),

@@ -387,7 +387,7 @@ class PastEvent extends Component<ComponentProps> {
 
 PastEvent.displayName = 'PastEvent';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let skip =
         state.status.pastEvents && state.status.pastEvents.skip
             ? state.status.pastEvents.skip
@@ -415,7 +415,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMorePastEvents,
         fetchPastEvents,

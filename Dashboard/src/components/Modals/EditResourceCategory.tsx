@@ -233,7 +233,7 @@ const UpdateResourceCategoryForm = reduxForm({
     validate,
 })(EditResourceCategoryForm);
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
@@ -247,7 +247,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ closeModal, updateResourceCategory }, dispatch);
 };
 

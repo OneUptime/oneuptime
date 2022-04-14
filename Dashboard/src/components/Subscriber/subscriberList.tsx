@@ -533,7 +533,7 @@ export class SubscriberList extends Component<SubscriberListProps>{
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { deleteSubscriber, fetchMonitorsSubscribers, openModal },
         dispatch
@@ -574,7 +574,7 @@ interface RemoveBtnProps {
     index: number;
 }
 
-const RemoveBtn = (props: RemoveBtnProps) => {
+const RemoveBtn: Function = (props: RemoveBtnProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

@@ -10,7 +10,7 @@ import FileSaver from 'file-saver';
 import { emaildomains } from './constants/emaildomains';
 import booleanParser from './utils/booleanParser';
 
-export const env = (value: $TSFixMe) => {
+export const env: Function = (value: $TSFixMe) => {
 
     const { _env } = window;
     return (
@@ -475,7 +475,7 @@ export const tutorials = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: URL) => {
+export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -485,12 +485,12 @@ export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export const saveFile = (content: $TSFixMe, filename: $TSFixMe) => {
+export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
-export const makeCriteria = (val: $TSFixMe) => {
+export const makeCriteria: Function = (val: $TSFixMe) => {
     const val2 = {};
     const and = [];
     const or = [];
@@ -531,7 +531,7 @@ export const makeCriteria = (val: $TSFixMe) => {
     return val2;
 }
 
-export const mapCriteria = (val: $TSFixMe) => {
+export const mapCriteria: Function = (val: $TSFixMe) => {
     const val2 = [];
     if (val && val.and && val.and.length) {
         for (let i = 0; i < val.and.length; i++) {

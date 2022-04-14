@@ -305,7 +305,7 @@ const EditIncidentPriorityForm = reduxForm({
     form: 'EditIncidentPriorityForm',
 })(EditIncidentPriority);
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     return {
         currentProject: state.project.currentProject,
         editIncidentPriority: state.incidentPriorities.editIncidentPriority,
@@ -315,7 +315,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateIncidentPriority,
         closeModal,

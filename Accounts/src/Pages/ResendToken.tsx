@@ -219,7 +219,7 @@ const resendTokenForm = reduxForm({
     validate,
 })(ResendTokenForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             resendToken,

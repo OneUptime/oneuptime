@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const BoxFooter = ({
+const BoxFooter: Function = ({
     recordsCount,
     canPrev,
     canNext,

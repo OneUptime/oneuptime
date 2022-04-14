@@ -418,7 +418,7 @@ TwoFactorAuthModal.propTypes = {
     verifyTwoFactorAuthToken: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         profileSettings: state.profileSettings.profileSetting,
         qrCode: state.profileSettings.qrCode,
@@ -426,7 +426,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         setTwoFactorAuth,
         verifyTwoFactorAuthToken,

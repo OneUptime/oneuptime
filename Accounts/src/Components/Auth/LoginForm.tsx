@@ -204,7 +204,7 @@ const loginForm = reduxForm({
     destroyOnUnmount: true,
 })(LoginForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             loginError,

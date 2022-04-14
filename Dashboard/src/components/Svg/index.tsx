@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const ArrowDown = () => {
+const ArrowDown: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -18,7 +18,7 @@ const ArrowDown = () => {
     );
 };
 
-const ArrowRight = () => {
+const ArrowRight: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -35,7 +35,7 @@ const ArrowRight = () => {
     );
 };
 
-const CopyIcon = () => {
+const CopyIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -52,7 +52,7 @@ const CopyIcon = () => {
     );
 };
 
-const EyeIcon = () => {
+const EyeIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -69,7 +69,7 @@ const EyeIcon = () => {
     );
 };
 
-const DoubleArrowDown = () => {
+const DoubleArrowDown: Function = () => {
     return (
         <svg
             id="Слой_1"
@@ -99,7 +99,7 @@ const DoubleArrowDown = () => {
     );
 };
 
-const HelpIcon = () => {
+const HelpIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -113,7 +113,7 @@ const HelpIcon = () => {
     );
 };
 
-const BookmarkIcon = () => {
+const BookmarkIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -130,7 +130,7 @@ const BookmarkIcon = () => {
     );
 };
 
-const TimeIcon = () => {
+const TimeIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -147,7 +147,7 @@ const TimeIcon = () => {
     );
 };
 
-const CancelIcon = () => {
+const CancelIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -164,7 +164,7 @@ const CancelIcon = () => {
     );
 };
 
-const TimeFilledIcon = () => {
+const TimeFilledIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -185,7 +185,7 @@ interface CircleIconProps {
     className?: string;
 }
 
-const CircleIcon = ({
+const CircleIcon: Function = ({
     className
 }: CircleIconProps) => {
     return (
@@ -209,7 +209,7 @@ interface DashIconProps {
     className?: string;
 }
 
-const DashIcon = ({
+const DashIcon: Function = ({
     className
 }: DashIconProps) => {
     return (
@@ -226,7 +226,7 @@ const DashIcon = ({
     );
 };
 
-const DocumentIcon = () => {
+const DocumentIcon: Function = () => {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"

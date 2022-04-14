@@ -17,7 +17,7 @@ export interface ComponentProps {
     fields?: any[];
 }
 
-const ScheduleInput = ({
+const ScheduleInput: Function = ({
     schedules = [],
     fields,
     currentProject = {}

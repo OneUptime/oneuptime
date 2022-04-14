@@ -11,7 +11,7 @@ export interface ComponentProps {
     body?: object;
 }
 
-const composableComponent = (ComposedComponent: $TSFixMe) => {
+const composableComponent: Function = (ComposedComponent: $TSFixMe) => {
     class Modal extends Component<ComponentProps> {
         constructor(props: $TSFixMe) {
             super(props);

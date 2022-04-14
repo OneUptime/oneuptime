@@ -276,7 +276,7 @@ class WebHookList extends React.Component<WebHookListProps> {
 
 WebHookList.displayName = 'WebHookList';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     webHook: state.webHooks.webHook,
     page: state.webHooks.pages,
     isRequesting: state.webHooks.webHook.requesting,
@@ -289,7 +289,7 @@ const mapStateToProps = (state: RootState) => ({
     monitor: state.monitor
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         getWebHookMonitor,
         getWebHook,

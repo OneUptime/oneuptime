@@ -1,4 +1,4 @@
-const resolveIncident = (z: $TSFixMe, bundle: $TSFixMe): void => {
+const resolveIncident: Function = (z: $TSFixMe, bundle: $TSFixMe): void => {
     if (bundle.cleanedRequest) {
         return bundle.cleanedRequest;
     }

@@ -10,7 +10,7 @@ interface SecurityDetailProps {
     containerSecurityLog?: object;
 }
 
-const SecurityDetail = ({
+const SecurityDetail: Function = ({
     applicationSecurityLog,
     containerSecurityLog,
     type,

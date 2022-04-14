@@ -478,7 +478,7 @@ ChartComponent.propTypes = {
     errorEndDate: PropTypes.any,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchTimeMetrics,
         fetchThroughputMetrics,

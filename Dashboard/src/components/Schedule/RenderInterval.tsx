@@ -8,10 +8,10 @@ export interface ComponentProps {
     };
 }
 
-const RenderInterval = ({
+const RenderInterval: Function = ({
     input: { onChange, value }
 }: RenderIntervalProps) => {
-    const handleChange = ({
+    const handleChange: Function = ({
         target: { value }
     }: $TSFixMe) => {
         onChange(value);

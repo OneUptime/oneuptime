@@ -217,9 +217,9 @@ EscalationSummary.propTypes = {
     groups: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 

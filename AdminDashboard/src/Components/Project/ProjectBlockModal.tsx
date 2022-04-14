@@ -140,7 +140,7 @@ class ProjectBlockModal extends Component<ComponentProps> {
 
 ProjectBlockModal.displayName = 'ProjectBlockModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.project &&

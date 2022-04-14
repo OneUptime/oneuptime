@@ -511,7 +511,7 @@ class ResourceTabularList extends Component<ComponentProps> {
 
 
 ResourceTabularList.displayName = 'ResourceTabularList';
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchComponentResources,

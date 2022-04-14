@@ -494,7 +494,7 @@ MonitorViewHeader.propTypes = {
     // updateprobebysocket: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         editMonitorSwitch,
         fetchMonitorLogs,
@@ -509,7 +509,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         monitorState: state.monitor,
         subProjects: state.subProject.subProjects.subProjects,

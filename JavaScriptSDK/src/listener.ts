@@ -49,7 +49,7 @@ class OneUptimeListener {
     // set up console listener
     _setUpConsoleListener(): void {
         // set up a console listener get the current content, pass it to the normal console and also pass it to the timeline event listener
-        const console = (function (oldCons): void {
+        const console: Function = (function (oldCons): void {
             return {
                 log: function (text: $TSFixMe): void {
                     oldCons.log(text);

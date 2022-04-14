@@ -26,7 +26,7 @@ const INITIAL_STATE = {
     },
 };
 
-const getReducer = ({ actionBase }: $TSFixMe): void => {
+const getReducer: Function = ({ actionBase }: $TSFixMe): void => {
     const createConstants = actionBase.getCreateConstants();
     const listConstants = actionBase.getListConstants();
     const getConstants = actionBase.getGetConstants();

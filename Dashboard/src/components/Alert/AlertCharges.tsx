@@ -155,7 +155,7 @@ class AlertCharge extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const downloadedAlertCharges =
         state.alert.downloadedAlertCharges &&
         state.alert.downloadedAlertCharges.data;
@@ -172,7 +172,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ downloadAlertCharges }, dispatch);
 };
 

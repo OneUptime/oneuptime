@@ -497,7 +497,7 @@ class ComponentDashboardView extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             destroy,
@@ -513,7 +513,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     // removal of unused props
     const component = state.component;
     let subProjects = state.subProject.subProjects.subProjects;

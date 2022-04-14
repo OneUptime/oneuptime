@@ -165,7 +165,7 @@ RenameScheduleBox.displayName = 'RenameScheduleBox';
 
 const  formName: string = 'RenameSchedule' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
+const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const RenameScheduleForm = new reduxForm({
     form: formName,
@@ -174,9 +174,9 @@ const RenameScheduleForm = new reduxForm({
     enableReinitialize: true,
 })(RenameScheduleBox);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renameSchedule }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ renameSchedule }, dispatch);
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { scheduleSlug } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(

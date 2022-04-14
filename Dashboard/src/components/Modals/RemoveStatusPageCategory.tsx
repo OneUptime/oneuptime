@@ -162,7 +162,7 @@ RemoveResourceCategory.propTypes = {
     fetchStatusPageCategories: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deletingCategory:
             state.statusPageCategory.deleteStatusPageCategory.requesting,
@@ -172,7 +172,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { closeModal, deleteStatusPageCategory, fetchStatusPageCategories },
     dispatch
 );

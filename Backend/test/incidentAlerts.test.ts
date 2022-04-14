@@ -68,7 +68,7 @@ import { generateRandomString } from './utils/string';
 import uuid from 'uuid';
 import axios from 'axios';
 
-const sleep = (waitTimeInMs: $TSFixMe): void =>
+const sleep: Function = (waitTimeInMs: $TSFixMe): void =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let authorization: $TSFixMe,

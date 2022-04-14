@@ -468,7 +468,7 @@ DockerCredentialModal.propTypes = {
     updatingCredential: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const { propArr } = ownProps;
     const { credentialId } = propArr[0];
     const dockerCredential = credentialId
@@ -488,7 +488,7 @@ const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { closeModal, addDockerCredential, updateDockerCredential },
     dispatch
 );

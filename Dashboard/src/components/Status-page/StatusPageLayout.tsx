@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 const grid = 8;
 
 
-const getItemStyle = (isDragging, draggableStyle) => ({
+const getItemStyle: Function = (isDragging, draggableStyle) => ({
     userSelect: 'none',
     padding: grid * 2,
     display: 'flex',
@@ -32,7 +32,7 @@ const getItemStyle = (isDragging, draggableStyle) => ({
     ...(isDragging && { pointerEvents: 'auto' })
 });
 
-const getListStyle = (isDraggingOver: $TSFixMe) => ({
+const getListStyle: Function = (isDraggingOver: $TSFixMe) => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
     padding: grid,
     width: '30rem',
@@ -82,8 +82,8 @@ export class StatusPageLayout extends Component<StatusPageLayoutProps>{
         const { statusPage } = this.props;
         const { layout } = statusPage.status;
 
-        const visible = (layout && layout.visible) || [];
-        const invisible = (layout && layout.invisible) || [];
+        const visible: Function = (layout && layout.visible) || [];
+        const invisible: Function = (layout && layout.invisible) || [];
 
         if (visible.length > 0 || invisible.length > 0) {
             this.setState({
@@ -612,7 +612,7 @@ StatusPageLayout.propTypes = {
     openModal: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageLayout,
         openModal,
@@ -620,7 +620,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = ({
+const mapStateToProps: Function = ({
     statusPage
 }: $TSFixMe) => {
     return {

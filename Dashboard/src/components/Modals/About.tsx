@@ -235,7 +235,7 @@ class About extends Component<ComponentProps> {
 
 About.displayName = 'AboutModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         versions: state.version.versions,
     };

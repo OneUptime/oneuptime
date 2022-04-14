@@ -434,7 +434,7 @@ class ProjectDomain extends Component<ComponentProps> {
 
 ProjectDomain.displayName = 'ProjectDomain';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     projectDomain: state.project.projectDomain,
     requesting: state.project.projectDomain.requesting,
     error: state.project.projectDomain.error,
@@ -459,6 +459,6 @@ ProjectDomain.propTypes = {
     requesting: PropTypes.bool,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchProjectDomains, openModal }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProjectDomain);

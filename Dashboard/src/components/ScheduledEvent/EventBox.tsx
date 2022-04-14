@@ -162,7 +162,7 @@ class EventBox extends Component<ComponentProps> {
                     ? currentSubProject.name
                     : '';
 
-        const noMonitorMessage = (
+        const noMonitorMessage: Function = (
             <span>
                 No monitors added to this project yet. Please create one.
             </span>
@@ -718,14 +718,14 @@ EventBox.propTypes = {
     currentSubProject: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },
     dispatch
 );
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const monitorData = state.monitor.monitorsList.monitors.find(
         (data: $TSFixMe) => String(data._id) === String(ownProps.projectId)
     );

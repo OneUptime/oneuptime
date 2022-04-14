@@ -384,14 +384,14 @@ GroupList.propTypes = {
     createGroupRequest: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, getProjectGroups },
         dispatch
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         groupError: state.groups.getGroups,
         currentProject: state.project.currentProject,

@@ -1387,7 +1387,7 @@ RenderOption.propTypes = {
     formCriteria: PropTypes.array,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { addArrayField, removeArrayField, change, updateCriteriaField },
     dispatch
 );

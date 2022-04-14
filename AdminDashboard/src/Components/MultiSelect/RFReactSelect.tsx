@@ -44,7 +44,7 @@ function transformValue(value: $TSFixMe, options: $TSFixMe, isMulti: $TSFixMe) {
     return isMulti ? filteredOptions : filteredOptions[0];
 }
 
-const RFReactSelect = ({
+const RFReactSelect: Function = ({
     input,
     options,
     valueKey,

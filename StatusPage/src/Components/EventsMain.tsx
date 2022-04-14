@@ -385,7 +385,7 @@ class EventsMain extends Component<ComponentProps> {
 
 EventsMain.displayName = 'EventsMain';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     let skip =
         state.status.futureEvents && state.status.futureEvents.skip
             ? state.status.futureEvents.skip
@@ -413,7 +413,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMoreFutureEvents,
         fetchFutureEvents,

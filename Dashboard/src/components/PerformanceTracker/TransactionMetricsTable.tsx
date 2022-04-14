@@ -49,7 +49,7 @@ TransactionMetricsTable.propTypes = {
     type: PropTypes.any,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 function mapStateToProps(state: RootState) {
     return {

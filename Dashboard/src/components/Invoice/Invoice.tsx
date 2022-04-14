@@ -116,7 +116,7 @@ class Invoice extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const userId = User.getUserId();
     const invoices = state.invoice.invoices;
     const isRequesting = state.invoice.requesting;
@@ -125,7 +125,7 @@ const mapStateToProps = (state: RootState) => {
     return { userId, invoices, isRequesting, isSuccessful };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             getInvoice,

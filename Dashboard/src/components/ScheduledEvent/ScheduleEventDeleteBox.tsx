@@ -184,8 +184,8 @@ class ScheduleEventDeleteBox extends Component<ComponentProps> {
     }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
-const mapStateToProps = (state: RootState) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleting: state.scheduledEvent.deletedScheduledEvent.requesting,
     };

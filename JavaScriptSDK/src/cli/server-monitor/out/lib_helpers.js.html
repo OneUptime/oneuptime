@@ -75,7 +75,7 @@ const defaultErrorHandler = error => {
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const get = (apiUrl, url, key, success, error = defaultErrorHandler) => {
+const get: Function = (apiUrl, url, key, success, error = defaultErrorHandler) => {
     headers['apiKey'] = key;
 
     return axios({
@@ -95,7 +95,7 @@ const get = (apiUrl, url, key, success, error = defaultErrorHandler) => {
  * @param {Function} error - The request error callback.
  * @return {Promise} The request promise.
  */
-const post = (apiUrl, url, data, key, success, error = defaultErrorHandler) => {
+const post: Function = (apiUrl, url, data, key, success, error = defaultErrorHandler) => {
     headers['apiKey'] = key;
 
     return axios({

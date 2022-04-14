@@ -41,7 +41,7 @@ export function Modalize({
     ) : null;
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     HEADER: state.modal.header,
     CONTENT: state.modal.content,
     FOOTER: state.modal.footer

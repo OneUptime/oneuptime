@@ -21,7 +21,7 @@ interface RenderCodeEditorProps {
     name?: string;
 }
 
-const RenderCodeEditor = ({
+const RenderCodeEditor: Function = ({
     id,
     input,
     mode,

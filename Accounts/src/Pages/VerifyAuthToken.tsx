@@ -169,11 +169,11 @@ const verifyAuthTokenForm = reduxForm({
     validate,
 })(VerifyAuthToken);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return { login: state.login };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ verifyAuthToken }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ verifyAuthToken }, dispatch);
 
 
 VerifyAuthToken.propTypes = {

@@ -721,7 +721,7 @@ const EditMoreDomainForm = reduxForm({
     validate,
 })(EditMoreDomainModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         uploadCertFile,
@@ -735,7 +735,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const domainObj = state.modal.modals[0].domain;
     const initialValues = {
         domain: domainObj.domain,

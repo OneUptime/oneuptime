@@ -3,28 +3,28 @@ import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import * as types from '../constants/card';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const addCardRequest = (promise: $TSFixMe): void => {
+export const addCardRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
 };
 
-export const addCardFailed = (error: ErrorPayload): void => {
+export const addCardFailed: Function = (error: ErrorPayload): void => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
 };
 
-export const addCardSuccess = (card: $TSFixMe): void => {
+export const addCardSuccess: Function = (card: $TSFixMe): void => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const addCard = (userId: ObjectID, token: $TSFixMe): void => {
+export const addCard: Function = (userId: ObjectID, token: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(`stripe/${userId}/creditCard/${token}`);
 
@@ -41,28 +41,28 @@ export const addCard = (userId: ObjectID, token: $TSFixMe): void => {
         return promise;
     };
 };
-export const fetchCardsRequest = (promise: $TSFixMe): void => {
+export const fetchCardsRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.FETCH_CARDS_REQUEST,
         payload: promise,
     };
 };
 
-export const fetchCardsFailed = (error: ErrorPayload): void => {
+export const fetchCardsFailed: Function = (error: ErrorPayload): void => {
     return {
         type: types.FETCH_CARDS_FAILED,
         payload: error,
     };
 };
 
-export const fetchCardsSuccess = (cards: $TSFixMe): void => {
+export const fetchCardsSuccess: Function = (cards: $TSFixMe): void => {
     return {
         type: types.FETCH_CARDS_SUCCESS,
         payload: cards,
     };
 };
 
-export const fetchCards = (userId: ObjectID): void => {
+export const fetchCards: Function = (userId: ObjectID): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`stripe/${userId}/creditCard`);
 
@@ -80,28 +80,31 @@ export const fetchCards = (userId: ObjectID): void => {
     };
 };
 
-export const deleteCardRequest = (promise: $TSFixMe): void => {
+export const deleteCardRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.DELETE_CARD_REQUEST,
         payload: promise,
     };
 };
 
-export const deleteCardFailed = (error: ErrorPayload): void => {
+export const deleteCardFailed: Function = (error: ErrorPayload): void => {
     return {
         type: types.DELETE_CARD_FAILED,
         payload: error,
     };
 };
 
-export const deleteCardSuccess = (card: $TSFixMe): void => {
+export const deleteCardSuccess: Function = (card: $TSFixMe): void => {
     return {
         type: types.DELETE_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const deleteCard = (userId: ObjectID, cardId: $TSFixMe): void => {
+export const deleteCard: Function = (
+    userId: ObjectID,
+    cardId: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = delete `stripe/${userId}/creditCard/${cardId}`;
 
@@ -119,7 +122,7 @@ export const deleteCard = (userId: ObjectID, cardId: $TSFixMe): void => {
     };
 };
 
-export const setDefaultCardRequest = (
+export const setDefaultCardRequest: Function = (
     promise: $TSFixMe,
     cardId: $TSFixMe
 ): void => {
@@ -132,21 +135,24 @@ export const setDefaultCardRequest = (
     };
 };
 
-export const setDefaultCardFailed = (error: ErrorPayload): void => {
+export const setDefaultCardFailed: Function = (error: ErrorPayload): void => {
     return {
         type: types.SET_DEFAULT_CARD_FAILED,
         payload: error,
     };
 };
 
-export const setDefaultCardSuccess = (card: $TSFixMe): void => {
+export const setDefaultCardSuccess: Function = (card: $TSFixMe): void => {
     return {
         type: types.SET_DEFAULT_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const setDefaultCard = (userId: ObjectID, cardId: $TSFixMe): void => {
+export const setDefaultCard: Function = (
+    userId: ObjectID,
+    cardId: $TSFixMe
+): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.put(`stripe/${userId}/creditCard/${cardId}`);
 

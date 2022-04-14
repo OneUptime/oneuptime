@@ -183,7 +183,7 @@ export const tutorials = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: URL) => {
+export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -193,7 +193,7 @@ export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export const saveFile = (content: $TSFixMe, filename: $TSFixMe) => {
+export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }

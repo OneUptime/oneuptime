@@ -13,7 +13,7 @@ interface EscalationSummarySingleProps {
     currentEscalationPolicyCount: number;
 }
 
-const EscalationSummarySingle = ({
+const EscalationSummarySingle: Function = ({
     isActiveTeam,
     isNextActiveTeam,
     teamMemberList,

@@ -338,14 +338,14 @@ class Monitors extends Component<ComponentProps> {
 
 Monitors.displayName = 'Monitors';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     userDetails: state.subscribe.userDetails,
     statuspage: state.status.statusPage,
     subscribed: state.subscribe.subscribed,
     monitors: state.status.statusPage && state.status.statusPage.monitorsData
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { subscribeUser, validationError, openSubscribeMenu, userDataReset },
     dispatch
 );

@@ -1626,7 +1626,7 @@ const ProfileSettingForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(ProfileSetting);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             updateProfileSetting,

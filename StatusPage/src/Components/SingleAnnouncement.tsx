@@ -177,7 +177,7 @@ SingleAnnouncement.propTypes = {
     monitorState: PropTypes.array,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         statusPage: state.status.statusPage,
         announcement: state.status.announcements.singleAnnouncement,
@@ -185,6 +185,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getSingleAnnouncement, getStatusPage }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getSingleAnnouncement, getStatusPage }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(SingleAnnouncement);

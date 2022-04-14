@@ -128,7 +128,7 @@ interface LibraryListProps {
     setShow?: Function;
 }
 
-const LibraryList = ({
+const LibraryList: Function = ({
     title,
     type,
     library,
@@ -253,7 +253,7 @@ LibraryList.propTypes = {
     setShow: PropTypes.func,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const initialValues = {
         library: 'js',
     };

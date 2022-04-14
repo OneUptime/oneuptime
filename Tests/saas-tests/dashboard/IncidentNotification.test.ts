@@ -790,7 +790,7 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#closeIncident_2', {
                 hidden: true,
             });
-            const rowsCount = (
+            const rowsCount: Function = (
                 await init.page$$(page, '#notificationscroll button', {})
             ).length;
 

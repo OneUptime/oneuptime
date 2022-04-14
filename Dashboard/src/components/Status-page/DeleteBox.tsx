@@ -113,9 +113,9 @@ export class DeleteStatusPageBox extends Component<ComponentProps>{
 
 DeleteStatusPageBox.displayName = 'DeleteStatusPageBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { statusPageSlug } = props.match.params;
 
     return {

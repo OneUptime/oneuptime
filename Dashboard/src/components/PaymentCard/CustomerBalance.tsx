@@ -396,7 +396,7 @@ CustomerBalance.propTypes = {
 
 const  formName: string = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
 
-const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
+const onSubmitSuccess: Function = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 
 const CustomerBalanceForm = new reduxForm({
     form: formName,
@@ -405,12 +405,12 @@ const CustomerBalanceForm = new reduxForm({
     onSubmitSuccess,
 })(CustomerBalance);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { addBalance, getProjects, openModal, updateProjectBalance },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     project:
         state.project.currentProject !== null && state.project.currentProject,
 

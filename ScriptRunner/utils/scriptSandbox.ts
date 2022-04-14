@@ -218,7 +218,7 @@ const run = async (
             });
         });
 
-        const scriptCompletedCallback = (err: $TSFixMe): void => {
+        const scriptCompletedCallback: Function = (err: $TSFixMe): void => {
             if (err) {
                 throw new ScriptError(err);
             }

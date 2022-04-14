@@ -140,7 +140,7 @@ class ProjectDeleteModal extends Component<ComponentProps> {
 
 ProjectDeleteModal.displayName = 'ProjectDeleteModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.project &&

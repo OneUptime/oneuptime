@@ -439,7 +439,7 @@ class PerformanceTracker extends Component<ComponentProps> {
 
 PerformanceTracker.displayName = 'PerformanceTracker';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchPerformanceTrackers,
@@ -450,7 +450,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const currentProject = state.project.currentProject;
     const { componentSlug, slug } = ownProps.match.params;
 

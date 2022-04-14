@@ -194,11 +194,11 @@ class IncidentCreated extends Component<ComponentProps> {
 
 IncidentCreated.displayName = 'IncidentCreated';
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return {};
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ markAsRead, closeNotification }, dispatch);
 };
 

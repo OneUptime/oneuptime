@@ -5,7 +5,7 @@ export interface ComponentProps {
     status: string;
 }
 
-const IssueIndicator = ({
+const IssueIndicator: Function = ({
     status,
     resourceName,
     count

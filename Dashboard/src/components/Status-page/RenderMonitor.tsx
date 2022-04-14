@@ -15,7 +15,7 @@ interface CheckboxProps {
     id?: string;
 }
 
-const Checkbox = ({
+const Checkbox: Function = ({
     label,
     name,
     disabled,
@@ -85,7 +85,7 @@ let RenderMonitor = ({
 }: RenderMonitorProps) => {
     const currentMonitorForm = monitors[monitorIndex];
     const { monitor: currentMonitorID } = currentMonitorForm;
-    const getParentComponent = (monitor: $TSFixMe) => allComponents.filter(
+    const getParentComponent: Function = (monitor: $TSFixMe) => allComponents.filter(
         (component: $TSFixMe) => component._id === monitor.componentId._id || monitor.componentId
     )[0];
 
@@ -94,7 +94,7 @@ let RenderMonitor = ({
     )[0];
     const { type = null } = !!selectedMonitor && selectedMonitor;
 
-    const resetSelectedCharts = () => {
+    const resetSelectedCharts: Function = () => {
         dispatch(change(form, `${monitor}.uptime`, false));
         dispatch(change(form, `${monitor}.memory`, false));
         dispatch(change(form, `${monitor}.cpu`, false));
@@ -320,7 +320,7 @@ let RenderMonitor = ({
     );
 };
 
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const selector = formValueSelector(ownProps.form);
     const { subProject } = ownProps;
     const subProjectId = subProject?._id;

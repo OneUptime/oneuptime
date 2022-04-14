@@ -13,7 +13,7 @@ interface ChangePasswordSettingProps {
     };
 }
 
-const ChangePasswordSetting = (props: ChangePasswordSettingProps) => {
+const ChangePasswordSetting: Function = (props: ChangePasswordSettingProps) => {
     const {
         location: { pathname },
     } = props;

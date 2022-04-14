@@ -60,7 +60,7 @@ interface MultiSelectDropDownProps {
 //     }
 // ]
 
-const MultiSelectDropDown = ({
+const MultiSelectDropDown: Function = ({
     options,
     value,
     updateState,
@@ -72,7 +72,7 @@ const MultiSelectDropDown = ({
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
-    const handleClickOutside = (event: $TSFixMe) => {
+    const handleClickOutside: Function = (event: $TSFixMe) => {
 
         if (container.current && !container.current.contains(event.target)) {
             setOpen(false);
@@ -88,7 +88,7 @@ const MultiSelectDropDown = ({
         };
     });
 
-    const onClick = (val: $TSFixMe, key: $TSFixMe) => {
+    const onClick: Function = (val: $TSFixMe, key: $TSFixMe) => {
         // setOpen(false);
         updateState(val, key);
     };

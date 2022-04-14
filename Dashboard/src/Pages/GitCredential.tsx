@@ -143,7 +143,7 @@ GitCredential.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
@@ -155,6 +155,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getGitCredentials }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getGitCredentials }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(GitCredential);

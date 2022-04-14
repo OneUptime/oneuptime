@@ -120,7 +120,7 @@ class ConfirmBalanceTopUp extends Component<ComponentProps> {
 
 
 ConfirmBalanceTopUp.displayName = 'ConfirmBalanceTopUpFormModal';
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     isRequesting: state.project.updateBalance.requesting
 });
 

@@ -39,7 +39,7 @@ if (isLocalhost) {
     realtimeUrl = `${window.location.protocol}//${address}:3300/realtime`;
 }
 
-export const env = (value: $TSFixMe) => {
+export const env: Function = (value: $TSFixMe) => {
 
     const { _env } = window;
     return (
@@ -426,7 +426,7 @@ export const PricingPlan = {
     },
 };
 
-export const capitalize = (words: $TSFixMe) => {
+export const capitalize: Function = (words: $TSFixMe) => {
     if (!words || !words.trim()) return '';
 
     words = words.split(' ');
@@ -618,7 +618,7 @@ export const tutorials = {
     },
 };
 
-export const getQueryVar = (variable: $TSFixMe, url: URL) => {
+export const getQueryVar: Function = (variable: $TSFixMe, url: URL) => {
     if (!url) return null;
     variable = variable.replace(/[[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + variable + '(=([^&#]*)|&|#|$)'),
@@ -628,12 +628,12 @@ export const getQueryVar = (variable: $TSFixMe, url: URL) => {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-export const saveFile = (content: $TSFixMe, filename: $TSFixMe) => {
+export const saveFile: Function = (content: $TSFixMe, filename: $TSFixMe) => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     FileSaver.saveAs(blob, filename);
 }
 
-export const makeCriteria = (val: $TSFixMe) => {
+export const makeCriteria: Function = (val: $TSFixMe) => {
     const val2 = {};
     const criteria = [];
 
@@ -740,7 +740,7 @@ function innerCriteria(val: $TSFixMe, nestVal: $TSFixMe) {
     return nestVal;
 }
 
-export const mapCriteria = (val: $TSFixMe) => {
+export const mapCriteria: Function = (val: $TSFixMe) => {
     const val2 = [];
     if (val && val.criteria && val.criteria.condition === 'and') {
         for (let i = 0; i < val.criteria.criteria.length; i++) {
@@ -1007,7 +1007,7 @@ export function renderIfUserInSubProject(
     return renderItems;
 }
 
-export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe) => {
+export const formatDecimal: Function = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundType: $TSFixMe) => {
     let formattedNumber;
     switch (roundType) {
         case 'up':
@@ -1030,7 +1030,7 @@ export const formatDecimal = (value: $TSFixMe, decimalPlaces: $TSFixMe, roundTyp
     );
 };
 
-export const formatBytes = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe) => {
+export const formatBytes: Function = (a: $TSFixMe, b: $TSFixMe, c: $TSFixMe, d: $TSFixMe, e: $TSFixMe) => {
     let value = a;
     let decimalPlaces;
     let roundType;
@@ -1062,7 +1062,7 @@ function compareStatus(incident: $TSFixMe, log: $TSFixMe) {
         : log.status;
 }
 
-export const getMonitorStatus = (incidents: $TSFixMe, logs: $TSFixMe, type: $TSFixMe) => {
+export const getMonitorStatus: Function = (incidents: $TSFixMe, logs: $TSFixMe, type: $TSFixMe) => {
     let activeOfflineIncident = [];
     let activeDegradedIncident = [];
 
@@ -1107,7 +1107,7 @@ export const getMonitorStatus = (incidents: $TSFixMe, logs: $TSFixMe, type: $TSF
     return statusCompare || 'online';
 };
 
-export const getMonitorStatusColor = (status: $TSFixMe) => {
+export const getMonitorStatusColor: Function = (status: $TSFixMe) => {
     switch (status) {
         case 'degraded':
             return 'yellow';
@@ -1120,11 +1120,11 @@ export const getMonitorStatusColor = (status: $TSFixMe) => {
     }
 };
 
-export const replaceDashWithSpace = (string: $TSFixMe) => {
+export const replaceDashWithSpace: Function = (string: $TSFixMe) => {
     return string.replace('-', ' ');
 };
 
-export const getMonitorTypeBadgeColor = (type: $TSFixMe) => {
+export const getMonitorTypeBadgeColor: Function = (type: $TSFixMe) => {
     switch (type) {
         case 'manual':
             return 'red';
@@ -1133,7 +1133,7 @@ export const getMonitorTypeBadgeColor = (type: $TSFixMe) => {
     }
 };
 
-export const filterProbeData = (monitor: $TSFixMe, probe: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) => {
+export const filterProbeData: Function = (monitor: $TSFixMe, probe: $TSFixMe, startDate: $TSFixMe, endDate: $TSFixMe) => {
     const monitorLogs = monitor.logs;
     const monitorStatuses = monitor.statuses;
 

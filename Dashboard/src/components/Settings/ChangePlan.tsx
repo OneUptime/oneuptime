@@ -301,7 +301,7 @@ const ChangePlan = new reduxForm({
     Validate,
 })(Plans);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const planId = state.project.currentProject
         ? state.project.currentProject.stripePlanId
         : '';
@@ -331,6 +331,6 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ changePlan, openModal, fetchTrial }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(ChangePlan);

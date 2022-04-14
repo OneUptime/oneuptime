@@ -319,7 +319,7 @@ BackupCodesModal.propTypes = {
     backupCodesState: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             generateBackupCodes,
@@ -328,7 +328,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         profileSettings: state.profileSettings.profileSetting,
         backupCodesState: state.profileSettings.backupCodes,

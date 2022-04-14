@@ -49,7 +49,7 @@ interface AppProps {
     activeProject?: object;
 }
 
-const App = (props: AppProps) => {
+const App: Function = (props: AppProps) => {
     const hideProjectNav =
         props.currentProject?._id !== props.activesubProjectId;
     const titleToExclude = [

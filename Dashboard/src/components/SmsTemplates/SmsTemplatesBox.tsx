@@ -218,12 +218,12 @@ SmsTemplatesBox.propTypes = {
     changeShowingTemplate: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { editSmsTemplates, resetSmsTemplates, changeShowingTemplate },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         monitor: state.monitor,
         currentProject: state.project.currentProject,

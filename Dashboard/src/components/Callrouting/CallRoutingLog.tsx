@@ -10,8 +10,8 @@ import { getCallRoutingLogs } from '../../actions/callRouting';
 
 import moment from 'moment';
 
-const formatNumber = (phoneNumberString: $TSFixMe) => {
-    const cleaned = ('' + phoneNumberString).replace(/\D/g, '');
+const formatNumber: Function = (phoneNumberString: $TSFixMe) => {
+    const cleaned: Function = ('' + phoneNumberString).replace(/\D/g, '');
     const match = cleaned.match(/^(1|)?(\d{3})(\d{3})(\d{4})$/);
     if (match) {
         const intlCode = match[1] ? '+1 ' : '';
@@ -387,9 +387,9 @@ CallRoutingLog.propTypes = {
     skip: PropTypes.number,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getCallRoutingLogs }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getCallRoutingLogs }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         currentProject: state.project.currentProject,
         logs: state.callRouting.callRoutingLogs.logs,

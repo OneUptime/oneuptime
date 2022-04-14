@@ -37,13 +37,13 @@ function BreadCrumbItem({
     const id = name ? name.split(' ').join('') : '';
     const pages = pageTitles();
 
-    const onClick = (event: $TSFixMe) => {
+    const onClick: Function = (event: $TSFixMe) => {
         event.preventDefault();
 
         history.push(getRoute(route, projectId));
     };
 
-    const getRoute = (route: $TSFixMe) => {
+    const getRoute: Function = (route: $TSFixMe) => {
         if (route === '/') {
             return `/dashboard/project/${slug}`;
         }

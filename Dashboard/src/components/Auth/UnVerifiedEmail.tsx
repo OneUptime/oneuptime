@@ -114,7 +114,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ sendEmailVerificationLink }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ sendEmailVerificationLink }, dispatch);
 
 
 UnVerifiedEmailBox.displayName = 'UnVerifiedEmailBox';

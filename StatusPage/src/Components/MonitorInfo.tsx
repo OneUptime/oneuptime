@@ -726,7 +726,7 @@ function mapStateToProps(state: RootState, ownProps: $TSFixMe) {
     };
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         fetchMonitorStatuses,
         calculateTime,

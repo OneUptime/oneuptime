@@ -988,14 +988,14 @@ const NewCreateSlack = reduxForm({
     destroyOnUnmount: true,
 })(CreateSlack);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createSlack,
     },
     dispatch
 );
 //
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const monitorsList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
         item.monitors.forEach((m: $TSFixMe) => {

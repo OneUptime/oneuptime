@@ -142,13 +142,13 @@ DeleteComponent.propTypes = {
     data: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         componentState: state.component,
     };
 };
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return null;
 };
 

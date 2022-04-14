@@ -24,7 +24,7 @@ export async function getTheSubscription(): void {
 
 function urlBase64ToUint8Array(base64String: $TSFixMe): void {
     const padding: string = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
+    const base64: Function = (base64String + padding)
         .replace(/-/g, '+')
         .replace(/_/g, '/');
 

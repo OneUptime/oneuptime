@@ -305,7 +305,7 @@ const BasicForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(Branding);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             createLogoCache,

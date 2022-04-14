@@ -507,7 +507,7 @@ const CreateGroupForm = reduxForm({
     enableReinitialize: true,
 })(GroupForm);
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const initval = props.data.editGroup
         ? { groupName: props.data.groupName }
         : {};
@@ -534,7 +534,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

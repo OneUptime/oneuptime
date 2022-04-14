@@ -615,7 +615,7 @@ const InviteTeamMemberForm = reduxForm({
     validate,
 })(FormModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             teamCreate,

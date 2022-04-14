@@ -260,7 +260,7 @@ class ErrorEventView extends Component<ComponentProps> {
 
 
 ErrorEventView.displayName = 'ErrorEventView';
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchErrorEvent,
@@ -271,7 +271,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, ownProps: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, ownProps: $TSFixMe) => {
     const {
         componentSlug,
         errorTrackerSlug,

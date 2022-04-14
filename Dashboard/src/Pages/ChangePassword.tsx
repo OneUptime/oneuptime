@@ -72,11 +72,11 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
     }
 }
 
-const mapStateToProps = () => {
+const mapStateToProps: Function = () => {
     return null;
 };
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return null;
 };
 

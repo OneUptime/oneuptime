@@ -1,6 +1,6 @@
 import { allRoutes } from '../routes';
 
-const pageTitles = (): void => {
+const pageTitles: Function = (): void => {
     const map = {};
     allRoutes.forEach(route => {
         map[route.title] = route.icon;

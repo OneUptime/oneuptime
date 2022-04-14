@@ -108,13 +108,13 @@ ExtraCharge.propTypes = {
 
 ExtraCharge.displayName = 'ExtraCharge';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         modalId: state.modal.modals[0].id,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

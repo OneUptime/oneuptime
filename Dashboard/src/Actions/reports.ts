@@ -6,21 +6,21 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 // Incident Reports Section
 
-export const getActiveMembersRequest = (promise: $TSFixMe): void => {
+export const getActiveMembersRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.GET_ACTIVE_MEMBERS_REQUEST,
         payload: promise,
     };
 };
 
-export const getActiveMembersSuccess = (members: $TSFixMe): void => {
+export const getActiveMembersSuccess: Function = (members: $TSFixMe): void => {
     return {
         type: types.GET_ACTIVE_MEMBERS_SUCCESS,
         payload: members,
     };
 };
 
-export const getActiveMembersError = (error: ErrorPayload): void => {
+export const getActiveMembersError: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_ACTIVE_MEMBERS_FAILED,
         payload: error,
@@ -61,21 +61,23 @@ export const getActiveMembers =
         }
     };
 
-export const getActiveMonitorsRequest = (promise: $TSFixMe): void => {
+export const getActiveMonitorsRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.GET_ACTIVE_MONITORS_REQUEST,
         payload: promise,
     };
 };
 
-export const getActiveMonitorsSuccess = (monitors: $TSFixMe): void => {
+export const getActiveMonitorsSuccess: Function = (
+    monitors: $TSFixMe
+): void => {
     return {
         type: types.GET_ACTIVE_MONITORS_SUCCESS,
         payload: monitors,
     };
 };
 
-export const getActiveMonitorsError = (error: ErrorPayload): void => {
+export const getActiveMonitorsError: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_ACTIVE_MONITORS_FAILED,
         payload: error,
@@ -118,21 +120,21 @@ export const getActiveMonitors =
         }
     };
 
-export const getIncidentsRequest = (promise: $TSFixMe): void => {
+export const getIncidentsRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.GET_INCIDENTS_REQUEST,
         payload: promise,
     };
 };
 
-export const getIncidentsSuccess = (reports: $TSFixMe): void => {
+export const getIncidentsSuccess: Function = (reports: $TSFixMe): void => {
     return {
         type: types.GET_INCIDENTS_SUCCESS,
         payload: reports,
     };
 };
 
-export const getIncidentsError = (error: ErrorPayload): void => {
+export const getIncidentsError: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_INCIDENTS_FAILED,
         payload: error,
@@ -172,21 +174,21 @@ export const getIncidents =
         }
     };
 
-export const getResolveTimeRequest = (promise: $TSFixMe): void => {
+export const getResolveTimeRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.GET_RESOLVE_TIME_REQUEST,
         payload: promise,
     };
 };
 
-export const getResolveTimeSuccess = (reports: $TSFixMe): void => {
+export const getResolveTimeSuccess: Function = (reports: $TSFixMe): void => {
     return {
         type: types.GET_RESOLVE_TIME_SUCCESS,
         payload: reports,
     };
 };
 
-export const getResolveTimeError = (error: ErrorPayload): void => {
+export const getResolveTimeError: Function = (error: ErrorPayload): void => {
     return {
         type: types.GET_RESOLVE_TIME_FAILED,
         payload: error,

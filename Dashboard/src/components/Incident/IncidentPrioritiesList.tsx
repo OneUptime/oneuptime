@@ -145,7 +145,7 @@ IncidentPrioritiesListClass.propTypes = {
     handleDeleteIncidentPriority: PropTypes.func.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         openModal,
     },

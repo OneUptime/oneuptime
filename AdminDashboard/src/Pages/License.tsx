@@ -46,7 +46,7 @@ class License extends Component<ComponentProps> {
 
 License.displayName = 'License';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchLicense }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchLicense }, dispatch);
 
 
 License.contextTypes = {};

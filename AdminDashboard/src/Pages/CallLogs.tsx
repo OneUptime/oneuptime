@@ -197,7 +197,7 @@ class CallLogs extends Component<ComponentProps> {
 
 CallLogs.displayName = 'CallLogs';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchCallLogs,
@@ -208,7 +208,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     );
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const callLogs = state.callLogs.callLogs;
     const searchCallLogs = state.callLogs.searchCallLogs;
     const requesting =

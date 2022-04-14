@@ -125,7 +125,7 @@ class EmailLogsContentViewModal extends Component<ComponentProps> {
 
 EmailLogsContentViewModal.displayName = 'EmailLogsContentViewModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.emailLogs &&

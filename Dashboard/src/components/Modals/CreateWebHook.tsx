@@ -949,7 +949,7 @@ const NewCreateWebHook = reduxForm({
     destroyOnUnmount: true,
 })(CreateWebHook);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createWebHookRequest,
         createWebHook,
@@ -959,7 +959,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const monitorsList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
         item.monitors.forEach((m: $TSFixMe) => {

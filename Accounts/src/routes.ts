@@ -111,7 +111,7 @@ export const groups = [
     },
 ];
 
-const joinFn = (acc = [], curr: $TSFixMe): void => {
+const joinFn: Function = (acc = [], curr: $TSFixMe): void => {
     return acc.concat(curr);
 };
 
@@ -145,7 +145,7 @@ export const allRoutes = groups
 
     .reduce(joinFn);
 
-export const getGroups = (): void => groups;
+export const getGroups: Function = (): void => groups;
 
 export default {
     groups,

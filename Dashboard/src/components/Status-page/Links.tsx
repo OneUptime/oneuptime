@@ -280,7 +280,7 @@ Links.propTypes = {
     initialValues: PropTypes.object,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         updateStatusPageLinks,
         updateStatusPageLinksRequest,
@@ -293,7 +293,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const status = state.statusPage.status || [];
     const links: $TSFixMe = [];
 

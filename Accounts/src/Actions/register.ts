@@ -12,69 +12,69 @@ import ErrorPayload from 'CommonUI/src/payload-types/error';
 
 const cookies = new Cookies();
 
-export const signupError = (error: ErrorPayload): void => {
+export const signupError: Function = (error: ErrorPayload): void => {
     return {
         type: types.SIGNUP_FAILED,
         payload: error,
     };
 };
 
-export const saveUserState = (values: $TSFixMe): void => {
+export const saveUserState: Function = (values: $TSFixMe): void => {
     return {
         type: types.SAVE_USER_STATE,
         payload: values,
     };
 };
 
-export const savePlanId = (planId: $TSFixMe): void => {
+export const savePlanId: Function = (planId: $TSFixMe): void => {
     return {
         type: types.SAVE_PLAN_ID,
         payload: planId,
     };
 };
 
-export const saveCardState = (values: $TSFixMe): void => {
+export const saveCardState: Function = (values: $TSFixMe): void => {
     return {
         type: types.SAVE_CARD_STATE,
         payload: values,
     };
 };
 
-export const saveCompanyState = (values: $TSFixMe): void => {
+export const saveCompanyState: Function = (values: $TSFixMe): void => {
     return {
         type: types.SAVE_COMPANY_STATE,
         payload: values,
     };
 };
 
-export const signUpRequest = (promise: $TSFixMe): void => {
+export const signUpRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.SIGNUP_REQUEST,
         payload: promise,
     };
 };
 
-export const signUpReset = (): void => {
+export const signUpReset: Function = (): void => {
     return {
         type: types.RESET_SIGNUP,
     };
 };
 
-export const signupSuccess = (user: $TSFixMe): void => {
+export const signupSuccess: Function = (user: $TSFixMe): void => {
     return {
         type: types.SIGNUP_SUCCESS,
         payload: user,
     };
 };
 
-export const resetSignup = (): void => {
+export const resetSignup: Function = (): void => {
     return {
         type: types.RESET_SIGNUP,
     };
 };
 
 // Calls the API to register a user.
-export const signupUser = (values: $TSFixMe): void => {
+export const signupUser: Function = (values: $TSFixMe): void => {
     // This is basically for users redirected to oneuptime
     const redirectSource = cookies.get('source');
     if (redirectSource) {
@@ -111,20 +111,20 @@ export const signupUser = (values: $TSFixMe): void => {
 };
 
 //np payload for inc and dec action creators.
-export const incrementStep = (): void => {
+export const incrementStep: Function = (): void => {
     return {
         type: types.SIGNUP_STEP_INC,
     };
 };
 
 //np payload for inc and dec action creators.
-export const skipCardStep = (): void => {
+export const skipCardStep: Function = (): void => {
     return {
         type: types.SKIP_CARD_STEP,
     };
 };
 
-export const decrementStep = (): void => {
+export const decrementStep: Function = (): void => {
     return {
         type: types.SIGNUP_STEP_DEC,
     };
@@ -133,41 +133,41 @@ export const decrementStep = (): void => {
 // There are three possible states for our login
 // process and we need actions for each of them
 
-export const isUserInvitedRequest = (promise: $TSFixMe): void => {
+export const isUserInvitedRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.IS_USER_INVITED_REQUEST,
         payload: promise,
     };
 };
 
-export const isUserInvitedReset = (): void => {
+export const isUserInvitedReset: Function = (): void => {
     return {
         type: types.IS_USER_INVITED_RESET,
     };
 };
 
-export const isUserInvitedError = (error: ErrorPayload): void => {
+export const isUserInvitedError: Function = (error: ErrorPayload): void => {
     return {
         type: types.IS_USER_INVITED_RESET,
         payload: error,
     };
 };
 
-export const isUserInvitedSuccess = (data: $TSFixMe): void => {
+export const isUserInvitedSuccess: Function = (data: $TSFixMe): void => {
     return {
         type: types.IS_USER_INVITED_SUCCESS,
         payload: data,
     };
 };
 
-export const resetIsUserInvited = (): void => {
+export const resetIsUserInvited: Function = (): void => {
     return {
         type: types.IS_USER_INVITED_RESET,
     };
 };
 
 // Calls the API to register a user.
-export const isUserInvited = (values: $TSFixMe): void => {
+export const isUserInvited: Function = (values: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('user/isInvited'), values);
         dispatch(isUserInvitedRequest(promise));
@@ -184,28 +184,28 @@ export const isUserInvited = (values: $TSFixMe): void => {
     };
 };
 
-export const addCardRequest = (promise: $TSFixMe): void => {
+export const addCardRequest: Function = (promise: $TSFixMe): void => {
     return {
         type: types.ADD_CARD_REQUEST,
         payload: promise,
     };
 };
 
-export const addCardFailed = (error: ErrorPayload): void => {
+export const addCardFailed: Function = (error: ErrorPayload): void => {
     return {
         type: types.ADD_CARD_FAILED,
         payload: error,
     };
 };
 
-export const addCardSuccess = (card: $TSFixMe): void => {
+export const addCardSuccess: Function = (card: $TSFixMe): void => {
     return {
         type: types.ADD_CARD_SUCCESS,
         payload: card,
     };
 };
 
-export const addCard = (data: $TSFixMe): void => {
+export const addCard: Function = (data: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.post(new Route('stripe/checkCard'), data);
 
@@ -223,14 +223,14 @@ export const addCard = (data: $TSFixMe): void => {
     };
 };
 
-export const getEmailSuccess = (email: $TSFixMe): void => {
+export const getEmailSuccess: Function = (email: $TSFixMe): void => {
     return {
         type: types.GET_EMAIL_FROM_TOKEN,
         payload: email,
     };
 };
 
-export const getEmailFromToken = (token: $TSFixMe): void => {
+export const getEmailFromToken: Function = (token: $TSFixMe): void => {
     return function (dispatch: Dispatch): void {
         const promise = BackendAPI.get(`user/${token}/email`);
         promise.then(

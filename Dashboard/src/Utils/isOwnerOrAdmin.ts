@@ -6,7 +6,10 @@
 
 import ObjectID from 'Common/Types/ObjectID';
 
-const isOwnerOrAdmin = (userId: ObjectID, project: $TSFixMe): void => {
+const isOwnerOrAdmin: Function = (
+    userId: ObjectID,
+    project: $TSFixMe
+): void => {
     const currentUser =
         project &&
         project.users.filter(

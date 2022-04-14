@@ -536,7 +536,7 @@ EditApplicationSecurity.propTypes = {
     formValues: PropTypes.obj,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting: state.security.editApplicationSecurity.requesting,
         editError: state.security.editApplicationSecurity.error,
@@ -565,7 +565,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ closeModal, editApplicationSecurity }, dispatch);
 
 const EditApplicationSecurityForm = reduxForm({
     form: 'EditApplicationSecurityForm',

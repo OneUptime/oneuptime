@@ -403,7 +403,7 @@ const SmsTemplatesFormBoxForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(SmsTemplatesFormBox);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             setRevealVariable,

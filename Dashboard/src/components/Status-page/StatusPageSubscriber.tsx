@@ -660,12 +660,12 @@ class StatusPageSubscriber extends Component<ComponentProps> {
 
 StatusPageSubscriber.displayName = 'StatusPageSubscriber';
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     subscribers: state.statusPage.subscribers,
     monitors: state.statusPage.status.monitors
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { fetchStatusPageSubscribers, openModal, closeModal, deleteSubscriber },
     dispatch
 );
@@ -698,7 +698,7 @@ interface RemoveBtnProps {
     index: number;
 }
 
-const RemoveBtn = (props: RemoveBtnProps) => {
+const RemoveBtn: Function = (props: RemoveBtnProps) => {
     const [loading, setLoading] = useState(false);
     return (
         <>

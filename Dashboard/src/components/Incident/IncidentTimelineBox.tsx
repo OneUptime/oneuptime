@@ -84,7 +84,7 @@ IncidentTimelineBox.propTypes = {
     previous: PropTypes.func,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getIncidentTimeline }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getIncidentTimeline }, dispatch);
 
 function mapStateToProps(state: RootState) {
     return {

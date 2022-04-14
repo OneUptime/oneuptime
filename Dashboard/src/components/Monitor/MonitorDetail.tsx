@@ -852,7 +852,7 @@ export class MonitorDetail extends Component<MonitorDetailProps>{
 
 MonitorDetail.displayName = 'MonitorDetail';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             editMonitorSwitch,

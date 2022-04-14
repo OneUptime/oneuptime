@@ -125,7 +125,7 @@ class CallLogsContentViewModal extends Component<ComponentProps> {
 
 CallLogsContentViewModal.displayName = 'CallLogsContentViewModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.callLogs &&

@@ -159,11 +159,11 @@ const verifyBackupCodeForm = reduxForm({
     validate,
 })(VerifyBackupCode);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return { login: state.login };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ verifyBackupCode }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ verifyBackupCode }, dispatch);
 
 
 VerifyBackupCode.propTypes = {

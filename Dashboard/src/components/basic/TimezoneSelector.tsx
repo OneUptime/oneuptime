@@ -17,7 +17,7 @@ interface TimezoneSelectorProps {
     disabled?: boolean;
 }
 
-const TimezoneSelector = ({
+const TimezoneSelector: Function = ({
     input,
     placeholder,
     style,
@@ -58,7 +58,7 @@ const TimezoneSelector = ({
         });
     }, [input, placeholder]);
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);

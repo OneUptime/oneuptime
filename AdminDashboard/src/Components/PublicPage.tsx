@@ -5,7 +5,7 @@ import routes from '../routes';
 
 const { allRoutes } = routes;
 
-const PublicPage = () => (
+const PublicPage: Function = () => (
     <Switch>
         {allRoutes
 

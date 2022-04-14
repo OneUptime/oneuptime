@@ -126,7 +126,7 @@ class DeleteDomainModal extends Component<ComponentProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     deleteDomain: state.statusPage.deleteDomain
 });
 

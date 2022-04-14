@@ -1309,7 +1309,7 @@ const NewCreateSchedule = reduxForm({
     destroyOnUnmount: true,
 })(CreateSchedule);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createScheduledEvent,
         fetchscheduledEvents,
@@ -1321,7 +1321,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
 
 const selector = formValueSelector('newCreateSchedule');
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const minStartDate = selector(state, 'startDate');
     const currentDate = moment().format();
 

@@ -21,7 +21,7 @@ export interface ComponentProps {
     handleBlur?: Function;
 }
 
-const RenderField = ({
+const RenderField: Function = ({
     input,
     placeholder,
     type,

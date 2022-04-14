@@ -984,7 +984,7 @@ ScheduledEvent.propTypes = {
     status: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         fetchingNotes: state.status.eventNoteList.requesting,
         statusData: state.status.statusPage,
@@ -999,7 +999,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { fetchEventNote, getStatusPage, fetchEvent, moreEventNote },
     dispatch
 );

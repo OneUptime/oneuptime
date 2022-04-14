@@ -1,4 +1,4 @@
-export const formatMonitorResponseTime = (time: $TSFixMe): void => {
+export const formatMonitorResponseTime: Function = (time: $TSFixMe): void => {
     return time > 1000
         ? (time / 1000).toFixed(2) +
               ` second${(time / 1000).toFixed(2) > 1 ? 's' : ''}`

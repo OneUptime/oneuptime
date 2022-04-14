@@ -76,9 +76,9 @@ StatusHeader.propTypes = {
     statusPage: PropTypes.object.isRequired,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const { statusPage } = state;
     return { statusPage };
 };

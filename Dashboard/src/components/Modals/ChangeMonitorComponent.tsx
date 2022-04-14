@@ -363,7 +363,7 @@ const ChangeMonitorComponentForm = reduxForm({
     destroyOnUnmount: true,
 })(ChangeMonitorComponent);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         changeMonitorComponent,
         closeModal,
@@ -373,7 +373,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         components: state.component.componentList.components,
         requesting: state.monitor.changeMonitorComponent.requesting,

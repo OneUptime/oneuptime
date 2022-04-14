@@ -272,7 +272,7 @@ const EditIncidentForm = reduxForm({
     form: 'editIncident',
 })(EditIncident);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             updateIncident,

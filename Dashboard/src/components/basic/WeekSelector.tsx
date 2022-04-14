@@ -37,21 +37,21 @@ let WeekSelector = ({
 }: WeekSelectorProps) => {
     const [selectedDate, selectDate] = useState(new Date());
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         selectDate(option);
         if (input.onChange) {
             input.onChange(new Date(option).toUTCString());
         }
     };
 
-    const formatWeekSelectLabel = (date: $TSFixMe, invalidLabel: $TSFixMe) => {
+    const formatWeekSelectLabel: Function = (date: $TSFixMe, invalidLabel: $TSFixMe) => {
         return date && isValid(date)
             ? `${format(date, 'EEEE, hh:mm aaa')}`
             : invalidLabel;
     };
 
 
-    const renderWrappedWeekDay = (date: $TSFixMe, selectedDate: $TSFixMe, dayInCurrentMonth: $TSFixMe) => {
+    const renderWrappedWeekDay: Function = (date: $TSFixMe, selectedDate: $TSFixMe, dayInCurrentMonth: $TSFixMe) => {
         const start = startOfWeek(selectedDate);
         const end = endOfWeek(selectedDate);
 

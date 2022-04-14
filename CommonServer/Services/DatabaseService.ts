@@ -590,7 +590,7 @@ class DatabaseService<ModelType> {
             dbQuery.select(onBeforeFind.select);
             dbQuery.populate(onBeforeFind.populate);
 
-            const items = (await dbQuery) as Array<Document>;
+            const items: Function = (await dbQuery) as Array<Document>;
 
             const decryptedItems = [];
 

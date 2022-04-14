@@ -159,7 +159,7 @@ class AuditLog extends Component<ComponentProps> {
 
 AuditLog.displayName = 'AuditLog';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { fetchAuditLogStatus, auditLogStatusChange },
         dispatch

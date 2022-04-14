@@ -79,14 +79,14 @@ class ChangePasswordPage extends React.Component<ChangePasswordPageProps> {
     }
 }
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         masterAdminExists: state.login.masterAdmin.exists,
         requestingMasterAdmin: state.login.masterAdmin.requesting,
     };
 };
 
-const mapDispatchToProps = () => {
+const mapDispatchToProps: Function = () => {
     return null;
 };
 

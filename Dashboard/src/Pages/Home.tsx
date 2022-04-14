@@ -183,7 +183,7 @@ class Home extends Component<ComponentProps> {
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach((userSchedule: $TSFixMe) => {
-                const now = (userSchedule && moment()).format('HH:mm');
+                const now: Function = (userSchedule && moment()).format('HH:mm');
                 const oncallstart = moment(userSchedule.startTime).format(
                     'HH:mm'
                 );
@@ -199,7 +199,7 @@ class Home extends Component<ComponentProps> {
                     (userSchedule && userSchedule.endTime) || dayEnd
                 ).format('HH:mm');
 
-                const compareDate = (oncallstart: $TSFixMe, oncallend: $TSFixMe, now: $TSFixMe) => {
+                const compareDate: Function = (oncallstart: $TSFixMe, oncallend: $TSFixMe, now: $TSFixMe) => {
                     const isDifferentDay = oncallstart >= oncallend;
                     const [startHour, startMin] = oncallstart.split(':');
                     const [endHour, endMin] = oncallend.split(':');
@@ -744,7 +744,7 @@ Home.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     let monitors: $TSFixMe = [],
@@ -804,7 +804,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             loadPage,

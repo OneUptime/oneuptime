@@ -106,7 +106,7 @@ const registerForm = reduxForm({
     form: 'RegisterForm',
 })(RegisterForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             signupUser,

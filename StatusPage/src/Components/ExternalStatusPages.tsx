@@ -246,14 +246,14 @@ class ExternalStatusPages extends Component<ComponentProps> {
 
 
 ExternalStatusPages.displayName = 'ExternalStatusPages';
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     statusPage: state.status.statusPage,
     externalStatusPages: state.status.externalStatusPages,
     requesting: state.status.announcementLogs.requesting,
     error: state.status.announcementLogs.error
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ fetchExternalStatusPages }, dispatch);
 
 
 ExternalStatusPages.propTypes = {

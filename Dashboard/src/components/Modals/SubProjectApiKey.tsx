@@ -328,7 +328,7 @@ class SubProjectApiKey extends Component<ComponentProps> {
 
 SubProjectApiKey.displayName = 'SubProjectApiKeyModal';
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     let subproject =
         state.subProject &&
             state.subProject.subProjects &&
@@ -353,7 +353,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

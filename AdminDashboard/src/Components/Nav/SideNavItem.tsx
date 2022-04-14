@@ -203,9 +203,9 @@ export class SidebarNavItem extends Component<ComponentProps>{
 
 SidebarNavItem.displayName = 'SidebarNavItem';
 
-const mapStateToProps = () => ({});
+const mapStateToProps: Function = () => ({});
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ loadPage }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ loadPage }, dispatch);
 
 
 SidebarNavItem.propTypes = {

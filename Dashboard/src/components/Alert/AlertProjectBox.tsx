@@ -18,7 +18,7 @@ interface AlertProjectBoxProps {
     showProjectName?: boolean;
 }
 
-const AlertProjectBox = ({
+const AlertProjectBox: Function = ({
     currentProjectId,
     subProjectAlert,
     subProjectName,

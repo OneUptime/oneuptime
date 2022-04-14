@@ -132,7 +132,7 @@ class ApplicationLogDetailView extends Component<ComponentProps> {
 
 ApplicationLogDetailView.displayName = 'ApplicationLogDetailView';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ fetchLogs }, dispatch);
 };
 
@@ -147,7 +147,7 @@ ApplicationLogDetailView.propTypes = {
     logs: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const applicationLogId = props.applicationLog._id;
     const logs = state.applicationLog.logs[applicationLogId];
     return {

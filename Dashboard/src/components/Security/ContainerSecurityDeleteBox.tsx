@@ -114,9 +114,9 @@ export class ContainerSecurityDeleteBox extends Component<ContainerSecurityDelet
 
 ContainerSecurityDeleteBox.displayName = 'ContainerSecurityDeleteBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         deleting: state.security.deleteApplication.requesting,
     };

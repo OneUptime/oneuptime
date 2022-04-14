@@ -10,7 +10,7 @@ import rootReducer from './reducer/index';
 
 export const history = createBrowserHistory();
 
-export const removeQuery = (): void => {
+export const removeQuery: Function = (): void => {
     const location = Object.assign({}, history.location);
     delete location.search;
     history.push(location);

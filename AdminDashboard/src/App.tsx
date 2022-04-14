@@ -24,7 +24,7 @@ if (userData !== undefined) {
     window.location.href = ACCOUNTS_URL;
 }
 
-const App = () => {
+const App: Function = () => {
     return (
         <div style={{ height: '100%' }}>
             <Router history={history}>

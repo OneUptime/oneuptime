@@ -322,7 +322,7 @@ class ApplicationLog extends Component<ComponentProps> {
 
 ApplicationLog.displayName = 'ApplicationLog';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             fetchApplicationLogs,
@@ -332,7 +332,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
         dispatch
     );
 };
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;

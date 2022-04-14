@@ -107,9 +107,9 @@ export class ProjectAlertLimitBox extends Component<ComponentProps>{
 
 ProjectAlertLimitBox.displayName = 'ProjectAlertLimitBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ renewAlertLimit }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ renewAlertLimit }, dispatch);
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const project = state.project.project.project;
     return {
         project,

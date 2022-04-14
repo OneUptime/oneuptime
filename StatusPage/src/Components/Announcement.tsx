@@ -112,7 +112,7 @@ Announcement.propTypes = {
     //language: PropTypes.object,
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         statusPage: state.status.statusPage,
         language: state.status.language,
@@ -123,7 +123,7 @@ const mapStateToProps = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ getAnnouncements }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ getAnnouncements }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Announcement);
 

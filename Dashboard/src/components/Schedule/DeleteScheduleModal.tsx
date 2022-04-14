@@ -143,7 +143,7 @@ class DeleteScheduleModal extends Component<ComponentProps> {
 
 DeleteScheduleModal.displayName = 'DeleteScheduleModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         isRequesting:
             state.schedule &&

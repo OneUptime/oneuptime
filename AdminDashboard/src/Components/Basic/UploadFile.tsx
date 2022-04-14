@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-const UploadFile = ({
+const UploadFile: Function = ({
     fileInputKey,
 
     input: { value: omitValue, ...inputProps },

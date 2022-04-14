@@ -736,7 +736,7 @@ function mapStateToProps(state: RootState) {
     };
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         { openModal, closeModal, deleteSiteUrl },
         dispatch

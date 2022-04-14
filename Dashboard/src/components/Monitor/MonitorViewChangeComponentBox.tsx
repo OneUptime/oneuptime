@@ -134,12 +134,12 @@ class MonitorViewChangeComponentBox extends Component<ComponentProps> {
 
 MonitorViewChangeComponentBox.displayName = 'MonitorViewChangeComponentBox';
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     { openModal, closeModal, changeMonitorComponent, addCurrentComponent },
     dispatch
 );
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const { componentSlug } = props.match.params;
     let component;
     state.component.componentList.components.forEach((item: $TSFixMe) => {

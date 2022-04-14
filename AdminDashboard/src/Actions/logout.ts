@@ -7,7 +7,7 @@ import { ACCOUNTS_URL } from '../config';
 // from localStorage. These actions are more useful if we
 // were calling the API to log the user out
 
-export const requestLogout = (): void => {
+export const requestLogout: Function = (): void => {
     return {
         type: types.LOGOUT_REQUEST,
         isFetching: true,
@@ -15,7 +15,7 @@ export const requestLogout = (): void => {
     };
 };
 
-export const receiveLogout = (): void => {
+export const receiveLogout: Function = (): void => {
     return {
         type: types.LOGOUT_SUCCESS,
         isFetching: false,
@@ -24,7 +24,7 @@ export const receiveLogout = (): void => {
 };
 
 // Logs the user out
-export const logoutUser = (): void => {
+export const logoutUser: Function = (): void => {
     return (dispatch: Dispatch) => {
         dispatch(requestLogout());
         const cookies = new Cookies();

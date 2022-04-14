@@ -155,13 +155,13 @@ class ConfirmResetBrandColors extends Component<ComponentProps> {
 
 ConfirmResetBrandColors.displayName = 'ConfirmResetBrandColorsFormModal';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         statusPage: state.statusPage,
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

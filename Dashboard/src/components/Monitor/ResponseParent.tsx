@@ -369,7 +369,7 @@ ResponseParent.propTypes = {
     criterionType: PropTypes.string,
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({}, dispatch);
 
 
 export default connect({}, mapDispatchToProps)(ResponseParent);

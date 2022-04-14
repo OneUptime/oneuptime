@@ -6,7 +6,7 @@ const loaderStyle = {
     backgroundColor: '#96d8ff',
 };
 
-export const FlatLoader = () => (
+export const FlatLoader: Function = () => (
     <div className="ball-pulse">
         <div style={loaderStyle}></div>
         <div style={loaderStyle}></div>
@@ -16,7 +16,7 @@ export const FlatLoader = () => (
 
 FlatLoader.displayName = 'FlatLoader';
 
-export const FormLoader = () => (
+export const FormLoader: Function = () => (
     <div className="ball-beat">
         <div style={{ height: '8px', width: '8px' }}></div>
         <div style={{ height: '8px', width: '8px' }}></div>
@@ -26,7 +26,7 @@ export const FormLoader = () => (
 
 FormLoader.displayName = 'FormLoader';
 
-export const ListLoader = () => (
+export const ListLoader: Function = () => (
     <div
         className="ball-beat"
         style={{ textAlign: 'center', marginTop: '20px' }}
@@ -45,7 +45,7 @@ export const ListLoader = () => (
 
 ListLoader.displayName = 'ListLoader';
 
-export const TeamListLoader = () => (
+export const TeamListLoader: Function = () => (
     <div className="ball-beat" style={{ textAlign: 'center', width: '95px' }}>
         <div
             style={{ height: '8px', width: '8px', backgroundColor: '#4c4c4c' }}
@@ -61,7 +61,7 @@ export const TeamListLoader = () => (
 
 TeamListLoader.displayName = 'TeamListLoader';
 
-export const Spinner = () => (
+export const Spinner: Function = () => (
     <div className="Spinner bs-SpinnerLegacy Spinner--color--white Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center">
         <svg
             viewBox="0 0 24 24"
@@ -85,7 +85,7 @@ interface ButtonSpinnerProps {
     color?: string;
 }
 
-export const ButtonSpinner = (props: ButtonSpinnerProps) => <div
+export const ButtonSpinner: Function = (props: ButtonSpinnerProps) => <div
     className={`Spinner bs-SpinnerLegacy Spinner--color--${props && props.color ? props.color : 'white'
         } Box-root Flex-inlineFlex Flex-alignItems--center Flex-justifyContent--center`}
     style={{ marginTop: 4 }}
@@ -111,7 +111,7 @@ ButtonSpinner.propTypes = {
     color: PropTypes.string,
 };
 
-export const LoadingState = () => (
+export const LoadingState: Function = () => (
     <div className="Box-root Margin-bottom--12">
         <div className="bs-ContentSection Card-root Card-shadow--medium">
             <div className="Box-root">

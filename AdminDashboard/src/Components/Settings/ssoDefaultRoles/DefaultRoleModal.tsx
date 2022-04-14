@@ -59,7 +59,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const Form = ({
+const Form: Function = ({
     formTitle,
     onSubmit,
     ssos,

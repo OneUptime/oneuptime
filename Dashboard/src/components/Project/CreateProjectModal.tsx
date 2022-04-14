@@ -70,14 +70,14 @@ export class CreateProjectModal extends Component<CreateProjectModalProps>{
     }
 }
 
-const mapStateToProps = (state: RootState) => ({
+const mapStateToProps: Function = (state: RootState) => ({
     visible: state.project.showForm,
     errorStack: state.project.newProject.error,
     requesting: state.project.newProject.requesting,
     projects: state.project
 });
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createProject,
         switchProject,

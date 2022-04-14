@@ -266,7 +266,7 @@ const AddExternalStatusPagesModalForm = reduxForm({
     validate, // <--- validation function given to redux-for
 })(AddExternalStatusPagesModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             closeModal,

@@ -34,7 +34,7 @@ import {
     signupUser,
 } from '../../actions/register';
 
-const createOptions = () => {
+const createOptions: Function = () => {
     return {
         style: {
             base: {
@@ -601,7 +601,7 @@ const cardForm = reduxForm({
     validate,
 })(CardForm);
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators(
         {
             addCard,

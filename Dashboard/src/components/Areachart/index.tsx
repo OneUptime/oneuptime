@@ -25,7 +25,7 @@ interface CustomTooltipProps {
     payload?: unknown[];
 }
 
-const CustomTooltip = ({
+const CustomTooltip: Function = ({
     active,
     payload
 }: CustomTooltipProps) => {

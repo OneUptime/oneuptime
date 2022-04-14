@@ -129,9 +129,9 @@ export class IncidentDeleteBox extends Component<IncidentDeleteBoxProps>{
 
 IncidentDeleteBox.displayName = 'IncidentDeleteBox';
 
-const mapStateToProps = () => ({});
+const mapStateToProps: Function = () => ({});
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators({ openModal, closeModal, deleteIncident }, dispatch);
 
 
 IncidentDeleteBox.propTypes = {

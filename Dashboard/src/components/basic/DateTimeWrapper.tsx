@@ -17,7 +17,7 @@ const theme = createTheme({
     },
 });
 
-const styles = () => ({
+const styles: Function = () => ({
     input: {
         flex: '0 0 auto',
         padding: '4px 4px 2px 7px',
@@ -52,7 +52,7 @@ interface DateTimeWrapperProps {
     maxDate?: string | object;
 }
 
-const DateTimeWrapper = ({
+const DateTimeWrapper: Function = ({
     input,
     meta: { touched, error },
     style,
@@ -66,7 +66,7 @@ const DateTimeWrapper = ({
         input.value = null;
     }
     const [value, setValue] = useState(input.value);
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
 

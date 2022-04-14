@@ -989,14 +989,14 @@ const NewCreateMsTeams = reduxForm({
     destroyOnUnmount: true,
 })(CreateMsTeams);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         createMsTeams,
     },
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const monitorsList: $TSFixMe = [];
     state.monitor.monitorsList.monitors.forEach((item: $TSFixMe) => {
         item.monitors.forEach((m: $TSFixMe) => {

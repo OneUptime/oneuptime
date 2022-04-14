@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Select from './react-select-oneuptime';
 
-const RenderSelect = ({
+const RenderSelect: Function = ({
     input,
     placeholder,
     className,
@@ -40,7 +40,7 @@ const RenderSelect = ({
         });
     }, [input, placeholder]);
 
-    const handleChange = (option: $TSFixMe) => {
+    const handleChange: Function = (option: $TSFixMe) => {
         setValue(option);
         if (input.onChange) {
             input.onChange(option.value);

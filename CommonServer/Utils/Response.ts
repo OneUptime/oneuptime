@@ -49,7 +49,7 @@ function logResponse(
     }
 }
 
-export const sendEmptyResponse = (
+export const sendEmptyResponse: Function = (
     req: ExpressRequest,
     res: ExpressResponse
 ): void => {
@@ -88,7 +88,7 @@ export const sendFileResponse = async (
     logResponse(req, res);
 };
 
-export const sendErrorResponse = (
+export const sendErrorResponse: Function = (
     req: ExpressRequest,
     res: ExpressResponse,
     error: Exception

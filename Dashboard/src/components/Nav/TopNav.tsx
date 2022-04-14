@@ -430,7 +430,7 @@ class TopContent extends Component<ComponentProps> {
 
         if (userSchedules && userSchedules.length > 0) {
             userSchedules.forEach((userSchedule: $TSFixMe) => {
-                const now = (userSchedule && moment()).format('HH:mm');
+                const now: Function = (userSchedule && moment()).format('HH:mm');
                 const oncallstart = moment(userSchedule.startTime).format(
                     'HH:mm'
                 );
@@ -446,7 +446,7 @@ class TopContent extends Component<ComponentProps> {
                     (userSchedule && userSchedule.endTime) || dayEnd
                 ).format('HH:mm');
 
-                const compareDate = (oncallstart: $TSFixMe, oncallend: $TSFixMe, now: $TSFixMe) => {
+                const compareDate: Function = (oncallstart: $TSFixMe, oncallend: $TSFixMe, now: $TSFixMe) => {
                     const isDifferentDay = oncallstart >= oncallend;
                     const [startHour, startMin] = oncallstart.split(':');
                     const [endHour, endMin] = oncallend.split(':');
@@ -786,7 +786,7 @@ class TopContent extends Component<ComponentProps> {
 
 TopContent.displayName = 'TopContent';
 
-const mapStateToProps = (state: RootState, props: $TSFixMe) => {
+const mapStateToProps: Function = (state: RootState, props: $TSFixMe) => {
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';
     const { projectId } = props;
@@ -821,7 +821,7 @@ const mapStateToProps = (state: RootState, props: $TSFixMe) => {
     };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         showProfileMenu,
         openFeedbackModal,

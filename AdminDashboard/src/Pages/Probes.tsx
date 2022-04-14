@@ -194,11 +194,11 @@ class Probes extends Component<ComponentProps> {
 
 Probes.displayName = 'Probes';
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
+const mapDispatchToProps: Function = (dispatch: Dispatch) => {
     return bindActionCreators({ getProbes, openModal, closeModal }, dispatch);
 };
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         modalId: state.modal.modals[0] && state.modal.modals[0].id,
         modalList: state.modal.modals,

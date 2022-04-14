@@ -795,7 +795,7 @@ const EditMonitorSlaForm = reduxForm({
     destroyOnUnmount: true,
 })(EditMonitorSlaModal);
 
-const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
+const mapDispatchToProps: Function = (dispatch: Dispatch) => bindActionCreators(
     {
         closeModal,
         updateMonitorSla,
@@ -804,7 +804,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators(
     dispatch
 );
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     const monitorSlaToBeUpdated = state.modal.modals[0].sla;
     const projectId = state.modal.modals[0].projectId;
 

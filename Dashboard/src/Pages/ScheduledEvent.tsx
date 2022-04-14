@@ -65,7 +65,7 @@ class ScheduledEvent extends Component<ComponentProps> {
 
 ScheduledEvent.displayName = 'ScheduledEvent';
 
-const mapStateToProps = (state: RootState) => {
+const mapStateToProps: Function = (state: RootState) => {
     return {
         projectId: state.subProject.activeSubProject,
         requesting:
