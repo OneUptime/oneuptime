@@ -190,7 +190,7 @@ router.put(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const { performanceTrackerId } = req.params;
 
-        const select = 'componentId name slug key showQuickStart createdById';
+        const  select: string = 'componentId name slug key showQuickStart createdById';
         const populate = [
             { path: 'createdById', select: 'name email' },
             {

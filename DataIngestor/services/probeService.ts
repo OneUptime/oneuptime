@@ -3239,7 +3239,7 @@ const checkAnd = (
                                 con.criteria[i].field1 &&
                                 response &&
                                 Function(
-                                    '"use strict";const response = ' +
+                                    '"use strict";const  response: string = ' +
                                         JSON.stringify(response) +
                                         ';return (' +
                                         con.criteria[i].field1 +
@@ -5487,7 +5487,7 @@ const checkOr = (
                             con.criteria[i].field1 &&
                             response &&
                             Function(
-                                '"use strict";const response = ' +
+                                '"use strict";const  response: string = ' +
                                     JSON.stringify(response) +
                                     ';return (' +
                                     con.criteria[i].field1 +

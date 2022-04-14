@@ -1,7 +1,7 @@
 import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
 
-const incidentCollection = 'incidents';
+const  incidentCollection: string = 'incidents';
 
 async function run(): void {
     const incidents = await find(

@@ -1,6 +1,6 @@
 import { find, update, removeField } from '../util/db';
 
-const monitorCollection = 'monitors';
+const  monitorCollection: string = 'monitors';
 
 async function run(): void {
     const monitors = await find(monitorCollection, {

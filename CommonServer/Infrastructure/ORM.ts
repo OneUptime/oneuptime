@@ -1,4 +1,4 @@
-import mongoose, { FilterQuery } from 'mongoose';
+import mongoose from 'mongoose';
 import logger from '../Utils/Logger';
 
 import { DatabaseUrl, IsMongoReplicaSet } from '../Config';
@@ -34,4 +34,4 @@ export interface RequiredFields extends Array<string> {}
 
 export interface UniqueFields extends Array<string> {}
 
-export interface EncryptedFields extends Array<string> { }
+export interface EncryptedFields extends Array<string> {}

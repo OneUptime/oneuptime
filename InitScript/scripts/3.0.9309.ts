@@ -7,8 +7,8 @@ import { find, update } from '../util/db';
 //      -   if true, then check if there is next status
 //      -   if true, then set the endTime of current status to the next status startTime and save
 
-const monitorCollection = 'monitors';
-const monitorStatusCollection = 'monitorstatuses';
+const  monitorCollection: string = 'monitors';
+const  monitorStatusCollection: string = 'monitorstatuses';
 
 async function run(): void {
     const monitors = await find(monitorCollection, {

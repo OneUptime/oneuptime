@@ -7,7 +7,7 @@ const stripe = Stripe(payment.paymentPrivateKey);
 
 import BackendAPI from '../util/api';
 
-const projectCollection = 'projects';
+const  projectCollection: string = 'projects';
 
 async function run(): void {
     const projects = await find(projectCollection, {

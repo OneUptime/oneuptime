@@ -2,10 +2,10 @@ import { find, update, save, updateMany, findOne } from '../util/db';
 import { ObjectId } from 'mongodb';
 import moment from 'moment';
 
-const monitorCollection = 'monitors';
-const resourceCategoryCollection = 'resourcecategories';
-const statusPageCategoryCollection = 'statuspagecategories';
-const statusPageCollection = 'statuspages';
+const  monitorCollection: string = 'monitors';
+const  resourceCategoryCollection: string = 'resourcecategories';
+const  statusPageCategoryCollection: string = 'statuspagecategories';
+const  statusPageCollection: string = 'statuspages';
 
 async function run(): void {
     // fetch status pages

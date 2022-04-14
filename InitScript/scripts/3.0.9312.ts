@@ -1,6 +1,6 @@
 import { updateMany } from '../util/db';
 
-const userCollection = 'users';
+const  userCollection: string = 'users';
 
 // add admin mode fields
 async function run(): void {

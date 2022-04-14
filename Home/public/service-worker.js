@@ -1,6 +1,6 @@
 
 
-const cacheName = 'OneUptime-home';
+const  cacheName: string = 'OneUptime-home';
 const filesToCache = [];
 
 self.addEventListener('install', function (event) {

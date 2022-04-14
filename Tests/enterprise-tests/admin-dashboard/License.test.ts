@@ -7,7 +7,7 @@ import 'should';
 
 // user credentials
 const userEmail = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 
 describe('Enterprise License API', () => {
     const operationTimeOut = init.timeout;

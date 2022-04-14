@@ -75,7 +75,7 @@ router.post(
                     await twilioService.test(data);
                 }
 
-                const selectConfig = 'name value createdAt';
+                const  selectConfig: string = 'name value createdAt';
                 let globalConfig = await GlobalConfigService.findOneBy({
                     query: { name },
                     select: selectConfig,
@@ -119,7 +119,7 @@ router.post(
         try {
             const names = req.body;
 
-            const selectConfig = 'name value createdAt';
+            const  selectConfig: string = 'name value createdAt';
             const globalConfigs = await GlobalConfigService.findBy({
                 query: { name: { $in: names } },
                 select: selectConfig,
@@ -149,7 +149,7 @@ router.get(
     isUserMasterAdmin,
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-            const selectConfig = 'name value createdAt';
+            const  selectConfig: string = 'name value createdAt';
             const { name } = req.params;
             let globalConfig = await GlobalConfigService.findOneBy({
                 query: { name: name },

@@ -8,10 +8,10 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const email = 'masteradmin@hackerbay.io';
-const password = '1234567890';
+const  email: string = 'masteradmin@hackerbay.io';
+const  password: string = '1234567890';
 
-const smtpName = 'Hackerbay';
+const  smtpName: string = 'Hackerbay';
 const wrongPassword = utils.generateRandomString();
 
 describe('SMTP Settings API', () => {

@@ -25,7 +25,7 @@ router.get(
             const skip = req.query['skip'];
             const limit = req.query['limit'];
             const populate = [{ path: 'projectId', select: 'name' }];
-            const select = 'from to projectId content status error';
+            const  select: string = 'from to projectId content status error';
             const [callLogs, count] = await Promise.all([
                 CallLogsService.findBy({
                     query,

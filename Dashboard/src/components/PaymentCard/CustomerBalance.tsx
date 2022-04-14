@@ -394,7 +394,7 @@ CustomerBalance.propTypes = {
     updateProjectBalance: PropTypes.func,
 };
 
-const formName = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
+const  formName: string = 'CustomerBalance' + Math.floor(Math.random() * 10 + 1);
 
 const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 

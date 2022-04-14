@@ -12,7 +12,7 @@ export const isApiServer = !(
     window.document.createElement
 );
 
-const url = '/';
+const  url: string = '/';
 export const history = isApiServer
     ? createMemoryHistory({ initialEntries: [url] })
     : createBrowserHistory();

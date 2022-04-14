@@ -163,7 +163,7 @@ export class RenameScheduleBox extends Component<ComponentProps>{
 
 RenameScheduleBox.displayName = 'RenameScheduleBox';
 
-const formName = 'RenameSchedule' + Math.floor(Math.random() * 10 + 1);
+const  formName: string = 'RenameSchedule' + Math.floor(Math.random() * 10 + 1);
 
 const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 

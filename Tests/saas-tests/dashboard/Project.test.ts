@@ -5,8 +5,8 @@ import init from '../../test-init';
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const teamEmail = utils.generateRandomBusinessEmail();
-const password = '1234567890';
-const newProjectName = 'Test';
+const  password: string = '1234567890';
+const  newProjectName: string = 'Test';
 
 const user = {
     email,
@@ -196,7 +196,7 @@ describe('Project Settings', () => {
 
             await init.pageClick(page, '#AccountSwitcherId');
 
-            const parentContainer = '#accountSwitcher';
+            const  parentContainer: string = '#accountSwitcher';
             await init.pageWaitForSelector(page, parentContainer, {
                 visible: true,
                 timeout: init.timeout,

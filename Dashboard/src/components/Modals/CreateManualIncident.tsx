@@ -602,7 +602,7 @@ CreateManualIncident.propTypes = {
     incidentTemplateObj: PropTypes.object,
 };
 
-const formName = 'CreateManualIncident';
+const  formName: string = 'CreateManualIncident';
 const selector = formValueSelector(formName);
 
 function mapStateToProps(state: RootState) {
@@ -610,7 +610,7 @@ function mapStateToProps(state: RootState) {
     const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
     const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
 
-    const incidentType = 'offline';
+    const  incidentType: string = 'offline';
     const initialValues = {
         incidentType,
     };

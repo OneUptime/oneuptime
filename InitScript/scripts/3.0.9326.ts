@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const projectCollection = 'projects';
+const  projectCollection: string = 'projects';
 
 async function run(): void {
     // all main projects

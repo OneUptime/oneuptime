@@ -8,8 +8,8 @@ let page, browser: $TSFixMe;
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
-const queryString = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
+const  password: string = '1234567890';
+const  queryString: string = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
 let queryObj = {};
 
 describe('Home redirect', () => {

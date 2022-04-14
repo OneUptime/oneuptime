@@ -1,6 +1,6 @@
 import { updateMany } from '../util/db';
 
-const projectCollection = 'projects';
+const  projectCollection: string = 'projects';
 
 async function run(): void {
     await updateMany(

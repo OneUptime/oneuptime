@@ -19,18 +19,18 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const body = req.body;
-            
+
             const mail: Mail = {
                 templateType: req.params['template-name'] as EmailTemplateType,
                 toEmail: body['toEmail'],
                 subject: body['subject'],
                 vars: body['vars'],
-                body: ''
-            }
+                body: '',
+            };
 
             await MailService.send(
                 mail,
-                body['projectId'], 
+                body['projectId'],
                 body['forceSendFromGlobalMailServer']
             );
 

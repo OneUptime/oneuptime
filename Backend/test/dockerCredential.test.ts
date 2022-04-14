@@ -77,8 +77,8 @@ describe('Docker Credential API', function (): void {
 
     it('should update a docker credential', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const dockerUsername = 'username';
-        const dockerPassword = 'hello1234567890';
+        const  dockerUsername: string = 'username';
+        const  dockerPassword: string = 'hello1234567890';
 
         const res = await request
             .put(`/credential/${projectId}/dockerCredential/${credentialId}`)
@@ -94,8 +94,8 @@ describe('Docker Credential API', function (): void {
 
     it('should not update docker credential with invalid username or password', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const dockerUsername = 'randomUsername';
-        const dockerPassword = 'randomPassword';
+        const  dockerUsername: string = 'randomUsername';
+        const  dockerPassword: string = 'randomPassword';
         const res = await request
             .put(`/credential/${projectId}/dockerCredential/${credentialId}`)
             .set('Authorization', authorization)
@@ -205,7 +205,7 @@ describe('Docker Credential API', function (): void {
 
     it('should not remove a non-existing docker credential', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const newCredentialId = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
+        const  newCredentialId: string = '5e8db97b2cc46e3a229ebc62'; // non-existing credential id
         const res = await request
             .delete(
                 `/credential/${projectId}/dockerCredential/${newCredentialId}`

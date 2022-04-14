@@ -2,7 +2,7 @@ import { find, update } from '../util/db';
 
 import uuid from 'uuid';
 
-const statusPageCollection = 'statuspages';
+const  statusPageCollection: string = 'statuspages';
 
 async function run(): void {
     const statusPages = await find(statusPageCollection, {

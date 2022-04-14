@@ -284,7 +284,7 @@ class Service extends DatabaseService<typeof Model> {
                     verificationToken = await this.sendToken(user, user.email);
                 }
 
-                const projectName = 'Unnamed Project';
+                const  projectName: string = 'Unnamed Project';
                 const projectData = {
                     name: projectName,
                     userId: user._id,
@@ -870,7 +870,7 @@ class Service extends DatabaseService<typeof Model> {
     async restoreBy(query: Query): void {
         query.deleted = true;
 
-        const select = '_id';
+        const  select: string = '_id';
         let user = await this.findBy({ query, select });
         if (user && user.length > 1) {
             const users = await Promise.all(

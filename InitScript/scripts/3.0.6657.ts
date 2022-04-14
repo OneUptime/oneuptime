@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const SUBSCRIBER_COLLECTION = 'subscribers';
+const  SUBSCRIBER_COLLECTION: string = 'subscribers';
 async function run(): void {
     // get webhook subscribers without webhookMethod feild
     const subscribersWithoutWebhookMethod = await find(SUBSCRIBER_COLLECTION, {

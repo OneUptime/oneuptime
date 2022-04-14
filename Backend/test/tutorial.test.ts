@@ -86,7 +86,7 @@ describe('Tutorial API', function (): void {
 
     it('should update the user custom component tutorial status per project', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const type = 'component';
+        const  type: string = 'component';
         const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
@@ -104,7 +104,7 @@ describe('Tutorial API', function (): void {
 
     it('should update the user custom team memb er tutorial status per project', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const type = 'teamMember';
+        const  type: string = 'teamMember';
         const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)
@@ -136,7 +136,7 @@ describe('Tutorial API', function (): void {
 
     it('should update the user status page tutorial status per project', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const type = 'statusPage';
+        const  type: string = 'statusPage';
         const res = await request
             .put('/tutorial')
             .set('Authorization', authorization)

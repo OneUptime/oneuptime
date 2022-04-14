@@ -39,7 +39,7 @@ const logger = new OneUptime.Logger(
 );
 
 // Sending a string log to the server
-const item = 'This is a simple log';
+const  item: string = 'This is a simple log';
 
 logger.log(item); // returns a promise
 
@@ -55,11 +55,11 @@ const item = {
 logger.log(item); // returns a promise
 
 // Alternatively, Logs can be tagged with either a string or an array of strings
-const item = 'This is a simple log';
+const  item: string = 'This is a simple log';
 const tags = ['server', 'script', 'dev'];
 logger.log(item, tags);
 
-const tag = 'testing';
+const  tag: string = 'testing';
 logger.log(item, tag);
 ```
 
@@ -77,12 +77,12 @@ logger.log(item, tag);
         );
 
         // Sending a string log to the server
-        const item = 'This is a simple log';
+        const  item: string = 'This is a simple log';
 
         logger.log(item); // returns a promise
 
         // Alternatively, Logs can be tagged with either a string or an array of strings
-        const item = 'This is a simple log';
+        const  item: string = 'This is a simple log';
         const tags = ['server', 'monitor'];
         logger.log(item, tags);
     }

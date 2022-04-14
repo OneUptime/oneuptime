@@ -116,7 +116,7 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            const customTutorialType = 'monitor';
+            const  customTutorialType: string = 'monitor';
             // find monitor quick tip and confirm it shows
 
             const monitorQuickTip = await init.pageWaitForSelector(

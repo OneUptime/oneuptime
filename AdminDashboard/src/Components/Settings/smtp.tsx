@@ -51,7 +51,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const settingsType = 'smtp';
+const  settingsType: string = 'smtp';
 
 const fields = [
     {

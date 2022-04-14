@@ -6,10 +6,10 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
-const component = 'TestComponent';
-const containerSecurityName = 'Test';
-const newContainerSecurityName = 'Byter';
+const  password: string = '1234567890';
+const  component: string = 'TestComponent';
+const  containerSecurityName: string = 'Test';
+const  newContainerSecurityName: string = 'Byter';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Container Security Page', () => {
@@ -47,7 +47,7 @@ describe('Container Security Page', () => {
 
             await init.addComponent(component, page);
 
-            //const categoryName = 'Random-Category';
+            //const  categoryName: string = 'Random-Category';
             // create a new resource category
             // await init.addResourceCategory(categoryName, page);
             //navigate to component details

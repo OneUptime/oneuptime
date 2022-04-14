@@ -534,8 +534,8 @@ describe('Status API', function (): void {
 
     it('should verify a domain', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const domain = 'oneuptimeapp.com';
-        const verificationToken = 'm2ab5osUmz9Y7Ko';
+        const  domain: string = 'oneuptimeapp.com';
+        const  verificationToken: string = 'm2ab5osUmz9Y7Ko';
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
@@ -568,7 +568,7 @@ describe('Status API', function (): void {
                     throw err;
                 }
                 expect(res).to.have.status(200);
-                const domain = 'status.x.com';
+                const  domain: string = 'status.x.com';
                 // update the verification token to a live version
                 DomainVerificationService.updateOneBy(
                     { domain },
@@ -601,7 +601,7 @@ describe('Status API', function (): void {
                     throw err;
                 }
                 expect(res).to.have.status(200);
-                const domain = 'status.y.com';
+                const  domain: string = 'status.y.com';
                 request
                     .get(`/StatusPage/null?url=${domain}`)
                     .send()
@@ -620,8 +620,8 @@ describe('Status API', function (): void {
 
     it('should not verify a domain if txt record is not found', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const domain = 'oneuptimeapp.com';
-        const verificationToken = 'thistokenwillnotwork';
+        const  domain: string = 'oneuptimeapp.com';
+        const  verificationToken: string = 'thistokenwillnotwork';
         // update the verification token to a live version
         DomainVerificationService.updateOneBy(
             { domain },
@@ -643,7 +643,7 @@ describe('Status API', function (): void {
 
     it('should not verify a domain that does not exist on the web', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const domain = 'binoehty1234hgyt.com';
+        const  domain: string = 'binoehty1234hgyt.com';
         const selectDomainVerify =
             'domain createdAt verificationToken verifiedAt updatedAt projectId';
         const populateDomainVerify = [
@@ -954,7 +954,7 @@ describe('Status API', function (): void {
 
             const { _id: domainId } = statusPage.domains[0];
             // provide a random object id
-            const statusPageId = '5ea70eb4be9f4b177a1719ad';
+            const  statusPageId: string = '5ea70eb4be9f4b177a1719ad';
             request
                 .put(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .send(data)
@@ -995,7 +995,7 @@ describe('Status API', function (): void {
 
             const { _id: domainId } = statusPage.domains[0];
             // create random status page id
-            const statusPageId = '5ea70eb4be9f4b177a1719ad';
+            const  statusPageId: string = '5ea70eb4be9f4b177a1719ad';
             request
                 .delete(`/StatusPage/${projectId}/${statusPageId}/${domainId}`)
                 .set('Authorization', authorization)

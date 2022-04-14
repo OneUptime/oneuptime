@@ -1,23 +1,23 @@
-export const CREATE_WEB_HOOK_SUCCESS = 'webHook/CREATE_WEB_HOOK_SUCCESS';
-export const CREATE_WEB_HOOK_FAILED = 'webHook/CREATE_WEB_HOOK_FAILED';
-export const CREATE_WEB_HOOK_REQUEST = 'webHook/CREATE_WEB_HOOK_REQUEST';
-export const CREATE_WEB_HOOK_RESET = 'webHook/CREATE_WEB_HOOK_RESET';
+export const  CREATE_WEB_HOOK_SUCCESS: string = 'webHook/CREATE_WEB_HOOK_SUCCESS';
+export const  CREATE_WEB_HOOK_FAILED: string = 'webHook/CREATE_WEB_HOOK_FAILED';
+export const  CREATE_WEB_HOOK_REQUEST: string = 'webHook/CREATE_WEB_HOOK_REQUEST';
+export const  CREATE_WEB_HOOK_RESET: string = 'webHook/CREATE_WEB_HOOK_RESET';
 
-export const UPDATE_WEB_HOOK_SUCCESS = 'webHook/UPDATE_WEB_HOOK_SUCCESS';
-export const UPDATE_WEB_HOOK_FAILED = 'webHook/UPDATE_WEB_HOOK_FAILED';
-export const UPDATE_WEB_HOOK_REQUEST = 'webHook/UPDATE_WEB_HOOK_REQUEST';
-export const UPDATE_WEB_HOOK_RESET = 'webHook/UPDATE_WEB_HOOK_RESET';
+export const  UPDATE_WEB_HOOK_SUCCESS: string = 'webHook/UPDATE_WEB_HOOK_SUCCESS';
+export const  UPDATE_WEB_HOOK_FAILED: string = 'webHook/UPDATE_WEB_HOOK_FAILED';
+export const  UPDATE_WEB_HOOK_REQUEST: string = 'webHook/UPDATE_WEB_HOOK_REQUEST';
+export const  UPDATE_WEB_HOOK_RESET: string = 'webHook/UPDATE_WEB_HOOK_RESET';
 
-export const GET_WEB_HOOK_SUCCESS = 'webHook/GET_WEB_HOOK_SUCCESS';
-export const GET_WEB_HOOK_FAILED = 'webHook/GET_WEB_HOOK_FAILED';
-export const GET_WEB_HOOK_REQUEST = 'webHook/GET_WEB_HOOK_REQUEST';
-export const GET_WEB_HOOK_RESET = 'webHook/GET_WEB_HOOK_RESET';
+export const  GET_WEB_HOOK_SUCCESS: string = 'webHook/GET_WEB_HOOK_SUCCESS';
+export const  GET_WEB_HOOK_FAILED: string = 'webHook/GET_WEB_HOOK_FAILED';
+export const  GET_WEB_HOOK_REQUEST: string = 'webHook/GET_WEB_HOOK_REQUEST';
+export const  GET_WEB_HOOK_RESET: string = 'webHook/GET_WEB_HOOK_RESET';
 
-export const DELETE_WEB_HOOK_SUCCESS = 'webHook/DELETE_WEB_HOOK_SUCCESS';
-export const DELETE_WEB_HOOK_FAILED = 'webHook/DELETE_WEB_HOOK_FAILED';
-export const DELETE_WEB_HOOK_REQUEST = 'webHook/DELETE_WEB_HOOK_REQUEST';
-export const DELETE_WEB_HOOK_RESET = 'webHook/DELETE_WEB_HOOK_RESET';
+export const  DELETE_WEB_HOOK_SUCCESS: string = 'webHook/DELETE_WEB_HOOK_SUCCESS';
+export const  DELETE_WEB_HOOK_FAILED: string = 'webHook/DELETE_WEB_HOOK_FAILED';
+export const  DELETE_WEB_HOOK_REQUEST: string = 'webHook/DELETE_WEB_HOOK_REQUEST';
+export const  DELETE_WEB_HOOK_RESET: string = 'webHook/DELETE_WEB_HOOK_RESET';
 
-export const PAGINATE_NEXT = 'webHook/PAGINATE_NEXT';
-export const PAGINATE_PREV = 'webHook/PAGINATE_PREV';
-export const PAGINATE_RESET = 'webHook/PAGINATE_RESET';
+export const  PAGINATE_NEXT: string = 'webHook/PAGINATE_NEXT';
+export const  PAGINATE_PREV: string = 'webHook/PAGINATE_PREV';
+export const  PAGINATE_RESET: string = 'webHook/PAGINATE_RESET';

@@ -8,7 +8,7 @@ let browser: $TSFixMe;
 let page: $TSFixMe;
 
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 const user = {
     email,
     password,
@@ -29,7 +29,7 @@ describe('Registration API', () => {
     it(
         'User cannot register with invalid email',
         async () => {
-            const invalidEmail = 'invalidEmail';
+            const  invalidEmail: string = 'invalidEmail';
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
             });
@@ -88,7 +88,7 @@ describe('Registration API', () => {
     it(
         'User cannot register with personal email',
         async () => {
-            const personalEmail = 'personalEmail@gmail.com';
+            const  personalEmail: string = 'personalEmail@gmail.com';
             const user = {
                 email: personalEmail,
                 password: '1234567890',

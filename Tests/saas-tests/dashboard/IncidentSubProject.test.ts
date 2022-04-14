@@ -345,7 +345,7 @@ describe('Incident API With SubProjects', () => {
                 (e: $TSFixMe) => e.click()
             );
 
-            const type = 'internal';
+            const  type: string = 'internal';
             // fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);
@@ -408,7 +408,7 @@ describe('Incident API With SubProjects', () => {
     //     'should get incident timeline and paginate for incident timeline in sub-project',
     //     async done => {
     //         const internalNote = utils.generateRandomString();
-    //         const type = 'internal';
+    //         const  type: string = 'internal';
     //         await init.loginUser(newUser, page);
     //         // switch to invited project for new user
     //         await init.switchProject(projectName, page);

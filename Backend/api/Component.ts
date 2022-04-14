@@ -319,7 +319,7 @@ router.post(
             }
 
             // fetch monitors
-            const select = '_id name';
+            const  select: string = '_id name';
             let monitors = await MonitorService.findBy({
                 query: { componentId: componentId },
                 select,

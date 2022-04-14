@@ -162,7 +162,7 @@ class ErrorTracker {
             const string = errorEvent.message
                 ? errorEvent.message.toLowerCase()
                 : errorEvent.toLowerCase();
-            const substring = 'script error';
+            const  substring: string = 'script error';
             if (string.indexOf(substring) > -1) {
                 return; // third party error
             } else {

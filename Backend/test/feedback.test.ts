@@ -111,7 +111,7 @@ describe('Feedback API', function (): void {
                 'Thank you for your feedback!'
             );
         } else {
-            const subject = 'Welcome to OneUptime.';
+            const  subject: string = 'Welcome to OneUptime.';
             const status = emailStatuses.find(
                 (status: $TSFixMe) => status.subject === subject
             );

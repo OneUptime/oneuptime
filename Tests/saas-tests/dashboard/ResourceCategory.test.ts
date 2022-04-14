@@ -5,12 +5,12 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 const componentName = utils.generateRandomString();
 const secondEmail = utils.generateRandomBusinessEmail();
 const teamEmail = utils.generateRandomBusinessEmail();
-const newProjectName = 'Test';
-const resourceCategory = 'stat';
+const  newProjectName: string = 'Test';
+const  resourceCategory: string = 'stat';
 const user = {
     email,
     password,
@@ -239,7 +239,7 @@ describe('Resource Category', () => {
                 timeout: init.timeout,
             });
 
-            const resourceCategoryCounterSelector = '#resourceCategoryCount';
+            const  resourceCategoryCounterSelector: string = '#resourceCategoryCount';
             const resourceCategoryCount = await init.page$Eval(
                 page,
                 resourceCategoryCounterSelector,

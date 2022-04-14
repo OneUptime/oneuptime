@@ -1,8 +1,8 @@
 import { find, save, update } from '../util/db';
 
-const projectCollection = 'projects';
-const componentCollection = 'components';
-const monitorCollection = 'monitors';
+const  projectCollection: string = 'projects';
+const  componentCollection: string = 'components';
+const  monitorCollection: string = 'monitors';
 
 async function run(): void {
     const projects = await find(projectCollection, {});

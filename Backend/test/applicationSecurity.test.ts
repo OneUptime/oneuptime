@@ -361,7 +361,7 @@ describe('Application Security API', function (): void {
 
     it('should not scan an application security if it does not exist', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+        const  applicationSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
             .post(
@@ -379,7 +379,7 @@ describe('Application Security API', function (): void {
 
     it('should not delete a non-existing application security', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+        const  applicationSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
             .delete(
@@ -397,7 +397,7 @@ describe('Application Security API', function (): void {
 
     it('should not get a non-existing application security', (done: $TSFixMe): void => {
         const authorization: string = `Basic ${token}`;
-        const applicationSecurityId = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
+        const  applicationSecurityId: string = '5e8db9752cc46e3a229ebc51'; // non-existing ObjectId
 
         request
             .get(

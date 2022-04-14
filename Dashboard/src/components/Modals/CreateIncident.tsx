@@ -1063,7 +1063,7 @@ CreateIncident.propTypes = {
     incidentTemplateObj: PropTypes.object,
 };
 
-const formName = 'CreateNewIncident';
+const  formName: string = 'CreateNewIncident';
 
 const CreateIncidentForm = reduxForm({
     form: formName, // a unique identifier for this form
@@ -1098,7 +1098,7 @@ function mapStateToProps(state: RootState, props: $TSFixMe) {
         }
     }
 
-    const incidentType = 'offline';
+    const  incidentType: string = 'offline';
     const initialValues = {
         incidentType,
         selectAllMonitors: false,

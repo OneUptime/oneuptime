@@ -149,8 +149,8 @@ export default class Service {
         { note, incidentState, statusNoteStatus }: $TSFixMe = {}
     ): void {
         const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
-        const yellow = '#fedc56';
-        const green = '#028A0F';
+        const  yellow: string = '#fedc56';
+        const  green: string = '#028A0F';
         let payload;
         let webHookURL;
         let httpMethod;

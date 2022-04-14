@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 
-const monitorCollection = 'monitors';
+const  monitorCollection: string = 'monitors';
 
 async function run(): void {
     const monitorsWithOldCriteria = await find(monitorCollection, {

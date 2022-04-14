@@ -7,9 +7,9 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email = utils.generateRandomBusinessEmail();
 const teamEmail = utils.generateRandomBusinessEmail();
 const projectOwnerMail = utils.generateRandomBusinessEmail();
-const password = '1234567890';
-const newProjectName = 'Test';
-const subProjectName = 'Trial';
+const  password: string = '1234567890';
+const  newProjectName: string = 'Test';
+const  subProjectName: string = 'Trial';
 
 describe('Sub-Project API', () => {
     const operationTimeOut = init.timeout;

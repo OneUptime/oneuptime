@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
-const containerSecurityCollection = 'containersecurities';
+const  containerSecurityCollection: string = 'containersecurities';
 
 async function run(): void {
     const containerSecurities = await find(containerSecurityCollection, {

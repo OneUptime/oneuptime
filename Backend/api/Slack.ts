@@ -126,7 +126,7 @@ router.post(
                         botAccessToken: JSONresponse.bot.bot_access_token,
                     };
 
-                    const integrationType = 'slack';
+                    const  integrationType: string = 'slack';
                     try {
                         const slack = await IntegrationService.create(
                             projectId,
@@ -156,7 +156,7 @@ router.delete(
 
         const userId = req.user ? req.user.id : null;
 
-        const integrationType = 'slack';
+        const  integrationType: string = 'slack';
 
         try {
             const data = await IntegrationService.deleteBy(
@@ -180,7 +180,7 @@ router.get(
     getUser,
     async (req: ExpressRequest, res: ExpressResponse) => {
         const projectId = req.params.projectId;
-        const integrationType = 'slack';
+        const  integrationType: string = 'slack';
 
         try {
             const select =

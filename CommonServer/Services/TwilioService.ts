@@ -1360,8 +1360,8 @@ export default class TwilioService {
                 '. Please go to OneUptime Dashboard or Mobile app to acknowledge or resolve this incident. ' +
                 extraInfo +
                 '</Say>';
-            const hangUp = '<Hangup />';
-            const twiml = '<Response> ' + message + hangUp + '</Response>';
+            const  hangUp: string = '<Hangup />';
+            const  twiml: string = '<Response> ' + message + hangUp + '</Response>';
             callBody = twiml;
             const options = {
                 twiml: twiml,

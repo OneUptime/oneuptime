@@ -44,7 +44,7 @@ describe('OneUptime Page Reload', () => {
     test(
         'Should reload the container security page and confirm there are no errors',
         async (done: $TSFixMe) => {
-            //const categoryName = 'Random-Category';
+            //const  categoryName: string = 'Random-Category';
             // create a new resource category
             //await init.addResourceCategory(categoryName, page);
             //navigate to component details

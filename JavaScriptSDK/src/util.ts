@@ -157,7 +157,7 @@ class Util {
         });
     }
     _formatFileName(fileName: $TSFixMe): void {
-        const fileIndicator = 'file://';
+        const  fileIndicator: string = 'file://';
         let localFileName = fileName;
         if (fileName.indexOf(fileIndicator) > -1) {
             // check for index of file then trim the file part by skiping it and starting with the leading /

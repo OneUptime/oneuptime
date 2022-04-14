@@ -266,7 +266,7 @@ describe('Email Logs API', function (): void {
             .set('Authorization', authorization)
             .send();
 
-        const searchString = '/vers';
+        const  searchString: string = '/vers';
         const res = await request
             .post('/email-logs/search')
             .set('Authorization', authorization)

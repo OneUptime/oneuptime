@@ -703,7 +703,7 @@ router.post(
             const data = req.body;
             data.monitorId = monitorId;
 
-            const select = 'type criteria';
+            const  select: string = 'type criteria';
             const monitor = await MonitorService.findOneBy({
                 query: { _id: monitorId },
                 select,
@@ -1044,7 +1044,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         try {
             const { monitorId } = req.params;
-            const select = 'disabled';
+            const  select: string = 'disabled';
             const monitor = await MonitorService.findOneBy({
                 query: { _id: monitorId },
                 select,
@@ -1100,7 +1100,7 @@ router.post(
             const { monitorId } = req.params;
             const { statuses, start, range } = req.body;
 
-            const select = '_id';
+            const  select: string = '_id';
             const [monitor, result] = await Promise.all([
                 MonitorService.findOneBy({ query: { _id: monitorId }, select }),
                 MonitorService.calcTime(statuses, start, range),

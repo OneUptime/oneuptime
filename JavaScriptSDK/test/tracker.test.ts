@@ -6,7 +6,7 @@ import chaihttp from 'chai-http';
 chai.use(chaihttp);
 
 import { user, generateSecondRandomBusinessEmail } from './util';
-const API_URL = 'http://localhost:3002/api';
+const  API_URL: string = 'http://localhost:3002/api';
 
 const request = chai.request.agent(API_URL);
 const timeout = 5000;
@@ -241,7 +241,7 @@ describe('Fingerpint', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const errorMessage = 'Uncaught Exception';
+        const  errorMessage: string = 'Uncaught Exception';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
         expect(event.fingerprint[0]).to.equal(errorMessage);
@@ -255,7 +255,7 @@ describe('Fingerpint', (): void => {
         );
         const fingerprints = ['custom', 'errors'];
         tracker.setFingerprint(fingerprints);
-        const errorMessage = 'Uncaught Exception';
+        const  errorMessage: string = 'Uncaught Exception';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
         expect(event.fingerprint[0]).to.equal(fingerprints[0]);
@@ -268,9 +268,9 @@ describe('Fingerpint', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const fingerprint = 'custom-fingerprint';
+        const  fingerprint: string = 'custom-fingerprint';
         tracker.setFingerprint(fingerprint);
-        const errorMessage = 'Uncaught Exception';
+        const  errorMessage: string = 'Uncaught Exception';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
         expect(event.fingerprint[0]).to.equal(fingerprint);
@@ -284,7 +284,7 @@ describe('Capture Message', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const errorMessage = 'This is a test';
+        const  errorMessage: string = 'This is a test';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
         expect(event.type).to.equal('message');
@@ -302,7 +302,7 @@ describe('Capture Message', (): void => {
             customTimeline.content,
             customTimeline.type
         );
-        const errorMessage = 'This is a test';
+        const  errorMessage: string = 'This is a test';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
         expect(event.timeline.length).to.equal(2);
@@ -318,7 +318,7 @@ describe('Capture Exception', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const errorMessage = 'Error Found';
+        const  errorMessage: string = 'Error Found';
         await tracker.captureException(new Error(errorMessage));
         const event = tracker.getCurrentEvent();
         expect(event.type).to.equal('exception');
@@ -331,7 +331,7 @@ describe('Capture Exception', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const errorMessage = 'Error Found';
+        const  errorMessage: string = 'Error Found';
         await tracker.captureException(new Error(errorMessage));
         const event = tracker.getCurrentEvent();
         expect(event.type).to.equal('exception');
@@ -346,7 +346,7 @@ describe('Capture Exception', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const errorMessage = 'Error Found';
+        const  errorMessage: string = 'Error Found';
         await tracker.captureException(new Error(errorMessage));
         const event = tracker.getCurrentEvent();
         const frame = event.exception.stacktrace.frames[0];
@@ -363,8 +363,8 @@ describe('Capture Exception', (): void => {
             errorTracker.key
         );
         let event, newEvent;
-        const errorMessage = 'Error Found';
-        const errorMessageObj = 'Object Error Found';
+        const  errorMessage: string = 'Error Found';
+        const  errorMessageObj: string = 'Object Error Found';
         await tracker.captureMessage(errorMessage).then(evt => {
             event = evt.data;
         });
@@ -397,8 +397,8 @@ describe('Capture Exception', (): void => {
             errorTracker.key
         );
         let event, newEvent;
-        const errorMessage = 'Error Found';
-        const errorMessageObj = 'Object Error Found';
+        const  errorMessage: string = 'Error Found';
+        const  errorMessageObj: string = 'Object Error Found';
         // add a timelie action to the first event
 
         tracker.addToTimeline(customTimeline);
@@ -441,7 +441,7 @@ describe('SDK Version', (): void => {
             errorTracker._id,
             errorTracker.key
         );
-        const errorMessage = 'Uncaught Exception';
+        const  errorMessage: string = 'Uncaught Exception';
         tracker.captureMessage(errorMessage);
         const event = tracker.getCurrentEvent();
         expect(event.sdk.name).to.be.a('string');
@@ -459,7 +459,7 @@ describe('Code Capture Snippet', (): void => {
             options
         );
         let event = null;
-        const errorMessageObj = 'Object Error Found';
+        const  errorMessageObj: string = 'Object Error Found';
         await tracker.captureException(new Error(errorMessageObj)).then(evt => {
             event = evt.data;
         });
@@ -479,7 +479,7 @@ describe('Code Capture Snippet', (): void => {
             options
         );
         let event = null;
-        const errorMessageObj = 'Object Error Found';
+        const  errorMessageObj: string = 'Object Error Found';
         await tracker.captureException(new Error(errorMessageObj)).then(evt => {
             event = evt.data;
         });
@@ -499,7 +499,7 @@ describe('Code Capture Snippet', (): void => {
             options
         );
         let event = null;
-        const errorMessageObj = 'Object Error Found';
+        const  errorMessageObj: string = 'Object Error Found';
         await tracker.captureException(new Error(errorMessageObj)).then(evt => {
             event = evt.data;
         });
@@ -519,7 +519,7 @@ describe('Code Capture Snippet', (): void => {
             options
         );
         let event = null;
-        const errorMessageObj = 'Object Error Found';
+        const  errorMessageObj: string = 'Object Error Found';
         await tracker.captureException(new Error(errorMessageObj)).then(evt => {
             event = evt.data;
         });

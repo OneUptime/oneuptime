@@ -28,7 +28,7 @@ router.get(
             if (!limit) {
                 limit = 10;
             }
-            const select = 'userId createdAt ipLocation device status';
+            const  select: string = 'userId createdAt ipLocation device status';
             const historyLogs = await loginHistoryService.findBy({
                 query: { userId },
                 skip,

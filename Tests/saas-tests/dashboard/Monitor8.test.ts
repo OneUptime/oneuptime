@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // user credentials
-const password = '1234567890';
+const  password: string = '1234567890';
 
 describe('API Monitor API', () => {
     const operationTimeOut = init.timeout;

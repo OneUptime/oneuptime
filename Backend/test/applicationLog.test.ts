@@ -502,7 +502,7 @@ describe('Application Log API', function (): void {
     });
 
     it('should not edit an application log with empty name', (done: $TSFixMe): void => {
-        const newName = '';
+        const  newName: string = '';
         const authorization: string = `Basic ${token}`;
         request
             .put(
@@ -520,7 +520,7 @@ describe('Application Log API', function (): void {
     });
 
     it('should not edit an application log with same name as existing application log', (done: $TSFixMe): void => {
-        const newName = 'Astro';
+        const  newName: string = 'Astro';
         const authorization: string = `Basic ${token}`;
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
@@ -549,7 +549,7 @@ describe('Application Log API', function (): void {
     });
 
     it('should edit an application log', (done: $TSFixMe): void => {
-        const newName = 'Rodeo';
+        const  newName: string = 'Rodeo';
         const authorization: string = `Basic ${token}`;
         request
             .put(
@@ -566,7 +566,7 @@ describe('Application Log API', function (): void {
     });
 
     it('should edit an application log but not change application log key', (done: $TSFixMe): void => {
-        const newName = 'Rodeo II';
+        const  newName: string = 'Rodeo II';
         const authorization: string = `Basic ${token}`;
         request
             .put(

@@ -971,7 +971,7 @@ AlertAdvanceOption.propTypes = {
     currentProject: PropTypes.object,
 };
 
-const formName = 'AlertAdvanceOption';
+const  formName: string = 'AlertAdvanceOption';
 
 const AlertAdvanceOptionForm = new reduxForm({
     form: formName,

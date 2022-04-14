@@ -48,6 +48,6 @@ export const encryptedFields: EncryptedFields = [
     'providerCredentials.twilio.authToken',
 ];
 
-export const slugifyField: string = '';
+export const  slugifyField: string = '';
 
 export default mongoose.model('SmsProvider', schema);

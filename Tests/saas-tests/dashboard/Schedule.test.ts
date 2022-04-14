@@ -6,7 +6,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 
 const user = {
     email,
@@ -39,8 +39,8 @@ describe('Schedule', () => {
     test(
         'should show pricing plan modal when enable team rotation is clicked',
         async (done: $TSFixMe) => {
-            const projectName = 'newproject';
-            const newScheduleName = 'test';
+            const  projectName: string = 'newproject';
+            const  newScheduleName: string = 'test';
 
             await init.addProject(page, projectName);
 
@@ -181,8 +181,8 @@ describe('Schedule', () => {
     test(
         'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
         async (done: $TSFixMe) => {
-            const projectName = 'newproject1';
-            const newScheduleName = 'test';
+            const  projectName: string = 'newproject1';
+            const  newScheduleName: string = 'test';
 
             await init.addProject(page, projectName);
 

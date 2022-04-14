@@ -359,7 +359,7 @@ describe('Log Containers', () => {
     test.skip(
         'Should update category for created log container',
         async (done: $TSFixMe) => {
-            const categoryName = 'Another-Category';
+            const  categoryName: string = 'Another-Category';
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
 
@@ -411,7 +411,7 @@ describe('Log Containers', () => {
     test.skip(
         'Should delete category for created log container and reflect',
         async (done: $TSFixMe) => {
-            const categoryName = 'Another-Category';
+            const  categoryName: string = 'Another-Category';
 
             // confirm the application log has a category
             await init.navigateToApplicationLogDetails(

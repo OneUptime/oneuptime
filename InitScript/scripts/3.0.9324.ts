@@ -1,8 +1,8 @@
 import { find, update } from '../util/db';
 import { ObjectId } from 'mongodb';
 
-const monitorCollection = 'monitors';
-const incidentCollection = 'incidents';
+const  monitorCollection: string = 'monitors';
+const  incidentCollection: string = 'incidents';
 
 async function run(): void {
     // fetch all monitor that is not online

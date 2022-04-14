@@ -208,7 +208,7 @@ router.get(
                 });
             }
             // Call the ResourceCategoryService
-            const selectResourceCat = 'projectId name createdById createdAt';
+            const  selectResourceCat: string = 'projectId name createdById createdAt';
             const [resourceCategories, count] = await Promise.all([
                 ResourceCategoryService.findBy({
                     query: { projectId },

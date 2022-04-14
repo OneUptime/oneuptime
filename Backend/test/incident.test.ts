@@ -1,7 +1,7 @@
 process.env['PORT'] = 3020;
 
 process.env['IS_SAAS_SERVICE'] = true;
-const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
+const  HTTP_TEST_SERVER_URL: string = 'http://localhost:3010';
 import { expect } from 'chai';
 import userData from './data/user';
 import chai from 'chai';
@@ -346,8 +346,8 @@ describe('Incident API', function (): void {
 
     it('should update incident details.', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const incidentTitle = 'New incident title';
-        const incidentDescription = 'New incident description';
+        const  incidentTitle: string = 'New incident title';
+        const  incidentDescription: string = 'New incident description';
 
         const res = await request
             .put(`/incident/${projectId}/incident/${incidentId}/details`)
@@ -488,7 +488,7 @@ describe('Incident API', function (): void {
 
     it('should fetch list of investigation incident messages', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const type = 'investigation';
+        const  type: string = 'investigation';
         const res = await request
             .get(
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`
@@ -515,7 +515,7 @@ describe('Incident API', function (): void {
 
     it('should fetch list of internal incident messages', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const type = 'internal';
+        const  type: string = 'internal';
         const res = await request
             .get(
                 `/incident/${projectId}/incident/${incidentId}/message?type=${type}`

@@ -1,8 +1,8 @@
 import { find, update, removeField, rename } from '../util/db';
 
-const monitorCategoryCollection = 'monitorcategories';
-const resourceCategoryCollection = 'resourcecategories';
-const monitorCollection = 'monitors';
+const  monitorCategoryCollection: string = 'monitorcategories';
+const  resourceCategoryCollection: string = 'resourcecategories';
+const  monitorCollection: string = 'monitors';
 
 async function run(): void {
     // rename collection

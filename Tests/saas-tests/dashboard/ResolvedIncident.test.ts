@@ -5,7 +5,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 
 // parent user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();

@@ -51,7 +51,7 @@ export default class Service {
         let updatedData = await EmailTemplateModel.updateMany(query, {
             $set: data,
         });
-        const select = 'projectId subject body emailType allowedVariables';
+        const  select: string = 'projectId subject body emailType allowedVariables';
         updatedData = await this.findBy({
             query,
             select,
@@ -119,7 +119,7 @@ export default class Service {
     }
 
     async getTemplates(projectId: ObjectID): void {
-        const select = 'projectId subject body emailType allowedVariables';
+        const  select: string = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
             defaultTemplate.map(async template => {
                 const emailTemplate = await this.findOneBy({
@@ -139,7 +139,7 @@ export default class Service {
     }
 
     async resetTemplate(projectId: ObjectID, templateId: $TSFixMe): void {
-        const select = 'projectId subject body emailType allowedVariables';
+        const  select: string = 'projectId subject body emailType allowedVariables';
         const oldTemplate = await this.findOneBy({
             query: { _id: templateId },
             select,

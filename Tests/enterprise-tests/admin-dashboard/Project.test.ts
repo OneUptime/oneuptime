@@ -7,7 +7,7 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 
 describe('Project', () => {
     const operationTimeOut = init.timeout;
@@ -35,7 +35,7 @@ describe('Project', () => {
         'should not show upgrade/downgrade box if IS_SAAS_SERVICE is false',
         async () => {
             const email = utils.generateRandomBusinessEmail();
-            const password = '1234567890';
+            const  password: string = '1234567890';
 
             await page.goto(utils.ADMIN_DASHBOARD_URL, {
                 waitUntil: 'networkidle0',

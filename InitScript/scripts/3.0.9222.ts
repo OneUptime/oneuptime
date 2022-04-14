@@ -1,7 +1,7 @@
 import { find, update, findOne } from '../util/db';
 
-const scheduledEventNoteCollection = 'scheduledeventnotes';
-const scheduledEventCollection = 'scheduledevents';
+const  scheduledEventNoteCollection: string = 'scheduledeventnotes';
+const  scheduledEventCollection: string = 'scheduledevents';
 
 // run this script once
 async function run(): void {

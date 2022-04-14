@@ -212,7 +212,7 @@ class BlockChart extends Component<ComponentProps> {
         }
 
         const dateId = title.replace(/, | /g, '');
-        const extra = ' resize-style';
+        const  extra: string = ' resize-style';
         let style, classes, content;
 
 

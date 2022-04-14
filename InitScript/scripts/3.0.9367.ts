@@ -1,7 +1,7 @@
 import { find, update, findOne } from '../util/db';
 
-const monitorCollection = 'monitors';
-const componentCollection = 'components';
+const  monitorCollection: string = 'monitors';
+const  componentCollection: string = 'components';
 
 async function run(): void {
     const monitors = await find(monitorCollection, { deleted: false });

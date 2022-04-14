@@ -10,7 +10,7 @@ import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { ValidateField } from '../../config';
 
-const formName = 'UserAdminModeEnableForm';
+const  formName: string = 'UserAdminModeEnableForm';
 
 class UserAdminModeEnableModal extends Component<ComponentProps> {
 

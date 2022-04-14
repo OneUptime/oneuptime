@@ -2,8 +2,8 @@ import { find, save, update, removeField } from '../util/db';
 import getDomain from '../util/getDomain';
 import randomChar from '../util/randomChar';
 
-const statusPageCollection = 'statuspages';
-const domainVerificationTokenCollection = 'domainverificationtokens';
+const  statusPageCollection: string = 'statuspages';
+const  domainVerificationTokenCollection: string = 'domainverificationtokens';
 
 async function run(): void {
     const statusPages = await find(statusPageCollection, {

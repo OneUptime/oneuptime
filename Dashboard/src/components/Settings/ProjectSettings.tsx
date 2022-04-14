@@ -181,7 +181,7 @@ ProjectSettings.propTypes = {
     closeModal: PropTypes.func,
 };
 
-const formName = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
+const  formName: string = 'ProjectSettings' + Math.floor(Math.random() * 10 + 1);
 
 const onSubmitSuccess = (result: $TSFixMe, dispatch: Dispatch) => dispatch(reset(formName));
 

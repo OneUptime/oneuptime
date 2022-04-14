@@ -2,15 +2,15 @@ import BackendAPI from 'CommonUI/src/utils/api/backend';
 import { Dispatch } from 'redux';
 import ObjectID from 'Common/Types/ObjectID';
 import ErrorPayload from 'CommonUI/src/payload-types/error';
-export const OPEN_SUBSCRIBE_MENU = 'OPEN_SUBSCRIBE_MENU';
-export const SELECTED_MENU = 'SELECTED_MENU';
-export const USER_DATA = 'USER_DATA';
-export const USER_DATA_RESET = 'USER_DATA_RESET';
-export const SUBSCRIBE_SUCCESS = 'SUBSCRIBE_SUCCESS';
-export const SUBSCRIBE_REQUEST = 'SUBSCRIBE_REQUEST';
-export const SUBSCRIBE_FAILURE = 'SUBSCRIBE_FAILURE';
-export const VALIDATION_ERROR = 'VALIDATION_ERROR';
-export const OPEN_LANGUAGE_MENU = 'OPEN_LANGUAGE_MENU';
+export const  OPEN_SUBSCRIBE_MENU: string = 'OPEN_SUBSCRIBE_MENU';
+export const  SELECTED_MENU: string = 'SELECTED_MENU';
+export const  USER_DATA: string = 'USER_DATA';
+export const  USER_DATA_RESET: string = 'USER_DATA_RESET';
+export const  SUBSCRIBE_SUCCESS: string = 'SUBSCRIBE_SUCCESS';
+export const  SUBSCRIBE_REQUEST: string = 'SUBSCRIBE_REQUEST';
+export const  SUBSCRIBE_FAILURE: string = 'SUBSCRIBE_FAILURE';
+export const  VALIDATION_ERROR: string = 'VALIDATION_ERROR';
+export const  OPEN_LANGUAGE_MENU: string = 'OPEN_LANGUAGE_MENU';
 
 export const openSubscribeMenu = (): void => {
     return {

@@ -20,7 +20,7 @@ import DataPathHoC from '../DataPathHoC';
 import { v4 as uuidv4 } from 'uuid';
 import { addCurrentComponent } from '../../actions/component';
 
-const formName = 'changeMonitorComponentForm';
+const  formName: string = 'changeMonitorComponentForm';
 
 interface ChangeMonitorComponentProps {
     closeModal: Function;

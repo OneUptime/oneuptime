@@ -6,7 +6,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 const monitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
 
@@ -51,7 +51,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.subscribers-tab');
 
-            const addNewSubscriber = '#addSubscriberButton';
+            const  addNewSubscriber: string = '#addSubscriberButton';
 
             await init.pageWaitForSelector(page, addNewSubscriber);
 
@@ -115,7 +115,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.subscribers-tab');
 
-            const addNewSubscriber = '#addSubscriberButton';
+            const  addNewSubscriber: string = '#addSubscriberButton';
 
             await init.pageWaitForSelector(page, addNewSubscriber);
 

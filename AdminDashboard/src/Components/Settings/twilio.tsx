@@ -36,7 +36,7 @@ function validate(values: $TSFixMe) {
     return errors;
 }
 
-const settingsType = 'twilio';
+const  settingsType: string = 'twilio';
 
 const fields = [
     {

@@ -94,8 +94,8 @@ export default class Service {
         duration: $TSFixMe
     ): void {
         const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
-        const yellow = '#fedc56';
-        const green = '#028A0F';
+        const  yellow: string = '#fedc56';
+        const  green: string = '#028A0F';
         let payload;
 
         if (incident.resolved) {
@@ -282,7 +282,7 @@ export default class Service {
         monitor: $TSFixMe
     ): void {
         const uri: string = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
-        const yellow = '#fedc56';
+        const  yellow: string = '#fedc56';
         const payload = {
             '@context': 'https://schema.org/extensions',
             '@type': 'MessageCard',

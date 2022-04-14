@@ -461,7 +461,7 @@ describe('Team API with Sub-Projects', async function (): void {
 
     it('should not add members without business emails (role -> `Member`)', async (): void => {
         const authorization: string = `Basic ${token}`;
-        const emails = 'sample.yahoo.com,sample@gmail.com';
+        const  emails: string = 'sample.yahoo.com,sample@gmail.com';
         const res = await request
 
             .post(`/team/${projectId}`)

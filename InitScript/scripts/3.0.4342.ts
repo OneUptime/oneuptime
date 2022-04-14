@@ -1,9 +1,9 @@
 import { find, update, save } from '../util/db';
 
-const monitorCollection = 'monitors';
-const projectsCollection = 'projects';
-const incidentsCollection = 'incidents';
-const incidentprioritiesCollection = 'incidentpriorities';
+const  monitorCollection: string = 'monitors';
+const  projectsCollection: string = 'projects';
+const  incidentsCollection: string = 'incidents';
+const  incidentprioritiesCollection: string = 'incidentpriorities';
 
 async function run(): void {
     const monitors = await find(monitorCollection, {

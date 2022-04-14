@@ -6,7 +6,7 @@ import 'should';
 
 // user credentials
 const email = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Credential Page', () => {
@@ -187,8 +187,8 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#editCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#dockerCredentialForm');
-            const dockerUsername = 'username';
-            const dockerPassword = 'hello1234567890';
+            const  dockerUsername: string = 'username';
+            const  dockerPassword: string = 'hello1234567890';
             await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
 
             await init.pageType(page, '#dockerUsername', dockerUsername);
@@ -239,8 +239,8 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#editCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#dockerCredentialForm');
-            const dockerUsername = 'invalidusername';
-            const dockerPassword = 'hello1234567890';
+            const  dockerUsername: string = 'invalidusername';
+            const  dockerPassword: string = 'hello1234567890';
 
             await init.pageClick(page, '#dockerUsername');
 

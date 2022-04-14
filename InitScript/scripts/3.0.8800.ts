@@ -1,6 +1,6 @@
 import { find, update } from '../util/db';
 import getSlug from '../util/getSlug';
-const errortrackerCollection = 'errortrackers';
+const  errortrackerCollection: string = 'errortrackers';
 
 async function run(): void {
     const errorTrackers = await find(errortrackerCollection, {

@@ -7,10 +7,10 @@ import 'should';
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const secondEmail = utils.generateRandomBusinessEmail();
-const password = '1234567890';
+const  password: string = '1234567890';
 const teamEmail = utils.generateRandomBusinessEmail();
-const newProjectName = 'Test';
-const subProjectName = 'Trial';
+const  newProjectName: string = 'Test';
+const  subProjectName: string = 'Trial';
 let browser: $TSFixMe, page: $TSFixMe;
 
 describe('Project Setting: Change Plan', () => {
